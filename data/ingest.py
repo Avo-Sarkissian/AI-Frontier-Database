@@ -1,14 +1,17 @@
 """
 Data ingestion: scrapes live model data from Artificial Analysis leaderboard.
 Falls back to cached CSV if scraping fails.
+Each successful scrape is also saved as a timestamped snapshot for trend tracking.
 """
 import re
 import json
+from datetime import date
 import pandas as pd
 from pathlib import Path
 
-RAW_DIR = Path(__file__).parent / "raw"
+RAW_DIR    = Path(__file__).parent / "raw"
 CACHE_PATH = RAW_DIR / "aa_models.csv"
+HIST_DIR   = RAW_DIR / "history"
 
 
 def _parse_price(val: str) -> float:
@@ -75,6 +78,28 @@ def load_cached() -> pd.DataFrame:
 def save_cache(df: pd.DataFrame):
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(CACHE_PATH, index=False)
+    # Also save a timestamped snapshot for trend tracking
+    HIST_DIR.mkdir(parents=True, exist_ok=True)
+    snap_path = HIST_DIR / f"aa_models_{date.today().isoformat()}.csv"
+    if not snap_path.exists():           # one snapshot per calendar day
+        snap = df.copy()
+        snap["scraped_at"] = date.today().isoformat()
+        snap.to_csv(snap_path, index=False)
+
+
+def load_history() -> pd.DataFrame:
+    """Load all timestamped snapshots into one long DataFrame."""
+    if not HIST_DIR.exists():
+        return pd.DataFrame()
+    frames = []
+    for path in sorted(HIST_DIR.glob("aa_models_*.csv")):
+        snap = pd.read_csv(path)
+        if "scraped_at" not in snap.columns:
+            snap["scraped_at"] = path.stem.replace("aa_models_", "")
+        frames.append(snap)
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)
 
 
 def get_models(raw_rows: list | None = None) -> pd.DataFrame:
