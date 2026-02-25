@@ -120,7 +120,7 @@ html, body {
 .stat-label {
   font-size: 10px;
   font-weight: 500;
-  color: var(--text-3);
+  color: #777777;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   white-space: nowrap;
@@ -139,7 +139,7 @@ html, body {
 .filter-label {
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-3);
+  color: #777777;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   white-space: nowrap;
@@ -386,7 +386,7 @@ html, body {
   font-family: 'Inter', sans-serif !important;
   font-size: 12px !important;
   font-weight: 500 !important;
-  color: #666666 !important;
+  color: #999999 !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 2px solid transparent !important;
@@ -399,7 +399,7 @@ html, body {
 }
 
 .tab:hover {
-  color: #aaaaaa !important;
+  color: #cccccc !important;
 }
 
 .tab--selected {
@@ -426,7 +426,7 @@ html, body {
 
 .chart-desc {
   font-size: 12px;
-  color: var(--text-3);
+  color: #777777;
   line-height: 1.6;
   max-width: 720px;
   letter-spacing: 0.01em;
@@ -471,7 +471,7 @@ html, body {
   padding: 14px 32px;
   border-top: 1px solid var(--border);
   font-size: 11px;
-  color: var(--text-4);
+  color: #555555;
   letter-spacing: 0.02em;
   margin-top: 8px;
 }
