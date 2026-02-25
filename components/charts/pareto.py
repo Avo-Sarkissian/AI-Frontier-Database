@@ -155,7 +155,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#555555", size=10, family=_font),
+            font=dict(color="#555555", size=10, family=_FONT),
             itemsizing="constant",
             orientation="v",
             x=1.01,
