@@ -1,105 +1,275 @@
-/* AI Frontier — Global Styles */
+/* ═══════════════════════════════════════════════════
+   AI Frontier — Design System
+   Reference: Linear, Vercel, high-density dark dashboards
+   ═══════════════════════════════════════════════════ */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: #0f1117;
-  color: #e2e8f0;
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+:root {
+  --bg:           #0a0a0a;
+  --bg-card:      #111111;
+  --bg-elevated:  #161616;
+  --bg-hover:     #1a1a1a;
+  --border:       rgba(255, 255, 255, 0.07);
+  --border-faint: rgba(255, 255, 255, 0.04);
+  --text-1:       #f2f2f2;
+  --text-2:       #888888;
+  --text-3:       #444444;
+  --accent:       #00d4ff;
+  --accent-dim:   rgba(0, 212, 255, 0.12);
+  --green:        #22c55e;
+  --green-dim:    rgba(34, 197, 94, 0.12);
+  --radius:       8px;
+  --radius-sm:    5px;
 }
 
-/* ---- Header ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Header ───────────────────────────────────────── */
 .header {
-  padding: 24px 40px 20px;
-  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.header-left {
   display: flex;
   align-items: baseline;
-  gap: 16px;
-}
-.header h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: #f8fafc;
-}
-.header .subtitle {
-  font-size: 13px;
-  color: #475569;
-  font-weight: 400;
+  gap: 12px;
 }
 
-/* ---- Stat bar ---- */
+.header h1 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-1);
+  text-transform: uppercase;
+}
+
+.header .subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0;
+}
+
+.header-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 4px;
+  padding: 2px 7px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Stat bar ─────────────────────────────────────── */
 .stat-bar {
   display: flex;
-  gap: 32px;
-  padding: 14px 40px;
-  border-bottom: 1px solid #1e293b;
-  background: #0a0c10;
+  gap: 1px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--border);  /* gap lines = border color */
 }
+
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: #00d4ff;
-  letter-spacing: -0.5px;
-  line-height: 1;
-}
-.stat-label {
-  font-size: 11px;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  justify-content: center;
+  gap: 3px;
+  padding: 16px 24px;
+  background: var(--bg);
+  flex: 1;
+  min-width: 0;
 }
 
-/* ---- Filters ---- */
-.filters {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 40px;
-  border-bottom: 1px solid #1e293b;
-  flex-wrap: wrap;
-}
-.filter-label {
-  font-size: 11px;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.stat:first-child { padding-left: 0; }
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.03em;
+  line-height: 1;
   white-space: nowrap;
 }
 
-/* Dropdown overrides */
-.Select-control, .Select-menu-outer {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
-}
-.Select-value-label, .Select-option { color: #e2e8f0 !important; }
-.Select-placeholder { color: #64748b !important; }
-
-/* ---- Chart container ---- */
-.chart-card {
-  margin: 24px 40px;
-  background: #0a0c10;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 8px;
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
-/* ---- Footer ---- */
-.footer {
-  padding: 16px 40px;
-  border-top: 1px solid #1e293b;
-  font-size: 11px;
-  color: #334155;
+/* ── Filter bar ───────────────────────────────────── */
+.filters {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.filter-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 8px;
+}
+
+/* ── React-Select (Dash Dropdown) overrides ───────── */
+.VirtualizedSelectFocusedOption { background: var(--bg-elevated) !important; }
+
+/* Dash 4 uses custom class prefix. Target all variants: */
+[class*="container"] .control,
+.Select-control {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  min-height: 30px !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.Select-control:hover {
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+.Select-value-label,
+.Select-placeholder,
+.Select-input input {
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.Select-arrow-zone .Select-arrow {
+  border-top-color: var(--text-3) !important;
+}
+
+.Select-menu-outer {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+  z-index: 1000 !important;
+}
+
+.Select-option {
+  background: transparent !important;
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  padding: 7px 12px !important;
+}
+
+.Select-option:hover,
+.Select-option.is-focused {
+  background: var(--bg-hover) !important;
+  color: var(--text-1) !important;
+}
+
+.Select-option.is-selected {
+  background: var(--accent-dim) !important;
+  color: var(--accent) !important;
+}
+
+.Select-multi-value-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px !important;
+}
+
+.Select-value {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+  color: var(--text-2) !important;
+  font-size: 11px !important;
+  margin: 1px !important;
+}
+
+.Select-value-icon {
+  color: var(--text-3) !important;
+  border-right: 1px solid var(--border) !important;
+  padding: 1px 4px !important;
+}
+
+.Select-value-icon:hover {
+  color: var(--text-1) !important;
+  background: transparent !important;
+}
+
+/* ── Chart card ───────────────────────────────────── */
+.chart-card {
+  margin: 20px 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Strip Plotly's own modebar styling */
+.modebar {
+  background: transparent !important;
+}
+
+.modebar-btn path {
+  fill: var(--text-3) !important;
+}
+
+.modebar-btn:hover path {
+  fill: var(--text-2) !important;
+}
+
+.modebar-group {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  padding: 12px 32px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+
+/* ── Dash debug toolbar (dev only) ───────────────── */
+._dash-loading-callback {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
 }

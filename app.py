@@ -7,10 +7,10 @@ from dash import dcc, html, Input, Output, callback
 import pandas as pd
 
 from data.ingest import get_models
-from components.charts.pareto import build_pareto_scatter, PROVIDER_COLORS
+from components.charts.pareto import build_pareto_scatter
 
 # ── Data ────────────────────────────────────────────────────────────────────
-df = get_models()   # load from cache
+df = get_models()
 
 # ── App ─────────────────────────────────────────────────────────────────────
 app = dash.Dash(
@@ -19,80 +19,87 @@ app = dash.Dash(
     suppress_callback_exceptions=True,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
-server = app.server  # for gunicorn
+server = app.server
+
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
-def _stat(value: str, label: str) -> html.Div:
+def _stat(value: str, label: str, accent: bool = False) -> html.Div:
     return html.Div([
-        html.Div(value, className="stat-value"),
+        html.Div(value, className="stat-value",
+                 style={"color": "#00d4ff" if accent else "#f2f2f2"}),
         html.Div(label, className="stat-label"),
     ], className="stat")
 
 
-def _provider_options(df: pd.DataFrame) -> list[dict]:
-    providers = sorted(df["provider"].unique())
-    return [{"label": p, "value": p} for p in providers]
+def _provider_options(dataframe: pd.DataFrame) -> list[dict]:
+    return [{"label": p, "value": p} for p in sorted(dataframe["provider"].unique())]
 
 
 # ── Layout ──────────────────────────────────────────────────────────────────
 app.layout = html.Div([
 
-    # Header
+    # ── Header
     html.Div([
-        html.H1("AI FRONTIER"),
-        html.Span("100+ LLMs · cost · speed · intelligence", className="subtitle"),
+        html.Div([
+            html.H1("AI FRONTIER"),
+            html.Span("LLM comparison dashboard", className="subtitle"),
+        ], className="header-left"),
+        html.Span("LIVE DATA", className="header-badge"),
     ], className="header"),
 
-    # Stat bar
+    # ── Stat bar
     html.Div([
-        _stat(str(len(df)), "Models"),
-        _stat(str(df["provider"].nunique()), "Providers"),
-        _stat(f"${df['price'].min():.3f}", "Lowest Price /1M"),
-        _stat(str(int(df["quality"].max())), "Top Intelligence Score"),
-        _stat(f"{int(df['speed'].max()):,}", "Peak Speed (tok/s)"),
+        _stat(str(len(df)),                         "Models tracked"),
+        _stat(str(df["provider"].nunique()),         "Providers"),
+        _stat(f"${df['price'].min():.3f}",           "Floor price / 1M", accent=True),
+        _stat(str(int(df["quality"].max())),         "Peak intelligence"),
+        _stat(f"{int(df['speed'].replace(0, pd.NA).max()):,}", "Max speed tok/s"),
     ], className="stat-bar"),
 
-    # Filters
+    # ── Filters
     html.Div([
-        html.Span("Provider", className="filter-label"),
+        html.Span("PROVIDER", className="filter-label"),
         dcc.Dropdown(
             id="filter-provider",
             options=_provider_options(df),
             multi=True,
             placeholder="All providers",
-            style={"minWidth": "260px", "fontSize": "13px"},
-            className="dark-select",
+            style={"minWidth": "280px"},
         ),
-        html.Span("Min Quality", className="filter-label"),
+        html.Div(className="filter-sep"),
+        html.Span("MIN INTELLIGENCE", className="filter-label"),
         dcc.Dropdown(
             id="filter-quality",
             options=[{"label": f"≥ {v}", "value": v} for v in [0, 10, 20, 30, 40, 50]],
             value=0,
             clearable=False,
-            style={"width": "110px", "fontSize": "13px"},
+            style={"width": "100px"},
         ),
-    ], className="filters", style={"gap": "12px", "alignItems": "center"}),
+    ], className="filters"),
 
-    # Chart
+    # ── Chart
     html.Div([
         dcc.Graph(
             id="pareto-chart",
-            config={"displayModeBar": True, "displaylogo": False,
-                    "modeBarButtonsToRemove": ["select2d", "lasso2d"]},
-            style={"height": "580px"},
+            config={
+                "displayModeBar": True,
+                "displaylogo": False,
+                "modeBarButtonsToRemove": ["select2d", "lasso2d", "toImage"],
+            },
+            style={"height": "600px"},
         ),
     ], className="chart-card"),
 
-    # Footer
+    # ── Footer
     html.Div([
-        html.Span("Data: Artificial Analysis · Scraped live"),
-        html.Span("AI Frontier · Built with Plotly Dash"),
+        html.Span("Source: Artificial Analysis · Updated live"),
+        html.Span("AI Frontier"),
     ], className="footer"),
 
-], style={"minHeight": "100vh", "background": "#0f1117"})
+], style={"minHeight": "100vh", "background": "#0a0a0a"})
 
 
-# ── Callbacks ───────────────────────────────────────────────────────────────
+# ── Callbacks ────────────────────────────────────────────────────────────────
 @callback(
     Output("pareto-chart", "figure"),
     Input("filter-provider", "value"),
@@ -100,16 +107,13 @@ app.layout = html.Div([
 )
 def update_chart(providers: list[str] | None, min_quality: int):
     filtered = df.copy()
-
     if providers:
         filtered = filtered[filtered["provider"].isin(providers)]
-
     if min_quality and min_quality > 0:
         filtered = filtered[filtered["quality"] >= min_quality]
-
     return build_pareto_scatter(filtered)
 
 
-# ── Run ─────────────────────────────────────────────────────────────────────
+# ── Run ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     app.run(debug=True, port=8050)
