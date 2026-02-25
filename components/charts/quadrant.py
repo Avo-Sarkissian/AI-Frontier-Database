@@ -6,43 +6,12 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-PROVIDER_COLORS: dict[str, str] = {
-    "Anthropic":              "#c084fc",
-    "OpenAI":                 "#34d399",
-    "Google":                 "#60a5fa",
-    "Meta":                   "#fb923c",
-    "DeepSeek":               "#f472b6",
-    "Mistral":                "#facc15",
-    "xAI":                    "#a3e635",
-    "Alibaba":                "#38bdf8",
-    "Amazon":                 "#ff9900",
-    "NVIDIA":                 "#22d3ee",
-    "Microsoft Azure":        "#818cf8",
-    "Cohere":                 "#f87171",
-    "Kimi":                   "#d4a1f5",
-    "Z AI":                   "#7dd3fc",
-    "MiniMax":                "#86efac",
-    "InclusionAI":            "#fca5a5",
-    "Xiaomi":                 "#6ee7b7",
-    "Baidu":                  "#fde68a",
-    "IBM":                    "#93c5fd",
-    "LG AI Research":         "#c4b5fd",
-    "Nous Research":          "#f9a8d4",
-    "Reka AI":                "#a78bfa",
-    "AI21 Labs":              "#34d399",
-    "Allen Institute for AI": "#67e8f9",
-    "Inception":              "#fb7185",
-    "Upstage":                "#fbbf24",
-    "Perplexity":             "#a3a3a3",
-}
-DEFAULT_COLOR = "#6b7280"
+from components.charts.constants import (
+    PROVIDER_COLORS, DEFAULT_COLOR,
+    BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+)
 
-_BG    = "#111111"
-_GRID  = "rgba(255,255,255,0.04)"
-_ZONE  = "rgba(255,255,255,0.02)"
-_TICK  = "#444444"
-_AXIS  = "#444444"
-_FONT  = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+_ZONE = "rgba(255,255,255,0.02)"
 
 
 def build_quadrant(df: pd.DataFrame) -> go.Figure:
@@ -61,6 +30,8 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
 
     # Bubble size normalized on price (inverted: cheaper = bigger)
     max_price = plot_df["price"].replace(0, np.nan).max()
+    if pd.isna(max_price) or max_price == 0:
+        max_price = 1  # guard: no valid price data → uniform bubble size
     plot_df["size"] = plot_df["price"].apply(
         lambda p: 8 + (1 - min(p / max_price, 1)) * 22 if pd.notna(p) and p > 0 else 8
     )

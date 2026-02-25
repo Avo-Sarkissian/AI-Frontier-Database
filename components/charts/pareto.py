@@ -5,39 +5,8 @@ Highlights the Pareto-optimal models (best quality for their price tier).
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-# Provider → color mapping (consistent across all charts)
-PROVIDER_COLORS: dict[str, str] = {
-    "Anthropic":              "#c084fc",  # purple
-    "OpenAI":                 "#34d399",  # emerald
-    "Google":                 "#60a5fa",  # blue
-    "Meta":                   "#fb923c",  # orange
-    "DeepSeek":               "#f472b6",  # pink
-    "Mistral":                "#facc15",  # yellow
-    "xAI":                    "#a3e635",  # lime
-    "Alibaba":                "#38bdf8",  # sky
-    "Amazon":                 "#ff9900",  # aws orange
-    "NVIDIA":                 "#22d3ee",  # cyan
-    "Microsoft Azure":        "#818cf8",  # indigo
-    "Cohere":                 "#f87171",  # red
-    "Kimi":                   "#d4a1f5",  # lavender
-    "Z AI":                   "#7dd3fc",  # light blue
-    "MiniMax":                "#86efac",  # light green
-    "InclusionAI":            "#fca5a5",  # light red
-    "Xiaomi":                 "#6ee7b7",  # teal
-    "Baidu":                  "#fde68a",  # amber
-    "IBM":                    "#93c5fd",  # periwinkle
-    "LG AI Research":         "#c4b5fd",  # violet
-    "Nous Research":          "#f9a8d4",  # rose
-    "Reka AI":                "#a78bfa",  # purple-blue
-    "AI21 Labs":              "#34d399",  # green
-    "Allen Institute for AI": "#67e8f9",  # light cyan
-    "Inception":              "#fb7185",  # hot pink
-    "Upstage":                "#fbbf24",  # amber
-    "Perplexity":             "#a3a3a3",  # neutral
-}
-DEFAULT_COLOR = "#6b7280"
+from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, BG, GRID, TICK, AXIS, FONT
 
 
 def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
@@ -69,6 +38,8 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
 
     # Normalize speed for bubble size (5–40px range)
     max_speed = plot_df["speed"].replace(0, np.nan).max()
+    if pd.isna(max_speed) or max_speed == 0:
+        max_speed = 1  # guard: no valid speed data → uniform bubble size
     plot_df["size"] = plot_df["speed"].apply(
         lambda s: 8 + (s / max_speed) * 28 if pd.notna(s) and s > 0 else 8
     )
@@ -86,8 +57,12 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
             "Price: $%{x:.3f}/M tokens<br>"
-            "Speed: %{customdata[2]:.0f} tok/s<br>"
+            "Speed: %{customdata[2]}<br>"
             "<extra></extra>"
+        )
+
+        speed_str = pdf["speed"].apply(
+            lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
         )
 
         fig.add_trace(go.Scatter(
@@ -101,7 +76,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 opacity=0.75,
                 line=dict(width=0, color="rgba(0,0,0,0)"),
             ),
-            customdata=pdf[["model", "provider", "speed"]].values,
+            customdata=list(zip(pdf["model"], pdf["provider"], speed_str)),
             hovertemplate=hover,
         ))
 
@@ -130,25 +105,19 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             showlegend=False,
         ))
 
-    # ── Layout — matches Linear/Vercel dark aesthetic ──
-    _bg     = "#111111"       # card bg
-    _grid   = "rgba(255,255,255,0.04)"   # near-invisible grid
-    _zero   = "rgba(255,255,255,0.06)"
-    _tick   = "#444444"
-    _axis   = "#444444"
-    _font   = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    _zero = "rgba(255,255,255,0.06)"
 
     fig.update_layout(
-        paper_bgcolor=_bg,
-        plot_bgcolor=_bg,
-        font=dict(family=_font, color="#888888", size=12),
+        paper_bgcolor=BG,
+        plot_bgcolor=BG,
+        font=dict(family=FONT, color="#888888", size=12),
         title=dict(
             text=(
                 "Cost vs. Intelligence"
                 "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
                 "  ·  bubble size = speed (tok/s)</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_font, weight=600),
+            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
             xanchor="left",
             pad=dict(l=20, t=16),
@@ -156,14 +125,14 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         xaxis=dict(
             title=dict(
                 text="Price  (USD / 1M tokens)",
-                font=dict(color=_axis, size=11),
+                font=dict(color=AXIS, size=11),
                 standoff=12,
             ),
             type="log",
-            gridcolor=_grid,
+            gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
-            tickfont=dict(color=_tick, size=10, family=_font),
+            tickfont=dict(color=TICK, size=10, family=FONT),
             showgrid=True,
             showline=False,
             ticks="",
@@ -171,13 +140,13 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         yaxis=dict(
             title=dict(
                 text="AA Intelligence Index",
-                font=dict(color=_axis, size=11),
+                font=dict(color=AXIS, size=11),
                 standoff=12,
             ),
-            gridcolor=_grid,
+            gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
-            tickfont=dict(color=_tick, size=10, family=_font),
+            tickfont=dict(color=TICK, size=10, family=FONT),
             showgrid=True,
             showline=False,
             ticks="",
@@ -199,7 +168,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         hoverlabel=dict(
             bgcolor="#161616",
             bordercolor="rgba(255,255,255,0.1)",
-            font=dict(color="#f2f2f2", size=12, family=_font),
+            font=dict(color="#f2f2f2", size=12, family=FONT),
             namelength=-1,
         ),
     )

@@ -61,6 +61,7 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
     df = pd.DataFrame(records)
     df = df.drop_duplicates(subset=["model", "provider"])
     df = df[df["price"] > 0].copy()          # only models with public pricing
+    df = df[df["quality"] > 0].copy()        # drop models with no quality score
     df = df.sort_values("quality", ascending=False).reset_index(drop=True)
     return df
 

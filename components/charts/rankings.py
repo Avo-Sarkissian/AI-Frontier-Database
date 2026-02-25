@@ -5,42 +5,10 @@ Shows quality, price, and speed as stacked visual context.
 import pandas as pd
 import plotly.graph_objects as go
 
-PROVIDER_COLORS: dict[str, str] = {
-    "Anthropic":              "#c084fc",
-    "OpenAI":                 "#34d399",
-    "Google":                 "#60a5fa",
-    "Meta":                   "#fb923c",
-    "DeepSeek":               "#f472b6",
-    "Mistral":                "#facc15",
-    "xAI":                    "#a3e635",
-    "Alibaba":                "#38bdf8",
-    "Amazon":                 "#ff9900",
-    "NVIDIA":                 "#22d3ee",
-    "Microsoft Azure":        "#818cf8",
-    "Cohere":                 "#f87171",
-    "Kimi":                   "#d4a1f5",
-    "Z AI":                   "#7dd3fc",
-    "MiniMax":                "#86efac",
-    "InclusionAI":            "#fca5a5",
-    "Xiaomi":                 "#6ee7b7",
-    "Baidu":                  "#fde68a",
-    "IBM":                    "#93c5fd",
-    "LG AI Research":         "#c4b5fd",
-    "Nous Research":          "#f9a8d4",
-    "Reka AI":                "#a78bfa",
-    "AI21 Labs":              "#34d399",
-    "Allen Institute for AI": "#67e8f9",
-    "Inception":              "#fb7185",
-    "Upstage":                "#fbbf24",
-    "Perplexity":             "#a3a3a3",
-}
-DEFAULT_COLOR = "#6b7280"
-
-_BG   = "#111111"
-_GRID = "rgba(255,255,255,0.04)"
-_TICK = "#444444"
-_AXIS = "#444444"
-_FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+from components.charts.constants import (
+    PROVIDER_COLORS, DEFAULT_COLOR,
+    BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+)
 
 
 def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
@@ -57,12 +25,16 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
     short_names = ranked["model"].apply(lambda m: m[:32] + "…" if len(m) > 32 else m)
 
+    speed_str = ranked["speed"].apply(
+        lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
+    )
+
     hover = (
         "<b>%{customdata[0]}</b><br>"
         "Provider: %{customdata[1]}<br>"
         "Intelligence: %{x}<br>"
         "Price: $%{customdata[2]:.3f}/M tokens<br>"
-        "Speed: %{customdata[3]:.0f} tok/s<br>"
+        "Speed: %{customdata[3]}<br>"
         "<extra></extra>"
     )
 
@@ -88,7 +60,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
             opacity=0.85,
             line=dict(width=0),
         ),
-        customdata=ranked[["model", "provider", "price", "speed"]].values,
+        customdata=list(zip(ranked["model"], ranked["provider"], ranked["price"], speed_str)),
         hovertemplate=hover,
         showlegend=False,
         text=ranked["quality"].apply(lambda q: f"{q:.0f}"),
@@ -96,12 +68,12 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
         textfont=dict(color="rgba(255,255,255,0.6)", size=10, family=_FONT),
     ))
 
-    # Provider legend annotation on right
+    # Provider legend annotation on right — use category string for reliable positioning
     for i, row in ranked.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         fig.add_annotation(
             x=ranked["quality"].max() * 1.06,
-            y=i,
+            y=short_names[i],
             text=f"<span style='color:{color}'>{row['provider']}</span>",
             showarrow=False,
             xanchor="left",

@@ -5,8 +5,7 @@ Tile area = number of models; tile color = average quality score.
 import pandas as pd
 import plotly.graph_objects as go
 
-_BG   = "#111111"
-_FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+from components.charts.constants import BG as _BG, FONT as _FONT
 
 
 def build_treemap(df: pd.DataFrame) -> go.Figure:

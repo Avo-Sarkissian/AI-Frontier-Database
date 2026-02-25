@@ -7,43 +7,14 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-PROVIDER_COLORS: dict[str, str] = {
-    "Anthropic":              "#c084fc",
-    "OpenAI":                 "#34d399",
-    "Google":                 "#60a5fa",
-    "Meta":                   "#fb923c",
-    "DeepSeek":               "#f472b6",
-    "Mistral":                "#facc15",
-    "xAI":                    "#a3e635",
-    "Alibaba":                "#38bdf8",
-    "Amazon":                 "#ff9900",
-    "NVIDIA":                 "#22d3ee",
-    "Microsoft Azure":        "#818cf8",
-    "Cohere":                 "#f87171",
-    "Kimi":                   "#d4a1f5",
-    "Z AI":                   "#7dd3fc",
-    "MiniMax":                "#86efac",
-    "InclusionAI":            "#fca5a5",
-    "Xiaomi":                 "#6ee7b7",
-    "Baidu":                  "#fde68a",
-    "IBM":                    "#93c5fd",
-    "LG AI Research":         "#c4b5fd",
-    "Nous Research":          "#f9a8d4",
-    "Reka AI":                "#a78bfa",
-    "AI21 Labs":              "#34d399",
-    "Allen Institute for AI": "#67e8f9",
-    "Inception":              "#fb7185",
-    "Upstage":                "#fbbf24",
-    "Perplexity":             "#a3a3a3",
-}
-DEFAULT_COLOR = "#6b7280"
+from components.charts.constants import (
+    PROVIDER_COLORS, DEFAULT_COLOR,
+    BG as _BG, FONT as _FONT,
+)
 
 _PALETTE = [
     "#00d4ff", "#c084fc", "#34d399", "#fb923c", "#f472b6",
 ]
-
-_BG   = "#111111"
-_FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 
 DIMS = ["Intelligence", "Speed", "Affordability", "Context"]
 
