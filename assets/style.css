@@ -9,18 +9,21 @@
   --bg:           #0a0a0a;
   --bg-card:      #111111;
   --bg-elevated:  #161616;
-  --bg-hover:     #1a1a1a;
+  --bg-hover:     #1c1c1c;
   --border:       rgba(255, 255, 255, 0.07);
   --border-faint: rgba(255, 255, 255, 0.04);
-  --text-1:       #f2f2f2;
+  --text-1:       #ededed;
   --text-2:       #888888;
   --text-3:       #444444;
+  --text-4:       #2a2a2a;
   --accent:       #00d4ff;
-  --accent-dim:   rgba(0, 212, 255, 0.12);
+  --accent-dim:   rgba(0, 212, 255, 0.10);
+  --accent-mid:   rgba(0, 212, 255, 0.20);
   --green:        #22c55e;
-  --green-dim:    rgba(34, 197, 94, 0.12);
+  --green-dim:    rgba(34, 197, 94, 0.10);
   --radius:       8px;
   --radius-sm:    5px;
+  --radius-xs:    4px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,38 +47,42 @@ html, body {
   height: 52px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-left {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 14px;
 }
 
 .header h1 {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
   color: var(--text-1);
   text-transform: uppercase;
 }
 
 .header .subtitle {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-3);
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
 }
 
 .header-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--accent);
   background: var(--accent-dim);
-  border: 1px solid rgba(0,212,255,0.2);
-  border-radius: 4px;
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: var(--radius-xs);
   padding: 2px 7px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ── Stat bar ─────────────────────────────────────── */
@@ -84,15 +91,15 @@ html, body {
   gap: 1px;
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
-  background: var(--border);  /* gap lines = border color */
+  background: var(--border);
 }
 
 .stat {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
-  padding: 16px 24px;
+  gap: 4px;
+  padding: 18px 24px;
   background: var(--bg);
   flex: 1;
   min-width: 0;
@@ -101,12 +108,13 @@ html, body {
 .stat:first-child { padding-left: 0; }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-1);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   line-height: 1;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
@@ -114,7 +122,7 @@ html, body {
   font-weight: 500;
   color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   white-space: nowrap;
 }
 
@@ -122,18 +130,18 @@ html, body {
 .filters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 32px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
 
 .filter-label {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.09em;
   white-space: nowrap;
   padding-right: 4px;
 }
@@ -142,25 +150,28 @@ html, body {
   width: 1px;
   height: 16px;
   background: var(--border);
-  margin: 0 8px;
+  margin: 0 6px;
 }
 
 /* ── React-Select (Dash Dropdown) overrides ───────── */
-.VirtualizedSelectFocusedOption { background: var(--bg-elevated) !important; }
-
-/* Dash 4 uses custom class prefix. Target all variants: */
-[class*="container"] .control,
 .Select-control {
   background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: var(--radius-xs) !important;
   min-height: 30px !important;
   box-shadow: none !important;
   cursor: pointer !important;
+  transition: border-color 0.15s ease;
 }
 
 .Select-control:hover {
-  border-color: rgba(255,255,255,0.15) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.is-open .Select-control {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
 }
 
 .Select-value-label,
@@ -171,6 +182,10 @@ html, body {
   font-family: 'Inter', sans-serif !important;
 }
 
+.Select-placeholder {
+  color: var(--text-3) !important;
+}
+
 .Select-arrow-zone .Select-arrow {
   border-top-color: var(--text-3) !important;
 }
@@ -178,8 +193,9 @@ html, body {
 .Select-menu-outer {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+  border-top: none !important;
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7) !important;
   z-index: 1000 !important;
 }
 
@@ -188,6 +204,7 @@ html, body {
   color: var(--text-2) !important;
   font-size: 12px !important;
   padding: 7px 12px !important;
+  cursor: pointer !important;
 }
 
 .Select-option:hover,
@@ -206,13 +223,13 @@ html, body {
   flex-wrap: wrap;
   align-items: center;
   gap: 3px;
-  padding: 2px 6px !important;
+  padding: 3px 6px !important;
 }
 
 .Select-value {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 4px !important;
+  border-radius: 3px !important;
   color: var(--text-2) !important;
   font-size: 11px !important;
   margin: 1px !important;
@@ -221,7 +238,8 @@ html, body {
 .Select-value-icon {
   color: var(--text-3) !important;
   border-right: 1px solid var(--border) !important;
-  padding: 1px 4px !important;
+  padding: 1px 5px !important;
+  transition: color 0.1s ease;
 }
 
 .Select-value-icon:hover {
@@ -229,31 +247,98 @@ html, body {
   background: transparent !important;
 }
 
+/* ── Tabs ─────────────────────────────────────────── */
+.tabs {
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--bg) !important;
+  padding: 0 32px !important;
+}
+
+/* Dash renders tabs as flex children inside .tab-container */
+.tab-container {
+  display: flex !important;
+  gap: 0 !important;
+}
+
+.tab {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text-3) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  letter-spacing: 0.01em !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.tab:hover {
+  color: var(--text-2) !important;
+}
+
+.tab--selected {
+  color: var(--text-1) !important;
+  border-bottom: 2px solid var(--accent) !important;
+  background: transparent !important;
+}
+
+/* Kill Dash's default tab chrome */
+.react-tabs__tab-list {
+  border-bottom: none !important;
+  margin: 0 !important;
+}
+
+/* ── Tab content area ────────────────────────────── */
+.tab-content {
+  padding: 0;
+}
+
+/* ── Chart description ───────────────────────────── */
+.chart-desc-wrap {
+  padding: 14px 32px 0;
+}
+
+.chart-desc {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.6;
+  max-width: 720px;
+  letter-spacing: 0.01em;
+}
+
 /* ── Chart card ───────────────────────────────────── */
 .chart-card {
-  margin: 20px 32px;
+  margin: 16px 32px 24px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
-/* Strip Plotly's own modebar styling */
+/* ── Plotly modebar ───────────────────────────────── */
 .modebar {
   background: transparent !important;
+  top: 6px !important;
+  right: 8px !important;
 }
 
 .modebar-btn path {
-  fill: var(--text-3) !important;
+  fill: var(--text-4) !important;
+  transition: fill 0.15s ease;
 }
 
 .modebar-btn:hover path {
-  fill: var(--text-2) !important;
+  fill: var(--text-3) !important;
 }
 
 .modebar-group {
   background: transparent !important;
   border: none !important;
+  padding: 0 !important;
 }
 
 /* ── Footer ───────────────────────────────────────── */
@@ -261,15 +346,22 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 32px;
+  padding: 14px 32px;
   border-top: 1px solid var(--border);
   font-size: 11px;
-  color: var(--text-3);
+  color: var(--text-4);
   letter-spacing: 0.02em;
+  margin-top: 8px;
 }
 
-/* ── Dash debug toolbar (dev only) ───────────────── */
+/* ── Dash internals ───────────────────────────────── */
 ._dash-loading-callback {
   background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
+}
+
+/* Remove Dash tab panel border artifacts */
+.dash-tab-panel {
+  border: none !important;
+  background: transparent !important;
 }
