@@ -93,14 +93,18 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             showlegend=True,
         ))
 
-        # Label Pareto-optimal models
+        # Label Pareto-optimal models — alternate top/bottom to reduce overlap
+        label_positions = [
+            "top center" if i % 2 == 0 else "bottom center"
+            for i in range(len(pareto_df))
+        ]
         fig.add_trace(go.Scatter(
             x=pareto_df["price"],
             y=pareto_df["quality"],
             mode="text",
-            text=pareto_df["model"].apply(lambda m: m[:18] + "…" if len(m) > 18 else m),
-            textposition="top center",
-            textfont=dict(color="rgba(0,212,255,0.6)", size=8, family="Inter, -apple-system, sans-serif"),
+            text=pareto_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
+            textposition=label_positions,
+            textfont=dict(color="rgba(0,212,255,0.65)", size=9, family=FONT),
             hoverinfo="skip",
             showlegend=False,
         ))

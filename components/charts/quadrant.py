@@ -54,8 +54,8 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
                       fillcolor=_ZONE, line=dict(width=0), layer="below")
 
     # Median crosshair lines
-    fig.add_hline(y=med_quality, line=dict(color="rgba(255,255,255,0.06)", width=1, dash="dot"))
-    fig.add_vline(x=med_speed,   line=dict(color="rgba(255,255,255,0.06)", width=1, dash="dot"))
+    fig.add_hline(y=med_quality, line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
+    fig.add_vline(x=med_speed,   line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
 
     # Per-provider scatter
     providers = sorted(plot_df["provider"].unique())
@@ -95,7 +95,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             y=y0 + (y1 - y0) * ry,
             text=label,
             showarrow=False,
-            font=dict(color="rgba(255,255,255,0.08)", size=11, family=_FONT),
+            font=dict(color="rgba(255,255,255,0.28)", size=13, family=_FONT),
             xref="x", yref="y",
         ))
 

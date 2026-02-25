@@ -75,14 +75,13 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         values = [q_norm, s_norm, p_norm, c_norm]
         values_pct = [round(v * 100) for v in values]
 
-        color = _PALETTE[idx % len(_PALETTE)]
-        provider_color = PROVIDER_COLORS.get(row.get("provider", ""), color)
+        color = PROVIDER_COLORS.get(row.get("provider", ""), _PALETTE[idx % len(_PALETTE)])
 
         fig.add_trace(go.Scatterpolar(
             r=values + [values[0]],
             theta=DIMS + [DIMS[0]],
             fill="toself",
-            fillcolor=f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.08)",
+            fillcolor=f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.18)",
             line=dict(color=color, width=1.5),
             name=model_name[:28] + ("…" if len(model_name) > 28 else ""),
             hovertemplate=(
