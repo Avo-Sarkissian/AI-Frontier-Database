@@ -277,6 +277,8 @@ def render_tab(tab: str, providers: list[str] | None, min_quality: int):
                     placeholder="Select up to 5 models…",
                     style={"minWidth": "500px"},
                 ),
+                html.Span("max 5", className="filter-label",
+                          style={"color": "#333333", "paddingLeft": "8px"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([
                 dcc.Graph(
@@ -306,7 +308,9 @@ def update_radar(selected_models, providers, min_quality):
         filtered = filtered[filtered["provider"].isin(providers)]
     if min_quality and min_quality > 0:
         filtered = filtered[filtered["quality"] >= min_quality]
-    return build_radar(filtered, selected_models or [])
+    # Hard cap at 5 models to keep the radar readable
+    capped = (selected_models or [])[:5]
+    return build_radar(filtered, capped)
 
 
 # ── Run ──────────────────────────────────────────────────────────────────────

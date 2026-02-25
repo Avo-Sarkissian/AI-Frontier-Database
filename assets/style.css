@@ -153,98 +153,220 @@ html, body {
   margin: 0 6px;
 }
 
-/* ── React-Select (Dash Dropdown) overrides ───────── */
-.Select-control {
+/* ── Dash 4 Dropdown overrides ────────────────────── */
+/* Dash 4.0 rewrote the dropdown with new class names  */
+
+/* Trigger button (the visible "box") */
+.dash-dropdown {
   background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-xs) !important;
-  min-height: 30px !important;
-  box-shadow: none !important;
-  cursor: pointer !important;
-  transition: border-color 0.15s ease;
-}
-
-.Select-control:hover {
-  border-color: rgba(255, 255, 255, 0.14) !important;
-}
-
-.is-open .Select-control {
-  border-color: rgba(255, 255, 255, 0.14) !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-}
-
-.Select-value-label,
-.Select-placeholder,
-.Select-input input {
   color: var(--text-2) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: border-color 0.15s ease !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dash-dropdown:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.dash-dropdown[aria-expanded="true"] {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0 !important;
+}
+
+/* Inner layout */
+.dash-dropdown-grid-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-height: 28px !important;
+}
+
+/* Placeholder text */
+.dash-dropdown-placeholder {
+  color: var(--text-3) !important;
   font-size: 12px !important;
   font-family: 'Inter', sans-serif !important;
 }
 
-.Select-placeholder {
-  color: var(--text-3) !important;
-}
-
-.Select-arrow-zone .Select-arrow {
-  border-top-color: var(--text-3) !important;
-}
-
-.Select-menu-outer {
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border) !important;
-  border-top: none !important;
-  border-radius: 0 0 var(--radius-xs) var(--radius-xs) !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7) !important;
-  z-index: 1000 !important;
-}
-
-.Select-option {
-  background: transparent !important;
+/* Selected value text */
+.dash-dropdown-value {
   color: var(--text-2) !important;
   font-size: 12px !important;
-  padding: 7px 12px !important;
-  cursor: pointer !important;
+  font-family: 'Inter', sans-serif !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
-.Select-option:hover,
-.Select-option.is-focused {
-  background: var(--bg-hover) !important;
-  color: var(--text-1) !important;
-}
-
-.Select-option.is-selected {
-  background: var(--accent-dim) !important;
+/* "X selected" count badge */
+.dash-dropdown-value-count {
+  font-size: 11px !important;
   color: var(--accent) !important;
+  background: var(--accent-dim) !important;
+  border: 1px solid rgba(0,212,255,0.15) !important;
+  border-radius: 3px !important;
+  padding: 1px 6px !important;
+  white-space: nowrap !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
-.Select-multi-value-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 6px !important;
-}
-
-.Select-value {
+/* Each selected item chip */
+.dash-dropdown-value-item {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border) !important;
   border-radius: 3px !important;
   color: var(--text-2) !important;
   font-size: 11px !important;
-  margin: 1px !important;
+  padding: 1px 6px !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
-.Select-value-icon {
+/* Chevron icon */
+.dash-dropdown-trigger-icon {
   color: var(--text-3) !important;
-  border-right: 1px solid var(--border) !important;
-  padding: 1px 5px !important;
-  transition: color 0.1s ease;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
 }
 
-.Select-value-icon:hover {
-  color: var(--text-1) !important;
+/* Clear (×) button */
+.dash-dropdown-clear {
   background: transparent !important;
+  border: none !important;
+  color: var(--text-3) !important;
+  cursor: pointer !important;
+  padding: 0 2px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.dash-dropdown-clear:hover {
+  color: var(--text-2) !important;
+}
+
+/* Popup/menu panel */
+.dash-dropdown-content {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75) !important;
+  z-index: 1000 !important;
+  font-family: 'Inter', sans-serif !important;
+  min-width: 180px !important;
+  overflow: hidden !important;
+}
+
+/* Search input row */
+.dash-dropdown-search-container {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 10px !important;
+  border-bottom: 1px solid var(--border) !important;
+  gap: 6px !important;
+}
+
+.dash-dropdown-search {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  outline: none !important;
+  width: 100% !important;
+}
+
+.dash-dropdown-search::placeholder {
+  color: var(--text-3) !important;
+}
+
+.dash-dropdown-search-icon {
+  color: var(--text-3) !important;
+  flex-shrink: 0 !important;
+}
+
+/* "Select all" / "Deselect all" action row */
+.dash-dropdown-actions {
+  padding: 6px 10px !important;
+  border-bottom: 1px solid var(--border-faint) !important;
+  display: flex !important;
+  gap: 8px !important;
+}
+
+.dash-dropdown-action-button {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text-3) !important;
+  font-size: 10px !important;
+  font-family: 'Inter', sans-serif !important;
+  letter-spacing: 0.04em !important;
+  padding: 2px 8px !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  transition: color 0.1s ease, border-color 0.1s ease !important;
+}
+
+.dash-dropdown-action-button:hover {
+  color: var(--text-2) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Options list */
+.dash-dropdown-options {
+  overflow-y: auto !important;
+  max-height: 220px !important;
+}
+
+/* Individual option wrapper */
+.dash-options-list-option-wrapper {
+  padding: 0 !important;
+}
+
+/* Option row / checkbox */
+.dash-options-list-option-checkbox,
+.dash-dropdown-option {
+  display: flex !important;
+  align-items: center !important;
+  padding: 7px 12px !important;
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  width: 100% !important;
+  text-align: left !important;
+  gap: 8px !important;
+  transition: background 0.1s ease, color 0.1s ease !important;
+}
+
+.dash-options-list-option-checkbox:hover,
+.dash-dropdown-option:hover,
+.dash-options-list-option-checkbox:focus,
+.dash-dropdown-option:focus {
+  background: var(--bg-hover) !important;
+  color: var(--text-1) !important;
+  outline: none !important;
+}
+
+.dash-options-list-option-checkbox[aria-checked="true"],
+.dash-dropdown-option[aria-selected="true"] {
+  color: var(--accent) !important;
+  background: var(--accent-dim) !important;
 }
 
 /* ── Tabs ─────────────────────────────────────────── */
@@ -264,7 +386,7 @@ html, body {
   font-family: 'Inter', sans-serif !important;
   font-size: 12px !important;
   font-weight: 500 !important;
-  color: var(--text-3) !important;
+  color: #666666 !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 2px solid transparent !important;
@@ -277,7 +399,7 @@ html, body {
 }
 
 .tab:hover {
-  color: var(--text-2) !important;
+  color: #aaaaaa !important;
 }
 
 .tab--selected {
