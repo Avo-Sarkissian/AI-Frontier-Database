@@ -1,0 +1,105 @@
+/* AI Frontier — Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Header ---- */
+.header {
+  padding: 24px 40px 20px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #f8fafc;
+}
+.header .subtitle {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 400;
+}
+
+/* ---- Stat bar ---- */
+.stat-bar {
+  display: flex;
+  gap: 32px;
+  padding: 14px 40px;
+  border-bottom: 1px solid #1e293b;
+  background: #0a0c10;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #00d4ff;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Filters ---- */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 40px;
+  border-bottom: 1px solid #1e293b;
+  flex-wrap: wrap;
+}
+.filter-label {
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* Dropdown overrides */
+.Select-control, .Select-menu-outer {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+.Select-value-label, .Select-option { color: #e2e8f0 !important; }
+.Select-placeholder { color: #64748b !important; }
+
+/* ---- Chart container ---- */
+.chart-card {
+  margin: 24px 40px;
+  background: #0a0c10;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+/* ---- Footer ---- */
+.footer {
+  padding: 16px 40px;
+  border-top: 1px solid #1e293b;
+  font-size: 11px;
+  color: #334155;
+  display: flex;
+  justify-content: space-between;
+}

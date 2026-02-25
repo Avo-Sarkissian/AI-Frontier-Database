@@ -22,3 +22,11 @@ ai-frontier/
 *.pem
 npm-debug.log*
 pnpm-debug.log*
+
+# playwright screenshots
+qa-*.png
+.playwright-mcp/
+
+# Python cache
+__pycache__/
+*.pyc
