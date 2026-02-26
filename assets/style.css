@@ -615,6 +615,137 @@ html, body {
   color: var(--accent);
 }
 
+/* ── Header icon buttons (refresh / share) ───────────*/
+.header-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 9px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon-btn:hover {
+  color: var(--text-1);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--bg-hover);
+}
+
+.header-icon-btn:active {
+  background: var(--bg-elevated);
+}
+
+/* ── Global model search input ────────────────────── */
+.search-input {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xs) !important;
+  color: var(--text-1) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  padding: 5px 10px !important;
+  outline: none !important;
+  width: 200px;
+  transition: border-color 0.15s ease !important;
+}
+
+.search-input:focus {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.search-input::placeholder {
+  color: var(--text-3) !important;
+}
+
+/* ── CSV export button ────────────────────────────── */
+.export-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.export-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 212, 255, 0.25);
+  background: var(--accent-dim);
+}
+
+/* ── Preset quick-filter bar ──────────────────────── */
+.presets-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Individual preset pill button */
+.preset-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 4px 12px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  color: var(--text-1);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--bg-hover);
+}
+
+.preset-btn:active {
+  background: var(--bg-elevated);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Detail panel "→ Compare" button ─────────────── */
+.detail-compare-btn {
+  margin-top: 20px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 8px 14px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  text-align: center;
+}
+
+.detail-compare-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 212, 255, 0.30);
+  background: var(--accent-dim);
+}
+
 /* ── Local tab: hardware profile inputs ──────────────*/
 .local-hw-label {
   font-size: 10px;
