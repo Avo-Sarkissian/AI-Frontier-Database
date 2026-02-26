@@ -615,6 +615,36 @@ html, body {
   color: var(--accent);
 }
 
+/* ── Local tab: hardware profile inputs ──────────────*/
+.local-hw-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* Fit-status badge used in compat chart annotations */
+.fit-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.fit-badge.yes   { background: rgba(34,197,94,0.12);  color: #22c55e; }
+.fit-badge.tight { background: rgba(250,176,5,0.12);  color: #fab005; }
+.fit-badge.no    { background: rgba(255,255,255,0.05); color: #333;   }
+
+/* Number inputs inside the Local tab filters */
+input[id^="local-"].dash-input:focus {
+  border-color: rgba(255,255,255,0.18) !important;
+}
+
 /* ── Responsive: 1024px ───────────────────────────── */
 @media (max-width: 1024px) {
   .header { padding: 0 20px; }

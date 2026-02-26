@@ -14,15 +14,18 @@ from dash import ctx, dcc, html, Input, Output, callback, clientside_callback, n
 import pandas as pd
 
 from data.ingest import get_models, load_history
+from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
-from components.charts.pareto    import build_pareto_scatter
-from components.charts.quadrant  import build_quadrant
-from components.charts.treemap   import build_treemap
-from components.charts.rankings  import build_rankings
-from components.charts.value     import build_value_chart
-from components.charts.radar     import build_radar
-from components.charts.cost_calc import build_cost_calc
-from components.charts.trends    import build_trends
+from components.charts.pareto       import build_pareto_scatter
+from components.charts.quadrant     import build_quadrant
+from components.charts.treemap      import build_treemap
+from components.charts.rankings     import build_rankings
+from components.charts.value        import build_value_chart
+from components.charts.radar        import build_radar
+from components.charts.cost_calc    import build_cost_calc
+from components.charts.trends       import build_trends
+from components.charts.local_scatter import build_local_scatter
+from components.charts.local_compat  import build_local_compat
 
 # ── Data ────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -90,7 +93,9 @@ _GRAPH_CONFIG = {
 app.layout = html.Div([
 
     dcc.Location(id="url", refresh=False),
-    dcc.Store(id="url-sync"),   # dummy store — clientside callback writes URL here
+    dcc.Store(id="url-sync"),       # dummy store — clientside callback writes URL here
+    dcc.Store(id="local-hw-meta",   # bandwidth_gbps + hw_type for the Local tab
+              data={"bandwidth_gbps": 1008, "hw_type": "nvidia"}),
 
     # ── Header
     html.Div([
@@ -264,6 +269,96 @@ app.layout = html.Div([
             html.Div([
                 dcc.Graph(id="trends-chart", figure=build_trends(history_df),
                           config=_GRAPH_CONFIG, style={"height": "600px"}),
+            ], className="chart-card"),
+        ]),
+
+        dcc.Tab(label="Run Local", value="local",
+                className="tab", selected_className="tab--selected", children=[
+            _desc(
+                "Find open-weight models you can run on your own hardware. "
+                "Select your GPU (or enter VRAM manually), choose a quantization level, "
+                "and see which models fit — with estimated inference speed."
+            ),
+
+            # ── Hardware profile ────────────────────────────────────────────
+            html.Div([
+                html.Span("GPU", className="filter-label"),
+                dcc.Dropdown(
+                    id="local-gpu-preset",
+                    options=get_gpu_options(),
+                    value="NVIDIA RTX 4090",
+                    placeholder="Select GPU…",
+                    clearable=False,
+                    style={"minWidth": "280px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("VRAM (GB)", className="filter-label"),
+                dcc.Input(
+                    id="local-vram",
+                    type="number", value=24, min=1, step=1,
+                    debounce=True,
+                    style={
+                        "background": "var(--bg-card)", "border": "1px solid var(--border)",
+                        "borderRadius": "4px", "color": "#f2f2f2",
+                        "fontFamily": "Inter, sans-serif", "fontSize": "13px",
+                        "padding": "6px 10px", "width": "72px", "outline": "none",
+                    },
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("GPUs", className="filter-label"),
+                dcc.Dropdown(
+                    id="local-num-gpus",
+                    options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
+                    value=1, clearable=False,
+                    style={"width": "72px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("QUANT", className="filter-label"),
+                dcc.Dropdown(
+                    id="local-quant",
+                    options=[{"label": q, "value": q} for q in QUANT_LEVELS],
+                    value="Q4", clearable=False,
+                    style={"width": "88px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("TAGS", className="filter-label"),
+                dcc.Dropdown(
+                    id="local-tags",
+                    options=[
+                        {"label": "Code",          "value": "code"},
+                        {"label": "Reasoning",     "value": "reasoning"},
+                        {"label": "Vision",        "value": "vision"},
+                        {"label": "Multilingual",  "value": "multilingual"},
+                    ],
+                    multi=True,
+                    placeholder="All capabilities",
+                    style={"minWidth": "180px"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+
+            # ── Charts ──────────────────────────────────────────────────────
+            html.Div([
+                dcc.Graph(
+                    id="local-scatter",
+                    figure=build_local_scatter(
+                        get_local_df(quant="Q4", vram_gb=24, bandwidth_gbps=1008, hw_type="nvidia"),
+                        vram_gb=24, quant="Q4",
+                    ),
+                    config=_GRAPH_CONFIG,
+                    style={"height": "640px"},
+                ),
+            ], className="chart-card"),
+
+            html.Div([
+                dcc.Graph(
+                    id="local-compat-chart",
+                    figure=build_local_compat(
+                        get_local_df(quant="Q4", vram_gb=24, bandwidth_gbps=1008, hw_type="nvidia"),
+                        quant="Q4",
+                    ),
+                    config=_GRAPH_CONFIG,
+                    style={"minHeight": "400px"},
+                ),
             ], className="chart-card"),
         ]),
 
@@ -478,6 +573,51 @@ def toggle_detail_panel(pareto_click, quadrant_click, _close):
     ]
 
     return "detail-panel open", body
+
+
+# ── Local tab: GPU preset → VRAM + hw-meta ───────────────────────────────────
+@callback(
+    Output("local-vram",    "value"),
+    Output("local-hw-meta", "data"),
+    Input("local-gpu-preset", "value"),
+    prevent_initial_call=True,
+)
+def update_local_hw(gpu_name: str):
+    gpu = GPU_BY_NAME.get(gpu_name)
+    if not gpu:
+        return no_update, no_update
+    return gpu["vram_gb"], {"bandwidth_gbps": gpu["bandwidth_gbps"], "hw_type": gpu["hw_type"]}
+
+
+# ── Local tab: all inputs → charts ────────────────────────────────────────────
+@callback(
+    Output("local-scatter",      "figure"),
+    Output("local-compat-chart", "figure"),
+    Input("local-vram",     "value"),
+    Input("local-num-gpus", "value"),
+    Input("local-quant",    "value"),
+    Input("local-hw-meta",  "data"),
+    Input("local-tags",     "value"),
+    prevent_initial_call=True,
+)
+def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
+    vram_gb       = float(vram_per_gpu or 8) * int(num_gpus or 1)
+    bandwidth_gbps = (hw_meta or {}).get("bandwidth_gbps", 1008)
+    hw_type        = (hw_meta or {}).get("hw_type", "nvidia")
+    # For multi-GPU, aggregate bandwidth (diminishing returns beyond ×1)
+    gpu_count = int(num_gpus or 1)
+    eff_bandwidth = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
+
+    local_df = get_local_df(
+        quant=quant or "Q4",
+        vram_gb=vram_gb,
+        bandwidth_gbps=eff_bandwidth,
+        hw_type=hw_type,
+        tags=tags or None,
+    )
+    scatter = build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4")
+    compat  = build_local_compat(local_df, quant=quant or "Q4")
+    return scatter, compat
 
 
 # ── Run ──────────────────────────────────────────────────────────────────────
