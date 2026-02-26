@@ -63,7 +63,7 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
-            "Quality: %{x:.0f}<br>"
+            "Intelligence: %{x:.0f}<br>"
             "VRAM needed: %{customdata[2]:.1f} GB<br>"
             "Speed: %{customdata[3]:.0f} tok/s<br>"
             "License: %{customdata[4]}<br>"
@@ -101,14 +101,14 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
             text=(
                 f"Runnable Models  "
                 f"<span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
-                f"  ·  {len(runnable)} models fit your hardware  ·  ranked by quality</span>"
+                f"  ·  {len(runnable)} models fit your hardware  ·  ranked by intelligence</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Quality Score", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
             range=[0, max_q * 1.45],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=10, family=_FONT),

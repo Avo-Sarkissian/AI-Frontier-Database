@@ -51,7 +51,7 @@ def build_local_scatter(
                 "<b>%{customdata[0]}</b><br>"
                 f"Family: {family}<br>"
                 "VRAM required: %{x:.1f} GB<br>"
-                "Quality: %{y:.0f}<br>"
+                "Intelligence: %{y:.0f}<br>"
                 "Speed: %{customdata[1]:.0f} tok/s<br>"
                 "License: %{customdata[2]}<br>"
                 "Context: %{customdata[3]}k tokens<br>"
@@ -119,7 +119,7 @@ def build_local_scatter(
             ticktext=["0.1", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"],
         ),
         yaxis=dict(
-            title=dict(text="Quality Score", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
             range=[15, 100],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=10, family=_FONT),
