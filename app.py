@@ -123,7 +123,7 @@ app.layout = html.Div([
     # Invisible infrastructure
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="url-sync"),
-    dcc.Store(id="local-hw-meta",     data={"bandwidth_gbps": 1008, "hw_type": "nvidia"}),
+    dcc.Store(id="local-hw-meta",     data={"bandwidth_gbps": 1792, "hw_type": "nvidia"}),
     dcc.Store(id="detail-model-name", data=None),
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
@@ -386,7 +386,7 @@ app.layout = html.Div([
                 dcc.Dropdown(
                     id="local-gpu-preset",
                     options=get_gpu_options(),
-                    value="NVIDIA RTX 4090",
+                    value="NVIDIA RTX 5090",
                     placeholder="Select GPU…",
                     clearable=False,
                     style={"minWidth": "280px"},
@@ -395,7 +395,7 @@ app.layout = html.Div([
                 html.Span("VRAM (GB)", className="filter-label"),
                 dcc.Input(
                     id="local-vram",
-                    type="number", value=24, min=1, step=1, debounce=True,
+                    type="number", value=32, min=1, step=1, debounce=True,
                     style={
                         "background": "var(--bg-card)", "border": "1px solid var(--border)",
                         "borderRadius": "4px", "color": "#f2f2f2",
@@ -438,9 +438,9 @@ app.layout = html.Div([
                 dcc.Graph(
                     id="local-scatter",
                     figure=build_local_scatter(
-                        get_local_df(quant="Q4", vram_gb=24,
-                                     bandwidth_gbps=1008, hw_type="nvidia"),
-                        vram_gb=24, quant="Q4",
+                        get_local_df(quant="Q4", vram_gb=32,
+                                     bandwidth_gbps=1792, hw_type="nvidia"),
+                        vram_gb=32, quant="Q4",
                     ),
                     config=_GRAPH_CONFIG, style={"height": "640px"},
                 ),
@@ -449,8 +449,8 @@ app.layout = html.Div([
                 dcc.Graph(
                     id="local-compat-chart",
                     figure=build_local_compat(
-                        get_local_df(quant="Q4", vram_gb=24,
-                                     bandwidth_gbps=1008, hw_type="nvidia"),
+                        get_local_df(quant="Q4", vram_gb=32,
+                                     bandwidth_gbps=1792, hw_type="nvidia"),
                         quant="Q4",
                     ),
                     config=_GRAPH_CONFIG, style={"minHeight": "400px"},
@@ -723,7 +723,7 @@ def update_local_hw(gpu_name: str):
 )
 def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     vram_gb        = float(vram_per_gpu or 8) * int(num_gpus or 1)
-    bandwidth_gbps = (hw_meta or {}).get("bandwidth_gbps", 1008)
+    bandwidth_gbps = (hw_meta or {}).get("bandwidth_gbps", 1792)
     hw_type        = (hw_meta or {}).get("hw_type", "nvidia")
     gpu_count      = int(num_gpus or 1)
     eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
