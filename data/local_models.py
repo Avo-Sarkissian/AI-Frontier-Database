@@ -67,100 +67,107 @@ DEFAULT_FAMILY_COLOR = "#555555"
 #   tags         - list of capability tags
 #   moe          - True if mixture-of-experts architecture
 _MODELS_RAW: list[dict] = [
+    # Quality scores are calibrated to the AA Intelligence Index scale (same as
+    # the online tab). Scores marked "AA exact" are taken directly from the
+    # live dataset; others are estimated proportionally based on size/generation
+    # relative to models whose AA scores are known.
 
     # ── Meta Llama ────────────────────────────────────────────────────────────
-    {"name": "Llama 3.2 1B",        "family": "Meta", "params_b": 1.24,  "active_b": 1.24,  "context_k": 128, "quality": 33, "license": "Llama 3.2", "tags": ["multilingual"]},
-    {"name": "Llama 3.2 3B",        "family": "Meta", "params_b": 3.21,  "active_b": 3.21,  "context_k": 128, "quality": 58, "license": "Llama 3.2", "tags": ["multilingual"]},
-    {"name": "Llama 3.1 8B",        "family": "Meta", "params_b": 8.03,  "active_b": 8.03,  "context_k": 128, "quality": 73, "license": "Llama 3.1", "tags": ["multilingual"]},
-    {"name": "Llama 3.3 70B",       "family": "Meta", "params_b": 70.6,  "active_b": 70.6,  "context_k": 128, "quality": 86, "license": "Llama 3.3", "tags": ["multilingual"]},
-    {"name": "Llama 3.1 405B",      "family": "Meta", "params_b": 405,   "active_b": 405,   "context_k": 128, "quality": 88, "license": "Llama 3.1", "tags": ["multilingual"]},
-    {"name": "Llama 3.2 11B Vision","family": "Meta", "params_b": 11,    "active_b": 11,    "context_k": 128, "quality": 73, "license": "Llama 3.2", "tags": ["vision", "multilingual"]},
-    {"name": "Llama 3.2 90B Vision","family": "Meta", "params_b": 90,    "active_b": 90,    "context_k": 128, "quality": 78, "license": "Llama 3.2", "tags": ["vision", "multilingual"]},
-    {"name": "Llama 4 Scout",       "family": "Meta", "params_b": 109,   "active_b": 17,    "context_k": 1000,"quality": 89, "license": "Llama 4",   "tags": ["vision", "multilingual", "reasoning"], "moe": True},
-    {"name": "Llama 4 Maverick",    "family": "Meta", "params_b": 400,   "active_b": 17,    "context_k": 1000,"quality": 92, "license": "Llama 4",   "tags": ["vision", "multilingual", "reasoning"], "moe": True},
+    {"name": "Llama 3.2 1B",        "family": "Meta", "params_b": 1.24,  "active_b": 1.24,  "context_k": 128, "quality": 2,  "license": "Llama 3.2", "tags": ["multilingual"]},
+    {"name": "Llama 3.2 3B",        "family": "Meta", "params_b": 3.21,  "active_b": 3.21,  "context_k": 128, "quality": 4,  "license": "Llama 3.2", "tags": ["multilingual"]},
+    {"name": "Llama 3.1 8B",        "family": "Meta", "params_b": 8.03,  "active_b": 8.03,  "context_k": 128, "quality": 6,  "license": "Llama 3.1", "tags": ["multilingual"]},
+    {"name": "Llama 3.3 70B",       "family": "Meta", "params_b": 70.6,  "active_b": 70.6,  "context_k": 128, "quality": 14, "license": "Llama 3.3", "tags": ["multilingual"]},           # AA exact
+    {"name": "Llama 3.1 405B",      "family": "Meta", "params_b": 405,   "active_b": 405,   "context_k": 128, "quality": 14, "license": "Llama 3.1", "tags": ["multilingual"]},           # AA exact
+    {"name": "Llama 3.2 11B Vision","family": "Meta", "params_b": 11,    "active_b": 11,    "context_k": 128, "quality": 9,  "license": "Llama 3.2", "tags": ["vision", "multilingual"]}, # AA exact
+    {"name": "Llama 3.2 90B Vision","family": "Meta", "params_b": 90,    "active_b": 90,    "context_k": 128, "quality": 12, "license": "Llama 3.2", "tags": ["vision", "multilingual"]}, # AA exact
+    {"name": "Llama 4 Scout",       "family": "Meta", "params_b": 109,   "active_b": 17,    "context_k": 1000,"quality": 13, "license": "Llama 4",   "tags": ["vision", "multilingual", "reasoning"], "moe": True},  # AA exact
+    {"name": "Llama 4 Maverick",    "family": "Meta", "params_b": 400,   "active_b": 17,    "context_k": 1000,"quality": 18, "license": "Llama 4",   "tags": ["vision", "multilingual", "reasoning"], "moe": True},  # AA exact
 
     # ── Mistral / Mixtral ─────────────────────────────────────────────────────
-    {"name": "Mistral 7B v0.3",     "family": "Mistral", "params_b": 7.24,  "active_b": 7.24,  "context_k": 32,  "quality": 62, "license": "Apache 2.0", "tags": []},
-    {"name": "Mistral Nemo 12B",    "family": "Mistral", "params_b": 12.2,  "active_b": 12.2,  "context_k": 128, "quality": 68, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Mistral Small 3 22B", "family": "Mistral", "params_b": 22.0,  "active_b": 22.0,  "context_k": 32,  "quality": 81, "license": "Apache 2.0", "tags": []},
-    {"name": "Mistral Large 2 123B","family": "Mistral", "params_b": 123,   "active_b": 123,   "context_k": 128, "quality": 84, "license": "MNPL",       "tags": ["multilingual"]},
-    {"name": "Mixtral 8x7B",        "family": "Mistral", "params_b": 46.7,  "active_b": 12.9,  "context_k": 32,  "quality": 72, "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
-    {"name": "Mixtral 8x22B",       "family": "Mistral", "params_b": 141,   "active_b": 39.1,  "context_k": 64,  "quality": 79, "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
+    {"name": "Mistral 7B v0.3",     "family": "Mistral", "params_b": 7.24,  "active_b": 7.24,  "context_k": 32,  "quality": 5,  "license": "Apache 2.0", "tags": []},
+    {"name": "Mistral Nemo 12B",    "family": "Mistral", "params_b": 12.2,  "active_b": 12.2,  "context_k": 128, "quality": 7,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Mistral Small 3 22B", "family": "Mistral", "params_b": 22.0,  "active_b": 22.0,  "context_k": 32,  "quality": 13, "license": "Apache 2.0", "tags": []},   # ~Mistral Small 3.2 (AA: 15)
+    {"name": "Mistral Large 2 123B","family": "Mistral", "params_b": 123,   "active_b": 123,   "context_k": 128, "quality": 18, "license": "MNPL",       "tags": ["multilingual"]},  # ~Mistral Large 3 (AA: 23) minus one gen
+    {"name": "Mixtral 8x7B",        "family": "Mistral", "params_b": 46.7,  "active_b": 12.9,  "context_k": 32,  "quality": 8,  "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
+    {"name": "Mixtral 8x22B",       "family": "Mistral", "params_b": 141,   "active_b": 39.1,  "context_k": 64,  "quality": 13, "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
 
     # ── Google Gemma ──────────────────────────────────────────────────────────
-    {"name": "Gemma 2 2B",          "family": "Google", "params_b": 2.61,  "active_b": 2.61,  "context_k": 8,   "quality": 52, "license": "Gemma ToS", "tags": []},
-    {"name": "Gemma 2 9B",          "family": "Google", "params_b": 9.24,  "active_b": 9.24,  "context_k": 8,   "quality": 71, "license": "Gemma ToS", "tags": []},
-    {"name": "Gemma 2 27B",         "family": "Google", "params_b": 27.2,  "active_b": 27.2,  "context_k": 8,   "quality": 75, "license": "Gemma ToS", "tags": []},
-    {"name": "Gemma 3 1B",          "family": "Google", "params_b": 1.0,   "active_b": 1.0,   "context_k": 128, "quality": 42, "license": "Gemma ToS", "tags": ["multilingual"]},
-    {"name": "Gemma 3 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 59, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
-    {"name": "Gemma 3 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 72, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
-    {"name": "Gemma 3 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 76, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    {"name": "Gemma 2 2B",          "family": "Google", "params_b": 2.61,  "active_b": 2.61,  "context_k": 8,   "quality": 2,  "license": "Gemma ToS", "tags": []},
+    {"name": "Gemma 2 9B",          "family": "Google", "params_b": 9.24,  "active_b": 9.24,  "context_k": 8,   "quality": 7,  "license": "Gemma ToS", "tags": []},
+    {"name": "Gemma 2 27B",         "family": "Google", "params_b": 27.2,  "active_b": 27.2,  "context_k": 8,   "quality": 11, "license": "Gemma ToS", "tags": []},
+    {"name": "Gemma 3 1B",          "family": "Google", "params_b": 1.0,   "active_b": 1.0,   "context_k": 128, "quality": 2,  "license": "Gemma ToS", "tags": ["multilingual"]},
+    {"name": "Gemma 3 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 5,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    {"name": "Gemma 3 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 9,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    {"name": "Gemma 3 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 13, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
 
     # ── Microsoft Phi ─────────────────────────────────────────────────────────
-    {"name": "Phi-3 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 68, "license": "MIT", "tags": []},
-    {"name": "Phi-3.5 Mini 3.8B",   "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 69, "license": "MIT", "tags": ["multilingual"]},
-    {"name": "Phi-3 Medium 14B",    "family": "Microsoft", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 78, "license": "MIT", "tags": []},
-    {"name": "Phi-4 14B",           "family": "Microsoft", "params_b": 14.7,  "active_b": 14.7,  "context_k": 16,  "quality": 84, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "Phi-4 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 72, "license": "MIT", "tags": ["reasoning"]},
+    {"name": "Phi-3 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 4,  "license": "MIT", "tags": []},
+    {"name": "Phi-3.5 Mini 3.8B",   "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 5,  "license": "MIT", "tags": ["multilingual"]},
+    {"name": "Phi-3 Medium 14B",    "family": "Microsoft", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 8,  "license": "MIT", "tags": []},
+    {"name": "Phi-4 14B",           "family": "Microsoft", "params_b": 14.7,  "active_b": 14.7,  "context_k": 16,  "quality": 10, "license": "MIT", "tags": ["reasoning"]},  # AA exact
+    {"name": "Phi-4 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 7,  "license": "MIT", "tags": ["reasoning"]},
 
-    # ── Alibaba Qwen 2.5 ──────────────────────────────────────────────────────
-    {"name": "Qwen 2.5 0.5B",       "family": "Alibaba", "params_b": 0.50,  "active_b": 0.50,  "context_k": 32,  "quality": 29, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 1.5B",       "family": "Alibaba", "params_b": 1.54,  "active_b": 1.54,  "context_k": 32,  "quality": 47, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 3B",         "family": "Alibaba", "params_b": 3.09,  "active_b": 3.09,  "context_k": 32,  "quality": 57, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 7B",         "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 74, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 14B",        "family": "Alibaba", "params_b": 14.8,  "active_b": 14.8,  "context_k": 128, "quality": 79, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 32B",        "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 83, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 72B",        "family": "Alibaba", "params_b": 72.7,  "active_b": 72.7,  "context_k": 128, "quality": 86, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Qwen 2.5 Coder 7B",   "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 72, "license": "Apache 2.0", "tags": ["code"]},
-    {"name": "Qwen 2.5 Coder 32B",  "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 80, "license": "Apache 2.0", "tags": ["code"]},
-    {"name": "QwQ 32B",             "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 85, "license": "Apache 2.0", "tags": ["reasoning"]},
+    # ── Alibaba Qwen 2.5 (one generation behind Qwen 3) ──────────────────────
+    {"name": "Qwen 2.5 0.5B",       "family": "Alibaba", "params_b": 0.50,  "active_b": 0.50,  "context_k": 32,  "quality": 1,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 1.5B",       "family": "Alibaba", "params_b": 1.54,  "active_b": 1.54,  "context_k": 32,  "quality": 2,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 3B",         "family": "Alibaba", "params_b": 3.09,  "active_b": 3.09,  "context_k": 32,  "quality": 4,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 7B",         "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 7,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 14B",        "family": "Alibaba", "params_b": 14.8,  "active_b": 14.8,  "context_k": 128, "quality": 10, "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 32B",        "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 72B",        "family": "Alibaba", "params_b": 72.7,  "active_b": 72.7,  "context_k": 128, "quality": 17, "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Qwen 2.5 Coder 7B",   "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 7,  "license": "Apache 2.0", "tags": ["code"]},
+    {"name": "Qwen 2.5 Coder 32B",  "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["code"]},
+    {"name": "QwQ 32B",             "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 17, "license": "Apache 2.0", "tags": ["reasoning"]},
 
     # ── DeepSeek ──────────────────────────────────────────────────────────────
-    {"name": "DeepSeek V3",                 "family": "DeepSeek", "params_b": 671,  "active_b": 37,   "context_k": 128, "quality": 88, "license": "MIT", "tags": ["code", "multilingual"],              "moe": True},
-    {"name": "DeepSeek R1",                 "family": "DeepSeek", "params_b": 671,  "active_b": 37,   "context_k": 128, "quality": 90, "license": "MIT", "tags": ["reasoning", "code", "multilingual"], "moe": True},
-    {"name": "DeepSeek R1 Distill Qwen 1.5B","family":"DeepSeek","params_b": 1.54,  "active_b": 1.54, "context_k": 128, "quality": 53, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek R1 Distill Qwen 7B", "family": "DeepSeek", "params_b": 7.62,  "active_b": 7.62, "context_k": 128, "quality": 76, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek R1 Distill Qwen 14B","family": "DeepSeek", "params_b": 14.8,  "active_b": 14.8, "context_k": 128, "quality": 82, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek R1 Distill Qwen 32B","family": "DeepSeek", "params_b": 32.8,  "active_b": 32.8, "context_k": 128, "quality": 86, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek R1 Distill Llama 8B","family": "DeepSeek", "params_b": 8.03,  "active_b": 8.03, "context_k": 128, "quality": 79, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek R1 Distill Llama 70B","family":"DeepSeek", "params_b": 70.6,  "active_b": 70.6, "context_k": 128, "quality": 87, "license": "MIT", "tags": ["reasoning"]},
-    {"name": "DeepSeek Coder V2 Lite",      "family": "DeepSeek", "params_b": 16.0,  "active_b": 2.4,  "context_k": 128, "quality": 75, "license": "MIT", "tags": ["code"],                             "moe": True},
+    # DeepSeek V3.2 is AA: 42; V3 (older) estimated at ~36; R1 (reasoning) ~38
+    {"name": "DeepSeek V3",                  "family": "DeepSeek", "params_b": 671,  "active_b": 37,   "context_k": 128, "quality": 36, "license": "MIT", "tags": ["code", "multilingual"],              "moe": True},
+    {"name": "DeepSeek R1",                  "family": "DeepSeek", "params_b": 671,  "active_b": 37,   "context_k": 128, "quality": 38, "license": "MIT", "tags": ["reasoning", "code", "multilingual"], "moe": True},
+    {"name": "DeepSeek R1 Distill Qwen 1.5B","family": "DeepSeek", "params_b": 1.54,  "active_b": 1.54, "context_k": 128, "quality": 4,  "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek R1 Distill Qwen 7B",  "family": "DeepSeek", "params_b": 7.62,  "active_b": 7.62, "context_k": 128, "quality": 8,  "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek R1 Distill Qwen 14B", "family": "DeepSeek", "params_b": 14.8,  "active_b": 14.8, "context_k": 128, "quality": 12, "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek R1 Distill Qwen 32B", "family": "DeepSeek", "params_b": 32.8,  "active_b": 32.8, "context_k": 128, "quality": 16, "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek R1 Distill Llama 8B", "family": "DeepSeek", "params_b": 8.03,  "active_b": 8.03, "context_k": 128, "quality": 9,  "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek R1 Distill Llama 70B","family": "DeepSeek", "params_b": 70.6,  "active_b": 70.6, "context_k": 128, "quality": 15, "license": "MIT", "tags": ["reasoning"]},
+    {"name": "DeepSeek Coder V2 Lite",       "family": "DeepSeek", "params_b": 16.0,  "active_b": 2.4,  "context_k": 128, "quality": 10, "license": "MIT", "tags": ["code"],           "moe": True},
 
     # ── Moonshot Kimi ─────────────────────────────────────────────────────────
-    {"name": "Kimi-VL-A3B",         "family": "Moonshot", "params_b": 16.0,  "active_b": 3.0,   "context_k": 128, "quality": 71, "license": "MIT", "tags": ["vision", "reasoning"], "moe": True},
+    {"name": "Kimi-VL-A3B",         "family": "Moonshot", "params_b": 16.0,  "active_b": 3.0,   "context_k": 128, "quality": 7,  "license": "MIT", "tags": ["vision", "reasoning"], "moe": True},
 
     # ── TII Falcon ────────────────────────────────────────────────────────────
-    {"name": "Falcon 7B",           "family": "TII",    "params_b": 7.0,   "active_b": 7.0,   "context_k": 2,   "quality": 44, "license": "Apache 2.0", "tags": []},
-    {"name": "Falcon 40B",          "family": "TII",    "params_b": 40.9,  "active_b": 40.9,  "context_k": 2,   "quality": 55, "license": "Apache 2.0", "tags": []},
-    {"name": "Falcon 180B",         "family": "TII",    "params_b": 180,   "active_b": 180,   "context_k": 2,   "quality": 62, "license": "Falcon",     "tags": []},
+    {"name": "Falcon 7B",           "family": "TII",    "params_b": 7.0,   "active_b": 7.0,   "context_k": 2,   "quality": 2,  "license": "Apache 2.0", "tags": []},
+    {"name": "Falcon 40B",          "family": "TII",    "params_b": 40.9,  "active_b": 40.9,  "context_k": 2,   "quality": 6,  "license": "Apache 2.0", "tags": []},
+    {"name": "Falcon 180B",         "family": "TII",    "params_b": 180,   "active_b": 180,   "context_k": 2,   "quality": 10, "license": "Falcon",     "tags": []},
 
     # ── Cohere Command R ──────────────────────────────────────────────────────
-    {"name": "Command R 35B",       "family": "Cohere", "params_b": 35.0,  "active_b": 35.0,  "context_k": 128, "quality": 68, "license": "CC-BY-NC",  "tags": ["multilingual"]},
-    {"name": "Command R+ 104B",     "family": "Cohere", "params_b": 104,   "active_b": 104,   "context_k": 128, "quality": 74, "license": "CC-BY-NC",  "tags": ["multilingual"]},
+    {"name": "Command R 35B",       "family": "Cohere", "params_b": 35.0,  "active_b": 35.0,  "context_k": 128, "quality": 9,  "license": "CC-BY-NC",  "tags": ["multilingual"]},
+    {"name": "Command R+ 104B",     "family": "Cohere", "params_b": 104,   "active_b": 104,   "context_k": 128, "quality": 13, "license": "CC-BY-NC",  "tags": ["multilingual"]},
 
     # ── 01.AI Yi ──────────────────────────────────────────────────────────────
-    {"name": "Yi-1.5 9B",           "family": "01.AI",  "params_b": 9.0,   "active_b": 9.0,   "context_k": 4,   "quality": 65, "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Yi-1.5 34B",          "family": "01.AI",  "params_b": 34.0,  "active_b": 34.0,  "context_k": 4,   "quality": 76, "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Yi-1.5 9B",           "family": "01.AI",  "params_b": 9.0,   "active_b": 9.0,   "context_k": 4,   "quality": 6,  "license": "Apache 2.0", "tags": ["multilingual"]},
+    {"name": "Yi-1.5 34B",          "family": "01.AI",  "params_b": 34.0,  "active_b": 34.0,  "context_k": 4,   "quality": 10, "license": "Apache 2.0", "tags": ["multilingual"]},
 
     # ── Allen AI OLMo ─────────────────────────────────────────────────────────
-    {"name": "OLMo 2 7B",           "family": "Allen AI", "params_b": 7.3,  "active_b": 7.3,  "context_k": 4,   "quality": 63, "license": "Apache 2.0", "tags": []},
-    {"name": "OLMo 2 13B",          "family": "Allen AI", "params_b": 13.0, "active_b": 13.0, "context_k": 4,   "quality": 67, "license": "Apache 2.0", "tags": []},
+    # OLMo 3 7B (AA: 8), OLMo 2 is one generation older
+    {"name": "OLMo 2 7B",           "family": "Allen AI", "params_b": 7.3,  "active_b": 7.3,  "context_k": 4,   "quality": 5,  "license": "Apache 2.0", "tags": []},
+    {"name": "OLMo 2 13B",          "family": "Allen AI", "params_b": 13.0, "active_b": 13.0, "context_k": 4,   "quality": 8,  "license": "Apache 2.0", "tags": []},
 
     # ── InternLM ──────────────────────────────────────────────────────────────
-    {"name": "InternLM 2.5 7B",     "family": "InternLM","params_b": 7.74,  "active_b": 7.74,  "context_k": 32,  "quality": 72, "license": "Apache 2.0", "tags": ["multilingual", "code"]},
-    {"name": "InternLM 2.5 20B",    "family": "InternLM","params_b": 20.0,  "active_b": 20.0,  "context_k": 32,  "quality": 77, "license": "Apache 2.0", "tags": ["multilingual", "code"]},
+    {"name": "InternLM 2.5 7B",     "family": "InternLM","params_b": 7.74,  "active_b": 7.74,  "context_k": 32,  "quality": 7,  "license": "Apache 2.0", "tags": ["multilingual", "code"]},
+    {"name": "InternLM 2.5 20B",    "family": "InternLM","params_b": 20.0,  "active_b": 20.0,  "context_k": 32,  "quality": 10, "license": "Apache 2.0", "tags": ["multilingual", "code"]},
 
     # ── IBM Granite ───────────────────────────────────────────────────────────
-    {"name": "Granite 3.1 2B",      "family": "IBM",    "params_b": 2.0,   "active_b": 2.0,   "context_k": 128, "quality": 53, "license": "Apache 2.0", "tags": ["code"]},
-    {"name": "Granite 3.1 8B",      "family": "IBM",    "params_b": 8.0,   "active_b": 8.0,   "context_k": 128, "quality": 68, "license": "Apache 2.0", "tags": ["code"]},
+    # Granite 4.0 H Small (AA: 11); Granite 3.1 is one gen older
+    {"name": "Granite 3.1 2B",      "family": "IBM",    "params_b": 2.0,   "active_b": 2.0,   "context_k": 128, "quality": 3,  "license": "Apache 2.0", "tags": ["code"]},
+    {"name": "Granite 3.1 8B",      "family": "IBM",    "params_b": 8.0,   "active_b": 8.0,   "context_k": 128, "quality": 6,  "license": "Apache 2.0", "tags": ["code"]},
 
     # ── HuggingFace SmolLM ────────────────────────────────────────────────────
-    {"name": "SmolLM2 135M",        "family": "HuggingFace", "params_b": 0.135, "active_b": 0.135, "context_k": 8,  "quality": 22, "license": "Apache 2.0", "tags": []},
-    {"name": "SmolLM2 360M",        "family": "HuggingFace", "params_b": 0.36,  "active_b": 0.36,  "context_k": 8,  "quality": 30, "license": "Apache 2.0", "tags": []},
-    {"name": "SmolLM2 1.7B",        "family": "HuggingFace", "params_b": 1.71,  "active_b": 1.71,  "context_k": 8,  "quality": 40, "license": "Apache 2.0", "tags": []},
+    {"name": "SmolLM2 135M",        "family": "HuggingFace", "params_b": 0.135, "active_b": 0.135, "context_k": 8,  "quality": 1,  "license": "Apache 2.0", "tags": []},
+    {"name": "SmolLM2 360M",        "family": "HuggingFace", "params_b": 0.36,  "active_b": 0.36,  "context_k": 8,  "quality": 1,  "license": "Apache 2.0", "tags": []},
+    {"name": "SmolLM2 1.7B",        "family": "HuggingFace", "params_b": 1.71,  "active_b": 1.71,  "context_k": 8,  "quality": 2,  "license": "Apache 2.0", "tags": []},
 
     # ── SOLAR ─────────────────────────────────────────────────────────────────
-    {"name": "Solar 10.7B",         "family": "SOLAR",  "params_b": 10.7,  "active_b": 10.7,  "context_k": 4,   "quality": 66, "license": "Apache 2.0", "tags": []},
+    {"name": "Solar 10.7B",         "family": "SOLAR",  "params_b": 10.7,  "active_b": 10.7,  "context_k": 4,   "quality": 6,  "license": "Apache 2.0", "tags": []},
 ]
 
 # Normalize: fill defaults for non-MoE models
