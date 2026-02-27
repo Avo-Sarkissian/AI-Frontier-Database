@@ -106,7 +106,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
         title=dict(
             text=(
                 "Speed vs. Intelligence"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  bubble size ∝ affordability</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -129,7 +129,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#555555", size=10, family=_FONT),
+            font=dict(color="#888888", size=10, family=_FONT),
             itemsizing="constant", orientation="v",
             x=1.01, y=1, xanchor="left", tracegroupgap=2,
         ),

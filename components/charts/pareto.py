@@ -118,7 +118,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         title=dict(
             text=(
                 "Cost vs. Intelligence"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  bubble size = speed (tok/s)</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
@@ -159,7 +159,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#555555", size=10, family=FONT),
+            font=dict(color="#888888", size=10, family=FONT),
             itemsizing="constant",
             orientation="v",
             x=1.01,

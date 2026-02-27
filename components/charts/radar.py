@@ -101,7 +101,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         title=dict(
             text=(
                 "Model Comparison"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  normalized 0–100 across all models</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -114,13 +114,13 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
                 visible=True,
                 range=[0, 1],
                 tickformat=".0%",
-                tickfont=dict(color="#333333", size=8, family=_FONT),
+                tickfont=dict(color="#666666", size=8, family=_FONT),
                 gridcolor="rgba(255,255,255,0.05)",
                 linecolor="rgba(255,255,255,0.05)",
                 showline=True,
             ),
             angularaxis=dict(
-                tickfont=dict(color="#666666", size=11, family=_FONT),
+                tickfont=dict(color="#888888", size=11, family=_FONT),
                 gridcolor="rgba(255,255,255,0.06)",
                 linecolor="rgba(255,255,255,0.06)",
             ),
@@ -129,7 +129,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#555555", size=10, family=_FONT),
+            font=dict(color="#888888", size=10, family=_FONT),
             x=1.05, y=1, xanchor="left",
         ),
         margin=dict(l=60, r=160, t=52, b=60),

@@ -84,7 +84,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         title=dict(
             text=(
                 "Monthly API Cost"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  cheapest models for your token budget</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -100,7 +100,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             range=[0, plot_df["monthly_cost"].max() * 1.3],
         ),
         yaxis=dict(
-            tickfont=dict(color="#666666", size=10, family=_FONT),
+            tickfont=dict(color="#888888", size=10, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),

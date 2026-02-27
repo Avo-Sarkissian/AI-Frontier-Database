@@ -104,7 +104,7 @@ def build_animated_pareto(history_df: pd.DataFrame) -> go.Figure:
             name=dstr,
             layout=go.Layout(title_text=(
                 "AI Frontier Evolution"
-                f"  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 f"  ·  {dstr}  ·  {len(day)} models</span>"
             )),
         ))
@@ -133,14 +133,14 @@ def build_animated_pareto(history_df: pd.DataFrame) -> go.Figure:
         active=len(dates) - 1,
         currentvalue=dict(
             prefix="Snapshot: ",
-            font=dict(color="#555555", size=10, family=_FONT),
+            font=dict(color="#888888", size=10, family=_FONT),
         ),
         pad=dict(b=10, t=50),
         x=0.10, len=0.88,
         bgcolor="rgba(255,255,255,0.02)",
         bordercolor="rgba(255,255,255,0.06)",
         tickcolor="rgba(255,255,255,0.06)",
-        font=dict(color="#444444", size=9, family=_FONT),
+        font=dict(color="#777777", size=9, family=_FONT),
         steps=steps,
     )]
     fig.layout.updatemenus = [dict(
@@ -200,7 +200,7 @@ def _apply_layout(
         title=dict(
             text=(
                 "AI Frontier Evolution"
-                f"  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>{subtitle}</span>"
+                f"  <span style='font-size:11px;color:#666666;font-weight:400'>{subtitle}</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
@@ -234,10 +234,10 @@ def _empty(msg: str) -> go.Figure:
     fig = go.Figure()
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#555555"),
+        font=dict(family=_FONT, color="#888888"),
         annotations=[dict(x=0.5, y=0.5, xref="paper", yref="paper",
                           text=msg, showarrow=False,
-                          font=dict(color="#444444", size=13, family=_FONT))],
+                          font=dict(color="#777777", size=13, family=_FONT))],
         margin=dict(l=40, r=40, t=60, b=40), height=400,
     )
     return fig

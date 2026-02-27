@@ -114,7 +114,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
         title=dict(
             text=(
                 "Provider Leaderboard"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  bar = peak intelligence  ·  tick mark = average</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -149,10 +149,10 @@ def _empty(msg: str) -> go.Figure:
     fig = go.Figure()
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#555555"),
+        font=dict(family=_FONT, color="#888888"),
         annotations=[dict(x=0.5, y=0.5, xref="paper", yref="paper",
                           text=msg, showarrow=False,
-                          font=dict(color="#444444", size=13, family=_FONT))],
+                          font=dict(color="#777777", size=13, family=_FONT))],
         margin=dict(l=40, r=40, t=60, b=40), height=400,
     )
     return fig

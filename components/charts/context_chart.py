@@ -87,7 +87,7 @@ def build_context_chart(df: pd.DataFrame) -> go.Figure:
                 x=ctx_k,
                 line=dict(color="rgba(255,255,255,0.05)", width=1, dash="dot"),
                 annotation_text=label,
-                annotation_font=dict(color="#333333", size=9, family=_FONT),
+                annotation_font=dict(color="#666666", size=9, family=_FONT),
                 annotation_position="top right",
             )
 
@@ -98,7 +98,7 @@ def build_context_chart(df: pd.DataFrame) -> go.Figure:
         title=dict(
             text=(
                 "Context Window vs Intelligence"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  bubble size = cheaper  ·  click legend to isolate providers</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -122,7 +122,7 @@ def build_context_chart(df: pd.DataFrame) -> go.Figure:
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#555555", size=9, family=_FONT),
+            font=dict(color="#888888", size=9, family=_FONT),
             x=1.01, y=1, xanchor="left",
         ),
         margin=dict(l=56, r=160, t=52, b=52),
@@ -135,7 +135,7 @@ def build_context_chart(df: pd.DataFrame) -> go.Figure:
             x=1.01, y=0.02, xref="paper", yref="paper", xanchor="left",
             text="Bubble size = cheaper",
             showarrow=False,
-            font=dict(color="#333333", size=9, family=_FONT),
+            font=dict(color="#666666", size=9, family=_FONT),
         )],
     )
 
@@ -146,10 +146,10 @@ def _empty(msg: str) -> go.Figure:
     fig = go.Figure()
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#555555"),
+        font=dict(family=_FONT, color="#888888"),
         annotations=[dict(x=0.5, y=0.5, xref="paper", yref="paper",
                           text=msg, showarrow=False,
-                          font=dict(color="#444444", size=13, family=_FONT))],
+                          font=dict(color="#777777", size=13, family=_FONT))],
         margin=dict(l=40, r=40, t=60, b=40), height=500,
     )
     return fig

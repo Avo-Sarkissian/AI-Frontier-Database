@@ -90,7 +90,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
         title=dict(
             text=(
                 f"Top {top_n} Models by Intelligence"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  AA Intelligence Index</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -105,7 +105,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25) -> go.Figure:
             range=[0, ranked["quality"].max() * 1.3],
         ),
         yaxis=dict(
-            tickfont=dict(color="#666666", size=10, family=_FONT),
+            tickfont=dict(color="#888888", size=10, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),

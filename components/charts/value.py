@@ -86,7 +86,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
         title=dict(
             text=(
                 "Intelligence per Dollar"
-                "  <span style='font-size:11px;color:#3d3d3d;font-weight:400'>"
+                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
                 "  ·  quality ÷ price  (higher = better value)</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
@@ -101,7 +101,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
             range=[0, ranked["value_score"].max() * 1.28],
         ),
         yaxis=dict(
-            tickfont=dict(color="#666666", size=10, family=_FONT),
+            tickfont=dict(color="#888888", size=10, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),
