@@ -7,6 +7,7 @@ IDs are always in the DOM regardless of active tab. This prevents Dash 4's
 "nonexistent object" callback errors.
 """
 import os
+import threading
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -16,6 +17,7 @@ from dash import ctx, dcc, html, Input, Output, State, callback, clientside_call
 import pandas as pd
 
 from data.ingest import get_models, load_history
+from data.scraper import start_background_scraper
 from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
 from components.charts.pareto               import build_pareto_scatter
@@ -37,13 +39,33 @@ from components.charts.local_compat         import build_local_compat
 df         = get_models()
 history_df = load_history()
 
-_CACHE_PATH = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
+# Kick off background scraper — first run after 30 min, then every 30 min
+start_background_scraper(interval_s=1800)
+
+_CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
+_data_lock   = threading.Lock()
+_cache_mtime = _CACHE_PATH.stat().st_mtime if _CACHE_PATH.exists() else 0.0
+
 
 def _cache_ts() -> str:
     try:
         return datetime.fromtimestamp(_CACHE_PATH.stat().st_mtime).strftime("%b %d  %H:%M")
     except Exception:
         return "—"
+
+
+def _reload_if_stale():
+    """Re-read df/history_df if the cache file has changed on disk."""
+    global df, history_df, _cache_mtime
+    try:
+        mtime = _CACHE_PATH.stat().st_mtime
+        if mtime != _cache_mtime:
+            with _data_lock:
+                df         = get_models()
+                history_df = load_history()
+                _cache_mtime = mtime
+    except Exception:
+        pass
 
 _TOP5 = (
     df[df["quality"] > 0]
@@ -106,7 +128,7 @@ def _quality_label(q: float) -> str:
 
 
 def _desc(text: str) -> html.Div:
-    return html.Div([html.P(text, className="chart-desc")], className="chart-desc-wrap")
+    return html.Div(text, className="chart-caption")
 
 
 _GRAPH_CONFIG = {
@@ -128,6 +150,7 @@ app.layout = html.Div([
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
     dcc.Download(id="download-csv"),
+    dcc.Interval(id="data-refresh-interval", interval=30 * 60 * 1000, n_intervals=0),
 
     # ── Header ────────────────────────────────────────────────────────────────
     html.Div([
@@ -151,7 +174,10 @@ app.layout = html.Div([
         _stat(f"${df['price'].min():.3f}",                         "Floor price / 1M", accent=True),
         _stat(str(int(df["quality"].max())),                        "Peak intelligence"),
         _stat(f"{int(df['speed'].replace(0, pd.NA).max()):,}",     "Max speed tok/s"),
-        _stat(_cache_ts(),                                          "Data updated"),
+        html.Div([
+            html.Div(id="stat-data-ts", children=_cache_ts(), className="stat-value"),
+            html.Div("Data updated", className="stat-label"),
+        ], className="stat"),
     ], className="stat-bar"),
 
     # ── Global filters ────────────────────────────────────────────────────────
@@ -186,15 +212,11 @@ app.layout = html.Div([
         html.Div(className="filter-sep"),
         html.Button("↓ CSV", id="btn-export", className="export-btn",
                     title="Download filtered data as CSV"),
+        html.Div(style={"flex": "1"}),   # spacer
+        html.Button("All",      id="preset-all",    className="preset-btn"),
+        html.Button("IQ ≥ 50",  id="preset-strong", className="preset-btn"),
+        html.Button("IQ ≥ 75",  id="preset-elite",  className="preset-btn"),
     ], className="filters"),
-
-    # ── Preset quick-filters ──────────────────────────────────────────────────
-    html.Div([
-        html.Span("QUICK FILTER", className="filter-label"),
-        html.Button("All Models", id="preset-all",    className="preset-btn"),
-        html.Button("Strong ≥50", id="preset-strong", className="preset-btn"),
-        html.Button("Elite ≥75",  id="preset-elite",  className="preset-btn"),
-    ], className="presets-bar"),
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
     dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
@@ -312,7 +334,7 @@ app.layout = html.Div([
                     style={"minWidth": "500px"},
                 ),
                 html.Span("max 5", className="filter-label",
-                          style={"color": "#333333", "paddingLeft": "8px"}),
+                          style={"color": "var(--text-3)", "paddingLeft": "8px"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="radar-chart", figure=build_radar(df, _TOP5),
@@ -342,7 +364,7 @@ app.layout = html.Div([
                     },
                 ),
                 html.Span("million tokens / month", className="budget-unit",
-                          style={"color": "#444444", "fontSize": "11px", "paddingLeft": "6px"}),
+                          style={"fontSize": "11px", "paddingLeft": "6px"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="cost-calc-chart",
@@ -822,7 +844,7 @@ def toggle_detail_panel(pareto_click, quadrant_click, _close):
                 },
             ),
             html.Div(f"Top {100 - pct}% of all models",
-                     style={"fontSize": "10px", "color": "#333333",
+                     style={"fontSize": "10px", "color": "var(--text-3)",
                             "marginBottom": "16px"}),
         ]),
 
@@ -868,6 +890,17 @@ def export_csv(n_clicks, providers, min_quality, search):
         return no_update
     filtered = _apply_filters(providers, min_quality, search or "")
     return dcc.send_data_frame(filtered.to_csv, "ai_frontier_export.csv", index=False)
+
+
+# ── Auto data refresh (every 30 min, picks up external scraper updates) ───────
+@callback(
+    Output("stat-data-ts", "children"),
+    Input("data-refresh-interval", "n_intervals"),
+    prevent_initial_call=True,
+)
+def auto_refresh_data(_):
+    _reload_if_stale()
+    return _cache_ts()
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
