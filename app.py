@@ -34,6 +34,7 @@ from components.charts.price_timeline       import build_price_timeline
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
+from components.charts.local_rankings       import build_local_rankings
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -478,6 +479,20 @@ app.layout = html.Div([
                     config=_GRAPH_CONFIG, style={"minHeight": "400px"},
                 ),
             ])], className="chart-card"),
+            _desc(
+                "All open-weight models ranked by AA Intelligence Index — "
+                "independent of hardware. Use the Tags filter above to narrow by capability."
+            ),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(
+                    id="local-rankings-chart",
+                    figure=build_local_rankings(
+                        get_local_df(quant="Q4", vram_gb=32,
+                                     bandwidth_gbps=1792, hw_type="nvidia"),
+                    ),
+                    config=_GRAPH_CONFIG, style={"minHeight": "500px"},
+                ),
+            ])], className="chart-card"),
         ]),
 
     ]),
@@ -734,8 +749,9 @@ def update_local_hw(gpu_name: str):
 
 
 @callback(
-    Output("local-scatter",      "figure"),
-    Output("local-compat-chart", "figure"),
+    Output("local-scatter",        "figure"),
+    Output("local-compat-chart",   "figure"),
+    Output("local-rankings-chart", "figure"),
     Input("local-vram",     "value"),
     Input("local-num-gpus", "value"),
     Input("local-quant",    "value"),
@@ -760,6 +776,7 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     return (
         build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4"),
         build_local_compat(local_df, quant=quant or "Q4"),
+        build_local_rankings(local_df),
     )
 
 
