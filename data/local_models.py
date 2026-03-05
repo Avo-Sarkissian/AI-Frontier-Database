@@ -51,6 +51,7 @@ FAMILY_COLORS: dict[str, str] = {
     "Moonshot":    "#a9e34b",
     "SOLAR":       "#ff6b6b",
     "xAI":         "#aaaaaa",
+    "OpenAI":      "#10a37f",   # OpenAI brand green
 }
 DEFAULT_FAMILY_COLOR = "#555555"
 
@@ -130,6 +131,13 @@ _MODELS_RAW: list[dict] = [
     {"name": "DeepSeek R1 Distill Llama 8B", "family": "DeepSeek", "params_b": 8.03,  "active_b": 8.03, "context_k": 128, "quality": 9,  "license": "MIT", "tags": ["reasoning"]},
     {"name": "DeepSeek R1 Distill Llama 70B","family": "DeepSeek", "params_b": 70.6,  "active_b": 70.6, "context_k": 128, "quality": 15, "license": "MIT", "tags": ["reasoning"]},
     {"name": "DeepSeek Coder V2 Lite",       "family": "DeepSeek", "params_b": 16.0,  "active_b": 2.4,  "context_k": 128, "quality": 10, "license": "MIT", "tags": ["code"],           "moe": True},
+
+    # ── OpenAI open-weight (gpt-oss series, Apache 2.0, Feb 2026) ────────────
+    # gpt-oss-120b: near-parity with o4-mini; natively MXFP4 (≈Q4 for sizing)
+    # gpt-oss-20b:  similar to o3-mini reasoning; runs on 16 GB edge devices
+    # Both support low/medium/high reasoning effort levels.
+    {"name": "gpt-oss-120b",         "family": "OpenAI", "params_b": 120,   "active_b": 120,   "context_k": 128, "quality": 38, "license": "Apache 2.0", "tags": ["reasoning", "code"]},  # estimated — near o4-mini
+    {"name": "gpt-oss-20b",          "family": "OpenAI", "params_b": 20,    "active_b": 20,    "context_k": 128, "quality": 25, "license": "Apache 2.0", "tags": ["reasoning", "code"]},   # estimated — similar to o3-mini on reasoning
 
     # ── Moonshot Kimi ─────────────────────────────────────────────────────────
     {"name": "Kimi-VL-A3B",         "family": "Moonshot", "params_b": 16.0,  "active_b": 3.0,   "context_k": 128, "quality": 7,  "license": "MIT", "tags": ["vision", "reasoning"], "moe": True},
