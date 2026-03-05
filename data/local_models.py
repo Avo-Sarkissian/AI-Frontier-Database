@@ -223,10 +223,13 @@ GPUS: list[dict] = [
     {"name": "NVIDIA V100 32GB",         "vram_gb": 32,  "bandwidth_gbps": 900,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     # ── Apple Silicon ─────────────────────────────────────────────────────────
     # Unified memory = VRAM; bandwidth from Apple silicon spec pages.
-    # M3 Max has two GPU tiers: 14-core (300 GB/s) for base configs,
-    #   16-core (400 GB/s) for larger configs.
-    # M3 Ultra (Mac Studio 2025): 2× M3 Max dies → 819 GB/s, up to 512 GB.
-    # M4 Max has two tiers: 14-core (410 GB/s) base, 16-core (546 GB/s) high.
+    # M3 Max: 14-core GPU (300 GB/s) base / 16-core (400 GB/s) high configs.
+    # M3 Ultra (Mac Studio 2025): 2× M3 Max → 819 GB/s, up to 512 GB.
+    # M4 Max: 14-core GPU (410 GB/s) base / 16-core (546 GB/s) high configs.
+    # M5 (MacBook Air, Mar 2026): 153.6 GB/s, up to 32 GB.
+    # M5 Pro (MacBook Pro, Mar 2026): 307 GB/s, up to 64 GB.
+    # M5 Max (MacBook Pro, Mar 2026): 614 GB/s, up to 128 GB (single-tier GPU).
+    # M5 Ultra: not yet announced — expected Mac Studio mid-2026.
     # ── M1 ──
     {"name": "Apple M1 (8 GB)",          "vram_gb": 8,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
     {"name": "Apple M1 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
@@ -277,6 +280,22 @@ GPUS: list[dict] = [
     {"name": "Apple M4 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
+    # ── M5 ──
+    # M5 base (MacBook Air, Mar 2026): 153.6 GB/s, up to 32 GB
+    {"name": "Apple M5 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
+    # M5 Pro (MacBook Pro 14"/16", Mar 2026): 307 GB/s, up to 64 GB
+    {"name": "Apple M5 Pro (24 GB)",     "vram_gb": 24,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Pro (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Pro (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    # M5 Max (MacBook Pro 14"/16", Mar 2026): 614 GB/s, up to 128 GB
+    {"name": "Apple M5 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
     # ── AMD ──────────────────────────────────────────────────────────────────
     {"name": "AMD RX 7900 XTX",          "vram_gb": 24,  "bandwidth_gbps": 960,  "hw_type": "amd",    "category": "AMD"},
     {"name": "AMD RX 7900 XT",           "vram_gb": 20,  "bandwidth_gbps": 800,  "hw_type": "amd",    "category": "AMD"},
