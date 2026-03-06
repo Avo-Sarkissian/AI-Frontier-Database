@@ -12,6 +12,7 @@ Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
+import re
 import threading
 import time
 
@@ -34,6 +35,40 @@ _API_URL = (
     "?prompt_length=1000"
 )
 _TIMEOUT = 45   # seconds — response can be ~20 MB
+
+
+# ── Provider normalization ────────────────────────────────────────────────────
+
+# Explicit overrides for sub-brands that should collapse to a parent label
+_PROVIDER_OVERRIDES: dict[str, str] = {
+    "Google Vertex":          "Google",
+    "Google (Vertex)":        "Google",
+    "Google (AI Studio)":     "Google",
+    "Amazon Latency Optimized": "Amazon",
+    "Amazon Standard":        "Amazon",
+    "Kimi Turbo":             "Kimi",
+}
+
+# Strip trailing quantization / speed qualifiers from provider names.
+# Handles patterns like:
+#   DeepInfra (FP8)  →  DeepInfra
+#   Together.ai (Turbo, FP4)  →  Together.ai
+#   Nebius Fast  →  Nebius
+#   x.ai Fast  →  x.ai
+#   Azure (FP8)  →  Azure
+#   GMI FP8  →  GMI
+_QUALIFIER_RE = re.compile(
+    r"[\s,\(]*(FP4|FP8|Turbo|Base|Fast|Standard|Latency Optimized|Ultra)"
+    r"(,\s*(FP4|FP8|Turbo|Base|Fast|Standard))*[\)\s]*$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_provider(raw: str) -> str:
+    """Collapse provider sub-brands and strip quantization suffixes."""
+    if raw in _PROVIDER_OVERRIDES:
+        return _PROVIDER_OVERRIDES[raw]
+    return _QUALIFIER_RE.sub("", raw).strip()
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -62,8 +97,8 @@ def _parse_api_response(data: dict) -> list[list]:
         if not model_name:
             continue
 
-        # Provider — the API host (e.g. "OpenAI", "Together", "Groq")
-        provider = hm.get("host_label") or ""
+        # Provider — normalize to collapse sub-brands / quant suffixes
+        provider = _normalize_provider(hm.get("host_label") or "")
 
         # Context window
         ctx_tokens = (
