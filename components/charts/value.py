@@ -32,8 +32,8 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
     hover = (
         "<b>%{customdata[0]}</b><br>"
         "Provider: %{customdata[1]}<br>"
-        "Value Score: %{x:.1f} pts/$<br>"
-        "Intelligence: %{customdata[2]:.0f}<br>"
+        "Value Score: %{x:.2f} score/$<br>"
+        "AA Score: %{customdata[2]:.1f}<br>"
         "Price: $%{customdata[3]:.4f}/M tokens<br>"
         "<extra></extra>"
     )
@@ -94,7 +94,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Intelligence Points per $ / 1M tokens", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Score per $ / 1M tokens", font=dict(color=_AXIS, size=11), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=10, family=_FONT),
             showgrid=True, showline=False, ticks="",

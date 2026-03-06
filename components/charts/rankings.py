@@ -21,7 +21,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     if metric == "value":
         valid = valid[valid["price"] > 0].copy()
         valid["_metric"] = valid["quality"] / valid["price"]
-        x_col, x_label, title_metric = "_metric", "Intelligence Points per $ / 1M tokens", "Value (IQ per $)"
+        x_col, x_label, title_metric = "_metric", "AA Score per $ / 1M tokens", "Value (score/$)"
     elif metric == "speed":
         valid = valid[valid["speed"] > 0].copy()
         valid["_metric"] = valid["speed"]

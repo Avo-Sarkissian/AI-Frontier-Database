@@ -95,8 +95,11 @@ def _compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
     return picks[:5]
 
 
-_DIVERSE5 = _compute_diverse5(df)
+_DIVERSE5    = _compute_diverse5(df)
 _N_SNAPSHOTS = history_df["scraped_at"].nunique() if not history_df.empty else 0
+# Percentile thresholds for preset filters (recomputed on each restart)
+_P75 = round(df["quality"].quantile(0.75), 1)   # top 25%
+_P90 = round(df["quality"].quantile(0.90), 1)   # top 10%
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = dash.Dash(
@@ -196,7 +199,7 @@ app.layout = html.Div([
         _stat(str(len(df)),                                         "Models tracked"),
         _stat(str(df["provider"].nunique()),                        "Providers"),
         _stat(f"${df['price'].min():.3f}",                         "Floor price / 1M", accent=True),
-        _stat(str(int(df["quality"].max())),                        "Peak intelligence"),
+        _stat(f"{df['quality'].max():.1f}",                         "Peak intelligence"),
         _stat(f"{int(df['speed'].replace(0, pd.NA).max()):,}",     "Max speed tok/s"),
         html.Div([
             html.Div(id="stat-data-ts", children=_cache_ts(), className="stat-value"),
@@ -215,14 +218,14 @@ app.layout = html.Div([
             style={"minWidth": "220px"},
         ),
         html.Div(className="filter-sep"),
-        html.Span("MIN IQ", className="filter-label"),
+        html.Span("MIN SCORE", className="filter-label"),
         dcc.Dropdown(
             id="filter-quality",
             options=[{"label": f"≥ {v}", "value": v}
-                     for v in [0, 10, 20, 30, 40, 50, 60, 70, 75, 80]],
+                     for v in [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]],
             value=0,
             clearable=False,
-            style={"width": "88px"},
+            style={"width": "96px"},
         ),
         html.Div(className="filter-sep"),
         html.Span("SEARCH", className="filter-label"),
@@ -238,8 +241,8 @@ app.layout = html.Div([
                     title="Download filtered data as CSV"),
         html.Div(style={"flex": "1"}),   # spacer
         html.Button("All",      id="preset-all",    className="preset-btn"),
-        html.Button("IQ ≥ 50",  id="preset-strong", className="preset-btn"),
-        html.Button("IQ ≥ 75",  id="preset-elite",  className="preset-btn"),
+        html.Button("Top 25%",  id="preset-strong", className="preset-btn"),
+        html.Button("Top 10%",  id="preset-elite",  className="preset-btn"),
     ], className="filters"),
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
@@ -317,7 +320,7 @@ app.layout = html.Div([
                     id="rankings-sort",
                     options=[
                         {"label": "Intelligence", "value": "intelligence"},
-                        {"label": "Value (IQ/$)", "value": "value"},
+                        {"label": "Value (score/$)", "value": "value"},
                         {"label": "Speed",        "value": "speed"},
                     ],
                     value="intelligence",
@@ -596,9 +599,9 @@ def apply_preset(*_):
     if trigger == "preset-all":
         return 0, [], ""
     if trigger == "preset-strong":
-        return 50, [], no_update
+        return _P75, [], no_update
     if trigger == "preset-elite":
-        return 75, [], no_update
+        return _P90, [], no_update
     return no_update, no_update, no_update
 
 

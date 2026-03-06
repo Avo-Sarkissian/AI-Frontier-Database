@@ -2,7 +2,7 @@
 Local models — VRAM vs Quality scatter chart.
 
 X-axis : VRAM required (GB) at the selected quantization — log scale
-Y-axis : Quality score (0–100, normalized from public benchmarks)
+Y-axis : AA Intelligence Index (raw, calibrated to AA scale)
 Size   : Estimated tokens/second on the selected hardware
 Color  : Model family
 Shape  : ● dense  ◆ MoE (mixture-of-experts)
