@@ -40,8 +40,8 @@ from components.charts.local_rankings       import build_local_rankings
 df         = get_models()
 history_df = load_history()
 
-# Kick off background scraper — first run after 30 min, then every 30 min
-start_background_scraper(interval_s=1800)
+# Kick off background scraper — runs immediately, then every hour
+start_background_scraper(interval_s=3600)
 
 _CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
 _data_lock   = threading.Lock()
@@ -151,7 +151,7 @@ app.layout = html.Div([
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
     dcc.Download(id="download-csv"),
-    dcc.Interval(id="data-refresh-interval", interval=30 * 60 * 1000, n_intervals=0),
+    dcc.Interval(id="data-refresh-interval", interval=10 * 60 * 1000, n_intervals=0),
 
     # ── Header ────────────────────────────────────────────────────────────────
     html.Div([

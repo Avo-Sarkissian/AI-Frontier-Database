@@ -1,21 +1,19 @@
 """
-Scrapes the Artificial Analysis leaderboard and updates the local CSV cache.
+Scrapes live model data from the Artificial Analysis API and updates the local CSV cache.
 
 Strategy:
-  1. Fetch https://artificialanalysis.ai/models with a browser-like User-Agent.
-  2. Extract __NEXT_DATA__ JSON embedded in the HTML (Next.js SSR).
-  3. Walk the page props to find the model rows.
-  4. Fall back to the existing cache silently on any failure.
+  1. Call https://artificialanalysis.ai/api/data/website/host-models/performance?prompt_length=1000
+     This returns a JSON blob with 800+ host-model records containing intelligence_index,
+     price, speed, latency, context window, and provider info.
+  2. Map the JSON fields to the schema expected by load_from_raw / the CSV cache.
+  3. Fall back to the existing cache silently on any failure.
 
 Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
-import json
-import re
 import threading
 import time
-from pathlib import Path
 
 import requests
 
@@ -27,75 +25,77 @@ _HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/123.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "application/json",
+    "Referer": "https://artificialanalysis.ai/models",
 }
 
-_URL     = "https://artificialanalysis.ai/models"
-_TIMEOUT = 25   # seconds
+_API_URL = (
+    "https://artificialanalysis.ai/api/data/website/host-models/performance"
+    "?prompt_length=1000"
+)
+_TIMEOUT = 45   # seconds — response can be ~20 MB
 
 
-# ── Parsers ───────────────────────────────────────────────────────────────────
+# ── Parser ────────────────────────────────────────────────────────────────────
 
-def _extract_next_data(html: str) -> dict | None:
-    """Pull the __NEXT_DATA__ JSON blob from a Next.js page."""
-    m = re.search(
-        r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
-        html, re.S
-    )
-    if not m:
-        return None
-    try:
-        return json.loads(m.group(1))
-    except json.JSONDecodeError:
-        return None
-
-
-def _rows_from_next_data(data: dict) -> list[list] | None:
+def _parse_api_response(data: dict) -> list[list]:
     """
-    Navigate Next.js page props to find a list of model records.
-    AA stores the leaderboard table under different keys depending on deploy.
-    We try a few known paths.
+    Convert the hostModels list from the AA API into raw_rows format:
+      [model, context, provider, quality, price, speed, latency]
+
+    One row per host-model (same model can appear multiple times, once per API
+    provider). load_from_raw deduplicates on (model, provider).
     """
-    def _walk(obj, depth=0):
-        """Recursively look for a list that looks like model rows."""
-        if depth > 8:
-            return None
-        if isinstance(obj, list) and len(obj) >= 5:
-            # Check if it looks like model table rows: list of lists with 7+ items
-            if all(isinstance(r, (list, tuple)) and len(r) >= 7 for r in obj[:3]):
-                return [list(r) for r in obj]
-            # Or list of dicts with model/quality/price keys
-            if all(isinstance(r, dict) and "model" in r for r in obj[:3]):
-                return _dicts_to_rows(obj)
-        if isinstance(obj, dict):
-            for v in obj.values():
-                result = _walk(v, depth + 1)
-                if result:
-                    return result
-        if isinstance(obj, list):
-            for item in obj:
-                result = _walk(item, depth + 1)
-                if result:
-                    return result
-        return None
-
-    return _walk(data)
-
-
-def _dicts_to_rows(records: list[dict]) -> list[list]:
-    """Convert list-of-dicts (AA API format) to the raw_rows format expected by load_from_raw."""
+    host_models = data.get("hostModels", [])
     rows = []
-    for r in records:
+
+    for hm in host_models:
+        model_obj = hm.get("model") or {}
+
+        # Quality — intelligence_index is the primary metric
+        quality = model_obj.get("intelligence_index")
+        if quality is None or quality <= 0:
+            continue
+
+        # Model name — use the model creator's canonical name
+        model_name = model_obj.get("name") or hm.get("model_label") or ""
+        if not model_name:
+            continue
+
+        # Provider — the API host (e.g. "OpenAI", "Together", "Groq")
+        provider = hm.get("host_label") or ""
+
+        # Context window
+        ctx_tokens = (
+            hm.get("context_window_tokens")
+            or model_obj.get("context_window_tokens")
+            or 0
+        )
+        ctx_str = hm.get("context_window_formatted") or (
+            f"{ctx_tokens // 1000}k" if ctx_tokens >= 1000 else str(ctx_tokens)
+        )
+
+        # Price — blended 3:1 output:input ratio, per 1M tokens
+        price = hm.get("price_1m_blended_3_to_1")
+        if price is None or price <= 0:
+            continue
+        price_str = f"${price}"
+
+        # Speed (tokens/sec) and latency (time-to-first-chunk, seconds)
+        ts = hm.get("timescaleData") or {}
+        speed   = ts.get("median_output_speed") or 0
+        latency = ts.get("median_time_to_first_chunk") or 0
+
         rows.append([
-            r.get("model", r.get("name", "")),
-            str(r.get("context", r.get("context_window", ""))),
-            r.get("provider", r.get("organization", "")),
-            str(r.get("quality", r.get("intelligence_index", r.get("mmlu", "")))),
-            f"${r.get('price', r.get('output_price', r.get('blended_price', '')))}",
-            str(r.get("speed", r.get("tokens_per_second", r.get("throughput", "")))),
-            str(r.get("latency", r.get("time_to_first_token", ""))),
+            model_name,
+            ctx_str,
+            provider,
+            str(quality),
+            price_str,
+            str(speed),
+            str(latency),
         ])
+
     return rows
 
 
@@ -103,21 +103,21 @@ def _dicts_to_rows(records: list[dict]) -> list[list]:
 
 def scrape_and_save() -> bool:
     """
-    Fetch fresh data from AA, update cache.
+    Fetch fresh data from the AA API and update the cache.
     Returns True on success, False on failure (cache unchanged).
     """
     try:
-        resp = requests.get(_URL, headers=_HEADERS, timeout=_TIMEOUT)
+        resp = requests.get(_API_URL, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
 
-        data = _extract_next_data(resp.text)
-        if data is None:
-            print("[scraper] __NEXT_DATA__ not found in page HTML")
+        data = resp.json()
+        if "hostModels" not in data:
+            print("[scraper] Unexpected API response structure")
             return False
 
-        rows = _rows_from_next_data(data)
+        rows = _parse_api_response(data)
         if not rows:
-            print("[scraper] Could not locate model rows in __NEXT_DATA__")
+            print("[scraper] No valid model rows parsed from API response")
             return False
 
         df = load_from_raw(rows)
@@ -137,14 +137,15 @@ def scrape_and_save() -> bool:
         return False
 
 
-def _scraper_loop(interval_s: int = 1800):
-    """Background thread: scrape every `interval_s` seconds."""
+def _scraper_loop(interval_s: int = 3600):
+    """Background thread: scrape immediately, then every `interval_s` seconds."""
+    scrape_and_save()           # ← run once immediately on startup
     while True:
         time.sleep(interval_s)
         scrape_and_save()
 
 
-def start_background_scraper(interval_s: int = 1800):
+def start_background_scraper(interval_s: int = 3600):
     """Start the periodic scraper as a daemon thread (non-blocking)."""
     t = threading.Thread(target=_scraper_loop, args=(interval_s,), daemon=True)
     t.start()
