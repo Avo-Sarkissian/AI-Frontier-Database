@@ -6,13 +6,15 @@ Strategy:
      This returns a JSON blob with 800+ host-model records containing intelligence_index,
      price, speed, latency, context window, and provider info.
   2. Map the JSON fields to the schema expected by load_from_raw / the CSV cache.
+     provider = the AI lab that created the model (Google, Anthropic, OpenAI, …),
+     not the hosting platform. When a model is available through multiple API hosts,
+     we keep the cheapest price and fastest speed.
   3. Fall back to the existing cache silently on any failure.
 
 Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
-import re
 import threading
 import time
 
@@ -37,40 +39,6 @@ _API_URL = (
 _TIMEOUT = 45   # seconds — response can be ~20 MB
 
 
-# ── Provider normalization ────────────────────────────────────────────────────
-
-# Explicit overrides for sub-brands that should collapse to a parent label
-_PROVIDER_OVERRIDES: dict[str, str] = {
-    "Google Vertex":          "Google",
-    "Google (Vertex)":        "Google",
-    "Google (AI Studio)":     "Google",
-    "Amazon Latency Optimized": "Amazon",
-    "Amazon Standard":        "Amazon",
-    "Kimi Turbo":             "Kimi",
-}
-
-# Strip trailing quantization / speed qualifiers from provider names.
-# Handles patterns like:
-#   DeepInfra (FP8)  →  DeepInfra
-#   Together.ai (Turbo, FP4)  →  Together.ai
-#   Nebius Fast  →  Nebius
-#   x.ai Fast  →  x.ai
-#   Azure (FP8)  →  Azure
-#   GMI FP8  →  GMI
-_QUALIFIER_RE = re.compile(
-    r"[\s,\(]*(FP4|FP8|Turbo|Base|Fast|Standard|Latency Optimized|Ultra)"
-    r"(,\s*(FP4|FP8|Turbo|Base|Fast|Standard))*[\)\s]*$",
-    re.IGNORECASE,
-)
-
-
-def _normalize_provider(raw: str) -> str:
-    """Collapse provider sub-brands and strip quantization suffixes."""
-    if raw in _PROVIDER_OVERRIDES:
-        return _PROVIDER_OVERRIDES[raw]
-    return _QUALIFIER_RE.sub("", raw).strip()
-
-
 # ── Parser ────────────────────────────────────────────────────────────────────
 
 def _parse_api_response(data: dict) -> list[list]:
@@ -78,27 +46,33 @@ def _parse_api_response(data: dict) -> list[list]:
     Convert the hostModels list from the AA API into raw_rows format:
       [model, context, provider, quality, price, speed, latency]
 
-    One row per host-model (same model can appear multiple times, once per API
-    provider). load_from_raw deduplicates on (model, provider).
+    provider = the AI lab / model creator (e.g. Google, Anthropic, OpenAI).
+    When the same model is hosted by multiple API providers, we aggregate to
+    keep the cheapest price and fastest speed across all of them.
     """
     host_models = data.get("hostModels", [])
-    rows = []
+
+    # Aggregate per (model_name, creator_name)
+    best: dict[tuple, dict] = {}
 
     for hm in host_models:
         model_obj = hm.get("model") or {}
 
-        # Quality — intelligence_index is the primary metric
+        # Quality
         quality = model_obj.get("intelligence_index")
         if quality is None or quality <= 0:
             continue
 
-        # Model name — use the model creator's canonical name
+        # Model name
         model_name = model_obj.get("name") or hm.get("model_label") or ""
         if not model_name:
             continue
 
-        # Provider — normalize to collapse sub-brands / quant suffixes
-        provider = _normalize_provider(hm.get("host_label") or "")
+        # Provider = AI lab that created the model
+        creators = model_obj.get("model_creators") or {}
+        provider = (
+            creators.get("name") if isinstance(creators, dict) else ""
+        ) or ""
 
         # Context window
         ctx_tokens = (
@@ -114,21 +88,40 @@ def _parse_api_response(data: dict) -> list[list]:
         price = hm.get("price_1m_blended_3_to_1")
         if price is None or price <= 0:
             continue
-        price_str = f"${price}"
 
-        # Speed (tokens/sec) and latency (time-to-first-chunk, seconds)
+        # Speed and latency
         ts = hm.get("timescaleData") or {}
         speed   = ts.get("median_output_speed") or 0
         latency = ts.get("median_time_to_first_chunk") or 0
 
+        key = (model_name, provider)
+        if key not in best:
+            best[key] = {
+                "ctx": ctx_str, "quality": quality,
+                "price": price, "speed": speed, "latency": latency,
+            }
+        else:
+            entry = best[key]
+            # Keep cheapest price; use that host's speed/latency
+            if price < entry["price"]:
+                entry["price"]   = price
+                entry["speed"]   = speed
+                entry["latency"] = latency
+            # If same price or more expensive, take faster speed
+            elif speed > entry["speed"]:
+                entry["speed"]   = speed
+                entry["latency"] = latency
+
+    rows = []
+    for (model_name, provider), v in best.items():
         rows.append([
             model_name,
-            ctx_str,
+            v["ctx"],
             provider,
-            str(quality),
-            price_str,
-            str(speed),
-            str(latency),
+            str(v["quality"]),
+            f"${v['price']}",
+            str(v["speed"]),
+            str(v["latency"]),
         ])
 
     return rows
