@@ -112,13 +112,19 @@ def _parse_api_response(data: dict) -> list[list]:
                 entry["speed"]   = speed
                 entry["latency"] = latency
 
+    # Normalize quality to 0-100 so UI filter thresholds stay meaningful.
+    # The AA intelligence_index scale grows over time (currently tops ~57);
+    # dividing by the dataset max keeps IQ ≥ 50 / IQ ≥ 75 semantically correct.
+    max_q = max((v["quality"] for v in best.values()), default=1) or 1
+
     rows = []
     for (model_name, provider), v in best.items():
+        normalized_q = round(v["quality"] / max_q * 100, 2)
         rows.append([
             model_name,
             v["ctx"],
             provider,
-            str(v["quality"]),
+            str(normalized_q),
             f"${v['price']}",
             str(v["speed"]),
             str(v["latency"]),
