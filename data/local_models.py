@@ -383,6 +383,9 @@ def get_local_df(
         })
     df = pd.DataFrame(rows)
     df["family_color"] = df["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR)
+    # Normalize quality to 0-100 so the scale matches the API models tab.
+    max_q = df["quality"].max() or 1
+    df["quality"] = (df["quality"] / max_q * 100).round(1)
     return df
 
 
