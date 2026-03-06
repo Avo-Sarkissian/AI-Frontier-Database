@@ -2,6 +2,28 @@
 Shared chart constants — imported by all chart modules.
 Single source of truth for colors and styling.
 """
+import re as _re
+
+# Ordered from most-specific to least-specific so longer matches win
+_NAME_SUBS = [
+    (_re.compile(r'\(\s*Adaptive\s+Reasoning\s*\)', _re.I), '(AR)'),
+    (_re.compile(r'\(\s*Non-reasoning\s*\)',          _re.I), '(NR)'),
+    (_re.compile(r'\(\s*Reasoning\s*\)',              _re.I), '(R)'),
+    (_re.compile(r'\(\s*xhigh\s*\)',                 _re.I), '(XH)'),
+    (_re.compile(r'\(\s*minimal\s*\)',               _re.I), '(min)'),
+    (_re.compile(r'\(\s*high\s*\)',                  _re.I), '(H)'),
+    (_re.compile(r'\(\s*medium\s*\)',                _re.I), '(M)'),
+    (_re.compile(r'\(\s*low\s*\)',                   _re.I), '(L)'),
+]
+
+
+def clean_model_name(name: str, max_len: int = 32) -> str:
+    """Abbreviate verbose model name suffixes for display."""
+    for pattern, repl in _NAME_SUBS:
+        name = pattern.sub(repl, name)
+    if len(name) > max_len:
+        name = name[:max_len - 1] + '…'
+    return name
 
 PROVIDER_COLORS: dict[str, str] = {
     "Anthropic":              "#c084fc",  # purple

@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
-    PROVIDER_COLORS, DEFAULT_COLOR,
+    PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
@@ -20,10 +20,11 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     ].copy()
 
     plot_df["monthly_cost"] = monthly_tokens_m * plot_df["price"]
-    plot_df = plot_df.sort_values("monthly_cost").head(top_n).reset_index(drop=True)
+    # Sort ascending (cheapest first); autorange='reversed' puts index-0 at top
+    plot_df = plot_df.sort_values("monthly_cost", ascending=True).head(top_n).reset_index(drop=True)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in plot_df["provider"]]
-    short_names = plot_df["model"].apply(lambda m: m[:30] + "…" if len(m) > 30 else m)
+    short_names = plot_df["model"].apply(clean_model_name)
 
     hover = (
         "<b>%{customdata[0]}</b><br>"
@@ -103,6 +104,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             tickfont=dict(color="#888888", size=10, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
+            autorange="reversed",  # cheapest at top
         ),
         barmode="overlay",
         margin=dict(l=20, r=130, t=52, b=36),

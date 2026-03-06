@@ -24,17 +24,13 @@ from components.charts.pareto               import build_pareto_scatter
 from components.charts.quadrant             import build_quadrant
 from components.charts.treemap              import build_treemap
 from components.charts.rankings             import build_rankings
-from components.charts.value                import build_value_chart
 from components.charts.radar                import build_radar
 from components.charts.cost_calc            import build_cost_calc
-from components.charts.trends               import build_trends
 from components.charts.animated_pareto      import build_animated_pareto
 from components.charts.context_chart        import build_context_chart
-from components.charts.price_timeline       import build_price_timeline
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
-from components.charts.local_rankings       import build_local_rankings
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -68,12 +64,39 @@ def _reload_if_stale():
     except Exception:
         pass
 
-_TOP5 = (
-    df[df["quality"] > 0]
-    .sort_values("quality", ascending=False)
-    .head(5)["model"]
-    .tolist()
-)
+def _compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
+    """Pick 5 diverse models spanning quality, value, speed, and budget tiers."""
+    valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)].copy()
+    if valid.empty:
+        return []
+    picks: list[str] = []
+
+    def _add(rows):
+        for _, row in rows.iterrows():
+            if row["model"] not in picks:
+                picks.append(row["model"])
+                return
+
+    # 1. Best intelligence
+    _add(valid.sort_values("quality", ascending=False))
+    # 2. Best value (quality/price), excluding already picked
+    v = valid.copy(); v["_val"] = v["quality"] / v["price"]
+    _add(v.sort_values("_val", ascending=False))
+    # 3. Fastest model with quality >= 40
+    fast = valid[(valid["speed"] > 0) & (valid["quality"] >= 40)]
+    _add(fast.sort_values("speed", ascending=False) if not fast.empty else valid.sort_values("speed", ascending=False))
+    # 4. Cheapest with quality >= 50
+    cheap = valid[valid["quality"] >= 50]
+    _add(cheap.sort_values("price") if not cheap.empty else valid.sort_values("price"))
+    # 5. Mid-tier (40-70 quality range)
+    mid = valid[(valid["quality"] >= 40) & (valid["quality"] <= 70)]
+    _add(mid.sort_values("quality", ascending=False) if not mid.empty else valid.sort_values("quality", ascending=False))
+
+    return picks[:5]
+
+
+_DIVERSE5 = _compute_diverse5(df)
+_N_SNAPSHOTS = history_df["scraped_at"].nunique() if not history_df.empty else 0
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = dash.Dash(
@@ -99,7 +122,7 @@ def _provider_options(dataframe: pd.DataFrame) -> list[dict]:
 
 
 def _model_options(dataframe: pd.DataFrame) -> list[dict]:
-    top = dataframe.sort_values("quality", ascending=False).head(40)
+    top = dataframe[dataframe["quality"] > 0].sort_values("quality", ascending=False)
     return [{"label": f"{r['model']} ({r['provider']})", "value": r["model"]}
             for _, r in top.iterrows()]
 
@@ -235,16 +258,18 @@ app.layout = html.Div([
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
             ])], className="chart-card"),
-            _desc(
-                "Frontier evolution — watch how intelligence vs. price has shifted across "
-                "every saved daily snapshot. Press ▶ Play to animate. "
-                "Dotted cyan line = Pareto frontier at that point in time."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="animated-pareto-chart",
-                          figure=build_animated_pareto(history_df),
-                          config=_GRAPH_CONFIG, style={"height": "580px"}),
-            ])], className="chart-card"),
+            *([
+                _desc(
+                    "Frontier evolution — watch how intelligence vs. price has shifted across "
+                    "every saved daily snapshot. Press ▶ Play to animate. "
+                    "Dotted cyan line = Pareto frontier at that point in time."
+                ),
+                html.Div([dcc.Loading(**_LOADING, children=[
+                    dcc.Graph(id="animated-pareto-chart",
+                              figure=build_animated_pareto(history_df),
+                              config=_GRAPH_CONFIG, style={"height": "580px"}),
+                ])], className="chart-card"),
+            ] if _N_SNAPSHOTS >= 5 else []),
         ]),
 
         # Performance ──────────────────────────────────────────────────────────
@@ -258,19 +283,6 @@ app.layout = html.Div([
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="quadrant-chart", figure=build_quadrant(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
-            ])], className="chart-card"),
-        ]),
-
-        # Value ────────────────────────────────────────────────────────────────
-        dcc.Tab(label="Value", value="value",
-                className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Intelligence points earned per dollar spent. "
-                "Models at the top give you the most cognitive output for your budget."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="value-chart", figure=build_value_chart(df),
-                          config=_GRAPH_CONFIG, style={"height": "900px"}),
             ])], className="chart-card"),
         ]),
 
@@ -299,10 +311,23 @@ app.layout = html.Div([
         # Rankings ─────────────────────────────────────────────────────────────
         dcc.Tab(label="Rankings", value="rankings",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Top models ranked by AA Intelligence Index. "
-                "Hover for price and speed details."
-            ),
+            html.Div([
+                html.Span("SORT BY", className="filter-label"),
+                dcc.RadioItems(
+                    id="rankings-sort",
+                    options=[
+                        {"label": "Intelligence", "value": "intelligence"},
+                        {"label": "Value (IQ/$)", "value": "value"},
+                        {"label": "Speed",        "value": "speed"},
+                    ],
+                    value="intelligence",
+                    inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "20px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            _desc("Top models by selected metric. Hover for full details."),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
@@ -329,7 +354,7 @@ app.layout = html.Div([
                 dcc.Dropdown(
                     id="radar-model-select",
                     options=_model_options(df),
-                    value=_TOP5,
+                    value=_DIVERSE5,
                     multi=True,
                     placeholder="Select up to 5 models…",
                     style={"minWidth": "500px"},
@@ -338,7 +363,7 @@ app.layout = html.Div([
                           style={"color": "var(--text-3)", "paddingLeft": "8px"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="radar-chart", figure=build_radar(df, _TOP5),
+                dcc.Graph(id="radar-chart", figure=build_radar(df, _DIVERSE5),
                           config=_GRAPH_CONFIG, style={"height": "560px"}),
             ])], className="chart-card"),
         ]),
@@ -371,28 +396,6 @@ app.layout = html.Div([
                 dcc.Graph(id="cost-calc-chart",
                           figure=build_cost_calc(df, monthly_tokens_m=1.0),
                           config=_GRAPH_CONFIG, style={"height": "1100px"}),
-            ])], className="chart-card"),
-        ]),
-
-        # Trends ───────────────────────────────────────────────────────────────
-        dcc.Tab(label="Trends", value="trends",
-                className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Intelligence score history for the top models. "
-                "A new snapshot is saved each time data is refreshed."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="trends-chart", figure=build_trends(history_df),
-                          config=_GRAPH_CONFIG, style={"height": "600px"}),
-            ])], className="chart-card"),
-            _desc(
-                "Price history for the top models — USD per million tokens, log scale. "
-                "The relentless decline in AI inference costs, quantified."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="price-timeline-chart",
-                          figure=build_price_timeline(history_df),
-                          config=_GRAPH_CONFIG, style={"height": "560px"}),
             ])], className="chart-card"),
         ]),
 
@@ -477,20 +480,6 @@ app.layout = html.Div([
                         quant="Q4",
                     ),
                     config=_GRAPH_CONFIG, style={"minHeight": "400px"},
-                ),
-            ])], className="chart-card"),
-            _desc(
-                "All open-weight models ranked by AA Intelligence Index — "
-                "independent of hardware. Use the Tags filter above to narrow by capability."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(
-                    id="local-rankings-chart",
-                    figure=build_local_rankings(
-                        get_local_df(quant="Q4", vram_gb=32,
-                                     bandwidth_gbps=1792, hw_type="nvidia"),
-                    ),
-                    config=_GRAPH_CONFIG, style={"minHeight": "500px"},
                 ),
             ])], className="chart-card"),
         ]),
@@ -637,17 +626,6 @@ def update_quadrant(providers, min_quality, search):
 
 
 @callback(
-    Output("value-chart", "figure"),
-    Input("filter-provider", "value"),
-    Input("filter-quality",  "value"),
-    Input("model-search",    "value"),
-    prevent_initial_call=True,
-)
-def update_value(providers, min_quality, search):
-    return build_value_chart(_apply_filters(providers, min_quality, search or ""))
-
-
-@callback(
     Output("treemap-chart", "figure"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
@@ -663,11 +641,12 @@ def update_treemap(providers, min_quality, search):
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
+    Input("rankings-sort",   "value"),
     prevent_initial_call=True,
 )
-def update_rankings(providers, min_quality, search):
+def update_rankings(providers, min_quality, search, sort_by):
     filtered = _apply_filters(providers, min_quality, search or "")
-    return build_rankings(filtered, top_n=min(25, len(filtered)))
+    return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
 
 @callback(
@@ -708,12 +687,7 @@ def update_compare(providers, min_quality, search, selected_models):
     triggered = ctx.triggered_id
 
     if triggered in ("filter-provider", "filter-quality", "model-search"):
-        capped = (
-            filtered[filtered["quality"] > 0]
-            .sort_values("quality", ascending=False)
-            .head(5)["model"]
-            .tolist()
-        )
+        capped = _compute_diverse5(filtered)
     else:
         capped = (selected_models or [])[:5]
 
@@ -749,9 +723,8 @@ def update_local_hw(gpu_name: str):
 
 
 @callback(
-    Output("local-scatter",        "figure"),
-    Output("local-compat-chart",   "figure"),
-    Output("local-rankings-chart", "figure"),
+    Output("local-scatter",      "figure"),
+    Output("local-compat-chart", "figure"),
     Input("local-vram",     "value"),
     Input("local-num-gpus", "value"),
     Input("local-quant",    "value"),
@@ -776,7 +749,6 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     return (
         build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4"),
         build_local_compat(local_df, quant=quant or "Q4"),
-        build_local_rankings(local_df),
     )
 
 

@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
-    PROVIDER_COLORS, DEFAULT_COLOR,
+    PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
@@ -27,7 +27,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
     ranked = ranked.iloc[::-1].reset_index(drop=True)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
-    short_names = ranked["model"].apply(lambda m: m[:30] + "…" if len(m) > 30 else m)
+    short_names = ranked["model"].apply(clean_model_name)
 
     hover = (
         "<b>%{customdata[0]}</b><br>"
