@@ -219,16 +219,31 @@ GPUS: list[dict] = [
     {"name": "NVIDIA RTX 3070 Ti",       "vram_gb": 8,   "bandwidth_gbps": 608,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3070",          "vram_gb": 8,   "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 2080 Ti",       "vram_gb": 11,  "bandwidth_gbps": 616,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
-    # ── NVIDIA Professional ───────────────────────────────────────────────────
+    # ── NVIDIA Data Center (Blackwell) ───────────────────────────────────────
+    # GB200 NVL2: 2×B200 on NVLink, 384 GB HBM3e, 16 TB/s aggregate bandwidth
+    # B200 SXM: 192 GB HBM3e, 8 TB/s
+    {"name": "NVIDIA GB200 NVL2",        "vram_gb": 384, "bandwidth_gbps": 16000, "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    {"name": "NVIDIA B200 SXM",          "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    # ── NVIDIA Data Center (Hopper) ──────────────────────────────────────────
+    # H200 SXM: 141 GB HBM3e, 4.8 TB/s | H200 PCIe: 141 GB, 3.35 TB/s
+    {"name": "NVIDIA H200 SXM",          "vram_gb": 141, "bandwidth_gbps": 4800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H200 PCIe",         "vram_gb": 141, "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H100 SXM",          "vram_gb": 80,  "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H100 PCIe",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    # ── NVIDIA Data Center (Ada / Ampere) ────────────────────────────────────
+    # L40S: 48 GB GDDR6, 864 GB/s (inference-optimised Ada successor to A100)
+    # L40: 48 GB GDDR6, 864 GB/s | A40: 48 GB GDDR6, 696 GB/s
+    {"name": "NVIDIA L40S",              "vram_gb": 48,  "bandwidth_gbps": 864,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA L40",               "vram_gb": 48,  "bandwidth_gbps": 864,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A40",               "vram_gb": 48,  "bandwidth_gbps": 696,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A100 80GB",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A100 40GB",         "vram_gb": 40,  "bandwidth_gbps": 1555,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA V100 32GB",         "vram_gb": 32,  "bandwidth_gbps": 900,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    # ── NVIDIA Professional Workstation ──────────────────────────────────────
     {"name": "NVIDIA RTX 6000 Ada",      "vram_gb": 48,  "bandwidth_gbps": 960,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA RTX 5000 Ada",      "vram_gb": 32,  "bandwidth_gbps": 576,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA A6000 Ada",         "vram_gb": 48,  "bandwidth_gbps": 864,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA A6000",             "vram_gb": 48,  "bandwidth_gbps": 768,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA A100 80GB",         "vram_gb": 80,  "bandwidth_gbps": 2000, "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA A100 40GB",         "vram_gb": 40,  "bandwidth_gbps": 1555, "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA H100 SXM",          "vram_gb": 80,  "bandwidth_gbps": 3350, "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA H100 PCIe",         "vram_gb": 80,  "bandwidth_gbps": 2000, "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA V100 32GB",         "vram_gb": 32,  "bandwidth_gbps": 900,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     # ── Apple Silicon ─────────────────────────────────────────────────────────
     # Unified memory = VRAM; bandwidth from Apple silicon spec pages.
     # M3 Max: 14-core GPU (300 GB/s) base / 16-core (400 GB/s) high configs.
