@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 import dash
-from dash import ctx, dcc, html, Input, Output, State, callback, clientside_callback, no_update
+from dash import ctx, dcc, html, dash_table, Input, Output, State, callback, clientside_callback, no_update
 import pandas as pd
 
 from data.ingest import get_models, load_history
@@ -400,6 +400,80 @@ app.layout = html.Div([
                           figure=build_cost_calc(df, monthly_tokens_m=1.0),
                           config=_GRAPH_CONFIG, style={"height": "1100px"}),
             ])], className="chart-card"),
+        ]),
+
+        # Table ────────────────────────────────────────────────────────────────
+        dcc.Tab(label="Table", value="table",
+                className="tab", selected_className="tab--selected", children=[
+            _desc(
+                "Full sortable table of all models. Click any column header to sort. "
+                "Global filters (provider, score, search) apply here too."
+            ),
+            html.Div([
+                dash_table.DataTable(
+                    id="model-table",
+                    columns=[
+                        {"name": "Model",          "id": "model",    "type": "text"},
+                        {"name": "Provider",        "id": "provider", "type": "text"},
+                        {"name": "Score",           "id": "quality",  "type": "numeric",
+                         "format": {"specifier": ".1f"}},
+                        {"name": "Price ($/M tok)", "id": "price",    "type": "numeric",
+                         "format": {"specifier": ".4f"}},
+                        {"name": "Speed (tok/s)",   "id": "speed",    "type": "numeric",
+                         "format": {"specifier": ".0f"}},
+                        {"name": "Latency (s)",     "id": "latency",  "type": "numeric",
+                         "format": {"specifier": ".2f"}},
+                        {"name": "Context",         "id": "context",  "type": "text"},
+                    ],
+                    data=df[["model", "provider", "quality", "price", "speed", "latency", "context"]].to_dict("records"),
+                    sort_action="native",
+                    sort_mode="single",
+                    filter_action="none",
+                    page_action="native",
+                    page_size=50,
+                    style_table={"overflowX": "auto"},
+                    style_header={
+                        "backgroundColor": "#111111",
+                        "color": "#aaaaaa",
+                        "fontFamily": "Inter, sans-serif",
+                        "fontSize": "11px",
+                        "fontWeight": "600",
+                        "letterSpacing": "0.06em",
+                        "textTransform": "uppercase",
+                        "borderBottom": "1px solid rgba(255,255,255,0.08)",
+                        "borderTop": "none",
+                        "paddingTop": "10px",
+                        "paddingBottom": "10px",
+                    },
+                    style_cell={
+                        "backgroundColor": "#0e0e0e",
+                        "color": "#888888",
+                        "fontFamily": "Inter, sans-serif",
+                        "fontSize": "12px",
+                        "padding": "8px 14px",
+                        "border": "none",
+                        "borderBottom": "1px solid rgba(255,255,255,0.04)",
+                        "textAlign": "left",
+                        "whiteSpace": "normal",
+                        "overflow": "hidden",
+                        "textOverflow": "ellipsis",
+                        "maxWidth": "260px",
+                    },
+                    style_cell_conditional=[
+                        {"if": {"column_id": "quality"},  "color": "#f2f2f2", "textAlign": "right"},
+                        {"if": {"column_id": "price"},    "textAlign": "right"},
+                        {"if": {"column_id": "speed"},    "textAlign": "right"},
+                        {"if": {"column_id": "latency"},  "textAlign": "right"},
+                    ],
+                    style_data_conditional=[
+                        {"if": {"row_index": "odd"}, "backgroundColor": "#0a0a0a"},
+                        {"if": {"state": "active"},
+                         "backgroundColor": "rgba(0,212,255,0.06)",
+                         "border": "1px solid rgba(0,212,255,0.2)"},
+                    ],
+                    style_as_list_view=True,
+                ),
+            ], className="chart-card", style={"padding": "0"}),
         ]),
 
         # Run Local ────────────────────────────────────────────────────────────
@@ -866,6 +940,20 @@ def add_to_compare(n_clicks, model_name, current_selection):
     if model_name not in current:
         current = (current + [model_name])[:5]
     return current, "compare"
+
+
+# ── Table view ────────────────────────────────────────────────────────────────
+@callback(
+    Output("model-table", "data"),
+    Input("filter-provider", "value"),
+    Input("filter-quality",  "value"),
+    Input("model-search",    "value"),
+    prevent_initial_call=True,
+)
+def update_table(providers, min_quality, search):
+    filtered = _apply_filters(providers, min_quality, search or "")
+    cols = ["model", "provider", "quality", "price", "speed", "latency", "context"]
+    return filtered[cols].to_dict("records")
 
 
 # ── Export CSV ────────────────────────────────────────────────────────────────

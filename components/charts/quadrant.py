@@ -63,12 +63,17 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
         pdf = plot_df[plot_df["provider"] == provider]
         color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
 
+        latency_str = pdf["latency"].apply(
+            lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
+        )
+
         hover = (
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
             "Speed: %{x:.0f} tok/s<br>"
             "Price: $%{customdata[2]:.3f}/M tokens<br>"
+            "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
         )
 
@@ -83,7 +88,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
                 opacity=0.75,
                 line=dict(width=0),
             ),
-            customdata=pdf[["model", "provider", "price"]].values,
+            customdata=list(zip(pdf["model"], pdf["provider"], pdf["price"], latency_str)),
             hovertemplate=hover,
         ))
 
@@ -97,6 +102,22 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             showarrow=False,
             font=dict(color="rgba(255,255,255,0.28)", size=13, family=_FONT),
             xref="x", yref="y",
+        ))
+
+    # Label top-right quadrant outliers (Fast · Smart) — models worth calling out
+    fast_smart = plot_df[
+        (plot_df["speed"] > med_speed) & (plot_df["quality"] > med_quality)
+    ].sort_values("quality", ascending=False).head(8)
+    if not fast_smart.empty:
+        fig.add_trace(go.Scatter(
+            x=fast_smart["speed"],
+            y=fast_smart["quality"],
+            mode="text",
+            text=fast_smart["model"].apply(lambda m: m[:20] + "…" if len(m) > 20 else m),
+            textposition="top center",
+            textfont=dict(color="rgba(255,255,255,0.45)", size=9, family=_FONT),
+            hoverinfo="skip",
+            showlegend=False,
         ))
 
     fig.update_layout(

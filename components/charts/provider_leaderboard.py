@@ -45,8 +45,8 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
-    # Ghost track
-    max_q = 100
+    # Ghost track — scale to actual data max, not a hardcoded 100
+    max_q = agg["best_quality"].max()
     fig.add_trace(go.Bar(
         y=agg["provider"],
         x=[max_q] * len(agg),

@@ -43,6 +43,9 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     price_str = ranked["price"].apply(
         lambda p: f"${p:.4f}/M" if pd.notna(p) and p > 0 else "N/A"
     )
+    latency_str = ranked["latency"].apply(
+        lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
+    )
 
     hover = (
         "<b>%{customdata[0]}</b><br>"
@@ -50,6 +53,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         f"{title_metric}: %{{x:.1f}}<br>"
         "Price: %{customdata[2]}<br>"
         "Speed: %{customdata[3]}<br>"
+        "Latency (TTFT): %{customdata[4]}<br>"
         "<extra></extra>"
     )
 
@@ -76,7 +80,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             opacity=0.85,
             line=dict(width=0),
         ),
-        customdata=list(zip(ranked["model"], ranked["provider"], price_str, speed_str)),
+        customdata=list(zip(ranked["model"], ranked["provider"], price_str, speed_str, latency_str)),
         hovertemplate=hover,
         showlegend=False,
         text=ranked["_metric"].apply(lambda q: f"{q:.0f}"),

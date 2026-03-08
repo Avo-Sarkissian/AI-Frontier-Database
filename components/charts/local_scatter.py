@@ -120,7 +120,7 @@ def build_local_scatter(
         ),
         yaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
-            range=[15, 100],
+            range=[0, df["quality"].max() * 1.12],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=10, family=_FONT),
             showgrid=True, showline=False, ticks="",

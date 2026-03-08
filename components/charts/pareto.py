@@ -58,11 +58,15 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             "Quality: %{y}<br>"
             "Price: $%{x:.3f}/M tokens<br>"
             "Speed: %{customdata[2]}<br>"
+            "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
         )
 
         speed_str = pdf["speed"].apply(
             lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
+        )
+        latency_str = pdf["latency"].apply(
+            lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
         )
 
         fig.add_trace(go.Scatter(
@@ -76,7 +80,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 opacity=0.75,
                 line=dict(width=0, color="rgba(0,0,0,0)"),
             ),
-            customdata=list(zip(pdf["model"], pdf["provider"], speed_str)),
+            customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str)),
             hovertemplate=hover,
         ))
 
