@@ -88,13 +88,17 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         textfont=dict(color="rgba(255,255,255,0.6)", size=10, family=_FONT),
     ))
 
-    # Provider legend annotation on right
+    # Provider legend annotation on right (with price sub-label)
     for i, row in ranked.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+        price_tag = (
+            f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
+            if pd.notna(row["price"]) and row["price"] > 0 else ""
+        )
         fig.add_annotation(
             x=max_metric * 1.06,
             y=short_names[i],
-            text=f"<span style='color:{color}'>{row['provider']}</span>",
+            text=f"<span style='color:{color}'>{row['provider']}</span>{price_tag}",
             showarrow=False,
             xanchor="left",
             font=dict(size=9, family=_FONT, color=color),
@@ -110,8 +114,8 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         title=dict(
             text=(
                 f"Top {top_n} Models by {title_metric}"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                "  ·  AA Intelligence Index</span>"
+                f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                f"  ·  {x_label}</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

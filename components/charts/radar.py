@@ -16,7 +16,7 @@ _PALETTE = [
     "#00d4ff", "#c084fc", "#34d399", "#fb923c", "#f472b6",
 ]
 
-DIMS = ["Intelligence", "Speed", "Affordability", "Context"]
+DIMS = ["Intelligence", "Speed", "Affordability", "Context", "Latency"]
 
 
 def _context_k(ctx_str: str) -> float:
@@ -53,6 +53,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
     q_max  = df["quality"].max()
     s_max  = df["speed"].replace(0, np.nan).max()
     p_max  = df["price"].max()
+    l_max  = df["latency"].replace(0, np.nan).max()
 
     df_ctx = df["context"].apply(_context_k)
     c_max  = df_ctx.max()
@@ -71,8 +72,11 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         p_norm = 1 - (row["price"] / p_max) if (p_max and row["price"] > 0) else 0
         ctx_k  = _context_k(row.get("context", ""))
         c_norm = (ctx_k / c_max) if c_max else 0
+        # Latency: lower is better — inverted
+        lat = row.get("latency", 0)
+        l_norm = 1 - (lat / l_max) if (l_max and pd.notna(lat) and lat > 0) else 0
 
-        values = [q_norm, s_norm, p_norm, c_norm]
+        values = [q_norm, s_norm, p_norm, c_norm, l_norm]
         values_pct = [round(v * 100) for v in values]
 
         color = PROVIDER_COLORS.get(row.get("provider", ""), _PALETTE[idx % len(_PALETTE)])
@@ -90,6 +94,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
                 f"Speed: {values_pct[1]}%<br>"
                 f"Affordability: {values_pct[2]}%<br>"
                 f"Context: {values_pct[3]}%<br>"
+                f"Latency: {values_pct[4]}%<br>"
                 "<extra></extra>"
             ),
         ))

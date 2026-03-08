@@ -38,7 +38,7 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
     fig = go.Figure()
 
     # Background track (full-width ghost bar for visual alignment)
-    max_q = 100
+    max_q = runnable["quality"].max() or 1
     fig.add_trace(go.Bar(
         y=runnable["short_name"],
         x=[max_q] * len(runnable),

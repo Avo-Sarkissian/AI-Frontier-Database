@@ -146,11 +146,12 @@ def _apply_filters(providers, min_quality, search: str = "") -> pd.DataFrame:
     return filtered
 
 
-def _quality_label(q: float) -> str:
-    if q >= 85: return "Exceptional"
-    if q >= 70: return "Strong"
-    if q >= 55: return "Capable"
-    if q >= 40: return "Average"
+def _quality_label(pct: float) -> str:
+    """pct is quality normalised to 0–100 relative to the dataset max."""
+    if pct >= 90: return "Exceptional"
+    if pct >= 75: return "Strong"
+    if pct >= 55: return "Capable"
+    if pct >= 35: return "Average"
     return "Limited"
 
 
@@ -349,7 +350,7 @@ app.layout = html.Div([
         dcc.Tab(label="Compare", value="compare",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Radar chart comparing up to 5 models across 4 normalized dimensions. "
+                "Radar chart comparing up to 5 models across 5 normalized dimensions. "
                 "Select models below, or click → Compare in any model detail panel."
             ),
             html.Div([
@@ -413,19 +414,25 @@ app.layout = html.Div([
                 dash_table.DataTable(
                     id="model-table",
                     columns=[
-                        {"name": "Model",          "id": "model",    "type": "text"},
-                        {"name": "Provider",        "id": "provider", "type": "text"},
-                        {"name": "Score",           "id": "quality",  "type": "numeric",
+                        {"name": "Model",            "id": "model",    "type": "text"},
+                        {"name": "Provider",          "id": "provider", "type": "text"},
+                        {"name": "Score",             "id": "quality",  "type": "numeric",
                          "format": {"specifier": ".1f"}},
-                        {"name": "Price ($/M tok)", "id": "price",    "type": "numeric",
-                         "format": {"specifier": ".4f"}},
-                        {"name": "Speed (tok/s)",   "id": "speed",    "type": "numeric",
-                         "format": {"specifier": ".0f"}},
-                        {"name": "Latency (s)",     "id": "latency",  "type": "numeric",
+                        {"name": "Value (score/$)",   "id": "value",    "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Context",         "id": "context",  "type": "text"},
+                        {"name": "Price ($/M tok)",   "id": "price",    "type": "numeric",
+                         "format": {"specifier": ".4f"}},
+                        {"name": "Speed (tok/s)",     "id": "speed",    "type": "numeric",
+                         "format": {"specifier": ".0f"}},
+                        {"name": "Latency (s)",       "id": "latency",  "type": "numeric",
+                         "format": {"specifier": ".2f"}},
+                        {"name": "Context",           "id": "context",  "type": "text"},
                     ],
-                    data=df[["model", "provider", "quality", "price", "speed", "latency", "context"]].to_dict("records"),
+                    data=(lambda _df: _df.assign(
+                        value=_df.apply(
+                            lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
+                        )
+                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context"]].to_dict("records"))(df),
                     sort_action="native",
                     sort_mode="single",
                     filter_action="none",
@@ -461,6 +468,7 @@ app.layout = html.Div([
                     },
                     style_cell_conditional=[
                         {"if": {"column_id": "quality"},  "color": "#f2f2f2", "textAlign": "right"},
+                        {"if": {"column_id": "value"},    "color": "#34d399",  "textAlign": "right"},
                         {"if": {"column_id": "price"},    "textAlign": "right"},
                         {"if": {"column_id": "speed"},    "textAlign": "right"},
                         {"if": {"column_id": "latency"},  "textAlign": "right"},
@@ -470,6 +478,12 @@ app.layout = html.Div([
                         {"if": {"state": "active"},
                          "backgroundColor": "rgba(0,212,255,0.06)",
                          "border": "1px solid rgba(0,212,255,0.2)"},
+                        *[
+                            {"if": {"filter_query": f'{{provider}} = "{p}"',
+                                    "column_id": "provider"},
+                             "color": PROVIDER_COLORS.get(p, DEFAULT_COLOR)}
+                            for p in sorted(df["provider"].unique())
+                        ],
                     ],
                     style_as_list_view=True,
                 ),
@@ -862,9 +876,11 @@ def toggle_detail_panel(pareto_click, quadrant_click, _close):
         return no_update, no_update, no_update
     row = rows.iloc[0]
 
-    color   = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
-    quality = float(row["quality"])
-    qlabel  = _quality_label(quality)
+    color      = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+    quality    = float(row["quality"])
+    q_max      = df["quality"].max() or 1
+    quality_pct = quality / q_max * 100
+    qlabel     = _quality_label(quality_pct)
 
     speed_val   = row["speed"]
     speed_str   = f"{int(speed_val):,} tok/s" if pd.notna(speed_val) and speed_val > 0 else "N/A"
@@ -896,7 +912,7 @@ def toggle_detail_panel(pareto_click, quadrant_click, _close):
                       "alignItems": "baseline", "marginBottom": "6px"}),
             html.Div(
                 html.Div(style={
-                    "width":        f"{min(quality, 100):.1f}%",
+                    "width":        f"{quality_pct:.1f}%",
                     "height":       "3px",
                     "background":   "linear-gradient(90deg,#00d4ff,#4c9eff)",
                     "borderRadius": "2px",
@@ -951,8 +967,11 @@ def add_to_compare(n_clicks, model_name, current_selection):
     prevent_initial_call=True,
 )
 def update_table(providers, min_quality, search):
-    filtered = _apply_filters(providers, min_quality, search or "")
-    cols = ["model", "provider", "quality", "price", "speed", "latency", "context"]
+    filtered = _apply_filters(providers, min_quality, search or "").copy()
+    filtered["value"] = filtered.apply(
+        lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
+    )
+    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
 
 

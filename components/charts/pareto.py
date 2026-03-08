@@ -97,21 +97,28 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             showlegend=True,
         ))
 
-        # Label Pareto-optimal models — alternate top/bottom to reduce overlap
-        label_positions = [
-            "top center" if i % 2 == 0 else "bottom center"
-            for i in range(len(pareto_df))
-        ]
-        fig.add_trace(go.Scatter(
-            x=pareto_df["price"],
-            y=pareto_df["quality"],
-            mode="text",
-            text=pareto_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
-            textposition=label_positions,
-            textfont=dict(color="rgba(0,212,255,0.65)", size=9, family=FONT),
-            hoverinfo="skip",
-            showlegend=False,
-        ))
+        # Label Pareto-optimal models — skip models too close in log-price space
+        import math
+        spaced_rows, spaced_pos = [], []
+        last_log_price = -math.inf
+        for i, (_, prow) in enumerate(pareto_df.iterrows()):
+            log_p = math.log10(prow["price"])
+            if log_p - last_log_price >= 0.4:
+                spaced_rows.append(prow)
+                spaced_pos.append("top center" if len(spaced_rows) % 2 == 1 else "bottom center")
+                last_log_price = log_p
+        if spaced_rows:
+            label_df = pd.DataFrame(spaced_rows)
+            fig.add_trace(go.Scatter(
+                x=label_df["price"],
+                y=label_df["quality"],
+                mode="text",
+                text=label_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
+                textposition=spaced_pos,
+                textfont=dict(color="rgba(0,212,255,0.65)", size=9, family=FONT),
+                hoverinfo="skip",
+                showlegend=False,
+            ))
 
     _zero = "rgba(255,255,255,0.06)"
 
