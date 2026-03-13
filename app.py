@@ -31,7 +31,9 @@ from components.charts.context_chart        import build_context_chart
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
+from components.charts.image_scatter        import build_image_scatter, build_image_rankings
 from components.stack_recommender           import build_stack_cards
+from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -673,6 +675,51 @@ app.layout = html.Div([
             ])], className="chart-card"),
         ]),
 
+        # Image Gen ────────────────────────────────────────────────────────────
+        dcc.Tab(label="Image Gen", value="image",
+                className="tab", selected_className="tab--selected", children=[
+            _desc(
+                "Compare image generation models on quality, cost, and speed. "
+                "ELO scores are from Artificial Analysis Image Arena — blind human comparisons. "
+                "Bubble size = speed (larger = faster). Price = USD per 1,000 images."
+            ),
+            html.Div([
+                html.Span("PROVIDERS", className="filter-label"),
+                dcc.Dropdown(
+                    id="image-provider-filter",
+                    options=[{"label": p, "value": p} for p in get_image_providers()],
+                    multi=True,
+                    placeholder="All providers",
+                    style={"minWidth": "320px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("TAGS", className="filter-label"),
+                dcc.Dropdown(
+                    id="image-tag-filter",
+                    options=[
+                        {"label": "Photorealistic", "value": "photorealistic"},
+                        {"label": "Artistic",       "value": "artistic"},
+                        {"label": "Text & Type",    "value": "text"},
+                        {"label": "Fast",           "value": "fast"},
+                        {"label": "Open Weights",   "value": "open_weights"},
+                    ],
+                    multi=True,
+                    placeholder="All types",
+                    style={"minWidth": "240px"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(id="image-scatter-chart",
+                          figure=build_image_scatter(get_image_df()),
+                          config=_GRAPH_CONFIG, style={"height": "600px"}),
+            ])], className="chart-card"),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(id="image-rankings-chart",
+                          figure=build_image_rankings(get_image_df()),
+                          config=_GRAPH_CONFIG, style={"minHeight": "400px"}),
+            ])], className="chart-card"),
+        ]),
+
     ]),
 
     # ── Model detail panel (slide-in from right) ───────────────────────────────
@@ -1151,6 +1198,29 @@ def export_csv(n_clicks, providers, min_quality, search):
 def auto_refresh_data(_):
     _reload_if_stale()
     return _cache_ts()
+
+
+# ── Image Gen tab ─────────────────────────────────────────────────────────────
+@callback(
+    Output("image-scatter-chart",  "figure"),
+    Output("image-rankings-chart", "figure"),
+    Input("image-provider-filter", "value"),
+    Input("image-tag-filter",      "value"),
+    prevent_initial_call=True,
+)
+def update_image_charts(providers, tags):
+    img_df = get_image_df()
+    if providers:
+        img_df = img_df[img_df["provider"].isin(providers)]
+    if tags:
+        for tag in tags:
+            if tag == "open_weights":
+                img_df = img_df[img_df["open_weights"] == True]
+            else:
+                img_df = img_df[img_df["tags"].apply(lambda t: tag in t)]
+    if img_df.empty:
+        img_df = get_image_df()  # fallback: show everything if filter too narrow
+    return build_image_scatter(img_df), build_image_rankings(img_df)
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
