@@ -285,6 +285,24 @@ app.layout = html.Div([
                 "Fast = high-volume automation. Balanced = coding and daily tasks. "
                 "Reasoning = planning, complex analysis, and orchestrating other models."
             ),
+            # Row 1: workflow mode
+            html.Div([
+                html.Span("WORKFLOW", className="filter-label"),
+                dcc.RadioItems(
+                    id="recommend-mode",
+                    options=[
+                        {"label": "API Only",   "value": "api"},
+                        {"label": "Hybrid",     "value": "hybrid"},
+                        {"label": "Local Only", "value": "local"},
+                    ],
+                    value="api",
+                    inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "20px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            # Row 2: provider filter (hidden in local mode)
             html.Div([
                 html.Span("PROVIDERS", className="filter-label"),
                 dcc.Checklist(
@@ -304,7 +322,49 @@ app.layout = html.Div([
                     labelStyle={"marginRight": "20px", "cursor": "pointer",
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
-            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            ], id="recommend-providers-row", className="filters",
+               style={"paddingTop": "0"}),
+            # Row 3: hardware controls (shown in hybrid/local modes)
+            html.Div([
+                html.Span("GPU", className="filter-label"),
+                dcc.Dropdown(
+                    id="recommend-gpu-preset",
+                    options=get_gpu_options(),
+                    value="NVIDIA RTX 5090",
+                    placeholder="Select GPU…",
+                    clearable=False,
+                    style={"minWidth": "260px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("VRAM (GB)", className="filter-label"),
+                dcc.Input(
+                    id="recommend-vram",
+                    type="number", value=32, min=1, step=1, debounce=True,
+                    style={
+                        "background": "var(--bg-card)", "border": "1px solid var(--border)",
+                        "borderRadius": "4px", "color": "#f2f2f2",
+                        "fontFamily": "Inter, sans-serif", "fontSize": "13px",
+                        "padding": "6px 10px", "width": "72px", "outline": "none",
+                    },
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("GPUs", className="filter-label"),
+                dcc.Dropdown(
+                    id="recommend-num-gpus",
+                    options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
+                    value=1, clearable=False,
+                    style={"width": "72px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("QUANT", className="filter-label"),
+                dcc.Dropdown(
+                    id="recommend-quant",
+                    options=[{"label": q, "value": q} for q in QUANT_LEVELS],
+                    value="Q4", clearable=False,
+                    style={"width": "88px"},
+                ),
+            ], id="recommend-hw-row", className="filters",
+               style={"paddingTop": "0", "display": "none"}),
             html.Div(id="recommend-cards",
                      children=build_stack_cards(df, ["Anthropic", "Google", "OpenAI"]),
                      className="chart-card"),
@@ -729,17 +789,55 @@ def apply_preset(*_):
 
 # ── Recommend tab ─────────────────────────────────────────────────────────────
 @callback(
-    Output("recommend-cards", "children"),
-    Input("recommend-providers", "value"),
+    Output("recommend-cards",        "children"),
+    Output("recommend-providers-row", "style"),
+    Output("recommend-hw-row",        "style"),
+    Input("recommend-providers",  "value"),
+    Input("recommend-mode",       "value"),
+    Input("recommend-gpu-preset", "value"),
+    Input("recommend-vram",       "value"),
+    Input("recommend-num-gpus",   "value"),
+    Input("recommend-quant",      "value"),
     prevent_initial_call=True,
 )
-def update_recommend(selected):
+def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     _reload_if_stale()
-    if not selected:
-        return build_stack_cards(df, [])
-    if "__all__" in selected:
-        return build_stack_cards(df, None)
-    return build_stack_cards(df, selected)
+    mode = mode or "api"
+
+    # Show/hide provider row and hardware row based on mode
+    prov_style = {"paddingTop": "0", "display": "none"} if mode == "local" \
+                 else {"paddingTop": "0"}
+    hw_style   = {"paddingTop": "0"} if mode in ("hybrid", "local") \
+                 else {"paddingTop": "0", "display": "none"}
+
+    # Resolve providers for API tiers
+    if mode == "local":
+        providers = None
+    elif not selected:
+        providers = []
+    elif "__all__" in selected:
+        providers = None
+    else:
+        providers = selected
+
+    # Build local_df when needed
+    local_df = None
+    if mode in ("hybrid", "local"):
+        gpu_meta       = GPU_BY_NAME.get(gpu_preset or "", {})
+        vram_gb        = float(vram_per_gpu or 32) * int(num_gpus or 1)
+        bandwidth_gbps = gpu_meta.get("bandwidth_gbps", 1792)
+        hw_type        = gpu_meta.get("hw_type", "nvidia")
+        gpu_count      = int(num_gpus or 1)
+        eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
+        local_df = get_local_df(
+            quant=quant or "Q4",
+            vram_gb=vram_gb,
+            bandwidth_gbps=eff_bw,
+            hw_type=hw_type,
+        )
+
+    cards = build_stack_cards(df, providers, mode=mode, local_df=local_df)
+    return cards, prov_style, hw_style
 
 
 # ── Chart update callbacks (all respond to global filters + search) ───────────
