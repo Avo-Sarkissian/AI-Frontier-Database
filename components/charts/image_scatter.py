@@ -1,153 +1,113 @@
 """
-Image generation: Cost vs Quality scatter.
-X = price per 1,000 images (log scale)
-Y = ELO quality score
-Bubble size = speed (inverted gen time — larger = faster)
-Color = provider
-"""
-import math
+Image generation charts.
 
-import numpy as np
+build_image_faceted  — 3-column rankings: Photorealistic / Artistic / Text & Type
+build_image_rankings — full ELO rankings bar (all models, secondary view)
+"""
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from components.charts.constants import BG, GRID, TICK, AXIS, FONT
 from data.image_models import PROVIDER_COLORS, DEFAULT_COLOR
 
+_CATEGORIES = [
+    {"key": "photorealistic", "label": "Photorealistic",    "accent": "#60a5fa"},
+    {"key": "artistic",       "label": "Artistic",          "accent": "#c084fc"},
+    {"key": "text",           "label": "Text & Typography", "accent": "#f472b6"},
+]
 
-def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
-    pareto = []
-    for _, row in df.iterrows():
-        dominated = df[
-            (df["elo"] >= row["elo"]) &
-            (df["price_per_1k"] <= row["price_per_1k"]) &
-            ~((df["elo"] == row["elo"]) & (df["price_per_1k"] == row["price_per_1k"]))
-        ]
-        if dominated.empty:
-            pareto.append(row)
-    return pd.DataFrame(pareto).sort_values("price_per_1k")
+_TOP_N = 12  # models shown per column
 
 
-def build_image_scatter(df: pd.DataFrame) -> go.Figure:
-    plot_df = df[(df["price_per_1k"] > 0) & (df["elo"] > 0)].copy()
+def build_image_faceted(df: pd.DataFrame) -> go.Figure:
+    """
+    3-column horizontal bar chart: one column per style category.
+    Each column shows the top _TOP_N models for that style, ranked by ELO.
+    Bars are colored by provider. Right annotations show gen time.
+    """
+    # Pre-filter per category (best models at the top → sort ascending for plotly)
+    col_dfs = []
+    for cat in _CATEGORIES:
+        cdf = df[df["tags"].apply(lambda t: cat["key"] in t)] \
+                .sort_values("elo", ascending=False) \
+                .head(_TOP_N) \
+                .sort_values("elo", ascending=True) \
+                .reset_index(drop=True)
+        col_dfs.append(cdf)
 
-    # Bubble size: inversely proportional to gen_time (faster = bigger)
-    max_t = plot_df["gen_time_s"].replace(0, np.nan).max() or 1
-    plot_df["size"] = plot_df["gen_time_s"].apply(
-        lambda t: 8 + (1 - t / max_t) * 28 if pd.notna(t) and t > 0 else 8
+    n_rows = max(len(cdf) for cdf in col_dfs)
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        shared_yaxes=False,
+        horizontal_spacing=0.06,
+        subplot_titles=[c["label"] for c in _CATEGORIES],
     )
 
-    fig = go.Figure()
+    for col_idx, (cat, cdf) in enumerate(zip(_CATEGORIES, col_dfs), start=1):
+        if cdf.empty:
+            continue
 
-    for provider in sorted(plot_df["provider"].unique()):
-        pdf = plot_df[plot_df["provider"] == provider]
-        color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+        short_name = cdf["model"].apply(lambda n: n[:28] + "…" if len(n) > 28 else n)
+        colors = cdf["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
+        max_elo = cdf["elo"].max() or 1
+        xaxis_key = f"xaxis{col_idx}" if col_idx > 1 else "xaxis"
 
-        fig.add_trace(go.Scatter(
-            x=pdf["price_per_1k"],
-            y=pdf["elo"],
-            mode="markers",
-            name=provider,
-            marker=dict(
-                color=color,
-                size=pdf["size"],
-                opacity=0.80,
-                line=dict(width=0),
-            ),
+        # Ghost track for visual alignment
+        fig.add_trace(go.Bar(
+            y=short_name, x=[max_elo] * len(cdf),
+            orientation="h",
+            marker=dict(color="rgba(255,255,255,0.02)", line=dict(width=0)),
+            hoverinfo="skip", showlegend=False,
+        ), row=1, col=col_idx)
+
+        # Quality bars
+        fig.add_trace(go.Bar(
+            y=short_name,
+            x=cdf["elo"],
+            orientation="h",
+            marker=dict(color=colors, opacity=0.82, line=dict(width=0)),
             customdata=list(zip(
-                pdf["model"], pdf["provider"],
-                pdf["elo"],
-                pdf["price_per_1k"],
-                pdf["gen_time_s"],
-                pdf["tags_str"],
-                pdf["open_weights"].map({True: "Yes", False: "No"}),
+                cdf["model"], cdf["provider"],
+                cdf["elo"], cdf["price_per_1k"], cdf["gen_time_s"],
+                cdf["open_weights"].map({True: "Yes", False: "No"}),
             )),
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Provider: %{customdata[1]}<br>"
-                "ELO Quality: %{customdata[2]}<br>"
-                "Price: $%{customdata[3]:.1f} / 1k images<br>"
+                "ELO: %{customdata[2]}<br>"
+                "Price: $%{customdata[3]:.1f}/1k images<br>"
                 "Gen time: %{customdata[4]:.0f}s<br>"
-                "Tags: %{customdata[5]}<br>"
-                "Open weights: %{customdata[6]}<br>"
+                "Open weights: %{customdata[5]}<br>"
                 "<extra></extra>"
             ),
-        ))
+            showlegend=False,
+        ), row=1, col=col_idx)
 
-    # Pareto frontier
-    pareto_df = _pareto_frontier(plot_df)
-    if not pareto_df.empty:
-        fig.add_trace(go.Scatter(
-            x=pareto_df["price_per_1k"],
-            y=pareto_df["elo"],
-            mode="lines",
-            name="Pareto Frontier",
-            line=dict(color="rgba(0,212,255,0.45)", width=1, dash="dot"),
-            hoverinfo="skip",
-            showlegend=True,
-        ))
+        # Gen-time annotations on the right of each bar
+        for _, row in cdf.iterrows():
+            color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+            fig.add_annotation(
+                x=row["elo"] + (max_elo * 0.015),
+                y=short_name[_],
+                text=f"{row['gen_time_s']:.0f}s",
+                showarrow=False,
+                xanchor="left",
+                font=dict(size=8, family=FONT, color=color),
+                xref=f"x{col_idx}" if col_idx > 1 else "x",
+                yref=f"y{col_idx}" if col_idx > 1 else "y",
+            )
 
-        # Spaced pareto labels
-        spaced_rows, spaced_pos = [], []
-        last_log_price = -math.inf
-        for _, prow in pareto_df.iterrows():
-            log_p = math.log10(prow["price_per_1k"])
-            if log_p - last_log_price >= 0.4:
-                spaced_rows.append(prow)
-                spaced_pos.append("top center" if len(spaced_rows) % 2 == 1 else "bottom center")
-                last_log_price = log_p
-        if spaced_rows:
-            label_df = pd.DataFrame(spaced_rows)
-            fig.add_trace(go.Scatter(
-                x=label_df["price_per_1k"],
-                y=label_df["elo"],
-                mode="text",
-                text=label_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
-                textposition=spaced_pos,
-                textfont=dict(color="rgba(0,212,255,0.65)", size=9, family=FONT),
-                hoverinfo="skip",
-                showlegend=False,
-            ))
-
-    _zero = "rgba(255,255,255,0.06)"
+    height = max(380, n_rows * 26 + 100)
 
     fig.update_layout(
         paper_bgcolor=BG,
         plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=12),
-        title=dict(
-            text=(
-                "Cost vs. Quality"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                "  ·  bubble size = speed (larger = faster)</span>"
-            ),
-            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
-            x=0.0, xanchor="left",
-            pad=dict(l=20, t=16),
-        ),
-        xaxis=dict(
-            title=dict(text="Price  (USD / 1,000 images)", font=dict(color=AXIS, size=11), standoff=12),
-            type="log",
-            gridcolor=GRID,
-            zerolinecolor=_zero, zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
-            tickformat="$~g",
-            showgrid=True, showline=False, ticks="",
-        ),
-        yaxis=dict(
-            title=dict(text="ELO Quality Score", font=dict(color=AXIS, size=11), standoff=12),
-            gridcolor=GRID,
-            zerolinecolor=_zero, zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
-            showgrid=True, showline=False, ticks="",
-        ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.08)", borderwidth=1,
-            font=dict(color="#888888", size=11, family=FONT),
-            orientation="v", x=1.01, y=1, xanchor="left",
-        ),
-        margin=dict(l=20, r=160, t=52, b=36),
-        height=600,
+        font=dict(family=FONT, color="#888888", size=11),
+        barmode="overlay",
+        margin=dict(l=10, r=10, t=60, b=20),
+        height=height,
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
@@ -155,11 +115,35 @@ def build_image_scatter(df: pd.DataFrame) -> go.Figure:
         ),
     )
 
+    # Style each subplot's axes
+    for i in range(1, 4):
+        xref = f"xaxis{i}" if i > 1 else "xaxis"
+        yref = f"yaxis{i}" if i > 1 else "yaxis"
+        all_elos = col_dfs[i - 1]["elo"] if not col_dfs[i - 1].empty else pd.Series([1000, 1300])
+        x_min = max(900, all_elos.min() - 30)
+        x_max = all_elos.max() + (all_elos.max() - x_min) * 0.18
+
+        fig.layout[xref].update(
+            range=[x_min, x_max],
+            gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)",
+            tickfont=dict(color=TICK, size=9, family=FONT),
+            showgrid=True, showline=False, ticks="",
+        )
+        fig.layout[yref].update(
+            tickfont=dict(color="#aaaaaa", size=9, family=FONT),
+            showgrid=False, showline=False, ticks="",
+            automargin=True,
+        )
+
+    # Style subplot title text
+    for annotation in fig.layout.annotations:
+        annotation.update(font=dict(color="#f2f2f2", size=13, family=FONT), y=1.04)
+
     return fig
 
 
 def build_image_rankings(df: pd.DataFrame) -> go.Figure:
-    """Horizontal bar chart ranked by ELO, annotated with price."""
+    """Full ELO rankings — all models, horizontal bars, annotated with speed + price."""
     plot_df = df.sort_values("elo", ascending=True).reset_index(drop=True)
 
     short_name = plot_df["model"].apply(lambda n: n[:34] + "…" if len(n) > 34 else n)
@@ -189,20 +173,19 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "ELO: %{customdata[2]}<br>"
-            "Price: $%{customdata[3]:.1f} / 1k images<br>"
+            "Price: $%{customdata[3]:.1f}/1k images<br>"
             "Gen time: %{customdata[4]:.0f}s<br>"
             "<extra></extra>"
         ),
         showlegend=False,
     ))
 
-    # Right-side annotations: price + gen time
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         fig.add_annotation(
             x=max_elo + 2,
             y=short_name[i],
-            text=f"${row['price_per_1k']:.0f}/1k  ·  {row['gen_time_s']:.0f}s",
+            text=f"{row['gen_time_s']:.0f}s  ·  ${row['price_per_1k']:.0f}/1k",
             showarrow=False, xanchor="left",
             font=dict(size=9, family=FONT, color=color),
             xref="x", yref="y",
@@ -215,9 +198,9 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
         font=dict(family=FONT, color="#888888", size=12),
         title=dict(
             text=(
-                "Rankings by Quality"
+                "All Models — Ranked by Quality"
                 "  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                "  ·  ELO score from blind human comparisons</span>"
+                "  ·  ELO from blind human comparisons  ·  annotations: gen time · price</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
@@ -225,7 +208,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(text="ELO Score", font=dict(color=AXIS, size=11), standoff=12),
-            range=[min(plot_df["elo"]) - 20, max_elo * 1.30],
+            range=[min(plot_df["elo"]) - 20, max_elo * 1.25],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=TICK, size=10, family=FONT),
             showgrid=True, showline=False, ticks="",
@@ -236,7 +219,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             automargin=True,
         ),
         barmode="overlay",
-        margin=dict(l=20, r=180, t=52, b=36),
+        margin=dict(l=20, r=200, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(

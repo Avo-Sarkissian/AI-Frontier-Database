@@ -31,7 +31,7 @@ from components.charts.context_chart        import build_context_chart
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
-from components.charts.image_scatter        import build_image_scatter, build_image_rankings
+from components.charts.image_scatter        import build_image_faceted, build_image_rankings
 from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 
@@ -679,9 +679,9 @@ app.layout = html.Div([
         dcc.Tab(label="Image Gen", value="image",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Compare image generation models on quality, cost, and speed. "
-                "ELO scores are from Artificial Analysis Image Arena — blind human comparisons. "
-                "Bubble size = speed (larger = faster). Price = USD per 1,000 images."
+                "Compare image generation models by quality and style. "
+                "ELO scores from Artificial Analysis Image Arena — blind human comparisons. "
+                "Each column shows the best models for that style. Annotations show generation time."
             ),
             html.Div([
                 html.Span("PROVIDERS", className="filter-label"),
@@ -709,9 +709,9 @@ app.layout = html.Div([
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="image-scatter-chart",
-                          figure=build_image_scatter(get_image_df()),
-                          config=_GRAPH_CONFIG, style={"height": "600px"}),
+                dcc.Graph(id="image-faceted-chart",
+                          figure=build_image_faceted(get_image_df()),
+                          config=_GRAPH_CONFIG, style={"minHeight": "380px"}),
             ])], className="chart-card"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="image-rankings-chart",
@@ -1202,7 +1202,7 @@ def auto_refresh_data(_):
 
 # ── Image Gen tab ─────────────────────────────────────────────────────────────
 @callback(
-    Output("image-scatter-chart",  "figure"),
+    Output("image-faceted-chart",  "figure"),
     Output("image-rankings-chart", "figure"),
     Input("image-provider-filter", "value"),
     Input("image-tag-filter",      "value"),
@@ -1220,7 +1220,7 @@ def update_image_charts(providers, tags):
                 img_df = img_df[img_df["tags"].apply(lambda t: tag in t)]
     if img_df.empty:
         img_df = get_image_df()  # fallback: show everything if filter too narrow
-    return build_image_scatter(img_df), build_image_rankings(img_df)
+    return build_image_faceted(img_df), build_image_rankings(img_df)
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
