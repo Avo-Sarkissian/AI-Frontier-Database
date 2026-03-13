@@ -18,6 +18,7 @@ import pandas as pd
 
 from data.ingest import get_models, load_history
 from data.scraper import start_background_scraper
+from data.image_scraper import start_background_image_scraper
 from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
 from components.charts.pareto               import build_pareto_scatter
@@ -43,8 +44,9 @@ from data.embedding_models                  import get_embedding_df, get_embeddi
 df         = get_models()
 history_df = load_history()
 
-# Kick off background scraper — runs immediately, then every hour
+# Kick off background scrapers — run immediately, then every hour
 start_background_scraper(interval_s=3600)
+start_background_image_scraper(interval_s=3600)
 
 _CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
 _data_lock   = threading.Lock()

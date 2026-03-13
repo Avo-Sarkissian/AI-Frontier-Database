@@ -12,9 +12,12 @@ from components.charts.constants import BG, GRID, TICK, AXIS, FONT
 from data.image_models import PROVIDER_COLORS, DEFAULT_COLOR
 
 _CATEGORIES = [
-    {"key": "photorealistic", "label": "Photorealistic",    "accent": "#60a5fa"},
-    {"key": "artistic",       "label": "Artistic",          "accent": "#c084fc"},
-    {"key": "text",           "label": "Text & Typography", "accent": "#f472b6"},
+    {"key": "photorealistic", "label": "Photorealistic",        "accent": "#60a5fa",
+     "elo_col": "elo_general_photorealistic"},
+    {"key": "artistic",       "label": "Cartoon & Illustration", "accent": "#c084fc",
+     "elo_col": "elo_cartoon_illustration"},
+    {"key": "text",           "label": "Text & Typography",      "accent": "#f472b6",
+     "elo_col": "elo_text_typography"},
 ]
 
 _TOP_N = 12  # models shown per column
@@ -23,17 +26,33 @@ _TOP_N = 12  # models shown per column
 def build_image_faceted(df: pd.DataFrame) -> go.Figure:
     """
     3-column horizontal bar chart: one column per style category.
-    Each column shows the top _TOP_N models for that style, ranked by ELO.
-    Bars are colored by provider. Right annotations show gen time.
+    Uses per-category ELO from live AA arena data when available.
+    Falls back to tag-based filtering + global ELO if category columns missing.
     """
-    # Pre-filter per category (best models at the top → sort ascending for plotly)
     col_dfs = []
     for cat in _CATEGORIES:
-        cdf = df[df["tags"].apply(lambda t: cat["key"] in t)] \
-                .sort_values("elo", ascending=False) \
-                .head(_TOP_N) \
-                .sort_values("elo", ascending=True) \
-                .reset_index(drop=True)
+        elo_col = cat["elo_col"]
+        if elo_col in df.columns and df[elo_col].notna().any():
+            # Live data: rank by category-specific ELO
+            cdf = df[df[elo_col].notna()].copy() \
+                    .sort_values(elo_col, ascending=False) \
+                    .head(_TOP_N) \
+                    .sort_values(elo_col, ascending=True) \
+                    .reset_index(drop=True)
+            cdf["_elo_display"] = cdf[elo_col]
+        else:
+            # Static fallback: filter by tag, rank by global ELO
+            tags_col = df["tags"]
+            mask = tags_col.apply(
+                lambda t: (isinstance(t, list) and cat["key"] in t)
+                          or (isinstance(t, str) and cat["key"] in t)
+            )
+            cdf = df[mask] \
+                    .sort_values("elo", ascending=False) \
+                    .head(_TOP_N) \
+                    .sort_values("elo", ascending=True) \
+                    .reset_index(drop=True)
+            cdf["_elo_display"] = cdf["elo"]
         col_dfs.append(cdf)
 
     n_rows = max(len(cdf) for cdf in col_dfs)
@@ -51,8 +70,9 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
 
         short_name = cdf["model"].apply(lambda n: n[:28] + "…" if len(n) > 28 else n)
         colors = cdf["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
-        max_elo = cdf["elo"].max() or 1
-        xaxis_key = f"xaxis{col_idx}" if col_idx > 1 else "xaxis"
+        elo_vals = cdf["_elo_display"]
+        max_elo = elo_vals.max() or 1
+        has_gen_time = "gen_time_s" in cdf.columns and cdf["gen_time_s"].gt(0).any()
 
         # Ghost track for visual alignment
         fig.add_trace(go.Bar(
@@ -62,36 +82,44 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
             hoverinfo="skip", showlegend=False,
         ), row=1, col=col_idx)
 
+        price_display = cdf["price_per_1k"].apply(
+            lambda p: "free" if p == 0 else f"${p:.1f}/1k"
+        )
         # Quality bars
         fig.add_trace(go.Bar(
             y=short_name,
-            x=cdf["elo"],
+            x=elo_vals,
             orientation="h",
             marker=dict(color=colors, opacity=0.82, line=dict(width=0)),
             customdata=list(zip(
                 cdf["model"], cdf["provider"],
-                cdf["elo"], cdf["price_per_1k"], cdf["gen_time_s"],
+                elo_vals, price_display,
                 cdf["open_weights"].map({True: "Yes", False: "No"}),
             )),
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Provider: %{customdata[1]}<br>"
-                "ELO: %{customdata[2]}<br>"
-                "Price: $%{customdata[3]:.1f}/1k images<br>"
-                "Gen time: %{customdata[4]:.0f}s<br>"
-                "Open weights: %{customdata[5]}<br>"
+                "ELO: %{customdata[2]:.0f}<br>"
+                "Price: %{customdata[3]}<br>"
+                "Open weights: %{customdata[4]}<br>"
                 "<extra></extra>"
             ),
             showlegend=False,
         ), row=1, col=col_idx)
 
-        # Gen-time annotations on the right of each bar
-        for _, row in cdf.iterrows():
+        # Right-side annotations: price (no gen time in live data)
+        for idx, row in cdf.iterrows():
             color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+            price_str = "free" if row["price_per_1k"] == 0 else f"${row['price_per_1k']:.0f}/1k"
+            ann_text = (
+                f"{row['gen_time_s']:.0f}s  ·  {price_str}"
+                if has_gen_time and row.get("gen_time_s", 0) > 0
+                else price_str
+            )
             fig.add_annotation(
-                x=row["elo"] + (max_elo * 0.015),
-                y=short_name[_],
-                text=f"{row['gen_time_s']:.0f}s",
+                x=row["_elo_display"] + (max_elo * 0.015),
+                y=short_name[idx],
+                text=ann_text,
                 showarrow=False,
                 xanchor="left",
                 font=dict(size=8, family=FONT, color=color),
@@ -119,9 +147,10 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
     for i in range(1, 4):
         xref = f"xaxis{i}" if i > 1 else "xaxis"
         yref = f"yaxis{i}" if i > 1 else "yaxis"
-        all_elos = col_dfs[i - 1]["elo"] if not col_dfs[i - 1].empty else pd.Series([1000, 1300])
-        x_min = max(900, all_elos.min() - 30)
-        x_max = all_elos.max() + (all_elos.max() - x_min) * 0.18
+        cdf_i = col_dfs[i - 1]
+        elo_series = cdf_i["_elo_display"] if not cdf_i.empty else pd.Series([1000, 1300])
+        x_min = max(900, elo_series.min() - 30)
+        x_max = elo_series.max() + (elo_series.max() - x_min) * 0.22
 
         fig.layout[xref].update(
             range=[x_min, x_max],
@@ -160,6 +189,8 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
         hoverinfo="skip", showlegend=False,
     ))
 
+    has_gen_time = "gen_time_s" in plot_df.columns and plot_df["gen_time_s"].gt(0).any()
+
     fig.add_trace(go.Bar(
         y=short_name,
         x=plot_df["elo"],
@@ -167,14 +198,13 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
         marker=dict(color=colors, opacity=0.80, line=dict(width=0)),
         customdata=list(zip(
             plot_df["model"], plot_df["provider"],
-            plot_df["elo"], plot_df["price_per_1k"], plot_df["gen_time_s"],
+            plot_df["elo"], plot_df["price_per_1k"],
         )),
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "ELO: %{customdata[2]}<br>"
+            "ELO: %{customdata[2]:.0f}<br>"
             "Price: $%{customdata[3]:.1f}/1k images<br>"
-            "Gen time: %{customdata[4]:.0f}s<br>"
             "<extra></extra>"
         ),
         showlegend=False,
@@ -182,10 +212,16 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
 
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+        price_str = "free" if row["price_per_1k"] == 0 else f"${row['price_per_1k']:.0f}/1k"
+        ann_text = (
+            f"{row['gen_time_s']:.0f}s  ·  {price_str}"
+            if has_gen_time and row.get("gen_time_s", 0) > 0
+            else price_str
+        )
         fig.add_annotation(
             x=max_elo + 2,
             y=short_name[i],
-            text=f"{row['gen_time_s']:.0f}s  ·  ${row['price_per_1k']:.0f}/1k",
+            text=ann_text,
             showarrow=False, xanchor="left",
             font=dict(size=9, family=FONT, color=color),
             xref="x", yref="y",
@@ -200,7 +236,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             text=(
                 "All Models — Ranked by Quality"
                 "  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                "  ·  ELO from blind human comparisons  ·  annotations: gen time · price</span>"
+                "  ·  ELO from AA Image Arena blind comparisons  ·  119 models</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
