@@ -31,6 +31,7 @@ from components.charts.context_chart        import build_context_chart
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
+from components.stack_recommender           import build_stack_cards
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -274,6 +275,39 @@ app.layout = html.Div([
                               config=_GRAPH_CONFIG, style={"height": "580px"}),
                 ])], className="chart-card"),
             ] if _N_SNAPSHOTS >= 5 else []),
+        ]),
+
+        # Recommend ────────────────────────────────────────────────────────────
+        dcc.Tab(label="Recommend", value="recommend",
+                className="tab", selected_className="tab--selected", children=[
+            _desc(
+                "Opinionated three-tier model stack for real-world use. "
+                "Fast = high-volume automation. Balanced = coding and daily tasks. "
+                "Reasoning = planning, complex analysis, and orchestrating other models."
+            ),
+            html.Div([
+                html.Span("PROVIDERS", className="filter-label"),
+                dcc.Checklist(
+                    id="recommend-providers",
+                    options=[
+                        {"label": "Anthropic",  "value": "Anthropic"},
+                        {"label": "Google",     "value": "Google"},
+                        {"label": "OpenAI",     "value": "OpenAI"},
+                        {"label": "xAI",        "value": "xAI"},
+                        {"label": "DeepSeek",   "value": "DeepSeek"},
+                        {"label": "Mistral",    "value": "Mistral"},
+                        {"label": "All",        "value": "__all__"},
+                    ],
+                    value=["Anthropic", "Google", "OpenAI"],
+                    inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "20px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            html.Div(id="recommend-cards",
+                     children=build_stack_cards(df, ["Anthropic", "Google", "OpenAI"]),
+                     className="chart-card"),
         ]),
 
         # Performance ──────────────────────────────────────────────────────────
@@ -691,6 +725,21 @@ def apply_preset(*_):
     if trigger == "preset-elite":
         return _P90, [], no_update
     return no_update, no_update, no_update
+
+
+# ── Recommend tab ─────────────────────────────────────────────────────────────
+@callback(
+    Output("recommend-cards", "children"),
+    Input("recommend-providers", "value"),
+    prevent_initial_call=True,
+)
+def update_recommend(selected):
+    _reload_if_stale()
+    if not selected:
+        return build_stack_cards(df, [])
+    if "__all__" in selected:
+        return build_stack_cards(df, None)
+    return build_stack_cards(df, selected)
 
 
 # ── Chart update callbacks (all respond to global filters + search) ───────────
