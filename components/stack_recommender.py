@@ -24,7 +24,7 @@ _API_TIERS = [
     {
         "key":         "fast",
         "label":       "Fast",
-        "tagline":     "High-volume tasks, automation, quick responses",
+        "tagline":     "Sub-agent workhorse — cheap, high-throughput, parallel calls",
         "color":       "#00d4ff",
         "max_price":    2.0,
         "min_quality":  10.0,
@@ -35,7 +35,7 @@ _API_TIERS = [
     {
         "key":         "balanced",
         "label":       "Balanced",
-        "tagline":     "Coding, writing, day-to-day tasks",
+        "tagline":     "Daily driver — coding, writing, tool use, file editing",
         "color":       "#34d399",
         "max_price":    8.0,
         "min_quality":  30.0,
@@ -46,7 +46,7 @@ _API_TIERS = [
     {
         "key":         "reasoning",
         "label":       "Reasoning",
-        "tagline":     "Complex planning, orchestration, delegation",
+        "tagline":     "Orchestrator — plans, delegates, and reviews sub-agent work",
         "color":       "#c084fc",
         "max_price":    None,
         "min_quality":  0.0,
@@ -60,22 +60,22 @@ _TIER_ICONS = {"fast": "⚡", "balanced": "⚙", "reasoning": "🧠"}
 
 _USE_CASES = {
     "fast": [
-        "Tagging & classification",
-        "Summarisation at scale",
-        "Routing & intent detection",
-        "Code autocomplete",
+        "Run in parallel across many files",
+        "Grep, search, and classify at scale",
+        "Route and filter agent outputs",
+        "Generate boilerplate & tests",
     ],
     "balanced": [
-        "Feature implementation",
-        "Writing & editing",
-        "Data analysis & charts",
-        "API integration work",
+        "Implement features end-to-end",
+        "Edit, refactor, and review code",
+        "Answer questions about the codebase",
+        "Write docs, PRs, and commit messages",
     ],
     "reasoning": [
-        "Architecture & planning",
-        "Multi-step research",
-        "Orchestrating other models",
-        "Hard maths / logic",
+        "Plan multi-step agent workflows",
+        "Delegate to Fast + Balanced sub-agents",
+        "Architect systems and APIs",
+        "Debug hard cross-file problems",
     ],
 }
 

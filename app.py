@@ -277,13 +277,17 @@ app.layout = html.Div([
             ] if _N_SNAPSHOTS >= 5 else []),
         ]),
 
-        # Recommend ────────────────────────────────────────────────────────────
-        dcc.Tab(label="Recommend", value="recommend",
+        # Agent Stack ──────────────────────────────────────────────────────────
+        dcc.Tab(label="Agent Stack", value="recommend",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Opinionated three-tier model stack for real-world use. "
-                "Fast = high-volume automation. Balanced = coding and daily tasks. "
-                "Reasoning = planning, complex analysis, and orchestrating other models."
+                "Build your Claude Code model stack. "
+                "Pick a workflow — API Only (cloud, any machine), "
+                "Hybrid (local Fast tier, API for heavy tasks), "
+                "or Local Only (fully offline, filtered to your hardware). "
+                "Fast = haiku-class, high-volume sub-tasks. "
+                "Balanced = coding and writing. "
+                "Reasoning = planning and delegation."
             ),
             # Row 1: workflow mode
             html.Div([
