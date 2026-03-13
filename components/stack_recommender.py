@@ -52,7 +52,7 @@ _API_TIERS = [
         "min_quality":  0.0,
         "min_speed":    0,
         "sort":        "quality",
-        "n":            3,
+        "n":            5,
     },
 ]
 
