@@ -30,7 +30,7 @@ _API_TIERS = [
         "min_quality":  10.0,
         "min_speed":    50,
         "sort":        "composite_fast",
-        "n":            3,
+        "n":            5,
     },
     {
         "key":         "balanced",
@@ -41,7 +41,7 @@ _API_TIERS = [
         "min_quality":  30.0,
         "min_speed":    0,
         "sort":        "value",
-        "n":            3,
+        "n":            5,
     },
     {
         "key":         "reasoning",
