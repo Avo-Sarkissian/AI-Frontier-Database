@@ -162,6 +162,68 @@ def _desc(text: str) -> html.Div:
     return html.Div(text, className="chart-caption")
 
 
+def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str]) -> html.Div:
+    """Raw values table rendered below the radar chart."""
+    _FONT_S = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    rows = dataframe[dataframe["model"].isin(selected_models)].copy()
+    if rows.empty:
+        return html.Div()
+
+    header_style = {
+        "padding": "8px 14px", "fontSize": "9px", "letterSpacing": "0.08em",
+        "color": "#555", "fontFamily": _FONT_S, "fontWeight": "600",
+        "textTransform": "uppercase", "textAlign": "right", "whiteSpace": "nowrap",
+    }
+    cell_style_base = {
+        "padding": "7px 14px", "fontSize": "11px", "fontFamily": _FONT_S,
+        "borderBottom": "1px solid rgba(255,255,255,0.04)", "textAlign": "right",
+        "whiteSpace": "nowrap",
+    }
+
+    def _cell(text, color="#888"):
+        return html.Td(text, style={**cell_style_base, "color": color})
+
+    header = html.Tr([
+        html.Th("Model",           style={**header_style, "textAlign": "left"}),
+        html.Th("Provider",        style={**header_style, "textAlign": "left"}),
+        html.Th("Intelligence",    style=header_style),
+        html.Th("Price ($/M tok)", style=header_style),
+        html.Th("Speed (tok/s)",   style=header_style),
+        html.Th("Latency (TTFT)",  style=header_style),
+        html.Th("Context",         style=header_style),
+    ])
+
+    table_rows = []
+    for _, r in rows.sort_values("quality", ascending=False).iterrows():
+        pcolor    = PROVIDER_COLORS.get(r["provider"], DEFAULT_COLOR)
+        price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
+        speed_str = f"{int(r['speed']):,}" if pd.notna(r["speed"]) and r["speed"] > 0 else "—"
+        lat_str   = f"{r['latency']:.2f}s" if pd.notna(r["latency"]) and r["latency"] > 0 else "—"
+        ctx_str   = str(r["context"]) if pd.notna(r.get("context")) else "—"
+        table_rows.append(html.Tr([
+            html.Td(r["model"], style={**cell_style_base, "textAlign": "left",
+                                       "color": "#ccc", "maxWidth": "260px",
+                                       "overflow": "hidden", "textOverflow": "ellipsis"}),
+            html.Td(r["provider"], style={**cell_style_base, "textAlign": "left", "color": pcolor}),
+            _cell(f"{r['quality']:.1f}", "#f2f2f2"),
+            _cell(price_str),
+            _cell(speed_str),
+            _cell(lat_str),
+            _cell(ctx_str),
+        ]))
+
+    return html.Div([
+        html.Div("RAW VALUES", style={
+            "fontSize": "9px", "letterSpacing": "0.1em", "color": "#444",
+            "fontFamily": _FONT_S, "padding": "14px 14px 6px", "fontWeight": "600",
+        }),
+        html.Table(
+            [html.Thead(header), html.Tbody(table_rows)],
+            style={"width": "100%", "borderCollapse": "collapse", "overflowX": "auto"},
+        ),
+    ])
+
+
 _GRAPH_CONFIG = {
     "displayModeBar": True,
     "displaylogo": False,
@@ -256,10 +318,11 @@ app.layout = html.Div([
         dcc.Tab(label="Overview", value="overview",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Each bubble is one model. X-axis = cost per 1M tokens (log scale). "
-                "Y-axis = intelligence score. Bubble size = generation speed. "
-                "The dotted line traces the Pareto frontier — best quality for the price. "
-                "Click any bubble to open a full model detail panel."
+                "Each bubble is one model. X = price per 1M tokens (log scale), "
+                "Y = AA Intelligence Index (open-ended composite benchmark score — higher is better), "
+                "bubble size = throughput (tok/s). "
+                "Dotted line = Pareto frontier — best quality available at each price point. "
+                "Click any bubble to open full model details."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
@@ -267,9 +330,9 @@ app.layout = html.Div([
             ])], className="chart-card"),
             *([
                 _desc(
-                    "Frontier evolution — watch how intelligence vs. price has shifted across "
-                    "every saved daily snapshot. Press ▶ Play to animate. "
-                    "Dotted cyan line = Pareto frontier at that point in time."
+                    "Frontier evolution — how intelligence vs. price has shifted across daily snapshots. "
+                    "Press ▶ Play to animate. Dotted cyan line = Pareto frontier at that date. "
+                    "Watch models get cheaper over time without losing quality."
                 ),
                 html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id="animated-pareto-chart",
@@ -380,9 +443,10 @@ app.layout = html.Div([
         dcc.Tab(label="Performance", value="performance",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Speed vs. intelligence. Models in the top-right are both fast and smart. "
-                "Bubble size is inversely proportional to price — larger = cheaper. "
-                "Click any bubble to see full model details."
+                "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
+                "Bubble size = affordability (larger = cheaper). "
+                "Models with strong throughput and high intelligence are ideal for agentic loops. "
+                "Click any bubble for full details."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="quadrant-chart", figure=build_quadrant(df),
@@ -431,14 +495,19 @@ app.layout = html.Div([
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            _desc("Top models by selected metric. Hover for full details."),
+            _desc(
+                "Intelligence = AA Intelligence Index (composite benchmark). "
+                "Value = Intelligence ÷ Price (higher = more score per dollar). "
+                "Speed = throughput in tokens/second. "
+                "Models within ±2 points of each other are effectively tied — small deltas are within measurement variance."
+            ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
             ])], className="chart-card"),
             _desc(
-                "Context window vs. intelligence. Bubble size = cheaper. "
-                "Find long-context models that don't sacrifice quality."
+                "Context window size vs. AA Intelligence Index. Bubble size = affordability (larger = cheaper). "
+                "Top-right models offer large context without quality loss — useful for long documents, large codebases, or extended conversations."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="context-chart", figure=build_context_chart(df),
@@ -450,8 +519,10 @@ app.layout = html.Div([
         dcc.Tab(label="Compare", value="compare",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Radar chart comparing up to 5 models across 5 normalized dimensions. "
-                "Select models below, or click → Compare in any model detail panel."
+                "Radar comparing up to 5 models across 5 dimensions — all normalized to 0–100% "
+                "relative to the best model in the full dataset. "
+                "Affordability = inverted price (100% = cheapest). Latency = inverted TTFT (100% = fastest). "
+                "Raw values for each model are shown in the table below the chart."
             ),
             html.Div([
                 html.Span("SELECT MODELS", className="filter-label"),
@@ -470,14 +541,18 @@ app.layout = html.Div([
                 dcc.Graph(id="radar-chart", figure=build_radar(df, _DIVERSE5),
                           config=_GRAPH_CONFIG, style={"height": "560px"}),
             ])], className="chart-card"),
+            html.Div(id="compare-raw-table", className="chart-card",
+                     style={"padding": "0"},
+                     children=_build_raw_table(df, _DIVERSE5)),
         ]),
 
         # Budget ───────────────────────────────────────────────────────────────
         dcc.Tab(label="Budget", value="budget",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Estimate your monthly API spend. Enter your expected monthly token volume "
-                "and see projected costs across all models. Sorted cheapest-first."
+                "Estimate monthly API cost. Price uses Artificial Analysis's blended rate "
+                "(assumes 3:1 output/input token ratio). Enter volume in millions — "
+                "1M tokens ≈ 750,000 words or ~1,500 pages. Chart sorts cheapest-first."
             ),
             html.Div([
                 html.Span("MONTHLY TOKENS", className="filter-label"),
@@ -507,8 +582,9 @@ app.layout = html.Div([
         dcc.Tab(label="Table", value="table",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Full sortable table of all models. Click any column header to sort. "
-                "Global filters (provider, score, search) apply here too."
+                "Full sortable model table. Score = AA Intelligence Index (composite benchmark, higher = better). "
+                "Value = Score ÷ Price (quality per dollar). Price = blended $/M tokens (3:1 output/input). "
+                "Latency = time-to-first-token (TTFT) in seconds. Click any column header to sort."
             ),
             html.Div([
                 dash_table.DataTable(
@@ -964,6 +1040,7 @@ def update_provider_leaderboard(providers, min_quality, search):
     Output("radar-chart",        "figure"),
     Output("radar-model-select", "options"),
     Output("radar-model-select", "value"),
+    Output("compare-raw-table",  "children"),
     Input("filter-provider",     "value"),
     Input("filter-quality",      "value"),
     Input("model-search",        "value"),
@@ -980,7 +1057,8 @@ def update_compare(providers, min_quality, search, selected_models):
     else:
         capped = (selected_models or [])[:5]
 
-    return build_radar(filtered, capped), options, capped
+    raw_table = _build_raw_table(filtered, capped)
+    return build_radar(filtered, capped), options, capped, raw_table
 
 
 @callback(

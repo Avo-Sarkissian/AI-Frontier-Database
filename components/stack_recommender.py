@@ -58,6 +58,24 @@ _API_TIERS = [
 
 _TIER_ICONS = {"fast": "⚡", "balanced": "⚙", "reasoning": "🧠"}
 
+_TIER_ADVICE = {
+    "fast": {
+        "best_for":  "Parallel sub-tasks, file search, grep, classification, boilerplate generation",
+        "tradeoff":  "Lower reasoning depth — not suitable for complex logic or multi-step planning",
+        "avoid_if":  "Task requires synthesizing many sources or multi-hop reasoning",
+    },
+    "balanced": {
+        "best_for":  "Feature implementation, code review, refactoring, writing, debugging",
+        "tradeoff":  "More expensive than Fast — avoid for high-volume simple operations",
+        "avoid_if":  "You need the absolute best quality or are running > 10M tokens/month at cost",
+    },
+    "reasoning": {
+        "best_for":  "Orchestration, system design, hard bugs, planning multi-agent workflows",
+        "tradeoff":  "Slowest and most expensive — reserve for the top-level orchestrator only",
+        "avoid_if":  "The task is clear enough for the Balanced tier; cost is very sensitive",
+    },
+}
+
 _USE_CASES = {
     "fast": [
         "Run in parallel across many files",
@@ -287,6 +305,7 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> html.Div:
         body   = html.Div([row_fn(row, is_top=(i == 0))
                            for i, (_, row) in enumerate(picks.iterrows())])
 
+    advice    = _TIER_ADVICE[tier["key"]]
     use_cases = html.Div([
         html.Div("USE CASES", style={
             "fontSize": "9px", "letterSpacing": "0.1em", "color": "#555",
@@ -299,6 +318,26 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> html.Div:
             })
             for uc in _USE_CASES[tier["key"]]
         ]),
+    ])
+
+    def _advice_row(label: str, text: str, text_color: str = "#555") -> html.Div:
+        return html.Div([
+            html.Span(label, style={
+                "fontSize": "9px", "letterSpacing": "0.08em", "color": "#444",
+                "fontFamily": _FONT, "fontWeight": "600", "marginRight": "6px",
+                "flexShrink": "0",
+            }),
+            html.Span(text, style={
+                "fontSize": "10px", "color": text_color, "fontFamily": _FONT,
+                "lineHeight": "1.4",
+            }),
+        ], style={"display": "flex", "marginBottom": "5px"})
+
+    advisor = html.Div([
+        html.Div(style={"height": "1px", "background": "rgba(255,255,255,0.05)", "margin": "14px 0 12px"}),
+        _advice_row("BEST FOR",  advice["best_for"],  "#5a8a5a"),
+        _advice_row("TRADEOFF",  advice["tradeoff"],  "#666"),
+        _advice_row("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
     ])
 
     return html.Div([
@@ -319,6 +358,7 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> html.Div:
         }),
         body,
         use_cases,
+        advisor,
     ], style={
         "flex": "1",
         "minWidth": "260px",
