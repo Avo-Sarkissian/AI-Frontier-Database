@@ -1174,6 +1174,19 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search):
     return build_cost_calc(filtered, monthly_tokens_m=tokens)
 
 
+# ── Agent Stack tab — sync VRAM from GPU preset ───────────────────────────────
+@callback(
+    Output("recommend-vram", "value"),
+    Input("recommend-gpu-preset", "value"),
+    prevent_initial_call=True,
+)
+def update_recommend_hw(gpu_name: str):
+    gpu = GPU_BY_NAME.get(gpu_name)
+    if not gpu:
+        return no_update
+    return gpu["vram_gb"]
+
+
 # ── Local tab ─────────────────────────────────────────────────────────────────
 @callback(
     Output("local-vram",    "value"),
