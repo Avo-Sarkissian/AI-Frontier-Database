@@ -100,9 +100,11 @@ def _compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
 
     # 1. Best intelligence
     _add(valid.sort_values("quality", ascending=False))
-    # 2. Best value (quality/price), excluding already picked
-    v = valid.copy(); v["_val"] = v["quality"] / v["price"]
-    _add(v.sort_values("_val", ascending=False))
+    # 2. Best value (quality/price) with a quality floor so weak-but-cheap
+    #    models don't monopolise the "value" pick in Compare defaults.
+    v = valid[valid["quality"] >= 35].copy()
+    v["_val"] = v["quality"] / v["price"]
+    _add(v.sort_values("_val", ascending=False) if not v.empty else valid.assign(_val=valid["quality"]/valid["price"]).sort_values("_val", ascending=False))
     # 3. Fastest model with quality >= 40
     fast = valid[(valid["speed"] > 0) & (valid["quality"] >= 40)]
     _add(fast.sort_values("speed", ascending=False) if not fast.empty else valid.sort_values("speed", ascending=False))
@@ -126,17 +128,22 @@ def _compute_insights(dataframe: pd.DataFrame, hist: pd.DataFrame) -> dict:
     if valid.empty:
         return out
 
-    # Best value model
+    # Best value model — apply a quality floor so cheap-but-weak models
+    # don't dominate the "best value" headline.
     valid = valid.copy()
     valid["_val"] = valid["quality"] / valid["price"]
-    bv = valid.loc[valid["_val"].idxmax()]
+    quality_floor = max(valid["quality"].quantile(0.20), 25.0)
+    bv_pool = valid[valid["quality"] >= quality_floor]
+    bv = bv_pool.loc[bv_pool["_val"].idxmax()] if not bv_pool.empty else valid.loc[valid["_val"].idxmax()]
     out["best_value_model"]    = bv["model"]
     out["best_value_provider"] = bv["provider"]
     out["best_value_score"]    = f"{bv['quality']:.0f}"
     out["best_value_price"]    = f"${bv['price']:.4f}"
     out["best_value_ratio"]    = f"{bv['_val']:.1f}"
 
-    # Cheapest frontier model (on the Pareto frontier)
+    # Cheapest frontier model with meaningful quality (≥ 30).
+    # The raw cheapest Pareto entry is often a sub-30 model which isn't
+    # actionable for most use-cases, so we skip those.
     sorted_p = valid.sort_values("price")
     max_q = 0.0
     frontier = []
@@ -144,7 +151,13 @@ def _compute_insights(dataframe: pd.DataFrame, hist: pd.DataFrame) -> dict:
         if row["quality"] > max_q:
             frontier.append(row)
             max_q = float(row["quality"])
-    if frontier:
+    useful = [f for f in frontier if f["quality"] >= 30]
+    if useful:
+        cheapest_f = useful[0]
+        out["frontier_cheapest_model"]    = cheapest_f["model"]
+        out["frontier_cheapest_price"]    = f"${cheapest_f['price']:.4f}/M"
+        out["frontier_cheapest_quality"]  = f"{cheapest_f['quality']:.0f}"
+    elif frontier:
         cheapest_f = frontier[0]
         out["frontier_cheapest_model"]    = cheapest_f["model"]
         out["frontier_cheapest_price"]    = f"${cheapest_f['price']:.4f}/M"

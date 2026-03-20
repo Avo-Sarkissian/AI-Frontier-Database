@@ -124,10 +124,13 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             font=dict(color="#666666", size=9, family=_FONT),
         ))
 
-    # Label top-right quadrant outliers (Fast · Smart)
+    # Label top-right quadrant outliers (Fast · Smart).
+    # Use 75th-percentile speed as threshold so labels stay in the genuinely
+    # fast region, and cap at 5 to avoid label pile-ups.
+    speed_p75 = plot_df["speed"].quantile(0.75)
     fast_smart = plot_df[
-        (plot_df["speed"] > med_speed) & (plot_df["quality"] > med_quality)
-    ].sort_values("quality", ascending=False).head(8)
+        (plot_df["speed"] > speed_p75) & (plot_df["quality"] > med_quality)
+    ].sort_values("quality", ascending=False).head(5)
     if not fast_smart.empty:
         fig.add_trace(go.Scatter(
             x=fast_smart["speed"],

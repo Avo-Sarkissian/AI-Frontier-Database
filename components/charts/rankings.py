@@ -124,7 +124,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     # ── Tier separator lines ──────────────────────────────────────────────────
     # Separate tiers: a new tier begins when the gap between adjacent models
     # exceeds 5% of the full range. Draw a subtle dashed line between tiers.
-    tiers = _assign_tiers(ranked["_metric"])
+    tiers = _assign_tiers(ranked["_metric"], gap_pct=0.08)
     tier_changes = []
     for i in range(1, len(tiers)):
         if tiers[i] != tiers[i - 1]:
@@ -162,7 +162,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             text=(
                 f"Top {top_n} Models by {title_metric}"
                 f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {x_label}  ·  dashed lines = tier boundaries (5% gap)</span>"
+                f"  ·  {x_label}  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

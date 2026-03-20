@@ -127,7 +127,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
                 yref=f"y{col_idx}" if col_idx > 1 else "y",
             )
 
-    height = max(380, n_rows * 26 + 100)
+    height = max(480, n_rows * 32 + 120)
 
     fig.update_layout(
         paper_bgcolor=BG,

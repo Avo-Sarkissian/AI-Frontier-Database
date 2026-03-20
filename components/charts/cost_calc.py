@@ -66,10 +66,18 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     # Provider label + intelligence score on right
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+        score_color = (
+            "#00d4ff" if row["quality"] >= 45
+            else "#7ecfaa" if row["quality"] >= 30
+            else "#888888"
+        )
         fig.add_annotation(
             x=plot_df["monthly_cost"].max() * 1.06,
             y=short_names[i],
-            text=f"{row['provider']}  <span style='color:#555'>{row['quality']:.1f}pt</span>",
+            text=(
+                f"<span style='color:{color}'>{row['provider']}</span>"
+                f"  <span style='color:{score_color}'>{row['quality']:.0f}pt</span>"
+            ),
             showarrow=False,
             xanchor="left",
             font=dict(size=9, family=_FONT, color=color),

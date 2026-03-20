@@ -105,11 +105,13 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
                 font=dict(size=9, family=_FONT, color=color),
             )
 
-    # Y-axis: rank 1 at top
+    # Y-axis: rank 1 at top.
+    # Cap at _TOP_N + 4 so early-snapshot outliers (rank 30+) don't stretch
+    # the axis and turn most of the chart into empty whitespace.
     all_ranks = [
         r for m in tracked for r in rank_records[m].values() if r is not None
     ]
-    y_max = max(all_ranks) + 1 if all_ranks else _TOP_N + 2
+    y_max = min(max(all_ranks) + 1, _TOP_N + 4) if all_ranks else _TOP_N + 2
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -133,8 +135,7 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
         ),
         yaxis=dict(
             title=dict(text="Rank  (1 = best)", font=dict(color="#888888", size=11), standoff=12),
-            autorange="reversed",
-            range=[0.5, y_max],
+            range=[y_max, 0.5],   # reversed: low rank numbers (best) at top
             dtick=1,
             gridcolor=_GRID,
             tickfont=dict(color=_TICK, size=10, family=_FONT),

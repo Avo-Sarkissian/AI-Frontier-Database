@@ -132,10 +132,10 @@ def build_context_chart(df: pd.DataFrame) -> go.Figure:
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
         annotations=[dict(
-            x=1.01, y=0.02, xref="paper", yref="paper", xanchor="left",
+            x=0.5, y=-0.12, xref="paper", yref="paper", xanchor="center",
             text="Bubble size = cheaper",
             showarrow=False,
-            font=dict(color="#666666", size=9, family=_FONT),
+            font=dict(color="#555555", size=9, family=_FONT),
         )],
     )
 

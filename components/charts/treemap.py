@@ -54,7 +54,7 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
                 len=0.6,
                 tickfont=dict(color="#888888", size=9, family=_FONT),
                 title=dict(
-                    text="Avg<br>Intelligence",
+                    text="AvgScore",
                     font=dict(color="#888888", size=9, family=_FONT),
                     side="right",
                 ),
