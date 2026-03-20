@@ -39,6 +39,7 @@ from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 from data.video_models                      import get_video_df, get_video_providers
 from data.embedding_models                  import get_embedding_df, get_embedding_providers
+from components.charts.bump_chart          import build_bump_chart
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -67,9 +68,12 @@ def _reload_if_stale():
         mtime = _CACHE_PATH.stat().st_mtime
         if mtime != _cache_mtime:
             with _data_lock:
-                df         = get_models()
-                history_df = load_history()
-                _cache_mtime = mtime
+                # Double-check inside the lock to avoid redundant reloads
+                # if two callbacks both saw the stale mtime simultaneously.
+                if mtime != _cache_mtime:
+                    df           = get_models()
+                    history_df   = load_history()
+                    _cache_mtime = mtime
     except Exception:
         pass
 
@@ -105,6 +109,66 @@ def _compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
 
 
 _DIVERSE5    = _compute_diverse5(df)
+
+
+def _compute_insights(dataframe: pd.DataFrame, hist: pd.DataFrame) -> dict:
+    """Pre-compute narrative statistics shown in the Insights tab."""
+    out: dict = {}
+    valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)]
+    if valid.empty:
+        return out
+
+    # Best value model
+    valid = valid.copy()
+    valid["_val"] = valid["quality"] / valid["price"]
+    bv = valid.loc[valid["_val"].idxmax()]
+    out["best_value_model"]    = bv["model"]
+    out["best_value_provider"] = bv["provider"]
+    out["best_value_score"]    = f"{bv['quality']:.0f}"
+    out["best_value_price"]    = f"${bv['price']:.4f}"
+    out["best_value_ratio"]    = f"{bv['_val']:.1f}"
+
+    # Cheapest frontier model (on the Pareto frontier)
+    sorted_p = valid.sort_values("price")
+    max_q = 0.0
+    frontier = []
+    for _, row in sorted_p.iterrows():
+        if row["quality"] > max_q:
+            frontier.append(row)
+            max_q = float(row["quality"])
+    if frontier:
+        cheapest_f = frontier[0]
+        out["frontier_cheapest_model"]    = cheapest_f["model"]
+        out["frontier_cheapest_price"]    = f"${cheapest_f['price']:.4f}/M"
+        out["frontier_cheapest_quality"]  = f"{cheapest_f['quality']:.0f}"
+
+    # Price compression: first vs last snapshot
+    if not hist.empty:
+        h = hist.copy()
+        h["scraped_at"] = pd.to_datetime(h["scraped_at"]).dt.date
+        h = h[(h["quality"] > 0) & (h["price"] > 0)]
+        dates = sorted(h["scraped_at"].unique())
+        if len(dates) >= 2:
+            first_avg = h[h["scraped_at"] == dates[0]]["price"].median()
+            last_avg  = h[h["scraped_at"] == dates[-1]]["price"].median()
+            if first_avg > 0:
+                pct = (last_avg - first_avg) / first_avg * 100
+                out["price_change_pct"]  = f"{pct:+.0f}%"
+                out["price_change_dir"]  = "down" if pct < 0 else "up"
+                out["snapshot_window"]   = f"{dates[0].strftime('%b %d')} – {dates[-1].strftime('%b %d')}"
+                out["n_snapshots"]       = len(dates)
+
+    # Speed vs quality correlation
+    sq = valid[(valid["speed"] > 0)]
+    if len(sq) >= 5:
+        import numpy as _np
+        r = _np.corrcoef(sq["speed"], sq["quality"])[0, 1]
+        out["speed_quality_r"] = f"{r:.2f}"
+
+    return out
+
+
+_INSIGHTS = _compute_insights(df, history_df)
 _N_SNAPSHOTS = history_df["scraped_at"].nunique() if not history_df.empty else 0
 # Percentile thresholds for preset filters (recomputed on each restart)
 _P75 = round(df["quality"].quantile(0.75), 1)   # top 25%
@@ -318,7 +382,122 @@ app.layout = html.Div([
     ], className="filters"),
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
-    dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
+    dcc.Tabs(id="tabs", value="insights", className="tabs", children=[
+
+        # Insights ─────────────────────────────────────────────────────────────
+        dcc.Tab(label="Insights", value="insights",
+                className="tab", selected_className="tab--selected", children=[
+            html.Div([
+                html.Div("What the data says", className="insight-heading"),
+                html.Div(
+                    "Key findings from the current snapshot — patterns that stand out "
+                    "when you look across 100+ models at once.",
+                    className="insight-subheading",
+                ),
+            ], className="insight-hero"),
+
+            # ── Callout cards row ────────────────────────────────────────────
+            html.Div([
+
+                # Card 1: Price compression
+                html.Div([
+                    html.Div("PRICE COMPRESSION", className="insight-card-label"),
+                    html.Div(
+                        _INSIGHTS.get("price_change_pct", "—"),
+                        className="insight-card-value",
+                        style={"color": "#22c55e" if _INSIGHTS.get("price_change_dir") == "down" else "#f87171"},
+                    ),
+                    html.Div(
+                        f"Median API cost change over "
+                        f"{_INSIGHTS.get('snapshot_window', 'the tracked window')} "
+                        f"({_INSIGHTS.get('n_snapshots', '—')} daily snapshots).",
+                        className="insight-card-body",
+                    ),
+                    html.Div(
+                        "Frontier models are getting cheaper without quality loss — "
+                        "the animated chart on the Overview tab shows this shift.",
+                        className="insight-card-footnote",
+                    ),
+                ], className="insight-card"),
+
+                # Card 2: Best value model
+                html.Div([
+                    html.Div("BEST VALUE RIGHT NOW", className="insight-card-label"),
+                    html.Div(
+                        _INSIGHTS.get("best_value_model", "—"),
+                        className="insight-card-value",
+                        style={"fontSize": "16px"},
+                    ),
+                    html.Div(
+                        f"{_INSIGHTS.get('best_value_provider', '')} · "
+                        f"Score {_INSIGHTS.get('best_value_score', '—')} · "
+                        f"{_INSIGHTS.get('best_value_price', '—')}/M tokens · "
+                        f"{_INSIGHTS.get('best_value_ratio', '—')} pts per dollar",
+                        className="insight-card-body",
+                    ),
+                    html.Div(
+                        "Value = Intelligence ÷ Price. "
+                        "This model delivers the most benchmark performance per dollar.",
+                        className="insight-card-footnote",
+                    ),
+                ], className="insight-card"),
+
+                # Card 3: Speed vs quality correlation
+                html.Div([
+                    html.Div("SPEED vs. QUALITY", className="insight-card-label"),
+                    html.Div(
+                        f"r = {_INSIGHTS.get('speed_quality_r', '—')}",
+                        className="insight-card-value",
+                    ),
+                    html.Div(
+                        "Pearson correlation between throughput (tok/s) and "
+                        "AA Intelligence Index across all models with valid speed data.",
+                        className="insight-card-body",
+                    ),
+                    html.Div(
+                        "A value near 0 means fast models are no dumber than slow ones — "
+                        "speed is an infrastructure choice, not a quality trade-off.",
+                        className="insight-card-footnote",
+                    ),
+                ], className="insight-card"),
+
+                # Card 4: Cheapest frontier model
+                html.Div([
+                    html.Div("CHEAPEST FRONTIER ENTRY", className="insight-card-label"),
+                    html.Div(
+                        _INSIGHTS.get("frontier_cheapest_model", "—"),
+                        className="insight-card-value",
+                        style={"fontSize": "16px"},
+                    ),
+                    html.Div(
+                        f"{_INSIGHTS.get('frontier_cheapest_price', '—')} · "
+                        f"Score {_INSIGHTS.get('frontier_cheapest_quality', '—')}",
+                        className="insight-card-body",
+                    ),
+                    html.Div(
+                        "This model sits on the Pareto frontier — "
+                        "no cheaper model matches its quality.",
+                        className="insight-card-footnote",
+                    ),
+                ], className="insight-card"),
+
+            ], className="insight-cards"),
+
+            # ── Bump chart ───────────────────────────────────────────────────
+            _desc(
+                "Rank evolution: how the top 12 models' intelligence rankings have shifted "
+                "across daily snapshots. Rank 1 = highest AA Intelligence Index. "
+                "A rising line means improving rank. Hover for details."
+            ),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(
+                    id="bump-chart",
+                    figure=build_bump_chart(history_df),
+                    config=_GRAPH_CONFIG,
+                    style={"height": "580px"},
+                ),
+            ])], className="chart-card"),
+        ]),
 
         # Overview ─────────────────────────────────────────────────────────────
         dcc.Tab(label="Overview", value="overview",
@@ -928,9 +1107,9 @@ app.layout = html.Div([
 )
 def init_from_url(search: str):
     if not search:
-        return "overview", [], 0
+        return "insights", [], 0
     params    = parse_qs(search.lstrip("?"))
-    tab       = params.get("tab", ["overview"])[0]
+    tab       = params.get("tab", ["insights"])[0]
     raw_p     = params.get("p",   [""])[0]
     providers = [x for x in raw_p.split(",") if x] if raw_p else []
     try:

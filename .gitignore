@@ -23,8 +23,9 @@ ai-frontier/
 npm-debug.log*
 pnpm-debug.log*
 
-# playwright screenshots
+# screenshots / debug images
 qa-*.png
+*.png
 .playwright-mcp/
 
 # Python cache

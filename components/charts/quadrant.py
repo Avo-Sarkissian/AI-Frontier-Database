@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
-    PROVIDER_COLORS, DEFAULT_COLOR,
+    PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
@@ -31,10 +31,17 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     # Bubble size normalized on price (inverted: cheaper = bigger)
     max_price = plot_df["price"].replace(0, np.nan).max()
     if pd.isna(max_price) or max_price == 0:
-        max_price = 1  # guard: no valid price data → uniform bubble size
+        max_price = 1
     plot_df["size"] = plot_df["price"].apply(
         lambda p: 8 + (1 - min(p / max_price, 1)) * 22 if pd.notna(p) and p > 0 else 8
     )
+
+    # Pearson r between speed and quality
+    _corr_r = None
+    try:
+        _corr_r = np.corrcoef(plot_df["speed"], plot_df["quality"])[0, 1]
+    except Exception:
+        pass
 
     fig = go.Figure()
 
@@ -43,10 +50,10 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     y_max = plot_df["quality"].max() * 1.15
 
     zone_labels = [
-        (0,         med_speed,   med_quality, y_max,   "Slow · Smart",  0.25, 0.75),
-        (med_speed, x_max,       med_quality, y_max,   "Fast · Smart",  0.75, 0.75),
-        (0,         med_speed,   0,           med_quality, "Slow · Weak", 0.25, 0.25),
-        (med_speed, x_max,       0,           med_quality, "Fast · Weak", 0.75, 0.25),
+        (0,         med_speed,   med_quality, y_max,       "Slow · Smart",  0.25, 0.75),
+        (med_speed, x_max,       med_quality, y_max,       "Fast · Smart",  0.75, 0.75),
+        (0,         med_speed,   0,           med_quality, "Slow · Weak",   0.25, 0.25),
+        (med_speed, x_max,       0,           med_quality, "Fast · Weak",   0.75, 0.25),
     ]
 
     for x0, x1, y0, y1, label, rx, ry in zone_labels:
@@ -61,7 +68,8 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     providers = sorted(plot_df["provider"].unique())
     for provider in providers:
         pdf = plot_df[plot_df["provider"] == provider]
-        color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+        color  = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+        symbol = PROVIDER_SHAPES.get(provider, DEFAULT_SHAPE)
 
         latency_str = pdf["latency"].apply(
             lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
@@ -84,9 +92,10 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             name=provider,
             marker=dict(
                 color=color,
+                symbol=symbol,
                 size=pdf["size"],
                 opacity=0.75,
-                line=dict(width=0),
+                line=dict(width=0.5, color="rgba(255,255,255,0.10)"),
             ),
             customdata=list(zip(pdf["model"], pdf["provider"], pdf["price"], latency_str)),
             hovertemplate=hover,
@@ -104,7 +113,18 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             xref="x", yref="y",
         ))
 
-    # Label top-right quadrant outliers (Fast · Smart) — models worth calling out
+    # Correlation annotation
+    if _corr_r is not None:
+        annotations.append(dict(
+            x=0.01, y=0.99,
+            xref="paper", yref="paper",
+            text=f"r = {_corr_r:.2f}  (speed vs quality)",
+            showarrow=False,
+            xanchor="left", yanchor="top",
+            font=dict(color="#666666", size=9, family=_FONT),
+        ))
+
+    # Label top-right quadrant outliers (Fast · Smart)
     fast_smart = plot_df[
         (plot_df["speed"] > med_speed) & (plot_df["quality"] > med_quality)
     ].sort_values("quality", ascending=False).head(8)
@@ -128,7 +148,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             text=(
                 "Speed vs. Intelligence"
                 "  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                "  ·  bubble size ∝ affordability</span>"
+                "  ·  bubble size ∝ affordability  ·  shape = provider family</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

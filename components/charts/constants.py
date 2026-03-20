@@ -59,6 +59,25 @@ PROVIDER_COLORS: dict[str, str] = {
 
 DEFAULT_COLOR = "#6b7280"
 
+# Marker shapes per provider — encodes provider identity via shape in addition to
+# color so colorblind users can distinguish the major labs.
+# Cycles through 6 symbols for the most common providers; others get 'circle'.
+PROVIDER_SHAPES: dict[str, str] = {
+    "Anthropic":       "square",
+    "OpenAI":          "diamond",
+    "Google":          "triangle-up",
+    "Meta":            "cross",
+    "DeepSeek":        "star",
+    "Mistral":         "pentagon",
+    "xAI":             "hexagon",
+    "Alibaba":         "triangle-down",
+    "Amazon":          "diamond-open",
+    "Microsoft Azure": "square-open",
+    "NVIDIA":          "star-triangle-up",
+    "Cohere":          "circle-open",
+}
+DEFAULT_SHAPE = "circle"
+
 # Shared chart theme tokens
 BG    = "#111111"
 GRID  = "rgba(255,255,255,0.06)"

@@ -1,6 +1,6 @@
 """
-Top-N model rankings — horizontal bar chart.
-Shows quality, price, and speed as stacked visual context.
+Top-N model rankings — horizontal bar chart with tier separators.
+Bars within 5% of the top score are bracketed in the same tier.
 """
 import pandas as pd
 import plotly.graph_objects as go
@@ -11,11 +11,27 @@ from components.charts.constants import (
 )
 
 
-def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligence") -> go.Figure:
-    """Horizontal bar chart of top-N models by the chosen metric.
-
-    metric: "intelligence" (default), "value" (quality/price), "speed"
+def _assign_tiers(values: pd.Series, gap_pct: float = 0.05) -> list[int]:
     """
+    Assign tier numbers (1 = best) based on relative gaps.
+    A new tier starts when the drop from the previous model exceeds gap_pct
+    of the overall range.
+    """
+    vals = values.tolist()
+    top  = vals[-1]   # series is bottom-to-top (reversed)
+    rng  = top - vals[0] if top != vals[0] else 1
+    tiers, current = [], 1
+    prev = top
+    for v in reversed(vals):
+        if prev > 0 and (prev - v) / rng > gap_pct:
+            current += 1
+        tiers.append(current)
+        prev = v
+    return list(reversed(tiers))
+
+
+def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligence") -> go.Figure:
+    """Horizontal bar chart of top-N models by the chosen metric."""
     valid = df[df["quality"] > 0].copy()
 
     if metric == "value":
@@ -34,7 +50,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     # Reverse for bottom-up bar display
     ranked = ranked.iloc[::-1].reset_index(drop=True)
 
-    colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
+    colors      = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
     short_names = ranked["model"].apply(clean_model_name)
 
     speed_str = ranked["speed"].apply(
@@ -90,7 +106,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
 
     # Provider legend annotation on right (with price sub-label)
     for i, row in ranked.iterrows():
-        color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
+        color    = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         price_tag = (
             f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
             if pd.notna(row["price"]) and row["price"] > 0 else ""
@@ -105,6 +121,37 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             xref="x", yref="y",
         )
 
+    # ── Tier separator lines ──────────────────────────────────────────────────
+    # Separate tiers: a new tier begins when the gap between adjacent models
+    # exceeds 5% of the full range. Draw a subtle dashed line between tiers.
+    tiers = _assign_tiers(ranked["_metric"])
+    tier_changes = []
+    for i in range(1, len(tiers)):
+        if tiers[i] != tiers[i - 1]:
+            # Line falls between index i-1 and i (in the reversed/bottom-up list)
+            tier_changes.append(i - 0.5)
+
+    tier_annotations = []
+    for y_pos in tier_changes:
+        fig.add_shape(
+            type="line",
+            x0=0, x1=max_metric * 1.25,
+            y0=y_pos, y1=y_pos,
+            line=dict(color="rgba(255,255,255,0.10)", width=1, dash="dot"),
+            xref="x", yref="y",
+        )
+        # Tier label
+        tier_num = tiers[int(y_pos + 0.5)]
+        tier_annotations.append(dict(
+            x=max_metric * 1.27,
+            y=y_pos,
+            text=f"<span style='color:#444'>T{tier_num}</span>",
+            showarrow=False,
+            xanchor="left",
+            font=dict(size=8, family=_FONT, color="#444"),
+            xref="x", yref="y",
+        ))
+
     height = max(400, top_n * 26)
 
     fig.update_layout(
@@ -115,7 +162,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             text=(
                 f"Top {top_n} Models by {title_metric}"
                 f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {x_label}</span>"
+                f"  ·  {x_label}  ·  dashed lines = tier boundaries (5% gap)</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
@@ -141,6 +188,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
+        annotations=tier_annotations,
     )
 
     return fig

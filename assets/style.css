@@ -785,6 +785,80 @@ input[id^="local-"].dash-input:focus {
   border-color: rgba(255,255,255,0.18) !important;
 }
 
+/* ── Insights tab ─────────────────────────────────── */
+.insight-hero {
+  padding: 32px 32px 0;
+}
+
+.insight-heading {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.insight-subheading {
+  font-size: 12px;
+  color: #888888;
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+.insight-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px 32px 4px;
+}
+
+.insight-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.insight-card-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+.insight-card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.insight-card-body {
+  font-size: 11px;
+  color: #888888;
+  line-height: 1.5;
+}
+
+.insight-card-footnote {
+  font-size: 10px;
+  color: #555555;
+  line-height: 1.5;
+  border-top: 1px solid var(--border-faint);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+/* ── Accessibility: raise chart-caption contrast ───── */
+.chart-caption {
+  color: #888888;   /* was var(--text-3) = #666666 — raised to meet WCAG AA */
+}
+
 /* ── Responsive: 1024px ───────────────────────────── */
 @media (max-width: 1024px) {
   .header { padding: 0 20px; }
@@ -799,6 +873,12 @@ input[id^="local-"].dash-input:focus {
   .stat-value { font-size: 18px; }
 
   .detail-panel { width: 280px; }
+}
+
+/* ── Responsive: 1024px insight cards ────────────── */
+@media (max-width: 1024px) {
+  .insight-cards { grid-template-columns: repeat(2, 1fr); padding: 16px 20px 4px; }
+  .insight-hero  { padding: 24px 20px 0; }
 }
 
 /* ── Responsive: 768px (tablet) ──────────────────── */
