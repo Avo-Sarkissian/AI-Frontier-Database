@@ -102,13 +102,13 @@ def _parse_api_response(data: dict) -> list[list]:
             }
         else:
             entry = best[key]
-            # Keep cheapest price; use that host's speed/latency
+            # Keep the cheapest host's full record so price, speed, and
+            # latency all describe the same real API offering. The previous
+            # "elif speed > entry['speed']" branch produced synthetic records
+            # where price came from host A and speed from host B — a SKU
+            # that doesn't exist. We drop that branch entirely.
             if price < entry["price"]:
                 entry["price"]   = price
-                entry["speed"]   = speed
-                entry["latency"] = latency
-            # If same price or more expensive, take faster speed
-            elif speed > entry["speed"]:
                 entry["speed"]   = speed
                 entry["latency"] = latency
 

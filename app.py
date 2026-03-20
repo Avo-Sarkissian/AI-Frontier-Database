@@ -7,6 +7,7 @@ IDs are always in the DOM regardless of active tab. This prevents Dash 4's
 "nonexistent object" callback errors.
 """
 import os
+import re
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -45,9 +46,16 @@ from components.charts.bump_chart          import build_bump_chart
 df         = get_models()
 history_df = load_history()
 
-# Kick off background scrapers — run immediately, then every hour
-start_background_scraper(interval_s=3600)
-start_background_image_scraper(interval_s=3600)
+# Kick off background scrapers — run immediately, then every hour.
+# Guard: in Werkzeug debug-reload mode two Python processes exist — the
+# watchdog (WERKZEUG_RUN_MAIN not set) and the real worker child
+# (WERKZEUG_RUN_MAIN=true). Without this check both processes start a
+# scraper thread and race to write the cache on every file-save reload.
+_debug_mode       = os.getenv("DEBUG", "false").lower() == "true"
+_is_worker_child  = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+if not _debug_mode or _is_worker_child:
+    start_background_scraper(interval_s=3600)
+    start_background_image_scraper(interval_s=3600)
 
 _CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
 _data_lock   = threading.Lock()
@@ -210,7 +218,9 @@ def _apply_filters(providers, min_quality, search: str = "") -> pd.DataFrame:
     if min_quality and min_quality > 0:
         filtered = filtered[filtered["quality"] >= min_quality]
     if search and search.strip():
-        pat = search.strip()
+        # Escape user input so characters like (, [, * are treated as
+        # plain text rather than regex metacharacters.
+        pat = re.escape(search.strip())
         mask = (
             filtered["model"].str.contains(pat, case=False, na=False) |
             filtered["provider"].str.contains(pat, case=False, na=False)
@@ -312,6 +322,7 @@ app.layout = html.Div([
     dcc.Store(id="detail-model-name", data=None),
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
+    dcc.Store(id="data-version",      data=0),
     dcc.Download(id="download-csv"),
     dcc.Interval(id="data-refresh-interval", interval=10 * 60 * 1000, n_intervals=0),
 
@@ -330,13 +341,35 @@ app.layout = html.Div([
         ], style={"display": "flex", "alignItems": "center", "gap": "8px"}),
     ], className="header"),
 
-    # ── Stat bar ──────────────────────────────────────────────────────────────
+    # ── Stat bar — all values are callback-driven so they stay live ───────────
     html.Div([
-        _stat(str(len(df)),                                         "Models tracked"),
-        _stat(str(df["provider"].nunique()),                        "Providers"),
-        _stat(f"${df['price'].min():.3f}",                         "Floor price / 1M", accent=True),
-        _stat(f"{df['quality'].max():.1f}",                         "Peak intelligence"),
-        _stat(f"{int(df['speed'].replace(0, pd.NA).max()):,}",     "Max speed tok/s"),
+        html.Div([
+            html.Div(id="stat-model-count",
+                     children=str(len(df)), className="stat-value"),
+            html.Div("Models tracked", className="stat-label"),
+        ], className="stat"),
+        html.Div([
+            html.Div(id="stat-provider-count",
+                     children=str(df["provider"].nunique()), className="stat-value"),
+            html.Div("Providers", className="stat-label"),
+        ], className="stat"),
+        html.Div([
+            html.Div(id="stat-floor-price",
+                     children=f"${df['price'].min():.3f}",
+                     className="stat-value", style={"color": "#00d4ff"}),
+            html.Div("Floor price / 1M", className="stat-label"),
+        ], className="stat"),
+        html.Div([
+            html.Div(id="stat-peak-quality",
+                     children=f"{df['quality'].max():.1f}", className="stat-value"),
+            html.Div("Peak intelligence", className="stat-label"),
+        ], className="stat"),
+        html.Div([
+            html.Div(id="stat-max-speed",
+                     children=f"{int(df['speed'].replace(0, pd.NA).max()):,}",
+                     className="stat-value"),
+            html.Div("Max speed tok/s", className="stat-label"),
+        ], className="stat"),
         html.Div([
             html.Div(id="stat-data-ts", children=_cache_ts(), className="stat-value"),
             html.Div("Data updated", className="stat-label"),
@@ -1251,9 +1284,10 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
+    Input("data-version",    "data"),   # re-render when live data refreshes
     prevent_initial_call=True,
 )
-def update_pareto(providers, min_quality, search):
+def update_pareto(providers, min_quality, search, _v):
     return build_pareto_scatter(_apply_filters(providers, min_quality, search or ""))
 
 
@@ -1262,9 +1296,10 @@ def update_pareto(providers, min_quality, search):
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
+    Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_quadrant(providers, min_quality, search):
+def update_quadrant(providers, min_quality, search, _v):
     return build_quadrant(_apply_filters(providers, min_quality, search or ""))
 
 
@@ -1273,9 +1308,10 @@ def update_quadrant(providers, min_quality, search):
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
+    Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_treemap(providers, min_quality, search):
+def update_treemap(providers, min_quality, search, _v):
     return build_treemap(_apply_filters(providers, min_quality, search or ""))
 
 
@@ -1285,9 +1321,10 @@ def update_treemap(providers, min_quality, search):
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
     Input("rankings-sort",   "value"),
+    Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_rankings(providers, min_quality, search, sort_by):
+def update_rankings(providers, min_quality, search, sort_by, _v):
     filtered = _apply_filters(providers, min_quality, search or "")
     return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
@@ -1558,15 +1595,33 @@ def export_csv(n_clicks, providers, min_quality, search):
     return dcc.send_data_frame(filtered.to_csv, "ai_frontier_export.csv", index=False)
 
 
-# ── Auto data refresh (every 30 min, picks up external scraper updates) ───────
+# ── Auto data refresh — drives ALL stat bar values and data-version ───────────
 @callback(
-    Output("stat-data-ts", "children"),
+    Output("stat-model-count",    "children"),
+    Output("stat-provider-count", "children"),
+    Output("stat-floor-price",    "children"),
+    Output("stat-peak-quality",   "children"),
+    Output("stat-max-speed",      "children"),
+    Output("stat-data-ts",        "children"),
+    Output("data-version",        "data"),
     Input("data-refresh-interval", "n_intervals"),
+    State("data-version",          "data"),
     prevent_initial_call=True,
 )
-def auto_refresh_data(_):
+def auto_refresh_data(_, current_version):
+    prev_mtime = _cache_mtime
     _reload_if_stale()
-    return _cache_ts()
+    data_changed = (_cache_mtime != prev_mtime)
+    new_version  = (current_version or 0) + (1 if data_changed else 0)
+    return (
+        str(len(df)),
+        str(df["provider"].nunique()),
+        f"${df['price'].min():.3f}",
+        f"{df['quality'].max():.1f}",
+        f"{int(df['speed'].replace(0, pd.NA).max()):,}",
+        _cache_ts(),
+        new_version,
+    )
 
 
 # ── Image Gen tab ─────────────────────────────────────────────────────────────
@@ -1587,8 +1642,9 @@ def update_image_charts(providers, tags):
                 img_df = img_df[img_df["open_weights"] == True]
             else:
                 img_df = img_df[img_df["tags"].apply(lambda t: tag in t)]
-    if img_df.empty:
-        img_df = get_image_df()  # fallback: show everything if filter too narrow
+    # No fallback — an empty result shows empty charts, which is honest.
+    # Previously this silently reset to the full dataset, making filters appear
+    # to work when they were actually ignored.
     return build_image_faceted(img_df), build_image_rankings(img_df)
 
 
@@ -1610,9 +1666,7 @@ def update_video_charts(providers, tags):
                 vdf = vdf[vdf["open_weights"] == True]
             else:
                 vdf = vdf[vdf["tags"].apply(lambda t: tag in t)]
-    if vdf.empty:
-        vdf = get_video_df()
-    paid = vdf[vdf["price_per_sec"] > 0]
+    paid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
     return build_video_rankings(vdf), build_video_scatter(paid if not paid.empty else vdf)
 
 
@@ -1634,8 +1688,6 @@ def update_embedding_charts(providers, tags):
                 edf = edf[edf["open_weights"] == True]
             else:
                 edf = edf[edf["tags"].apply(lambda t: tag in t)]
-    if edf.empty:
-        edf = get_embedding_df()
     return build_embedding_scatter(edf), build_embedding_rankings(edf)
 
 

@@ -23,10 +23,13 @@ def _parse_price(val: str) -> float:
 
 
 def _parse_numeric(val: str) -> float:
-    """'1,196' → 1196, '34E' → 34, '--' → nan"""
+    """'1,196' → 1196.0, '34E' → 34.0, '--' → nan"""
     if not val or val in ("--", ""):
         return float("nan")
-    val = re.sub(r"[E,].*", "", val)   # strip 'E' suffix and commas
+    # Remove thousands-separator commas before anything else, so "1,196" → "1196"
+    val = val.replace(",", "")
+    # Strip trailing 'E' unit suffix (e.g. speed values like "34E")
+    val = re.sub(r"[Ee].*$", "", val)
     try:
         return float(val)
     except ValueError:
