@@ -1,10 +1,11 @@
 """
-Rank evolution bump chart.
+Frontier Price Tracker.
 
-Shows how the top models' intelligence rankings have shifted over the
-daily snapshot window. Each line is one model; rank 1 = highest quality.
-Rising lines = improving rank, falling lines = losing ground.
+Shows how the median API price of the top-10 intelligence models has
+evolved across daily snapshots — demonstrating AI price compression.
+Individual model price lines are drawn with a bold median trend line.
 """
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -13,16 +14,16 @@ from components.charts.constants import (
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
-_TOP_N = 12   # models to track
+_TOP_N = 10  # top models by intelligence to track
 
 
 def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
     """
-    Bump chart: intelligence rank over time for the top _TOP_N models
-    (ranked by quality on the most recent snapshot).
+    Price tracker: median price trend of top-N models over time,
+    plus individual model lines showing the price compression story.
     """
     if history_df.empty:
-        return _empty("No snapshot data available — bump chart requires daily history.")
+        return _empty("No snapshot data available.")
 
     h = history_df.copy()
     h["scraped_at"] = pd.to_datetime(h["scraped_at"]).dt.date
@@ -30,88 +31,89 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
 
     dates = sorted(h["scraped_at"].unique())
     if len(dates) < 2:
-        return _empty("Need at least 2 daily snapshots to show rank evolution.")
+        return _empty("Need at least 2 daily snapshots.")
 
-    # Models to track: top _TOP_N by quality on the latest date
-    latest   = h[h["scraped_at"] == dates[-1]]
-    tracked  = (
+    # Track models in the top _TOP_N by quality on the latest snapshot
+    latest = h[h["scraped_at"] == dates[-1]]
+    tracked = (
         latest.sort_values("quality", ascending=False)
         .head(_TOP_N)["model"]
         .tolist()
     )
-
-    # Build a provider lookup from the latest snapshot
     prov_map = latest.set_index("model")["provider"].to_dict()
 
-    # For each date, compute rank of every model (quality descending)
-    rank_records: dict[str, dict] = {m: {} for m in tracked}
-    for dt in dates:
-        day = h[h["scraped_at"] == dt].copy()
-        day = day.sort_values("quality", ascending=False).reset_index(drop=True)
-        day["rank"] = day.index + 1
-        for model in tracked:
-            row = day[day["model"] == model]
-            rank_records[model][dt] = int(row["rank"].iloc[0]) if not row.empty else None
-
     date_strs = [d.strftime("%b %d") for d in dates]
-    date_isos  = [d.isoformat() for d in dates]
 
     fig = go.Figure()
 
+    # --- Per-model price lines (thin, semi-transparent) ---
     for model_name in tracked:
-        ranks = [rank_records[model_name].get(dt) for dt in dates]
-
-        # Skip models that never appeared
-        if all(r is None for r in ranks):
+        mdf = h[h["model"] == model_name].sort_values("scraped_at")
+        if mdf.empty:
             continue
 
+        model_dates = [d.strftime("%b %d") for d in mdf["scraped_at"]]
         provider = prov_map.get(model_name, "")
-        color    = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
-        short    = model_name[:26] + ("…" if len(model_name) > 26 else "")
-
-        # Final rank for annotation
-        final_rank = ranks[-1]
+        color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+        short = model_name[:26] + ("…" if len(model_name) > 26 else "")
 
         fig.add_trace(go.Scatter(
-            x=date_strs,
-            y=ranks,
-            mode="lines+markers",
+            x=model_dates,
+            y=mdf["price"],
+            mode="lines",
             name=short,
-            line=dict(width=1.8, color=color),
-            marker=dict(
-                size=7,
-                color=color,
-                line=dict(width=1, color="rgba(0,0,0,0.4)"),
-            ),
-            connectgaps=False,
+            line=dict(width=1.2, color=color),
+            opacity=0.4,
             hovertemplate=(
                 f"<b>{model_name}</b><br>"
                 "Date: %{x}<br>"
-                "Rank: #%{y}<br>"
+                "Price: $%{y:.4f}/M tokens<br>"
                 f"Provider: {provider}<br>"
                 "<extra></extra>"
             ),
+            showlegend=True,
         ))
 
-        # Annotate the final rank at the right edge
-        if final_rank is not None:
-            fig.add_annotation(
-                x=date_strs[-1],
-                y=final_rank,
-                text=f"<span style='color:{color}'>{short}</span>",
-                showarrow=False,
-                xanchor="left",
-                xshift=8,
-                font=dict(size=10, family=_FONT, color=color),
-            )
+    # --- Median price trend of the top-N (bold overlay) ---
+    median_prices = []
+    for dt in dates:
+        day = h[h["scraped_at"] == dt]
+        top_day = day[day["model"].isin(tracked)]
+        if not top_day.empty:
+            median_prices.append(top_day["price"].median())
+        else:
+            median_prices.append(None)
 
-    # Y-axis: rank 1 at top.
-    # Cap at _TOP_N + 4 so early-snapshot outliers (rank 30+) don't stretch
-    # the axis and turn most of the chart into empty whitespace.
-    all_ranks = [
-        r for m in tracked for r in rank_records[m].values() if r is not None
-    ]
-    y_max = min(max(all_ranks) + 1, _TOP_N + 4) if all_ranks else _TOP_N + 2
+    fig.add_trace(go.Scatter(
+        x=date_strs,
+        y=median_prices,
+        mode="lines+markers",
+        name=f"Median (top {_TOP_N})",
+        line=dict(width=3, color="#00d4ff"),
+        marker=dict(size=6, color="#00d4ff"),
+        hovertemplate=(
+            "<b>Median price (top 10)</b><br>"
+            "Date: %{x}<br>"
+            "Median: $%{y:.4f}/M tokens<br>"
+            "<extra></extra>"
+        ),
+    ))
+
+    # --- Compute % change annotation ---
+    valid_medians = [m for m in median_prices if m is not None]
+    if len(valid_medians) >= 2:
+        pct_change = (valid_medians[-1] - valid_medians[0]) / valid_medians[0] * 100
+        direction = "↓" if pct_change < 0 else "↑"
+        fig.add_annotation(
+            x=date_strs[-1], y=valid_medians[-1],
+            text=f"  {direction} {abs(pct_change):.0f}%",
+            showarrow=False,
+            xanchor="left", yanchor="middle",
+            font=dict(
+                color="#00d4ff" if pct_change < 0 else "#ff6b6b",
+                size=13, family=_FONT, weight=700,
+            ),
+        )
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -119,9 +121,9 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
         font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
-                f"Intelligence Rank Evolution  —  Top {_TOP_N} Models"
+                f"Frontier Price Tracker  —  Top {_TOP_N} Models"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  rank 1 = highest AA Intelligence Index  ·  rising line = improving</span>"
+                "  ·  bold line = median price  ·  thinner lines = individual models</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
@@ -134,13 +136,12 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="Rank  (1 = best)", font=dict(color=_AXIS, size=12), standoff=12),
-            range=[y_max, 0.5],   # reversed: low rank numbers (best) at top
-            dtick=1,
+            title=dict(text="Price  (USD / 1M tokens)", font=dict(color=_AXIS, size=12), standoff=12),
+            type="log",
             gridcolor=_GRID,
             tickfont=dict(color=_TICK, size=11, family=_FONT),
+            tickprefix="$",
             showgrid=True, showline=False, ticks="",
-            tickprefix="#",
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)",

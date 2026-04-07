@@ -518,9 +518,9 @@ app.layout = html.Div([
 
             # ── Bump chart ───────────────────────────────────────────────────
             _desc(
-                "Rank evolution: how the top 12 models' intelligence rankings have shifted "
-                "across daily snapshots. Rank 1 = highest AA Intelligence Index. "
-                "A rising line means improving rank. Hover for details."
+                "Frontier price tracker: how API pricing for the top 10 intelligence models "
+                "has evolved across daily snapshots. The bold cyan line is the median price. "
+                "Falling lines = AI is getting cheaper without losing quality."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(
