@@ -28,8 +28,6 @@ from components.charts.treemap              import build_treemap
 from components.charts.rankings             import build_rankings
 from components.charts.radar                import build_radar
 from components.charts.cost_calc            import build_cost_calc
-from components.charts.animated_pareto      import build_animated_pareto
-from components.charts.context_chart        import build_context_chart
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
@@ -350,7 +348,6 @@ app.layout = html.Div([
                         title="Reload page to fetch latest data"),
             html.Button("↗", id="btn-share", className="header-icon-btn",
                         title="Copy URL to clipboard"),
-            html.Span("LIVE DATA", className="header-badge"),
         ], style={"display": "flex", "alignItems": "center", "gap": "8px"}),
     ], className="header"),
 
@@ -376,16 +373,6 @@ app.layout = html.Div([
             html.Div(id="stat-peak-quality",
                      children=f"{df['quality'].max():.1f}", className="stat-value"),
             html.Div("Peak intelligence", className="stat-label"),
-        ], className="stat"),
-        html.Div([
-            html.Div(id="stat-max-speed",
-                     children=f"{int(df['speed'].replace(0, pd.NA).max()):,}",
-                     className="stat-value"),
-            html.Div("Max speed tok/s", className="stat-label"),
-        ], className="stat"),
-        html.Div([
-            html.Div(id="stat-data-ts", children=_cache_ts(), className="stat-value"),
-            html.Div("Data updated", className="stat-label"),
         ], className="stat"),
     ], className="stat-bar"),
 
@@ -548,29 +535,30 @@ app.layout = html.Div([
         # Overview ─────────────────────────────────────────────────────────────
         dcc.Tab(label="Overview", value="overview",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
+            html.Div([
+                html.Span("X AXIS", className="filter-label"),
+                dcc.RadioItems(
+                    id="overview-xaxis",
+                    options=[
+                        {"label": "Price",  "value": "price"},
+                        {"label": "Speed",  "value": "speed"},
+                    ],
+                    value="price",
+                    inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "20px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            html.Div(id="overview-desc", children=[_desc(
                 "Each bubble is one model. X = price per 1M tokens (log scale), "
-                "Y = AA Intelligence Index (open-ended composite benchmark score — higher is better), "
-                "bubble size = throughput (tok/s). "
-                "Dotted line = Pareto frontier — best quality available at each price point. "
-                "Click any bubble to open full model details."
-            ),
+                "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+                "Dotted line = Pareto frontier. Click any bubble for full details."
+            )]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
             ])], className="chart-card"),
-            *([
-                _desc(
-                    "Frontier evolution — how intelligence vs. price has shifted across daily snapshots. "
-                    "Press ▶ Play to animate. Dotted cyan line = Pareto frontier at that date. "
-                    "Watch models get cheaper over time without losing quality."
-                ),
-                html.Div([dcc.Loading(**_LOADING, children=[
-                    dcc.Graph(id="animated-pareto-chart",
-                              figure=build_animated_pareto(history_df),
-                              config=_GRAPH_CONFIG, style={"height": "580px"}),
-                ])], className="chart-card"),
-            ] if _N_SNAPSHOTS >= 5 else []),
         ]),
 
         # Agent Stack ──────────────────────────────────────────────────────────
@@ -670,21 +658,6 @@ app.layout = html.Div([
                      className="chart-card"),
         ]),
 
-        # Performance ──────────────────────────────────────────────────────────
-        dcc.Tab(label="Performance", value="performance",
-                className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
-                "Bubble size = affordability (larger = cheaper). "
-                "Models with strong throughput and high intelligence are ideal for agentic loops. "
-                "Click any bubble for full details."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="quadrant-chart", figure=build_quadrant(df),
-                          config=_GRAPH_CONFIG, style={"height": "620px"}),
-            ])], className="chart-card"),
-        ]),
-
         # Landscape ────────────────────────────────────────────────────────────
         dcc.Tab(label="Landscape", value="landscape",
                 className="tab", selected_className="tab--selected", children=[
@@ -735,14 +708,6 @@ app.layout = html.Div([
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
-            ])], className="chart-card"),
-            _desc(
-                "Context window size vs. AA Intelligence Index. Bubble size = affordability (larger = cheaper). "
-                "Top-right models offer large context without quality loss — useful for long documents, large codebases, or extended conversations."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="context-chart", figure=build_context_chart(df),
-                          config=_GRAPH_CONFIG, style={"height": "560px"}),
             ])], className="chart-card"),
         ]),
 
@@ -805,7 +770,7 @@ app.layout = html.Div([
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="cost-calc-chart",
                           figure=build_cost_calc(df, monthly_tokens_m=1.0),
-                          config=_GRAPH_CONFIG, style={"height": "1100px"}),
+                          config=_GRAPH_CONFIG, style={"height": "850px"}),
             ])], className="chart-card"),
         ]),
 
@@ -1293,27 +1258,30 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
 
 # ── Chart update callbacks (all respond to global filters + search) ───────────
 @callback(
-    Output("pareto-chart", "figure"),
+    Output("pareto-chart",  "figure"),
+    Output("overview-desc", "children"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
-    Input("data-version",    "data"),   # re-render when live data refreshes
-    prevent_initial_call=True,
-)
-def update_pareto(providers, min_quality, search, _v):
-    return build_pareto_scatter(_apply_filters(providers, min_quality, search or ""))
-
-
-@callback(
-    Output("quadrant-chart", "figure"),
-    Input("filter-provider", "value"),
-    Input("filter-quality",  "value"),
-    Input("model-search",    "value"),
+    Input("overview-xaxis",  "value"),
     Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_quadrant(providers, min_quality, search, _v):
-    return build_quadrant(_apply_filters(providers, min_quality, search or ""))
+def update_overview(providers, min_quality, search, xaxis, _v):
+    filtered = _apply_filters(providers, min_quality, search or "")
+    if xaxis == "speed":
+        desc = _desc(
+            "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
+            "Bubble size = affordability (larger = cheaper). "
+            "Click any bubble for full details."
+        )
+        return build_quadrant(filtered), desc
+    desc = _desc(
+        "Each bubble is one model. X = price per 1M tokens (log scale), "
+        "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+        "Dotted line = Pareto frontier. Click any bubble for full details."
+    )
+    return build_pareto_scatter(filtered), desc
 
 
 @callback(
@@ -1341,16 +1309,6 @@ def update_rankings(providers, min_quality, search, sort_by, _v):
     filtered = _apply_filters(providers, min_quality, search or "")
     return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
-
-@callback(
-    Output("context-chart", "figure"),
-    Input("filter-provider", "value"),
-    Input("filter-quality",  "value"),
-    Input("model-search",    "value"),
-    prevent_initial_call=True,
-)
-def update_context(providers, min_quality, search):
-    return build_context_chart(_apply_filters(providers, min_quality, search or ""))
 
 
 @callback(
@@ -1614,8 +1572,6 @@ def export_csv(n_clicks, providers, min_quality, search):
     Output("stat-provider-count", "children"),
     Output("stat-floor-price",    "children"),
     Output("stat-peak-quality",   "children"),
-    Output("stat-max-speed",      "children"),
-    Output("stat-data-ts",        "children"),
     Output("data-version",        "data"),
     Input("data-refresh-interval", "n_intervals"),
     State("data-version",          "data"),
@@ -1631,8 +1587,6 @@ def auto_refresh_data(_, current_version):
         str(df["provider"].nunique()),
         f"${df['price'].min():.3f}",
         f"{df['quality'].max():.1f}",
-        f"{int(df['speed'].replace(0, pd.NA).max()):,}",
-        _cache_ts(),
         new_version,
     )
 

@@ -64,10 +64,17 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     fig.add_hline(y=med_quality, line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
     fig.add_vline(x=med_speed,   line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
 
+    # Group small providers into "Other"
+    _counts = plot_df["provider"].value_counts()
+    _top_provs = set(_counts.head(10).index)
+    plot_df["display_provider"] = plot_df["provider"].apply(
+        lambda p: p if p in _top_provs else "Other"
+    )
+
     # Per-provider scatter
-    providers = sorted(plot_df["provider"].unique())
+    providers = sorted(plot_df["display_provider"].unique(), key=lambda p: (p == "Other", p))
     for provider in providers:
-        pdf = plot_df[plot_df["provider"] == provider]
+        pdf = plot_df[plot_df["display_provider"] == provider]
         color  = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
         symbol = PROVIDER_SHAPES.get(provider, DEFAULT_SHAPE)
 

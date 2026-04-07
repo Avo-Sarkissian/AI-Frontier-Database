@@ -11,7 +11,7 @@ from components.charts.constants import (
 )
 
 
-def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int = 40) -> go.Figure:
+def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int = 30) -> go.Figure:
     """Horizontal bar chart: monthly cost = monthly_tokens_m × price/M tokens."""
     plot_df = df[
         (df["price"] > 0) &

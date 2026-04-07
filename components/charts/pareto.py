@@ -28,6 +28,12 @@ def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(pareto) if pareto else pd.DataFrame(columns=sub.columns)
 
 
+def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
+    """Return the top-n providers by model count; rest become 'Other'."""
+    counts = df["provider"].value_counts()
+    return set(counts.head(n).index)
+
+
 def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
     """Build the Cost vs Quality Pareto scatter figure."""
     plot_df = df[
@@ -55,10 +61,16 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
+    # --- Group small providers into "Other" to keep legend readable ---
+    top_provs = _top_providers(plot_df, n=10)
+    plot_df["display_provider"] = plot_df["provider"].apply(
+        lambda p: p if p in top_provs else "Other"
+    )
+
     # --- Per-provider scatter traces ---
-    providers = sorted(plot_df["provider"].unique())
+    providers = sorted(plot_df["display_provider"].unique(), key=lambda p: (p == "Other", p))
     for provider in providers:
-        pdf = plot_df[plot_df["provider"] == provider]
+        pdf = plot_df[plot_df["display_provider"] == provider]
         color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
         symbol = PROVIDER_SHAPES.get(provider, DEFAULT_SHAPE)
 
