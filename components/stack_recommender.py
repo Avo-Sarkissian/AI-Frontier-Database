@@ -26,9 +26,9 @@ _API_TIERS = [
         "label":       "Fast",
         "tagline":     "Sub-agent workhorse — cheap, high-throughput, parallel calls",
         "color":       "#00d4ff",
-        "max_price":    2.0,
-        "min_quality":  10.0,
-        "min_speed":    50,
+        "max_price":    3.0,
+        "min_quality":  28.0,
+        "min_speed":    30,
         "sort":        "composite_fast",
         "n":            5,
     },
@@ -103,7 +103,8 @@ def _score_fast_api(row, q_max, v_max, s_max):
     q = row["quality"] / q_max if q_max else 0
     v = (row["quality"] / row["price"]) / v_max if (v_max and row["price"] > 0) else 0
     s = row["speed"] / s_max if s_max else 0
-    return q * 0.25 + v * 0.45 + s * 0.30
+    # Quality-first: even fast models need real intelligence
+    return q * 0.45 + v * 0.30 + s * 0.25
 
 
 def _pick_api_tier(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
@@ -142,12 +143,24 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 3) -> pd.Da
         return runnable
 
     if tier_key == "fast":
-        # Fastest models — sorted by speed, decent quality minimum
-        runnable = runnable[runnable["quality"] >= 3]
-        runnable = runnable.sort_values("speed_tps", ascending=False)
+        # Fast but intelligent — enforce a real quality floor, then balance
+        # speed and quality so tiny dumb models don't win on speed alone
+        runnable = runnable[runnable["quality"] >= 10]
+        s_max = runnable["speed_tps"].replace(0, float("nan")).max() or 1
+        q_max = runnable["quality"].max() or 1
+        runnable["_score"] = (
+            runnable["quality"] / q_max * 0.50 +
+            runnable["speed_tps"] / s_max * 0.50
+        )
+        runnable = runnable.sort_values("_score", ascending=False)
     elif tier_key == "balanced":
-        # Best quality-per-GB-of-VRAM — good quality without eating all your RAM
-        runnable["_score"] = runnable["quality"] / runnable["vram_req_gb"].replace(0, float("nan"))
+        # Quality-weighted efficiency — quality matters more than VRAM footprint
+        runnable = runnable[runnable["quality"] >= 12]
+        q_max = runnable["quality"].max() or 1
+        runnable["_score"] = (
+            (runnable["quality"] / q_max) * 0.70 +
+            (1 / runnable["vram_req_gb"].replace(0, float("nan")).fillna(99)) * 0.30
+        )
         runnable = runnable.sort_values("_score", ascending=False)
     else:  # reasoning
         runnable = runnable.sort_values("quality", ascending=False)

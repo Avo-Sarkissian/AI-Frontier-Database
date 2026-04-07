@@ -177,12 +177,14 @@ def _compute_insights(dataframe: pd.DataFrame, hist: pd.DataFrame) -> dict:
                 out["snapshot_window"]   = f"{dates[0].strftime('%b %d')} – {dates[-1].strftime('%b %d')}"
                 out["n_snapshots"]       = len(dates)
 
-    # Speed vs quality correlation
-    sq = valid[(valid["speed"] > 0)]
-    if len(sq) >= 5:
-        import numpy as _np
-        r = _np.corrcoef(sq["speed"], sq["quality"])[0, 1]
-        out["speed_quality_r"] = f"{r:.2f}"
+    # Top intelligence model
+    top = dataframe.loc[dataframe["quality"].idxmax()] if not dataframe.empty else None
+    if top is not None:
+        out["top_quality_model"]    = top["model"]
+        out["top_quality_provider"] = top.get("provider", "")
+        out["top_quality_score"]    = f"{top['quality']:.0f}"
+        price = top.get("price", 0)
+        out["top_quality_price"]    = f"${price:.2f}/M" if price > 0 else "—"
 
     return out
 
@@ -475,21 +477,23 @@ app.layout = html.Div([
                     ),
                 ], className="insight-card"),
 
-                # Card 3: Speed vs quality correlation
+                # Card 3: Top intelligence model
                 html.Div([
-                    html.Div("SPEED vs. QUALITY", className="insight-card-label"),
+                    html.Div("TOP INTELLIGENCE", className="insight-card-label"),
                     html.Div(
-                        f"r = {_INSIGHTS.get('speed_quality_r', '—')}",
+                        _INSIGHTS.get("top_quality_model", "—"),
                         className="insight-card-value",
+                        style={"fontSize": "16px"},
                     ),
                     html.Div(
-                        "Pearson correlation between throughput (tok/s) and "
-                        "AA Intelligence Index across all models with valid speed data.",
+                        f"{_INSIGHTS.get('top_quality_provider', '')} · "
+                        f"Score {_INSIGHTS.get('top_quality_score', '—')} · "
+                        f"{_INSIGHTS.get('top_quality_price', '—')} per 1M tokens",
                         className="insight-card-body",
                     ),
                     html.Div(
-                        "A value near 0 means fast models are no dumber than slow ones — "
-                        "speed is an infrastructure choice, not a quality trade-off.",
+                        "Highest AA Intelligence Index in the dataset — "
+                        "the current ceiling for raw model capability.",
                         className="insight-card-footnote",
                     ),
                 ], className="insight-card"),
@@ -518,16 +522,17 @@ app.layout = html.Div([
 
             # ── Bump chart ───────────────────────────────────────────────────
             _desc(
-                "Frontier price tracker: how API pricing for the top 10 intelligence models "
-                "has evolved across daily snapshots. The bold cyan line is the median price. "
-                "Falling lines = AI is getting cheaper without losing quality."
+                "Price change since first snapshot for the top 10 models by intelligence. "
+                "All lines start at 0% — lines below zero mean the model got cheaper. "
+                "Bold cyan = median of the tracked group. "
+                "Falling median = frontier AI is compressing in cost without losing quality."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(
                     id="bump-chart",
                     figure=build_bump_chart(history_df),
                     config=_GRAPH_CONFIG,
-                    style={"height": "580px"},
+                    style={"height": "560px"},
                 ),
             ])], className="chart-card"),
         ]),
