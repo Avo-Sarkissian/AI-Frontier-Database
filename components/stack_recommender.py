@@ -137,7 +137,7 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
 
 # ── Local picking ──────────────────────────────────────────────────────────────
 
-def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 3) -> pd.DataFrame:
+def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5) -> pd.DataFrame:
     runnable = local_df[local_df["fits"].isin(["yes", "tight"])].copy()
     if runnable.empty:
         return runnable

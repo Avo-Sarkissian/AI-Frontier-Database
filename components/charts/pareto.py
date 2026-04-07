@@ -61,10 +61,9 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
-    # --- Group small providers into "Other" to keep legend readable ---
-    top_provs = _top_providers(plot_df, n=10)
+    # --- Any provider with a defined color gets its own trace; rest = "Other" ---
     plot_df["display_provider"] = plot_df["provider"].apply(
-        lambda p: p if p in top_provs else "Other"
+        lambda p: p if p in PROVIDER_COLORS else "Other"
     )
 
     # --- Per-provider scatter traces ---

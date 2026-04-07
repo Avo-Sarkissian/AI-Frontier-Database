@@ -187,6 +187,90 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
+    """
+    Horizontal bar chart: top N models by quality/price ratio (value score).
+    Quality floor of 20 so tiny cheap models don't dominate.
+    Bars are colored by provider. Directly answers: "what should I use?"
+    """
+    valid = df[(df["quality"] >= 20) & (df["price"] > 0)].copy()
+    if valid.empty:
+        return _empty("No models with quality ≥ 20 and valid price.")
+
+    valid["value_score"] = valid["quality"] / valid["price"]
+    top = valid.nlargest(n, "value_score").iloc[::-1].reset_index(drop=True)
+
+    colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in top["provider"]]
+    names  = top["model"].apply(lambda m: m[:32] + "…" if len(m) > 32 else m)
+
+    fig = go.Figure(go.Bar(
+        x=top["value_score"],
+        y=names,
+        orientation="h",
+        marker=dict(color=colors, opacity=0.85, line=dict(width=0)),
+        customdata=top[["model", "provider", "quality", "price", "value_score"]].values,
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            "Provider: %{customdata[1]}<br>"
+            "Quality: %{customdata[2]:.0f}<br>"
+            "Price: $%{customdata[3]:.4f}/M tokens<br>"
+            "Value Score: %{customdata[4]:.0f}<br>"
+            "<extra></extra>"
+        ),
+        showlegend=False,
+    ))
+
+    # Annotate each bar with quality score and price
+    for i, row in top.iterrows():
+        price_str = (
+            f"${row['price']:.4f}/M" if row["price"] < 0.01
+            else f"${row['price']:.3f}/M" if row["price"] < 1
+            else f"${row['price']:.2f}/M"
+        )
+        fig.add_annotation(
+            x=row["value_score"],
+            y=i,
+            text=f"  Q{row['quality']:.0f}  ·  {price_str}",
+            showarrow=False,
+            xanchor="left", yanchor="middle",
+            font=dict(color="#777777", size=10, family=_FONT),
+        )
+
+    fig.update_layout(
+        paper_bgcolor=_BG,
+        plot_bgcolor=_BG,
+        font=dict(family=_FONT, color="#999999", size=12),
+        title=dict(
+            text=(
+                "Value Leaders  —  Most Intelligence per Dollar"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+                "  ·  quality ÷ price  ·  quality floor ≥ 20</span>"
+            ),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
+            x=0.0, xanchor="left",
+            pad=dict(l=20, t=16),
+        ),
+        xaxis=dict(
+            title=dict(text="Value Score  (quality pts / dollar per 1M tokens)", font=dict(color=_AXIS, size=12), standoff=12),
+            gridcolor=_GRID,
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
+            showgrid=True, showline=False, ticks="",
+        ),
+        yaxis=dict(
+            tickfont=dict(color="#cccccc", size=11, family=_FONT),
+            showgrid=False, showline=False, ticks="", automargin=True,
+        ),
+        margin=dict(l=20, r=200, t=52, b=36),
+        height=520,
+        hovermode="closest",
+        hoverlabel=dict(
+            bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
+            font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
+        ),
+    )
+    return fig
+
+
 def _empty(msg: str) -> go.Figure:
     fig = go.Figure()
     fig.update_layout(

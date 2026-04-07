@@ -38,7 +38,7 @@ from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 from data.video_models                      import get_video_df, get_video_providers
 from data.embedding_models                  import get_embedding_df, get_embedding_providers
-from components.charts.bump_chart          import build_bump_chart
+from components.charts.bump_chart          import build_bump_chart, build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df         = get_models()
@@ -520,19 +520,33 @@ app.layout = html.Div([
 
             ], className="insight-cards"),
 
-            # ── Bump chart ───────────────────────────────────────────────────
+            # ── Value Leaders ─────────────────────────────────────────────────
+            _desc(
+                "Top 15 models ranked by intelligence per dollar (quality score ÷ price per 1M tokens). "
+                "Quality floor of 20 so ultra-cheap but weak models don't pollute the list. "
+                "Bar length = value score. Labels show raw quality and price."
+            ),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(
+                    id="value-leaders-chart",
+                    figure=build_value_leaders(df),
+                    config=_GRAPH_CONFIG,
+                    style={"height": "540px"},
+                ),
+            ])], className="chart-card"),
+
+            # ── Price change tracker ──────────────────────────────────────────
             _desc(
                 "Price change since first snapshot for the top 10 models by intelligence. "
-                "All lines start at 0% — lines below zero mean the model got cheaper. "
-                "Bold cyan = median of the tracked group. "
-                "Falling median = frontier AI is compressing in cost without losing quality."
+                "All lines start at 0% — below zero means cheaper. "
+                "Bold cyan = median. Falling median = frontier AI compressing in cost without losing quality."
             ),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(
                     id="bump-chart",
                     figure=build_bump_chart(history_df),
                     config=_GRAPH_CONFIG,
-                    style={"height": "560px"},
+                    style={"height": "520px"},
                 ),
             ])], className="chart-card"),
         ]),
