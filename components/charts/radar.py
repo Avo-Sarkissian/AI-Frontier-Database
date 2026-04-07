@@ -102,14 +102,14 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Model Comparison"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  normalized 0–100 across all models</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
@@ -119,13 +119,13 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
                 visible=True,
                 range=[0, 1],
                 tickformat=".0%",
-                tickfont=dict(color="#666666", size=8, family=_FONT),
+                tickfont=dict(color="#777777", size=9, family=_FONT),
                 gridcolor="rgba(255,255,255,0.05)",
                 linecolor="rgba(255,255,255,0.05)",
                 showline=True,
             ),
             angularaxis=dict(
-                tickfont=dict(color="#888888", size=11, family=_FONT),
+                tickfont=dict(color="#999999", size=12, family=_FONT),
                 gridcolor="rgba(255,255,255,0.06)",
                 linecolor="rgba(255,255,255,0.06)",
             ),
@@ -134,7 +134,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#888888", size=10, family=_FONT),
+            font=dict(color="#999999", size=11, family=_FONT),
             x=1.05, y=1, xanchor="left",
         ),
         margin=dict(l=60, r=160, t=52, b=60),

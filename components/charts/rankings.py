@@ -101,7 +101,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         showlegend=False,
         text=ranked["_metric"].apply(lambda q: f"{q:.0f}"),
         textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.6)", size=10, family=_FONT),
+        textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
 
     # Provider legend annotation on right (with price sub-label)
@@ -117,7 +117,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             text=f"<span style='color:{color}'>{row['provider']}</span>{price_tag}",
             showarrow=False,
             xanchor="left",
-            font=dict(size=9, family=_FONT, color=color),
+            font=dict(size=10, family=_FONT, color=color),
             xref="x", yref="y",
         )
 
@@ -157,26 +157,26 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 f"Top {top_n} Models by {title_metric}"
-                f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                f"  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {x_label}  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text=x_label, font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text=x_label, font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
             range=[0, max_metric * 1.3],
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=_FONT),
+            tickfont=dict(color="#999999", size=11, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),

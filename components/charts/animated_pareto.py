@@ -104,7 +104,7 @@ def build_animated_pareto(history_df: pd.DataFrame) -> go.Figure:
             name=dstr,
             layout=go.Layout(title_text=(
                 "AI Frontier Evolution"
-                f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                f"  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {dstr}  ·  {len(day)} models</span>"
             )),
         ))
@@ -133,7 +133,7 @@ def build_animated_pareto(history_df: pd.DataFrame) -> go.Figure:
         active=len(dates) - 1,
         currentvalue=dict(
             prefix="Snapshot: ",
-            font=dict(color="#888888", size=10, family=_FONT),
+            font=dict(color="#999999", size=11, family=_FONT),
         ),
         pad=dict(b=10, t=50),
         x=0.10, len=0.88,
@@ -196,28 +196,28 @@ def _apply_layout(
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "AI Frontier Evolution"
-                f"  <span style='font-size:11px;color:#666666;font-weight:400'>{subtitle}</span>"
+                f"  <span style='font-size:12px;color:#777777;font-weight:400'>{subtitle}</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             tickprefix="$",
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         margin=dict(l=56, r=40, t=52, b=130 if animated else 52),

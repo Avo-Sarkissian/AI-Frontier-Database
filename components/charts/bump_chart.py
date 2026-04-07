@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
-    BG as _BG, GRID as _GRID, TICK as _TICK, FONT as _FONT,
+    BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
 _TOP_N = 12   # models to track
@@ -102,7 +102,7 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
                 showarrow=False,
                 xanchor="left",
                 xshift=8,
-                font=dict(size=9, family=_FONT, color=color),
+                font=dict(size=10, family=_FONT, color=color),
             )
 
     # Y-axis: rank 1 at top.
@@ -116,29 +116,29 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 f"Intelligence Rank Evolution  —  Top {_TOP_N} Models"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  rank 1 = highest AA Intelligence Index  ·  rising line = improving</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Snapshot Date", font=dict(color="#888888", size=11), standoff=12),
+            title=dict(text="Snapshot Date", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="Rank  (1 = best)", font=dict(color="#888888", size=11), standoff=12),
+            title=dict(text="Rank  (1 = best)", font=dict(color=_AXIS, size=12), standoff=12),
             range=[y_max, 0.5],   # reversed: low rank numbers (best) at top
             dtick=1,
             gridcolor=_GRID,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
             tickprefix="#",
         ),
@@ -146,7 +146,7 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#888888", size=9, family=_FONT),
+            font=dict(color="#999999", size=10, family=_FONT),
             x=1.01, y=1, xanchor="left",
         ),
         margin=dict(l=56, r=240, t=52, b=52),

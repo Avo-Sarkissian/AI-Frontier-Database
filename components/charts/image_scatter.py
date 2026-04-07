@@ -122,7 +122,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
                 text=ann_text,
                 showarrow=False,
                 xanchor="left",
-                font=dict(size=8, family=FONT, color=color),
+                font=dict(size=10, family=FONT, color=color),
                 xref=f"x{col_idx}" if col_idx > 1 else "x",
                 yref=f"y{col_idx}" if col_idx > 1 else "y",
             )
@@ -132,7 +132,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=BG,
         plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=11),
+        font=dict(family=FONT, color="#999999", size=12),
         barmode="overlay",
         margin=dict(l=10, r=10, t=60, b=20),
         height=height,
@@ -155,18 +155,18 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
         fig.layout[xref].update(
             range=[x_min, x_max],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=TICK, size=9, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
         )
         fig.layout[yref].update(
-            tickfont=dict(color="#aaaaaa", size=9, family=FONT),
+            tickfont=dict(color="#aaaaaa", size=11, family=FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         )
 
     # Style subplot title text
     for annotation in fig.layout.annotations:
-        annotation.update(font=dict(color="#f2f2f2", size=13, family=FONT), y=1.04)
+        annotation.update(font=dict(color="#f2f2f2", size=14, family=FONT), y=1.04)
 
     return fig
 
@@ -223,7 +223,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             y=short_name[i],
             text=ann_text,
             showarrow=False, xanchor="left",
-            font=dict(size=9, family=FONT, color=color),
+            font=dict(size=10, family=FONT, color=color),
             xref="x", yref="y",
         )
 
@@ -231,26 +231,26 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
 
     fig.update_layout(
         paper_bgcolor=BG, plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=12),
+        font=dict(family=FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "All Models — Ranked by Quality"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  ELO from AA Image Arena blind comparisons  ·  119 models</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="ELO Score", font=dict(color=AXIS, size=11), standoff=12),
+            title=dict(text="ELO Score", font=dict(color=AXIS, size=12), standoff=12),
             range=[min(plot_df["elo"]) - 20, max_elo * 1.25],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=FONT),
+            tickfont=dict(color="#999999", size=11, family=FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),

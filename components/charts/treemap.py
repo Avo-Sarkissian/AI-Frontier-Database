@@ -52,10 +52,10 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
             colorbar=dict(
                 thickness=10,
                 len=0.6,
-                tickfont=dict(color="#888888", size=9, family=_FONT),
+                tickfont=dict(color="#999999", size=10, family=_FONT),
                 title=dict(
                     text="AvgScore",
-                    font=dict(color="#888888", size=9, family=_FONT),
+                    font=dict(color="#999999", size=10, family=_FONT),
                     side="right",
                 ),
                 bgcolor="rgba(0,0,0,0)",
@@ -72,14 +72,14 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Provider Landscape"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  area = # models  ·  color = avg intelligence</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),

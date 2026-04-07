@@ -61,7 +61,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
         showlegend=False,
         text=ranked["value_score"].apply(lambda v: f"{v:.0f}"),
         textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.6)", size=10, family=_FONT),
+        textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
 
     # Provider label on right — use category string for reliable positioning
@@ -73,7 +73,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
             text=row["provider"],
             showarrow=False,
             xanchor="left",
-            font=dict(size=9, family=_FONT, color=color),
+            font=dict(size=10, family=_FONT, color=color),
             xref="x", yref="y",
         )
 
@@ -82,26 +82,26 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Intelligence per Dollar"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  quality ÷ price  (higher = better value)</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="AA Score per $ / 1M tokens", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Score per $ / 1M tokens", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
             range=[0, ranked["value_score"].max() * 1.28],
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=_FONT),
+            tickfont=dict(color="#999999", size=11, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),

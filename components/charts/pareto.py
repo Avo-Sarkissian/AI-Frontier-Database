@@ -137,7 +137,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 mode="text",
                 text=label_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
                 textposition=spaced_pos,
-                textfont=dict(color="rgba(0,212,255,0.65)", size=9, family=FONT),
+                textfont=dict(color="rgba(0,212,255,0.65)", size=10, family=FONT),
                 hoverinfo="skip",
                 showlegend=False,
             ))
@@ -158,20 +158,20 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             text=corr_text,
             showarrow=False,
             xanchor="left", yanchor="top",
-            font=dict(color="#666666", size=9, family=FONT),
+            font=dict(color="#666666", size=10, family=FONT),
         ))
 
     fig.update_layout(
         paper_bgcolor=BG,
         plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=12),
+        font=dict(family=FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Cost vs. Intelligence"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  bubble size = speed (tok/s)  ·  shape = provider family</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
             xanchor="left",
             pad=dict(l=20, t=16),
@@ -179,14 +179,14 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         xaxis=dict(
             title=dict(
                 text="Price  (USD / 1M tokens)",
-                font=dict(color=AXIS, size=11),
+                font=dict(color=AXIS, size=12),
                 standoff=12,
             ),
             type="log",
             gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True,
             showline=False,
             ticks="",
@@ -194,13 +194,13 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         yaxis=dict(
             title=dict(
                 text="AA Intelligence Index",
-                font=dict(color=AXIS, size=11),
+                font=dict(color=AXIS, size=12),
                 standoff=12,
             ),
             gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True,
             showline=False,
             ticks="",
@@ -209,7 +209,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(255,255,255,0.07)",
             borderwidth=1,
-            font=dict(color="#888888", size=10, family=FONT),
+            font=dict(color="#999999", size=11, family=FONT),
             itemsizing="constant",
             orientation="v",
             x=1.01,

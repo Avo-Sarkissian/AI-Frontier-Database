@@ -98,39 +98,39 @@ def build_local_scatter(
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "VRAM Requirement vs Intelligence"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {quant} quantization  ·  left of line = runnable  ·  bubble = speed</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="VRAM Required (GB)", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="VRAM Required (GB)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
             tickvals=[0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
             ticktext=["0.1", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"],
         ),
         yaxis=dict(
-            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
             range=[0, df["quality"].max() * 1.12],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#888888", size=9, family=_FONT),
+            font=dict(color="#999999", size=10, family=_FONT),
             x=1.01, y=1, xanchor="left",
             tracegroupgap=2,
-            title=dict(text="FAMILY", font=dict(color="#666", size=9)),
+            title=dict(text="FAMILY", font=dict(color="#777", size=10)),
         ),
         margin=dict(l=56, r=160, t=52, b=52),
         hovermode="closest",
@@ -145,7 +145,7 @@ def build_local_scatter(
                 xanchor="left",
                 text="Bubble size = tokens/s<br>◆ = MoE architecture",
                 showarrow=False,
-                font=dict(color="#666666", size=9, family=_FONT),
+                font=dict(color="#666666", size=10, family=_FONT),
                 align="left",
             ),
         ],

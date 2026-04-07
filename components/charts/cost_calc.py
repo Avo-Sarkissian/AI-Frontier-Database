@@ -60,7 +60,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             lambda c: f"${c:,.2f}" if c >= 1 else f"${c:.3f}"
         ),
         textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.6)", size=10, family=_FONT),
+        textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
 
     # Provider label + intelligence score on right
@@ -80,7 +80,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             ),
             showarrow=False,
             xanchor="left",
-            font=dict(size=9, family=_FONT, color=color),
+            font=dict(size=10, family=_FONT, color=color),
             xref="x", yref="y",
         )
 
@@ -89,27 +89,27 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Monthly API Cost"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  cheapest models for your token budget</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Estimated Monthly Cost  (USD)", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="Estimated Monthly Cost  (USD)", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             tickprefix="$",
             showgrid=True, showline=False, ticks="",
             range=[0, plot_df["monthly_cost"].max() * 1.3],
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=_FONT),
+            tickfont=dict(color="#999999", size=11, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
             autorange="reversed",  # cheapest at top

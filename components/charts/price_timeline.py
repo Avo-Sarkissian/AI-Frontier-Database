@@ -70,34 +70,34 @@ def build_price_timeline(history_df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Price Over Time"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  top {_TOP_N} models  ·  {snapshots} snapshots</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Date", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="Date", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
             tickprefix="$",
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#888888", size=9, family=_FONT),
+            font=dict(color="#999999", size=10, family=_FONT),
             x=1.01, y=1, xanchor="left",
         ),
         margin=dict(l=56, r=160, t=52, b=52),
@@ -140,24 +140,24 @@ def _single_snapshot(h: pd.DataFrame) -> go.Figure:
     ))
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
+        font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Price Baseline"
-                f"  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                f"  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  snapshot {date_str}  ·  cheapest {_TOP_N} models</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left", pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, tickprefix="$",
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=_FONT),
+            tickfont=dict(color="#999999", size=11, family=_FONT),
             showgrid=False, showline=False, ticks="", automargin=True,
         ),
         margin=dict(l=20, r=40, t=52, b=36),

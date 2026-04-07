@@ -73,41 +73,41 @@ def build_embedding_scatter(df: pd.DataFrame) -> go.Figure:
         x=math.log10(0.008), y=plot_df["mteb"].min() - 0.5,
         text="← free (open weights)   paid →",
         showarrow=False, xanchor="center",
-        font=dict(size=8, family=FONT, color="#444"),
+        font=dict(size=10, family=FONT, color="#555"),
         xref="x", yref="y",
     )
 
     fig.update_layout(
         paper_bgcolor=BG, plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=12),
+        font=dict(family=FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "MTEB Score vs. Price"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  bubble size = context length  ·  open rings = open weights (free)</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
             title=dict(text="Price  (USD / 1M tokens)  —  open weights plotted at $0.008 for scale",
-                       font=dict(color=AXIS, size=11), standoff=12),
+                       font=dict(color=AXIS, size=12), standoff=12),
             type="log",
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             tickformat="$~g",
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="MTEB Score", font=dict(color=AXIS, size=11), standoff=12),
+            title=dict(text="MTEB Score", font=dict(color=AXIS, size=12), standoff=12),
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
         ),
         legend=dict(
             bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.08)", borderwidth=1,
-            font=dict(color="#888888", size=11, family=FONT),
+            font=dict(color="#999999", size=11, family=FONT),
             x=1.01, y=1, xanchor="left",
         ),
         margin=dict(l=20, r=160, t=52, b=36),
@@ -164,7 +164,7 @@ def build_embedding_rankings(df: pd.DataFrame) -> go.Figure:
         showlegend=False,
         text=plot_df["mteb"].apply(lambda s: f"{s:.1f}"),
         textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.55)", size=9, family=FONT),
+        textfont=dict(color="rgba(255,255,255,0.55)", size=11, family=FONT),
     ))
 
     # Right-side annotations
@@ -176,7 +176,7 @@ def build_embedding_rankings(df: pd.DataFrame) -> go.Figure:
             y=short_name[i],
             text=f"{row['dimensions']}d  ·  {price_str}",
             showarrow=False, xanchor="left",
-            font=dict(size=9, family=FONT, color=color),
+            font=dict(size=10, family=FONT, color=color),
             xref="x", yref="y",
         )
 
@@ -184,26 +184,26 @@ def build_embedding_rankings(df: pd.DataFrame) -> go.Figure:
 
     fig.update_layout(
         paper_bgcolor=BG, plot_bgcolor=BG,
-        font=dict(family=FONT, color="#888888", size=12),
+        font=dict(family=FONT, color="#999999", size=12),
         title=dict(
             text=(
                 "Embedding Models — Ranked by MTEB"
-                "  <span style='font-size:11px;color:#666666;font-weight:400'>"
+                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  faded bars = open weights (free)  ·  annotations: dimensions · price</span>"
             ),
-            font=dict(size=14, color="#f2f2f2", family=FONT, weight=600),
+            font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="MTEB Score", font=dict(color=AXIS, size=11), standoff=12),
+            title=dict(text="MTEB Score", font=dict(color=AXIS, size=12), standoff=12),
             range=[min(plot_df["mteb"]) - 2, max_mteb * 1.18],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=TICK, size=10, family=FONT),
+            tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=FONT),
+            tickfont=dict(color="#999999", size=11, family=FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),
