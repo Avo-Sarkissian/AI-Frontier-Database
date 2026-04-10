@@ -164,9 +164,12 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
             automargin=True,
         )
 
-    # Style subplot title text
+    # Style subplot title text only — skip the price annotations we added above,
+    # otherwise they all get y-forced to 1.04 and pile up on one row.
+    _title_labels = {c["label"] for c in _CATEGORIES}
     for annotation in fig.layout.annotations:
-        annotation.update(font=dict(color="#f2f2f2", size=14, family=FONT), y=1.04)
+        if annotation.text in _title_labels:
+            annotation.update(font=dict(color="#f2f2f2", size=14, family=FONT), y=1.04)
 
     return fig
 
