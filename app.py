@@ -375,20 +375,6 @@ app.layout = html.Div([
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
             ])], className="chart-card"),
 
-            # ── Price change tracker ──────────────────────────────────────────
-            _desc(
-                "Price change since first snapshot for the top 10 models by intelligence. "
-                "All lines start at 0% — below zero means cheaper. "
-                "Bold cyan = median. Falling median = frontier AI compressing in cost without losing quality."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(
-                    id="bump-chart",
-                    figure=build_bump_chart(history_df),
-                    config=_GRAPH_CONFIG,
-                    style={"height": "520px"},
-                ),
-            ])], className="chart-card"),
         ]),
 
         # Agent Stack ──────────────────────────────────────────────────────────
