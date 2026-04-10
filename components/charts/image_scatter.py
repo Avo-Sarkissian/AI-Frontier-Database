@@ -60,7 +60,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
         rows=1, cols=3,
         shared_yaxes=False,
-        horizontal_spacing=0.06,
+        horizontal_spacing=0.14,
         subplot_titles=[c["label"] for c in _CATEGORIES],
     )
 
@@ -68,7 +68,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
         if cdf.empty:
             continue
 
-        short_name = cdf["model"].apply(lambda n: n[:28] + "…" if len(n) > 28 else n)
+        short_name = cdf["model"].apply(lambda n: n[:22] + "…" if len(n) > 22 else n)
         colors = cdf["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
         elo_vals = cdf["_elo_display"]
         max_elo = elo_vals.max() or 1
@@ -150,7 +150,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
         cdf_i = col_dfs[i - 1]
         elo_series = cdf_i["_elo_display"] if not cdf_i.empty else pd.Series([1000, 1300])
         x_min = max(900, elo_series.min() - 30)
-        x_max = elo_series.max() + (elo_series.max() - x_min) * 0.22
+        x_max = elo_series.max() + (elo_series.max() - x_min) * 0.32
 
         fig.layout[xref].update(
             range=[x_min, x_max],

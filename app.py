@@ -31,7 +31,7 @@ from components.charts.cost_calc            import build_cost_calc
 from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
-from components.charts.image_scatter        import build_image_faceted, build_image_rankings
+from components.charts.image_scatter        import build_image_faceted
 from components.charts.video_chart          import build_video_rankings, build_video_scatter
 from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
@@ -861,11 +861,6 @@ app.layout = html.Div([
                           figure=build_image_faceted(get_image_df()),
                           config=_GRAPH_CONFIG, style={"minHeight": "380px"}),
             ])], className="chart-card"),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="image-rankings-chart",
-                          figure=build_image_rankings(get_image_df()),
-                          config=_GRAPH_CONFIG, style={"minHeight": "400px"}),
-            ])], className="chart-card"),
         ]),
 
         # Video Gen ────────────────────────────────────────────────────────────
@@ -1455,7 +1450,6 @@ def auto_refresh_data(_, current_version):
 # ── Image Gen tab ─────────────────────────────────────────────────────────────
 @callback(
     Output("image-faceted-chart",  "figure"),
-    Output("image-rankings-chart", "figure"),
     Input("image-provider-filter", "value"),
     Input("image-tag-filter",      "value"),
     prevent_initial_call=True,
@@ -1473,7 +1467,7 @@ def update_image_charts(providers, tags):
     # No fallback — an empty result shows empty charts, which is honest.
     # Previously this silently reset to the full dataset, making filters appear
     # to work when they were actually ignored.
-    return build_image_faceted(img_df), build_image_rankings(img_df)
+    return build_image_faceted(img_df)
 
 
 # ── Video Gen tab ─────────────────────────────────────────────────────────────
