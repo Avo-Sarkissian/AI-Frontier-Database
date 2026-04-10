@@ -33,11 +33,9 @@ from components.charts.local_scatter        import build_local_scatter
 from components.charts.local_compat         import build_local_compat
 from components.charts.image_scatter        import build_image_faceted, build_image_rankings
 from components.charts.video_chart          import build_video_rankings, build_video_scatter
-from components.charts.embedding_chart      import build_embedding_scatter, build_embedding_rankings
 from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 from data.video_models                      import get_video_df, get_video_providers
-from data.embedding_models                  import get_embedding_df, get_embedding_providers
 from components.charts.bump_chart          import build_bump_chart, build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -871,51 +869,6 @@ app.layout = html.Div([
             ])], className="chart-card"),
         ]),
 
-        # Embeddings ───────────────────────────────────────────────────────────
-        dcc.Tab(label="Embeddings", value="embeddings",
-                className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Compare text embedding models for RAG, semantic search, and vector databases. "
-                "MTEB (Massive Text Embedding Benchmark) measures retrieval quality across 56 tasks. "
-                "Open-weights models are free to self-host — shown as faded bars and open circles."
-            ),
-            html.Div([
-                html.Span("PROVIDERS", className="filter-label"),
-                dcc.Dropdown(
-                    id="embedding-provider-filter",
-                    options=[{"label": p, "value": p} for p in get_embedding_providers()],
-                    multi=True,
-                    placeholder="All providers",
-                    style={"minWidth": "280px"},
-                ),
-                html.Div(className="filter-sep"),
-                html.Span("TAGS", className="filter-label"),
-                dcc.Dropdown(
-                    id="embedding-tag-filter",
-                    options=[
-                        {"label": "English",      "value": "english"},
-                        {"label": "Multilingual", "value": "multilingual"},
-                        {"label": "Code",         "value": "code"},
-                        {"label": "Open Weights", "value": "open-weights"},
-                        {"label": "Fast / Tiny",  "value": "fast"},
-                    ],
-                    multi=True,
-                    placeholder="All types",
-                    style={"minWidth": "220px"},
-                ),
-            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="embedding-scatter-chart",
-                          figure=build_embedding_scatter(get_embedding_df()),
-                          config=_GRAPH_CONFIG, style={"height": "520px"}),
-            ])], className="chart-card"),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="embedding-rankings-chart",
-                          figure=build_embedding_rankings(get_embedding_df()),
-                          config=_GRAPH_CONFIG, style={"minHeight": "400px"}),
-            ])], className="chart-card"),
-        ]),
-
     ]),
 
     # ── Model detail panel (slide-in from right) ───────────────────────────────
@@ -941,7 +894,7 @@ app.layout = html.Div([
 
 _VALID_TABS = {
     "overview", "recommend", "performance", "landscape", "rankings",
-    "compare", "budget", "table", "local", "imagegen", "videogen", "embeddings",
+    "compare", "budget", "table", "local", "imagegen", "videogen",
 }
 
 # ── URL: restore state on load ────────────────────────────────────────────────
@@ -1474,26 +1427,6 @@ def update_video_charts(providers, tags):
     paid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
     return build_video_rankings(vdf), build_video_scatter(paid if not paid.empty else vdf)
 
-
-# ── Embeddings tab ─────────────────────────────────────────────────────────────
-@callback(
-    Output("embedding-scatter-chart",  "figure"),
-    Output("embedding-rankings-chart", "figure"),
-    Input("embedding-provider-filter", "value"),
-    Input("embedding-tag-filter",      "value"),
-    prevent_initial_call=True,
-)
-def update_embedding_charts(providers, tags):
-    edf = get_embedding_df()
-    if providers:
-        edf = edf[edf["provider"].isin(providers)]
-    if tags:
-        for tag in tags:
-            if tag == "open-weights":
-                edf = edf[edf["open_weights"] == True]
-            else:
-                edf = edf[edf["tags"].apply(lambda t: tag in t)]
-    return build_embedding_scatter(edf), build_embedding_rankings(edf)
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
