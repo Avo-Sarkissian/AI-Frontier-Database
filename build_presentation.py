@@ -231,7 +231,7 @@ add_text(s, Inches(0.6), Inches(2.9), Inches(12.2), Inches(1.4),
          color=TEXT_1)
 
 add_text(s, Inches(0.6), Inches(4.25), Inches(12.2), Inches(0.7),
-         "Comparing 255+ AI models on cost, speed, and intelligence —",
+         "Comparing 255+ AI models on cost, speed, and intelligence,",
          size=20, color=TEXT_2)
 add_text(s, Inches(0.6), Inches(4.65), Inches(12.2), Inches(0.7),
          "in one place, updated every hour.",
@@ -274,7 +274,7 @@ cards = [
      "Pick the cheapest model that still does the job. Not every task needs the smartest model.",
      ACCENT),
     ("RESEARCHERS",
-     "Track which models lead on what — the leaderboard shifts every few weeks.",
+     "Track which models lead on what. The leaderboard shifts every few weeks.",
      PURPLE),
     ("BUSINESSES",
      "Estimate monthly cost before committing. Two similar models can differ 50× in price.",
@@ -297,7 +297,7 @@ for i, (title, body, col) in enumerate(cards):
              Inches(2.0), body, size=12, color=TEXT_1)
 
 add_text(s, Inches(0.6), Inches(6.25), Inches(12), Inches(0.4),
-         "AI Frontier puts every comparison in one place — so the answer is a glance, not a spreadsheet.",
+         "AI Frontier puts every comparison in one place, so the answer is a glance, not a spreadsheet.",
          size=12, color=TEXT_3)
 
 
@@ -308,7 +308,7 @@ add_header(s, "02 · DATA", "Where the data comes from", 3)
 add_footer(s)
 
 add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.4),
-         "All numbers come from one place — the Artificial Analysis public API.",
+         "All numbers come from one place: the Artificial Analysis public API.",
          size=14, color=TEXT_2)
 
 # Left: explanation card
@@ -320,7 +320,7 @@ add_text(s, lx + Inches(0.35), ly + Inches(0.65), lw - Inches(0.7), Inches(0.5),
          "One trusted source", size=22, bold=True, color=TEXT_1)
 
 bullets = [
-    "Independent benchmarking org — used by labs and journalists alike",
+    "Independent benchmarking org used by labs and journalists alike",
     "Tracks price, speed, latency, and quality for every public model",
     "A background scraper pulls fresh data on app start, then once an hour",
     "Each new pull is also saved as a daily snapshot for trend tracking",
@@ -426,7 +426,7 @@ add_header(s, "04 · TOOLS", "How it's built", 5)
 add_footer(s)
 
 add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.4),
-         "Built end-to-end in Python — no JavaScript framework, no build step, one process.",
+         "Built end-to-end in Python. No JavaScript framework, no build step, one process.",
          size=14, color=TEXT_2)
 
 libs = [
@@ -440,7 +440,7 @@ libs = [
      "Loads the cached CSV, runs filters, and computes the Pareto frontier and value scores.",
      GREEN),
     ("Requests",  "LIVE SCRAPER",
-     "Plain HTTP call to the Artificial Analysis API every hour — no browser, no overhead.",
+     "Plain HTTP call to the Artificial Analysis API every hour. No browser, no overhead.",
      ORANGE),
 ]
 gap = Inches(0.2)
@@ -459,7 +459,7 @@ for i, (name, sub, body, col) in enumerate(libs):
              Inches(2.0), body, size=12, color=TEXT_2)
 
 add_text(s, Inches(0.6), Inches(6.5), Inches(12), Inches(0.3),
-         "Plus a small helper script (python-pptx) — these slides are generated from the same color tokens as the website.",
+         "Plus a small helper script (python-pptx) that generates these slides from the same color tokens as the website.",
          size=10, color=TEXT_3)
 
 
@@ -478,7 +478,7 @@ add_text(s, lx + Inches(0.3), ly + Inches(0.25), lw - Inches(0.6), Inches(0.3),
 types = [
     ("Bubble scatter",     "Three things at once: price, quality, speed"),
     ("Pareto frontier",    "Highlights the best deals on the curve"),
-    ("Treemap",            "One tile per provider — area = model count"),
+    ("Treemap",            "One tile per provider, sized by model count"),
     ("Horizontal bars",    "Best for ranked comparisons"),
     ("Radar",              "Compare 5 models on 5 dimensions"),
     ("Bump chart",         "Tracks how rankings move over time"),
@@ -502,7 +502,7 @@ principles = [
     ("Data-ink ratio",
      "Most pixels should encode data. Removed gridlines, frames, and a long legend."),
     ("Color with backup",
-     "Provider has both a color AND a marker shape — readable for colorblind viewers."),
+     "Provider has both a color AND a marker shape, readable for colorblind viewers."),
     ("Visual grouping",
      "Filters sit next to the chart they control. Shared colors carry across all 11 tabs."),
     ("Right chart for the job",
@@ -526,7 +526,7 @@ add_header(s, "06 · LOCAL + HYBRID", "Open weights and Claude Code stacks", 7)
 add_footer(s)
 
 add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.5),
-         "Not everything has to live on the cloud. The dashboard also tracks open-weight models you can run yourself — and recommends hybrid setups for tools like Claude Code / openclaw.",
+         "Not everything has to live on the cloud. The dashboard also tracks open-weight models you can run yourself, and recommends hybrid setups for tools like Claude Code / openclaw.",
          size=13, color=TEXT_2)
 
 # Left: Run Local card (concept only — no formulas)
