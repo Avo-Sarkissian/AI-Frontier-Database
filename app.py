@@ -278,6 +278,11 @@ app.layout = html.Div([
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
     dcc.Store(id="resize-sink"),
+    dcc.Store(id="table-data-store", data=(lambda _df: _df.assign(
+        value=_df.apply(lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1)
+    ).sort_values("quality", ascending=False)[
+        ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
+    ].to_dict("records"))(df)),
     dcc.Store(id="data-version",      data=0),
     dcc.Download(id="download-csv"),
     dcc.Interval(id="data-refresh-interval", interval=10 * 60 * 1000, n_intervals=0),
@@ -646,16 +651,10 @@ app.layout = html.Div([
                          "format": {"specifier": ".2f"}},
                         {"name": "Context",           "id": "context",    "type": "text"},
                     ],
-                    data=(lambda _df: _df.assign(
-                        value=_df.apply(
-                            lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
-                        ),
-                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context"]].to_dict("records"))(df),
-                    sort_action="native",
+                    sort_action="custom",
                     sort_mode="single",
                     filter_action="none",
-                    page_action="native",
-                    page_size=100,
+                    page_action="none",
                     style_table={"overflowX": "auto"},
                     style_header={
                         "backgroundColor": "#111111",
@@ -698,6 +697,12 @@ app.layout = html.Div([
                         {"if": {"state": "active"},
                          "backgroundColor": "rgba(0,212,255,0.06)",
                          "border": "1px solid rgba(0,212,255,0.2)"},
+                        *[
+                            {"if": {"filter_query": f'{{provider}} = "{p}"',
+                                    "column_id": "provider"},
+                             "color": c}
+                            for p, c in PROVIDER_COLORS.items()
+                        ],
                     ],
                     style_as_list_view=True,
                 ),
@@ -1354,12 +1359,13 @@ def add_to_compare(n_clicks, model_name, current_selection):
 
 # ── Table view ────────────────────────────────────────────────────────────────
 @callback(
-    Output("model-table", "data"),
+    Output("table-data-store", "data"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
+    prevent_initial_call=True,
 )
-def update_table(providers, min_quality, search):
+def update_table_store(providers, min_quality, search):
     filtered = _apply_filters(providers, min_quality, search or "").copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
@@ -1367,6 +1373,27 @@ def update_table(providers, min_quality, search):
     filtered = filtered.sort_values("quality", ascending=False)
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
+
+clientside_callback(
+    """
+    function(sort_by, base_data) {
+        if (!base_data || base_data.length === 0) return base_data || [];
+        if (!sort_by || sort_by.length === 0) return base_data;
+        var col = sort_by[0].column_id;
+        var asc = sort_by[0].direction === 'asc';
+        return [...base_data].sort(function(a, b) {
+            var va = a[col], vb = b[col];
+            if (va == null) return 1;
+            if (vb == null) return -1;
+            if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return asc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+        });
+    }
+    """,
+    Output("model-table", "data"),
+    Input("model-table",       "sort_by"),
+    Input("table-data-store",  "data"),
+)
 
 
 # ── Export CSV ────────────────────────────────────────────────────────────────
