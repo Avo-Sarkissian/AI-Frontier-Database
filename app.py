@@ -631,8 +631,36 @@ app.layout = html.Div([
             _desc(
                 "Full sortable model table. Score = AA Intelligence Index (composite benchmark, higher = better). "
                 "Value = Score ÷ Price (quality per dollar). Price = blended $/M tokens (3:1 output/input). "
-                "Latency = time-to-first-token (TTFT) in seconds. Click any column header to sort."
+                "Latency = time-to-first-token (TTFT) in seconds."
             ),
+            html.Div([
+                html.Span("SORT BY", className="filter-label"),
+                dcc.Dropdown(
+                    id="table-sort-col",
+                    options=[
+                        {"label": "Intelligence", "value": "quality"},
+                        {"label": "Value",        "value": "value"},
+                        {"label": "Price",        "value": "price"},
+                        {"label": "Speed",        "value": "speed"},
+                        {"label": "Latency",      "value": "latency"},
+                        {"label": "Model",        "value": "model"},
+                        {"label": "Provider",     "value": "provider"},
+                    ],
+                    value="quality",
+                    clearable=False,
+                    style={"width": "160px"},
+                ),
+                dcc.Dropdown(
+                    id="table-sort-dir",
+                    options=[
+                        {"label": "↓ High → Low", "value": "desc"},
+                        {"label": "↑ Low → High", "value": "asc"},
+                    ],
+                    value="desc",
+                    clearable=False,
+                    style={"width": "140px"},
+                ),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([
                 dash_table.DataTable(
                     id="model-table",
@@ -651,8 +679,7 @@ app.layout = html.Div([
                          "format": {"specifier": ".2f"}},
                         {"name": "Context",           "id": "context",    "type": "text"},
                     ],
-                    sort_action="custom",
-                    sort_mode="single",
+                    sort_action="none",
                     filter_action="none",
                     page_action="none",
                     style_table={"overflowX": "auto"},
@@ -1359,41 +1386,23 @@ def add_to_compare(n_clicks, model_name, current_selection):
 
 # ── Table view ────────────────────────────────────────────────────────────────
 @callback(
-    Output("table-data-store", "data"),
-    Input("filter-provider", "value"),
-    Input("filter-quality",  "value"),
-    Input("model-search",    "value"),
-    prevent_initial_call=True,
+    Output("model-table", "data"),
+    Input("filter-provider",  "value"),
+    Input("filter-quality",   "value"),
+    Input("model-search",     "value"),
+    Input("table-sort-col",   "value"),
+    Input("table-sort-dir",   "value"),
 )
-def update_table_store(providers, min_quality, search):
+def update_table(providers, min_quality, search, sort_col, sort_dir):
     filtered = _apply_filters(providers, min_quality, search or "").copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
-    filtered = filtered.sort_values("quality", ascending=False)
+    col = sort_col or "quality"
+    asc = (sort_dir or "desc") == "asc"
+    filtered = filtered.sort_values(col, ascending=asc, na_position="last")
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
-
-clientside_callback(
-    """
-    function(sort_by, base_data) {
-        if (!base_data || base_data.length === 0) return base_data || [];
-        if (!sort_by || sort_by.length === 0) return base_data;
-        var col = sort_by[0].column_id;
-        var asc = sort_by[0].direction === 'asc';
-        return [...base_data].sort(function(a, b) {
-            var va = a[col], vb = b[col];
-            if (va == null) return 1;
-            if (vb == null) return -1;
-            if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
-            return asc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
-        });
-    }
-    """,
-    Output("model-table", "data"),
-    Input("model-table",       "sort_by"),
-    Input("table-data-store",  "data"),
-)
 
 
 # ── Export CSV ────────────────────────────────────────────────────────────────
