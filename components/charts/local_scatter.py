@@ -95,6 +95,22 @@ def build_local_scatter(
         layer="below",
     )
 
+    import math
+
+    # Cap the X axis at 2.5× the user's VRAM — far-out-of-range models
+    # (e.g., 671B DeepSeek when you have 64 GB) were compressing the chart
+    # and making the runnable region invisible. Beyond 2.5× adds no insight.
+    x_max = max(vram_gb * 2.5, 8)
+    x_log_max = math.log10(x_max)
+    x_log_min = math.log10(0.08)   # ~0.08 GB minimum so tiny models show
+
+    # Build sensible tick positions within the visible range
+    all_tick_vals  = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    all_tick_texts = ["0.1", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"]
+    tick_pairs = [(v, t) for v, t in zip(all_tick_vals, all_tick_texts) if v <= x_max * 1.05]
+    tick_vals  = [p[0] for p in tick_pairs]
+    tick_texts = [p[1] for p in tick_pairs]
+
     fig.update_layout(
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
@@ -112,11 +128,12 @@ def build_local_scatter(
         xaxis=dict(
             title=dict(text="VRAM Required (GB)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
+            range=[x_log_min, x_log_max],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
-            tickvals=[0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
-            ticktext=["0.1", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"],
+            tickvals=tick_vals,
+            ticktext=tick_texts,
         ),
         yaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
