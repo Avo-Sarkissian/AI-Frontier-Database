@@ -643,16 +643,13 @@ app.layout = html.Div([
                          "format": {"specifier": ".0f"}},
                         {"name": "Latency (s)",       "id": "latency",    "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Context (k tok)",   "id": "context_k",  "type": "numeric"},
+                        {"name": "Context",           "id": "context",    "type": "text"},
                     ],
                     data=(lambda _df: _df.assign(
                         value=_df.apply(
                             lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
                         ),
-                        context_k=_df["context"].apply(
-                            lambda c: int(_ctx_to_k(c)) if _ctx_to_k(c) is not None else None
-                        ),
-                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context_k"]].to_dict("records"))(df),
+                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context"]].to_dict("records"))(df),
                     sort_action="native",
                     sort_mode="single",
                     filter_action="none",
@@ -692,7 +689,7 @@ app.layout = html.Div([
                         {"if": {"column_id": "price"},     "textAlign": "right"},
                         {"if": {"column_id": "speed"},     "textAlign": "right"},
                         {"if": {"column_id": "latency"},   "textAlign": "right"},
-                        {"if": {"column_id": "context_k"}, "textAlign": "right"},
+                        {"if": {"column_id": "context"},   "textAlign": "right"},
                     ],
                     style_data_conditional=[
                         {"if": {"row_index": "odd"}, "backgroundColor": "#0a0a0a"},
@@ -1351,10 +1348,7 @@ def update_table(providers, min_quality, search):
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
-    filtered["context_k"] = filtered["context"].apply(
-        lambda c: int(_ctx_to_k(c)) if _ctx_to_k(c) is not None else None
-    )
-    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context_k"]
+    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
 
 
