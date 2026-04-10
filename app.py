@@ -119,78 +119,6 @@ def _compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
 _DIVERSE5    = _compute_diverse5(df)
 
 
-def _compute_insights(dataframe: pd.DataFrame, hist: pd.DataFrame) -> dict:
-    """Pre-compute narrative statistics shown in the Insights tab."""
-    out: dict = {}
-    valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)]
-    if valid.empty:
-        return out
-
-    # Best value model — apply a quality floor so cheap-but-weak models
-    # don't dominate the "best value" headline.
-    valid = valid.copy()
-    valid["_val"] = valid["quality"] / valid["price"]
-    quality_floor = max(valid["quality"].quantile(0.20), 25.0)
-    bv_pool = valid[valid["quality"] >= quality_floor]
-    bv = bv_pool.loc[bv_pool["_val"].idxmax()] if not bv_pool.empty else valid.loc[valid["_val"].idxmax()]
-    out["best_value_model"]    = bv["model"]
-    out["best_value_provider"] = bv["provider"]
-    out["best_value_score"]    = f"{bv['quality']:.0f}"
-    out["best_value_price"]    = f"${bv['price']:.4f}"
-    out["best_value_ratio"]    = f"{bv['_val']:.1f}"
-
-    # Cheapest frontier model with meaningful quality (≥ 30).
-    # The raw cheapest Pareto entry is often a sub-30 model which isn't
-    # actionable for most use-cases, so we skip those.
-    sorted_p = valid.sort_values("price")
-    max_q = 0.0
-    frontier = []
-    for _, row in sorted_p.iterrows():
-        if row["quality"] > max_q:
-            frontier.append(row)
-            max_q = float(row["quality"])
-    useful = [f for f in frontier if f["quality"] >= 30]
-    if useful:
-        cheapest_f = useful[0]
-        out["frontier_cheapest_model"]    = cheapest_f["model"]
-        out["frontier_cheapest_price"]    = f"${cheapest_f['price']:.4f}/M"
-        out["frontier_cheapest_quality"]  = f"{cheapest_f['quality']:.0f}"
-    elif frontier:
-        cheapest_f = frontier[0]
-        out["frontier_cheapest_model"]    = cheapest_f["model"]
-        out["frontier_cheapest_price"]    = f"${cheapest_f['price']:.4f}/M"
-        out["frontier_cheapest_quality"]  = f"{cheapest_f['quality']:.0f}"
-
-    # Price compression: first vs last snapshot
-    if not hist.empty:
-        h = hist.copy()
-        h["scraped_at"] = pd.to_datetime(h["scraped_at"]).dt.date
-        h = h[(h["quality"] > 0) & (h["price"] > 0)]
-        dates = sorted(h["scraped_at"].unique())
-        if len(dates) >= 2:
-            first_avg = h[h["scraped_at"] == dates[0]]["price"].median()
-            last_avg  = h[h["scraped_at"] == dates[-1]]["price"].median()
-            if first_avg > 0:
-                pct = (last_avg - first_avg) / first_avg * 100
-                out["price_change_pct"]  = f"{pct:+.0f}%"
-                out["price_change_dir"]  = "down" if pct < 0 else "up"
-                out["snapshot_window"]   = f"{dates[0].strftime('%b %d')} – {dates[-1].strftime('%b %d')}"
-                out["n_snapshots"]       = len(dates)
-
-    # Top intelligence model
-    top = dataframe.loc[dataframe["quality"].idxmax()] if not dataframe.empty else None
-    if top is not None:
-        out["top_quality_model"]    = top["model"]
-        out["top_quality_provider"] = top.get("provider", "")
-        out["top_quality_score"]    = f"{top['quality']:.0f}"
-        price = top.get("price", 0)
-        out["top_quality_price"]    = f"${price:.2f}/M" if price > 0 else "—"
-
-    return out
-
-
-_INSIGHTS = _compute_insights(df, history_df)
-_N_SNAPSHOTS = history_df["scraped_at"].nunique() if not history_df.empty else 0
 # Percentile thresholds for preset filters (recomputed on each restart)
 _P75 = round(df["quality"].quantile(0.75), 1)   # top 25%
 _P90 = round(df["quality"].quantile(0.90), 1)   # top 10%
@@ -417,139 +345,7 @@ app.layout = html.Div([
     ], className="filters"),
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
-    dcc.Tabs(id="tabs", value="insights", className="tabs", children=[
-
-        # Insights ─────────────────────────────────────────────────────────────
-        dcc.Tab(label="Insights", value="insights",
-                className="tab", selected_className="tab--selected", children=[
-            html.Div([
-                html.Div("What the data says", className="insight-heading"),
-                html.Div(
-                    "Key findings from the current snapshot — patterns that stand out "
-                    "when you look across 100+ models at once.",
-                    className="insight-subheading",
-                ),
-            ], className="insight-hero"),
-
-            # ── Callout cards row ────────────────────────────────────────────
-            html.Div([
-
-                # Card 1: Price compression
-                html.Div([
-                    html.Div("PRICE COMPRESSION", className="insight-card-label"),
-                    html.Div(
-                        _INSIGHTS.get("price_change_pct", "—"),
-                        className="insight-card-value",
-                        style={"color": "#22c55e" if _INSIGHTS.get("price_change_dir") == "down" else "#f87171"},
-                    ),
-                    html.Div(
-                        f"Median API cost change over "
-                        f"{_INSIGHTS.get('snapshot_window', 'the tracked window')} "
-                        f"({_INSIGHTS.get('n_snapshots', '—')} daily snapshots).",
-                        className="insight-card-body",
-                    ),
-                    html.Div(
-                        "Frontier models are getting cheaper without quality loss — "
-                        "the animated chart on the Overview tab shows this shift.",
-                        className="insight-card-footnote",
-                    ),
-                ], className="insight-card"),
-
-                # Card 2: Best value model
-                html.Div([
-                    html.Div("BEST VALUE RIGHT NOW", className="insight-card-label"),
-                    html.Div(
-                        _INSIGHTS.get("best_value_model", "—"),
-                        className="insight-card-value",
-                        style={"fontSize": "16px"},
-                    ),
-                    html.Div(
-                        f"{_INSIGHTS.get('best_value_provider', '')} · "
-                        f"Score {_INSIGHTS.get('best_value_score', '—')} · "
-                        f"{_INSIGHTS.get('best_value_price', '—')}/M tokens · "
-                        f"{_INSIGHTS.get('best_value_ratio', '—')} pts per dollar",
-                        className="insight-card-body",
-                    ),
-                    html.Div(
-                        "Value = Intelligence ÷ Price. "
-                        "This model delivers the most benchmark performance per dollar.",
-                        className="insight-card-footnote",
-                    ),
-                ], className="insight-card"),
-
-                # Card 3: Top intelligence model
-                html.Div([
-                    html.Div("TOP INTELLIGENCE", className="insight-card-label"),
-                    html.Div(
-                        _INSIGHTS.get("top_quality_model", "—"),
-                        className="insight-card-value",
-                        style={"fontSize": "16px"},
-                    ),
-                    html.Div(
-                        f"{_INSIGHTS.get('top_quality_provider', '')} · "
-                        f"Score {_INSIGHTS.get('top_quality_score', '—')} · "
-                        f"{_INSIGHTS.get('top_quality_price', '—')} per 1M tokens",
-                        className="insight-card-body",
-                    ),
-                    html.Div(
-                        "Highest AA Intelligence Index in the dataset — "
-                        "the current ceiling for raw model capability.",
-                        className="insight-card-footnote",
-                    ),
-                ], className="insight-card"),
-
-                # Card 4: Cheapest frontier model
-                html.Div([
-                    html.Div("CHEAPEST FRONTIER ENTRY", className="insight-card-label"),
-                    html.Div(
-                        _INSIGHTS.get("frontier_cheapest_model", "—"),
-                        className="insight-card-value",
-                        style={"fontSize": "16px"},
-                    ),
-                    html.Div(
-                        f"{_INSIGHTS.get('frontier_cheapest_price', '—')} · "
-                        f"Score {_INSIGHTS.get('frontier_cheapest_quality', '—')}",
-                        className="insight-card-body",
-                    ),
-                    html.Div(
-                        "This model sits on the Pareto frontier — "
-                        "no cheaper model matches its quality.",
-                        className="insight-card-footnote",
-                    ),
-                ], className="insight-card"),
-
-            ], className="insight-cards"),
-
-            # ── Value Leaders ─────────────────────────────────────────────────
-            _desc(
-                "Top 15 models ranked by intelligence per dollar (quality score ÷ price per 1M tokens). "
-                "Quality floor of 20 so ultra-cheap but weak models don't pollute the list. "
-                "Bar length = value score. Labels show raw quality and price."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(
-                    id="value-leaders-chart",
-                    figure=build_value_leaders(df),
-                    config=_GRAPH_CONFIG,
-                    style={"height": "540px"},
-                ),
-            ])], className="chart-card"),
-
-            # ── Price change tracker ──────────────────────────────────────────
-            _desc(
-                "Price change since first snapshot for the top 10 models by intelligence. "
-                "All lines start at 0% — below zero means cheaper. "
-                "Bold cyan = median. Falling median = frontier AI compressing in cost without losing quality."
-            ),
-            html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(
-                    id="bump-chart",
-                    figure=build_bump_chart(history_df),
-                    config=_GRAPH_CONFIG,
-                    style={"height": "520px"},
-                ),
-            ])], className="chart-card"),
-        ]),
+    dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
 
         # Overview ─────────────────────────────────────────────────────────────
         dcc.Tab(label="Overview", value="overview",
@@ -577,6 +373,21 @@ app.layout = html.Div([
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
+            ])], className="chart-card"),
+
+            # ── Price change tracker ──────────────────────────────────────────
+            _desc(
+                "Price change since first snapshot for the top 10 models by intelligence. "
+                "All lines start at 0% — below zero means cheaper. "
+                "Bold cyan = median. Falling median = frontier AI compressing in cost without losing quality."
+            ),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(
+                    id="bump-chart",
+                    figure=build_bump_chart(history_df),
+                    config=_GRAPH_CONFIG,
+                    style={"height": "520px"},
+                ),
             ])], className="chart-card"),
         ]),
 
@@ -727,6 +538,21 @@ app.layout = html.Div([
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
+            ])], className="chart-card"),
+
+            # ── Value Leaders ─────────────────────────────────────────────────
+            _desc(
+                "Top 15 models ranked by intelligence per dollar (quality score ÷ price per 1M tokens). "
+                "Quality floor of 20 so ultra-cheap but weak models don't pollute the list. "
+                "Bar length = value score. Labels show raw quality and price."
+            ),
+            html.Div([dcc.Loading(**_LOADING, children=[
+                dcc.Graph(
+                    id="value-leaders-chart",
+                    figure=build_value_leaders(df),
+                    config=_GRAPH_CONFIG,
+                    style={"height": "540px"},
+                ),
             ])], className="chart-card"),
         ]),
 
@@ -1137,9 +963,9 @@ app.layout = html.Div([
 )
 def init_from_url(search: str):
     if not search:
-        return "insights", [], 0
+        return "overview", [], 0
     params    = parse_qs(search.lstrip("?"))
-    tab       = params.get("tab", ["insights"])[0]
+    tab       = params.get("tab", ["overview"])[0]
     raw_p     = params.get("p",   [""])[0]
     providers = [x for x in raw_p.split(",") if x] if raw_p else []
     try:
