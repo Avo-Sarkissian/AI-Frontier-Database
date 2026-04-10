@@ -25,14 +25,16 @@ _OVERHEAD = 1.18
 
 # Memory efficiency factor by hardware type
 # (fraction of theoretical peak bandwidth utilized during inference)
-# Apple: 0.82 reflects MLX (Metal-accelerated) inference via Ollama/MLX-LM.
-# MLX bypasses the llama.cpp CPU path and runs native Metal GPU kernels,
-# yielding ~25-30% higher throughput than the old 0.65 llama.cpp estimate.
+# apple:    0.82 = MLX Metal GPU kernels via Ollama ≥ 0.6 / mlx-lm
+# qualcomm: 0.55 = Adreno GPU via llama.cpp Vulkan backend on Windows ARM
+# intel:    0.50 = Arc GPU via SYCL/oneAPI backend in llama.cpp
 _EFF: dict[str, float] = {
-    "nvidia": 0.55,
-    "amd":    0.50,
-    "apple":  0.82,   # MLX (Metal GPU kernels) via Ollama ≥ 0.6 / mlx-lm
-    "cpu":    0.30,
+    "nvidia":   0.55,
+    "amd":      0.50,
+    "apple":    0.82,
+    "qualcomm": 0.55,
+    "intel":    0.50,
+    "cpu":      0.30,
 }
 
 
@@ -337,12 +339,55 @@ GPUS: list[dict] = [
     {"name": "Apple M5 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
-    # ── AMD ──────────────────────────────────────────────────────────────────
-    {"name": "AMD RX 7900 XTX",          "vram_gb": 24,  "bandwidth_gbps": 960,  "hw_type": "amd",    "category": "AMD"},
-    {"name": "AMD RX 7900 XT",           "vram_gb": 20,  "bandwidth_gbps": 800,  "hw_type": "amd",    "category": "AMD"},
-    {"name": "AMD RX 7800 XT",           "vram_gb": 16,  "bandwidth_gbps": 624,  "hw_type": "amd",    "category": "AMD"},
-    {"name": "AMD RX 7700 XT",           "vram_gb": 12,  "bandwidth_gbps": 432,  "hw_type": "amd",    "category": "AMD"},
-    {"name": "AMD RX 6900 XT",           "vram_gb": 16,  "bandwidth_gbps": 512,  "hw_type": "amd",    "category": "AMD"},
+    # ── Apple iPhone / iPad (on-device inference via Core ML / llama.cpp Metal) ─
+    # Usable RAM = total RAM minus ~2 GB OS reservation. Bandwidth from Apple specs.
+    # A-series chips use the same unified memory architecture as M-series but
+    # with less total capacity — only tiny models (≤ 4 GB) fit on phones.
+    {"name": "iPhone 15 Pro — A17 Pro",  "vram_gb": 6,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "iPhone / iPad"},
+    {"name": "iPhone 16 Pro — A18 Pro",  "vram_gb": 6,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "iPhone / iPad"},
+    {"name": "iPhone 16e — A16",         "vram_gb": 6,   "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "iPhone / iPad"},
+    # iPad Pro M4: same chip as MacBook, much more headroom than phones
+    {"name": "iPad Pro M4 (8 GB)",       "vram_gb": 8,   "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "iPhone / iPad"},
+    {"name": "iPad Pro M4 (16 GB)",      "vram_gb": 16,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "iPhone / iPad"},
+    {"name": "iPad Air M2 (8 GB)",       "vram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "iPhone / iPad"},
+    # ── AMD RDNA 4 (2025) ─────────────────────────────────────────────────────
+    # RX 9070 XT: 16 GB GDDR6, 256-bit, 717 GB/s — RDNA4 flagship mainstream
+    # RX 9070:    16 GB GDDR6, 256-bit, 640 GB/s
+    # RX 9060 XT: 8/16 GB GDDR6, 128-bit, 384 GB/s — announced, mid-2025
+    {"name": "AMD RX 9070 XT",           "vram_gb": 16,  "bandwidth_gbps": 717,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9070",              "vram_gb": 16,  "bandwidth_gbps": 640,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9060 XT (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 384,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9060 XT (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 384,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    # ── AMD RDNA 3 ────────────────────────────────────────────────────────────
+    {"name": "AMD RX 7900 XTX",          "vram_gb": 24,  "bandwidth_gbps": 960,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7900 XT",           "vram_gb": 20,  "bandwidth_gbps": 800,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7900 GRE",          "vram_gb": 16,  "bandwidth_gbps": 576,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7800 XT",           "vram_gb": 16,  "bandwidth_gbps": 624,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7700 XT",           "vram_gb": 12,  "bandwidth_gbps": 432,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7600 XT",           "vram_gb": 16,  "bandwidth_gbps": 288,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    {"name": "AMD RX 7600",              "vram_gb": 8,   "bandwidth_gbps": 288,  "hw_type": "amd",    "category": "AMD RDNA 3"},
+    # ── AMD RDNA 2 ────────────────────────────────────────────────────────────
+    {"name": "AMD RX 6900 XT",           "vram_gb": 16,  "bandwidth_gbps": 512,  "hw_type": "amd",    "category": "AMD RDNA 2"},
+    {"name": "AMD RX 6800 XT",           "vram_gb": 16,  "bandwidth_gbps": 512,  "hw_type": "amd",    "category": "AMD RDNA 2"},
+    {"name": "AMD RX 6800",              "vram_gb": 16,  "bandwidth_gbps": 512,  "hw_type": "amd",    "category": "AMD RDNA 2"},
+    {"name": "AMD RX 6700 XT",           "vram_gb": 12,  "bandwidth_gbps": 384,  "hw_type": "amd",    "category": "AMD RDNA 2"},
+    # ── Intel Arc (Battlemage, 2024–2025) ─────────────────────────────────────
+    # Arc B580: 12 GB GDDR6, 192-bit, 456 GB/s — best value AI card at launch
+    # Arc B770: 16 GB GDDR6, 256-bit, 608 GB/s — announced, ships Q2 2025
+    # Arc A770: 16 GB GDDR6, 256-bit, 560 GB/s — Alchemist (2022), still relevant
+    {"name": "Intel Arc B770 (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 608,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc B580 (12 GB)",   "vram_gb": 12,  "bandwidth_gbps": 456,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc A770 (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 560,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc A770 (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 560,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc A750",           "vram_gb": 8,   "bandwidth_gbps": 512,  "hw_type": "intel",  "category": "Intel Arc"},
+    # ── Qualcomm Snapdragon X (Windows ARM laptops, llama.cpp Vulkan) ─────────
+    # Bandwidth = LPDDR5X spec; usable RAM ~85% of total (OS overhead).
+    # Snapdragon X Elite X1E-84-100: 45/64 GB LPDDR5X, 136 GB/s
+    # Snapdragon X Plus X1P-64-100:  32/64 GB LPDDR5X, 120 GB/s
+    {"name": "Snapdragon X Elite (64 GB)","vram_gb": 64, "bandwidth_gbps": 136,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (45 GB)","vram_gb": 45, "bandwidth_gbps": 136,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (64 GB)", "vram_gb": 64, "bandwidth_gbps": 120,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (32 GB)", "vram_gb": 32, "bandwidth_gbps": 120,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     # ── CPU Only ─────────────────────────────────────────────────────────────
     {"name": "CPU only — DDR5 laptop",     "vram_gb": 16,  "bandwidth_gbps": 68,  "hw_type": "cpu",    "category": "CPU Only"},
     {"name": "CPU only — DDR5 desktop",    "vram_gb": 32,  "bandwidth_gbps": 80,  "hw_type": "cpu",    "category": "CPU Only"},
