@@ -1351,7 +1351,10 @@ def update_table(providers, min_quality, search):
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
-    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
+    filtered["context_k"] = filtered["context"].apply(
+        lambda c: int(_ctx_to_k(c)) if _ctx_to_k(c) is not None else None
+    )
+    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context_k"]
     return filtered[cols].to_dict("records")
 
 
