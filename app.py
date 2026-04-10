@@ -247,6 +247,7 @@ _GRAPH_CONFIG = {
     "displayModeBar": True,
     "displaylogo": False,
     "modeBarButtonsToRemove": ["select2d", "lasso2d", "toImage"],
+    "responsive": True,
 }
 _LOADING = dict(type="dot", color="#00d4ff")
 

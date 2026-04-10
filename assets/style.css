@@ -931,3 +931,33 @@ input[id^="local-"].dash-input:focus {
   .tab { padding: 8px 10px !important; font-size: 10px !important; }
   .stat-value { font-size: 15px; }
 }
+
+/* ── Responsive chart heights ─────────────────────── */
+/* Plotly listens to ResizeObserver when responsive=True,
+   so overriding .dash-graph height via CSS triggers a reflow. */
+
+@media (max-width: 1280px) {
+  .dash-graph { max-height: 68vh !important; }
+}
+
+@media (max-width: 1024px) {
+  .dash-graph { height: 58vh !important; max-height: 58vh !important; }
+}
+
+@media (max-width: 768px) {
+  .dash-graph { height: 52vh !important; max-height: 52vh !important; }
+
+  /* Tab bar scrolls horizontally instead of wrapping */
+  .tabs {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .tabs::-webkit-scrollbar { display: none !important; }
+  .tab-container { flex-wrap: nowrap !important; min-width: max-content !important; }
+}
+
+@media (max-width: 480px) {
+  .dash-graph { height: 46vh !important; max-height: 46vh !important; }
+}
