@@ -125,6 +125,23 @@ _MODELS_RAW: list[dict] = [
     {"name": "Qwen 2.5 Coder 32B",  "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["code"]},
     {"name": "QwQ 32B",             "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 17, "license": "Apache 2.0", "tags": ["reasoning"]},
 
+    # ── Alibaba Qwen 3.5 (est. late 2025) ───────────────────────────────────
+    # Generation after Qwen3 — quality scores estimated ~20% above Qwen3 peers.
+    # Sizes follow the same dense/MoE pattern. Context 128k, reasoning toggle.
+    {"name": "Qwen3.5 4B",              "family": "Alibaba", "params_b": 4.00,  "active_b": 4.00,  "context_k": 128, "quality": 11, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3.5 8B",              "family": "Alibaba", "params_b": 8.00,  "active_b": 8.00,  "context_k": 128, "quality": 17, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3.5 14B",             "family": "Alibaba", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 22, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3.5 32B",             "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 29, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3.5 72B",             "family": "Alibaba", "params_b": 72.7,  "active_b": 72.7,  "context_k": 128, "quality": 36, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+
+    # ── Alibaba Qwen3-Coder (code-specialized, est. 2025) ────────────────────
+    # Code-focused variant of the Qwen3 architecture — strong at code generation,
+    # editing, and repo-level reasoning. Quality scores estimated vs Qwen3 base.
+    {"name": "Qwen3-Coder 1.5B",        "family": "Alibaba", "params_b": 1.54,  "active_b": 1.54,  "context_k": 128, "quality": 6,  "license": "Apache 2.0", "tags": ["code", "multilingual"]},
+    {"name": "Qwen3-Coder 7B",          "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 13, "license": "Apache 2.0", "tags": ["code", "multilingual"]},
+    {"name": "Qwen3-Coder 14B",         "family": "Alibaba", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 19, "license": "Apache 2.0", "tags": ["code", "multilingual"]},
+    {"name": "Qwen3-Coder 32B",         "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 25, "license": "Apache 2.0", "tags": ["code", "multilingual"]},
+
     # ── Alibaba Qwen 3 (Apr 2025) ────────────────────────────────────────────
     # Dense models: 0.6B / 1.7B / 4B / 8B / 14B / 32B
     # MoE models: 30B-A3B (30B total, 3B active) / 235B-A22B (235B total, 22B active)
