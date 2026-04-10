@@ -105,6 +105,11 @@ _MODELS_RAW: list[dict] = [
     {"name": "Gemma 3 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 5,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
     {"name": "Gemma 3 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 9,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
     {"name": "Gemma 3 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 13, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    # ── Gemma 4 (2025) — quality estimated ~35–40% above Gemma 3 peers ──────
+    {"name": "Gemma 4 1B",          "family": "Google", "params_b": 1.0,   "active_b": 1.0,   "context_k": 128, "quality": 3,  "license": "Gemma ToS", "tags": ["multilingual"]},
+    {"name": "Gemma 4 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 8,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    {"name": "Gemma 4 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 14, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    {"name": "Gemma 4 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 20, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
 
     # ── Microsoft Phi ─────────────────────────────────────────────────────────
     {"name": "Phi-3 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 4,  "license": "MIT", "tags": []},
