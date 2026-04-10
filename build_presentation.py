@@ -308,32 +308,45 @@ add_header(s, "02 · DATA", "Where the data comes from", 3)
 add_footer(s)
 
 add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.4),
-         "All numbers come from one place: the Artificial Analysis public API.",
+         "Two separate data sources: a live API for cloud models, and a curated catalog for local hardware.",
          size=14, color=TEXT_2)
 
-# Left: explanation card
-lx = Inches(0.6); ly = Inches(2.55); lw = Inches(7.4); lh = Inches(4.1)
+# Top row: two source cards side by side
+lx = Inches(0.6); ly = Inches(2.45); lw = Inches(7.4); lh = Inches(2.3)
 add_rect(s, lx, ly, lw, lh, fill=BG_CARD)
-add_text(s, lx + Inches(0.35), ly + Inches(0.3), lw - Inches(0.7), Inches(0.3),
-         "ARTIFICIAL ANALYSIS API", size=9, bold=True, color=ACCENT, tracking=140)
-add_text(s, lx + Inches(0.35), ly + Inches(0.65), lw - Inches(0.7), Inches(0.5),
-         "One trusted source", size=22, bold=True, color=TEXT_1)
-
-bullets = [
-    "Independent benchmarking org used by labs and journalists alike",
-    "Tracks price, speed, latency, and quality for every public model",
-    "A background scraper pulls fresh data on app start, then once an hour",
-    "Each new pull is also saved as a daily snapshot for trend tracking",
+add_rect(s, lx, ly, lw, Inches(0.05), fill=ACCENT)
+add_text(s, lx + Inches(0.35), ly + Inches(0.25), lw - Inches(0.7), Inches(0.3),
+         "ARTIFICIAL ANALYSIS API  ·  artificialanalysis.ai", size=9, bold=True, color=ACCENT, tracking=140)
+add_text(s, lx + Inches(0.35), ly + Inches(0.6), lw - Inches(0.7), Inches(0.4),
+         "Cloud LLMs, image gen, video gen, embeddings", size=16, bold=True, color=TEXT_1)
+aa_bullets = [
+    "Price, speed, latency, context window for every public model",
+    "Scraped hourly in the background. Each run saves a dated snapshot.",
 ]
-by = ly + Inches(1.55)
-for i, b in enumerate(bullets):
-    yy = by + Inches(0.5) * i
-    add_rect(s, lx + Inches(0.4), yy + Inches(0.13), Inches(0.1), Inches(0.1), fill=ACCENT)
-    add_text(s, lx + Inches(0.65), yy, lw - Inches(1.0), Inches(0.4),
-             b, size=12, color=TEXT_1)
+for i, b in enumerate(aa_bullets):
+    yy = ly + Inches(1.15) + Inches(0.42) * i
+    add_rect(s, lx + Inches(0.4), yy + Inches(0.1), Inches(0.08), Inches(0.08), fill=ACCENT)
+    add_text(s, lx + Inches(0.62), yy, lw - Inches(1.0), Inches(0.35), b, size=11, color=TEXT_2)
+
+# Second source card below
+lx2 = Inches(0.6); ly2 = Inches(4.9); lw2 = Inches(7.4); lh2 = Inches(1.8)
+add_rect(s, lx2, ly2, lw2, lh2, fill=BG_CARD)
+add_rect(s, lx2, ly2, lw2, Inches(0.05), fill=PURPLE)
+add_text(s, lx2 + Inches(0.35), ly2 + Inches(0.25), lw2 - Inches(0.7), Inches(0.3),
+         "MANUALLY CURATED  ·  Manufacturer spec sheets + HuggingFace", size=9, bold=True, color=PURPLE, tracking=140)
+add_text(s, lx2 + Inches(0.35), ly2 + Inches(0.6), lw2 - Inches(0.7), Inches(0.4),
+         "Local open-weight models + GPU hardware specs", size=16, bold=True, color=TEXT_1)
+hw_bullets = [
+    "GPU VRAM and memory bandwidth from official product pages (NVIDIA, AMD, Apple, Intel)",
+    "Open-weight model catalog with parameter counts from HuggingFace model cards",
+]
+for i, b in enumerate(hw_bullets):
+    yy = ly2 + Inches(1.1) + Inches(0.36) * i
+    add_rect(s, lx2 + Inches(0.4), yy + Inches(0.08), Inches(0.08), Inches(0.08), fill=PURPLE)
+    add_text(s, lx2 + Inches(0.62), yy, lw2 - Inches(1.0), Inches(0.32), b, size=11, color=TEXT_2)
 
 # Right: freshness panel
-rx = Inches(8.25); ry = Inches(2.55); rw = Inches(4.55); rh = Inches(4.1)
+rx = Inches(8.25); ry = Inches(2.45); rw = Inches(4.55); rh = Inches(4.25)
 add_rect(s, rx, ry, rw, rh, fill=BG_CARD)
 add_text(s, rx + Inches(0.3), ry + Inches(0.3), rw - Inches(0.6), Inches(0.3),
          "FRESHNESS", size=9, bold=True, color=TEXT_3, tracking=140)
@@ -341,23 +354,23 @@ add_text(s, rx + Inches(0.3), ry + Inches(0.3), rw - Inches(0.6), Inches(0.3),
 add_text(s, rx + Inches(0.3), ry + Inches(0.7), rw - Inches(0.6), Inches(0.7),
          "1 hr", size=42, bold=True, color=ACCENT)
 add_text(s, rx + Inches(0.3), ry + Inches(1.55), rw - Inches(0.6), Inches(0.3),
-         "Refresh interval", size=11, color=TEXT_2)
+         "Cloud model refresh interval", size=11, color=TEXT_2)
 
-add_line(s, rx + Inches(0.3), ry + Inches(2.0),
-         rx + rw - Inches(0.3), ry + Inches(2.0), color=BORDER)
+add_line(s, rx + Inches(0.3), ry + Inches(2.05),
+         rx + rw - Inches(0.3), ry + Inches(2.05), color=BORDER)
 
-add_text(s, rx + Inches(0.3), ry + Inches(2.15), rw - Inches(0.6), Inches(0.7),
+add_text(s, rx + Inches(0.3), ry + Inches(2.2), rw - Inches(0.6), Inches(0.7),
          "30+", size=42, bold=True, color=TEXT_1)
-add_text(s, rx + Inches(0.3), ry + Inches(3.0), rw - Inches(0.6), Inches(0.3),
+add_text(s, rx + Inches(0.3), ry + Inches(3.05), rw - Inches(0.6), Inches(0.3),
          "Daily snapshots on file", size=11, color=TEXT_2)
 
-add_line(s, rx + Inches(0.3), ry + Inches(3.4),
-         rx + rw - Inches(0.3), ry + Inches(3.4), color=BORDER)
+add_line(s, rx + Inches(0.3), ry + Inches(3.45),
+         rx + rw - Inches(0.3), ry + Inches(3.45), color=BORDER)
 
-add_text(s, rx + Inches(0.3), ry + Inches(3.55), rw - Inches(0.6), Inches(0.3),
-         "LATEST PULL", size=8, bold=True, color=TEXT_3, tracking=140)
-add_text(s, rx + Inches(0.3), ry + Inches(3.75), rw - Inches(0.6), Inches(0.3),
-         "Today  ·  255+ models, 29 providers", size=11, color=TEXT_1)
+add_text(s, rx + Inches(0.3), ry + Inches(3.6), rw - Inches(0.6), Inches(0.3),
+         "LOCAL CATALOG", size=8, bold=True, color=TEXT_3, tracking=140)
+add_text(s, rx + Inches(0.3), ry + Inches(3.82), rw - Inches(0.6), Inches(0.3),
+         "Static  ·  updated when new models release", size=11, color=TEXT_1)
 
 
 # ── Slide 4 — INTELLIGENCE SCORE ───────────────────────────────────────────
@@ -426,41 +439,40 @@ add_header(s, "04 · TOOLS", "How it's built", 5)
 add_footer(s)
 
 add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.4),
-         "Built end-to-end in Python. No JavaScript framework, no build step, one process.",
+         "Built in Python, hosted on Render. No JavaScript, no build step.",
          size=14, color=TEXT_2)
 
 libs = [
     ("Dash",      "WEB FRAMEWORK",
-     "Turns Python functions into a live, interactive site. Handles tabs, filters, and updates.",
+     "Turns Python functions into a live interactive site. Handles tabs, filters, and callbacks.",
      ACCENT),
     ("Plotly",    "CHARTS",
-     "Every chart in the dashboard. Interactive, hoverable, and themeable from one config.",
+     "Every chart in the dashboard. Interactive, hoverable, and styled from one config.",
      PURPLE),
     ("Pandas",    "DATA",
-     "Loads the cached CSV, runs filters, and computes the Pareto frontier and value scores.",
+     "Loads the CSV, runs filters, and computes the Pareto frontier and value scores.",
      GREEN),
     ("Requests",  "LIVE SCRAPER",
-     "Plain HTTP call to the Artificial Analysis API every hour. No browser, no overhead.",
+     "Plain HTTP call to the Artificial Analysis API every hour. No browser needed.",
      ORANGE),
+    ("Render",    "HOSTING",
+     "Cloud platform that runs the app 24/7 from the GitHub repo. Redeploys on every push.",
+     RGBColor(0x7C, 0x3A, 0xED)),
 ]
-gap = Inches(0.2)
-cw = (SLIDE_W - Inches(1.2) - gap * 3) / 4
+gap = Inches(0.16)
+cw = (SLIDE_W - Inches(1.2) - gap * 4) / 5
 ch = Inches(3.6)
-ly = Inches(2.6)
+ly = Inches(2.55)
 for i, (name, sub, body, col) in enumerate(libs):
     cx = Inches(0.6) + (cw + gap) * i
     add_rect(s, cx, ly, cw, ch, fill=BG_CARD)
     add_rect(s, cx, ly, cw, Inches(0.05), fill=col)
-    add_text(s, cx + Inches(0.3), ly + Inches(0.4), cw - Inches(0.6),
-             Inches(0.6), name, size=24, bold=True, color=TEXT_1)
-    add_text(s, cx + Inches(0.3), ly + Inches(1.05), cw - Inches(0.6),
-             Inches(0.3), sub, size=9, bold=True, color=col, tracking=140)
-    add_text(s, cx + Inches(0.3), ly + Inches(1.5), cw - Inches(0.6),
-             Inches(2.0), body, size=12, color=TEXT_2)
-
-add_text(s, Inches(0.6), Inches(6.5), Inches(12), Inches(0.3),
-         "Plus a small helper script (python-pptx) that generates these slides from the same color tokens as the website.",
-         size=10, color=TEXT_3)
+    add_text(s, cx + Inches(0.25), ly + Inches(0.35), cw - Inches(0.5),
+             Inches(0.6), name, size=20, bold=True, color=TEXT_1)
+    add_text(s, cx + Inches(0.25), ly + Inches(0.95), cw - Inches(0.5),
+             Inches(0.3), sub, size=8, bold=True, color=col, tracking=140)
+    add_text(s, cx + Inches(0.25), ly + Inches(1.35), cw - Inches(0.5),
+             Inches(2.1), body, size=11, color=TEXT_2)
 
 
 # ── Slide 6 — VISUALIZATIONS (TYPES + PRINCIPLES) ──────────────────────────
