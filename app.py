@@ -1015,13 +1015,30 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-# ── Tab switch: dispatch resize so Plotly re-measures hidden charts ────────────
+# ── Tab switch: force Plotly to re-measure charts that were hidden ────────────
+# Dash renders every tab's content at startup; non-active tabs live inside a
+# parent with display:none, so Plotly initialises their graphs with zero
+# dimensions. Dispatching window.resize isn't enough — Plotly's ResizeObserver
+# only fires when the element actually has a visible box, and the dispatch
+# sometimes races the tab's visibility flip. Instead, after the tab switch we
+# directly call Plotly.Plots.resize() on every .js-plotly-plot element that
+# is now visible, at three increasing delays to catch both synchronous and
+# late layout passes (font load, loader spinner teardown, etc.).
 clientside_callback(
     """
     function(tab) {
-        setTimeout(function() {
-            window.dispatchEvent(new Event('resize'));
-        }, 80);
+        function resizeAll() {
+            if (!window.Plotly) return;
+            var plots = document.querySelectorAll('.js-plotly-plot');
+            plots.forEach(function(el) {
+                if (el.offsetParent !== null) {
+                    try { window.Plotly.Plots.resize(el); } catch (e) {}
+                }
+            });
+        }
+        setTimeout(resizeAll,  60);
+        setTimeout(resizeAll, 200);
+        setTimeout(resizeAll, 500);
         return null;
     }
     """,
