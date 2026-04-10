@@ -285,20 +285,16 @@ cards = [
 ]
 gap = Inches(0.18)
 cw = (SLIDE_W - Inches(1.2) - gap * 3) / 4
-ch = Inches(3.0)
-cy = Inches(2.85)
+ch = Inches(4.0)
+cy = Inches(2.6)
 for i, (title, body, col) in enumerate(cards):
     cx = Inches(0.6) + (cw + gap) * i
     add_rect(s, cx, cy, cw, ch, fill=BG_CARD)
     add_rect(s, cx, cy, cw, Inches(0.05), fill=col)
-    add_text(s, cx + Inches(0.25), cy + Inches(0.3), cw - Inches(0.5),
-             Inches(0.4), title, size=10, bold=True, color=col, tracking=160)
-    add_text(s, cx + Inches(0.25), cy + Inches(0.85), cw - Inches(0.5),
-             Inches(2.0), body, size=12, color=TEXT_1)
-
-add_text(s, Inches(0.6), Inches(6.25), Inches(12), Inches(0.4),
-         "AI Frontier puts every comparison in one place, so the answer is a glance, not a spreadsheet.",
-         size=12, color=TEXT_3)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.35), cw - Inches(0.6),
+             Inches(0.4), title, size=11, bold=True, color=col, tracking=160)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.95), cw - Inches(0.6),
+             Inches(2.9), body, size=14, color=TEXT_1)
 
 
 # ── Slide 3 — DATA SOURCE & FRESHNESS ──────────────────────────────────────
@@ -404,31 +400,28 @@ cats = [
 ]
 gap = Inches(0.18)
 cw = (SLIDE_W - Inches(1.2) - gap * 3) / 4
-ch = Inches(2.4)
-cy = Inches(2.55)
+ch = Inches(3.1)
+cy = Inches(2.45)
 for i, (cat, desc, tests, col) in enumerate(cats):
     cx = Inches(0.6) + (cw + gap) * i
     add_rect(s, cx, cy, cw, ch, fill=BG_CARD)
     add_rect(s, cx, cy, cw, Inches(0.05), fill=col)
-    add_text(s, cx + Inches(0.25), cy + Inches(0.3), cw - Inches(0.5),
-             Inches(0.3), cat, size=10, bold=True, color=col, tracking=160)
-    add_text(s, cx + Inches(0.25), cy + Inches(0.85), cw - Inches(0.5),
-             Inches(1.0), desc, size=13, color=TEXT_1)
-    add_text(s, cx + Inches(0.25), cy + Inches(1.85), cw - Inches(0.5),
-             Inches(0.3), "EXAMPLES", size=8, bold=True, color=TEXT_3, tracking=140)
-    add_text(s, cx + Inches(0.25), cy + Inches(2.05), cw - Inches(0.5),
-             Inches(0.3), tests, size=10, color=TEXT_2)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.35), cw - Inches(0.6),
+             Inches(0.3), cat, size=11, bold=True, color=col, tracking=160)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.85), cw - Inches(0.6),
+             Inches(1.3), desc, size=15, color=TEXT_1)
+    add_text(s, cx + Inches(0.3), cy + Inches(2.2), cw - Inches(0.6),
+             Inches(0.25), "EXAMPLES", size=8, bold=True, color=TEXT_3, tracking=140)
+    add_text(s, cx + Inches(0.3), cy + Inches(2.45), cw - Inches(0.6),
+             Inches(0.4), tests, size=11, color=TEXT_2)
 
-# Bottom note
-ny = Inches(5.3)
-add_rect(s, Inches(0.6), ny, SLIDE_W - Inches(1.2), Inches(1.4), fill=BG_CARD)
-add_text(s, Inches(0.85), ny + Inches(0.25), Inches(12), Inches(0.3),
+# Bottom note — full width
+ny = Inches(5.85)
+add_rect(s, Inches(0.6), ny, SLIDE_W - Inches(1.2), Inches(0.9), fill=BG_CARD)
+add_text(s, Inches(0.85), ny + Inches(0.2), Inches(12), Inches(0.3),
          "WHY AVERAGE THEM?", size=9, bold=True, color=ACCENT, tracking=140)
-add_text(s, Inches(0.85), ny + Inches(0.55), Inches(12), Inches(0.4),
-         "A model that wins on knowledge but flunks coding looks great on a single chart and misleading everywhere else.",
-         size=12, color=TEXT_1)
-add_text(s, Inches(0.85), ny + Inches(0.95), Inches(12), Inches(0.4),
-         "Averaging several tests rewards well-rounded models and lets one number sit on every chart in the dashboard.",
+add_text(s, Inches(0.85), ny + Inches(0.48), Inches(12), Inches(0.35),
+         "One number rewards well-rounded models and lets you compare cloud and local models on the same scale.",
          size=12, color=TEXT_2)
 
 
@@ -461,18 +454,18 @@ libs = [
 ]
 gap = Inches(0.16)
 cw = (SLIDE_W - Inches(1.2) - gap * 4) / 5
-ch = Inches(3.6)
-ly = Inches(2.55)
+ch = Inches(4.1)
+ly = Inches(2.35)
 for i, (name, sub, body, col) in enumerate(libs):
     cx = Inches(0.6) + (cw + gap) * i
     add_rect(s, cx, ly, cw, ch, fill=BG_CARD)
     add_rect(s, cx, ly, cw, Inches(0.05), fill=col)
-    add_text(s, cx + Inches(0.25), ly + Inches(0.35), cw - Inches(0.5),
-             Inches(0.6), name, size=20, bold=True, color=TEXT_1)
-    add_text(s, cx + Inches(0.25), ly + Inches(0.95), cw - Inches(0.5),
-             Inches(0.3), sub, size=8, bold=True, color=col, tracking=140)
-    add_text(s, cx + Inches(0.25), ly + Inches(1.35), cw - Inches(0.5),
-             Inches(2.1), body, size=11, color=TEXT_2)
+    add_text(s, cx + Inches(0.25), ly + Inches(0.38), cw - Inches(0.5),
+             Inches(0.6), name, size=22, bold=True, color=TEXT_1)
+    add_text(s, cx + Inches(0.25), ly + Inches(1.05), cw - Inches(0.5),
+             Inches(0.3), sub, size=9, bold=True, color=col, tracking=140)
+    add_text(s, cx + Inches(0.25), ly + Inches(1.5), cw - Inches(0.5),
+             Inches(2.5), body, size=12, color=TEXT_2)
 
 
 # ── Slide 6 — VISUALIZATIONS (TYPES + PRINCIPLES) ──────────────────────────
@@ -498,11 +491,11 @@ types = [
 ty = ly + Inches(0.75)
 for i, (name, desc) in enumerate(types):
     yy = ty + Inches(0.65) * i
-    add_rect(s, lx + Inches(0.4), yy + Inches(0.1), Inches(0.08), Inches(0.4), fill=ACCENT)
+    add_rect(s, lx + Inches(0.4), yy + Inches(0.1), Inches(0.08), Inches(0.45), fill=ACCENT)
     add_text(s, lx + Inches(0.6), yy + Inches(0.05), lw - Inches(1.0),
-             Inches(0.3), name, size=13, bold=True, color=TEXT_1)
-    add_text(s, lx + Inches(0.6), yy + Inches(0.3), lw - Inches(1.0),
-             Inches(0.3), desc, size=10, color=TEXT_3)
+             Inches(0.35), name, size=15, bold=True, color=TEXT_1)
+    add_text(s, lx + Inches(0.6), yy + Inches(0.35), lw - Inches(1.0),
+             Inches(0.3), desc, size=12, color=TEXT_3)
 
 # ── RIGHT: principles ──
 rx = Inches(7.1); ry = Inches(1.95); rw = Inches(5.65); rh = Inches(4.85)
@@ -522,13 +515,13 @@ principles = [
 ]
 py = ry + Inches(0.75)
 for i, (title, body) in enumerate(principles):
-    yy = py + Inches(0.95) * i
+    yy = py + Inches(1.0) * i
     add_text(s, rx + Inches(0.4), yy, Inches(0.5), Inches(0.3),
-             f"0{i+1}", size=11, bold=True, color=ACCENT, tracking=140)
+             f"0{i+1}", size=12, bold=True, color=ACCENT, tracking=140)
     add_text(s, rx + Inches(0.85), yy, rw - Inches(1.1), Inches(0.3),
-             title, size=13, bold=True, color=TEXT_1)
-    add_text(s, rx + Inches(0.85), yy + Inches(0.32), rw - Inches(1.1),
-             Inches(0.6), body, size=10, color=TEXT_2)
+             title, size=15, bold=True, color=TEXT_1)
+    add_text(s, rx + Inches(0.85), yy + Inches(0.38), rw - Inches(1.1),
+             Inches(0.6), body, size=12, color=TEXT_2)
 
 
 # ── Slide 7 — LOCAL + HYBRID ───────────────────────────────────────────────
