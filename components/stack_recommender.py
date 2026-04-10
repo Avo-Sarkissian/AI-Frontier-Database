@@ -391,9 +391,10 @@ def build_stack_cards(
     local_df:     pd.DataFrame | None = None,
 ) -> html.Div:
     """
-    mode: "api" | "hybrid" | "local"
+    mode: "api" | "hybrid" | "hybrid2" | "local"
     providers: filter cloud models to these providers (None = all)
     local_df:  output of get_local_df(); required for hybrid/local modes
+    hybrid2: Fast=local, Balanced=local, Reasoning=API
     """
     # Filtered cloud pool
     api_pool = df.copy()
@@ -411,6 +412,13 @@ def build_stack_cards(
         elif mode == "local":
             picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
             source = "LOCAL"
+        elif mode == "hybrid2":  # Fast + Balanced = local, Reasoning = API
+            if key in ("fast", "balanced"):
+                picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
+                source = "LOCAL"
+            else:
+                picks  = _pick_api_tier(api_pool, tier)
+                source = "API"
         else:  # hybrid — Fast = local, Balanced + Reasoning = API
             if key == "fast":
                 picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()

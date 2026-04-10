@@ -585,12 +585,11 @@ app.layout = html.Div([
                 className="tab", selected_className="tab--selected", children=[
             _desc(
                 "Build your Claude Code model stack. "
-                "Pick a workflow — API Only (cloud, any machine), "
-                "Hybrid (local Fast tier, API for heavy tasks), "
-                "or Local Only (fully offline, filtered to your hardware). "
-                "Fast = haiku-class, high-volume sub-tasks. "
-                "Balanced = coding and writing. "
-                "Reasoning = planning and delegation."
+                "API Only = all cloud. "
+                "Hybrid — Fast local = free local for sub-tasks, API for Balanced + Reasoning. "
+                "Hybrid — Fast + Balanced local = local for both workhorse tiers, API only for the top orchestrator. "
+                "Local Only = fully offline. "
+                "Fast = high-volume sub-tasks. Balanced = coding and writing. Reasoning = planning and delegation."
             ),
             # Row 1: workflow mode
             html.Div([
@@ -598,9 +597,10 @@ app.layout = html.Div([
                 dcc.RadioItems(
                     id="recommend-mode",
                     options=[
-                        {"label": "API Only",   "value": "api"},
-                        {"label": "Hybrid",     "value": "hybrid"},
-                        {"label": "Local Only", "value": "local"},
+                        {"label": "API Only",                    "value": "api"},
+                        {"label": "Hybrid — Fast local",         "value": "hybrid"},
+                        {"label": "Hybrid — Fast + Balanced local", "value": "hybrid2"},
+                        {"label": "Local Only",                  "value": "local"},
                     ],
                     value="api",
                     inline=True,
