@@ -277,6 +277,7 @@ app.layout = html.Div([
     dcc.Store(id="detail-model-name", data=None),
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
+    dcc.Store(id="resize-sink"),
     dcc.Store(id="data-version",      data=0),
     dcc.Download(id="download-csv"),
     dcc.Interval(id="data-refresh-interval", interval=10 * 60 * 1000, n_intervals=0),
@@ -982,6 +983,21 @@ clientside_callback(
     """,
     Output("share-sink", "data"),
     Input("btn-share", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# ── Tab switch: dispatch resize so Plotly re-measures hidden charts ────────────
+clientside_callback(
+    """
+    function(tab) {
+        setTimeout(function() {
+            window.dispatchEvent(new Event('resize'));
+        }, 80);
+        return null;
+    }
+    """,
+    Output("resize-sink", "data"),
+    Input("tabs", "value"),
     prevent_initial_call=True,
 )
 
