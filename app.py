@@ -643,6 +643,7 @@ app.layout = html.Div([
                         {"label": "Price",        "value": "price"},
                         {"label": "Speed",        "value": "speed"},
                         {"label": "Latency",      "value": "latency"},
+                        {"label": "Context",      "value": "context"},
                         {"label": "Model",        "value": "model"},
                         {"label": "Provider",     "value": "provider"},
                     ],
@@ -677,7 +678,7 @@ app.layout = html.Div([
                          "format": {"specifier": ".0f"}},
                         {"name": "Latency (s)",       "id": "latency",    "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Context",           "id": "context",    "type": "text"},
+                        {"name": "Context",           "id": "context"},
                     ],
                     sort_action="none",
                     filter_action="none",
@@ -717,7 +718,8 @@ app.layout = html.Div([
                         {"if": {"column_id": "price"},     "textAlign": "right"},
                         {"if": {"column_id": "speed"},     "textAlign": "right"},
                         {"if": {"column_id": "latency"},   "textAlign": "right"},
-                        {"if": {"column_id": "context"},   "textAlign": "right"},
+                        {"if": {"column_id": "context"},
+                         "textAlign": "right", "minWidth": "90px", "width": "90px"},
                     ],
                     style_data_conditional=[
                         {"if": {"row_index": "odd"}, "backgroundColor": "#0a0a0a"},
@@ -1400,7 +1402,11 @@ def update_table(providers, min_quality, search, sort_col, sort_dir):
     )
     col = sort_col or "quality"
     asc = (sort_dir or "desc") == "asc"
-    filtered = filtered.sort_values(col, ascending=asc, na_position="last")
+    if col == "context":
+        filtered["_ctx_k"] = filtered["context"].map(_ctx_to_k)
+        filtered = filtered.sort_values("_ctx_k", ascending=asc, na_position="last")
+    else:
+        filtered = filtered.sort_values(col, ascending=asc, na_position="last")
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
 
