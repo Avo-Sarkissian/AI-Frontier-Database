@@ -90,7 +90,7 @@ _MODELS_RAW: list[dict] = [
     # ── Mistral / Mixtral ─────────────────────────────────────────────────────
     {"name": "Mistral 7B v0.3",     "family": "Mistral", "params_b": 7.24,  "active_b": 7.24,  "context_k": 32,  "quality": 5,  "license": "Apache 2.0", "tags": []},
     {"name": "Mistral Nemo 12B",    "family": "Mistral", "params_b": 12.2,  "active_b": 12.2,  "context_k": 128, "quality": 7,  "license": "Apache 2.0", "tags": ["multilingual"]},
-    {"name": "Mistral Small 3 22B", "family": "Mistral", "params_b": 22.0,  "active_b": 22.0,  "context_k": 32,  "quality": 13, "license": "Apache 2.0", "tags": []},   # ~Mistral Small 3.2 (AA: 15)
+    {"name": "Mistral Small 3.2 22B","family": "Mistral", "params_b": 22.0,  "active_b": 22.0,  "context_k": 128, "quality": 15, "license": "Apache 2.0", "tags": ["multilingual"]},  # AA exact
     {"name": "Mistral Large 2 123B","family": "Mistral", "params_b": 123,   "active_b": 123,   "context_k": 128, "quality": 18, "license": "MNPL",       "tags": ["multilingual"]},  # ~Mistral Large 3 (AA: 23) minus one gen
     {"name": "Mixtral 8x7B",        "family": "Mistral", "params_b": 46.7,  "active_b": 12.9,  "context_k": 32,  "quality": 8,  "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
     {"name": "Mixtral 8x22B",       "family": "Mistral", "params_b": 141,   "active_b": 39.1,  "context_k": 64,  "quality": 13, "license": "Apache 2.0", "tags": ["multilingual"], "moe": True},
@@ -129,14 +129,14 @@ _MODELS_RAW: list[dict] = [
     # Context: 128k tokens, built-in thinking/non-thinking toggle
     # Quality calibrated to AA scale: Qwen3-8B beats Qwen2.5-72B in many benchmarks;
     # Qwen3-32B (thinking) is competitive with o1-mini; 235B approaches top open models.
-    {"name": "Qwen3 0.6B",             "family": "Alibaba", "params_b": 0.60,  "active_b": 0.60,  "context_k": 128, "quality": 3,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 1.7B",             "family": "Alibaba", "params_b": 1.70,  "active_b": 1.70,  "context_k": 128, "quality": 5,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 4B",               "family": "Alibaba", "params_b": 4.00,  "active_b": 4.00,  "context_k": 128, "quality": 9,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 8B",               "family": "Alibaba", "params_b": 8.00,  "active_b": 8.00,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 14B",              "family": "Alibaba", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 18, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 32B",              "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 24, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
-    {"name": "Qwen3 30B-A3B",          "family": "Alibaba", "params_b": 30.0,  "active_b": 3.0,   "context_k": 128, "quality": 21, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"], "moe": True},
-    {"name": "Qwen3 235B-A22B",        "family": "Alibaba", "params_b": 235.0, "active_b": 22.0,  "context_k": 128, "quality": 36, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"], "moe": True},
+    {"name": "Qwen3 0.6B",             "family": "Alibaba", "params_b": 0.60,  "active_b": 0.60,  "context_k": 128, "quality": 3,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 1.7B",             "family": "Alibaba", "params_b": 1.70,  "active_b": 1.70,  "context_k": 128, "quality": 5,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 4B",               "family": "Alibaba", "params_b": 4.00,  "active_b": 4.00,  "context_k": 128, "quality": 9,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 8B",               "family": "Alibaba", "params_b": 8.00,  "active_b": 8.00,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 14B",              "family": "Alibaba", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 18, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 32B",              "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 24, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"]},
+    {"name": "Qwen3 30B-A3B",          "family": "Alibaba", "params_b": 30.0,  "active_b": 3.0,   "context_k": 128, "quality": 21, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"], "moe": True},
+    {"name": "Qwen3 235B-A22B",        "family": "Alibaba", "params_b": 235.0, "active_b": 22.0,  "context_k": 128, "quality": 36, "license": "Apache 2.0", "tags": ["multilingual", "reasoning", "code"], "moe": True},
 
     # ── DeepSeek ──────────────────────────────────────────────────────────────
     # DeepSeek V3.2 is AA: 42; V3 (older) estimated at ~36; R1 (reasoning) ~38
