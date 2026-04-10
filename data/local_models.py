@@ -25,10 +25,13 @@ _OVERHEAD = 1.18
 
 # Memory efficiency factor by hardware type
 # (fraction of theoretical peak bandwidth utilized during inference)
+# Apple: 0.82 reflects MLX (Metal-accelerated) inference via Ollama/MLX-LM.
+# MLX bypasses the llama.cpp CPU path and runs native Metal GPU kernels,
+# yielding ~25-30% higher throughput than the old 0.65 llama.cpp estimate.
 _EFF: dict[str, float] = {
     "nvidia": 0.55,
     "amd":    0.50,
-    "apple":  0.65,   # unified memory avoids PCIe bottleneck
+    "apple":  0.82,   # MLX (Metal GPU kernels) via Ollama ≥ 0.6 / mlx-lm
     "cpu":    0.30,
 }
 
@@ -119,6 +122,21 @@ _MODELS_RAW: list[dict] = [
     {"name": "Qwen 2.5 Coder 7B",   "family": "Alibaba", "params_b": 7.62,  "active_b": 7.62,  "context_k": 128, "quality": 7,  "license": "Apache 2.0", "tags": ["code"]},
     {"name": "Qwen 2.5 Coder 32B",  "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["code"]},
     {"name": "QwQ 32B",             "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 17, "license": "Apache 2.0", "tags": ["reasoning"]},
+
+    # ── Alibaba Qwen 3 (Apr 2025) ────────────────────────────────────────────
+    # Dense models: 0.6B / 1.7B / 4B / 8B / 14B / 32B
+    # MoE models: 30B-A3B (30B total, 3B active) / 235B-A22B (235B total, 22B active)
+    # Context: 128k tokens, built-in thinking/non-thinking toggle
+    # Quality calibrated to AA scale: Qwen3-8B beats Qwen2.5-72B in many benchmarks;
+    # Qwen3-32B (thinking) is competitive with o1-mini; 235B approaches top open models.
+    {"name": "Qwen3 0.6B",             "family": "Alibaba", "params_b": 0.60,  "active_b": 0.60,  "context_k": 128, "quality": 3,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 1.7B",             "family": "Alibaba", "params_b": 1.70,  "active_b": 1.70,  "context_k": 128, "quality": 5,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 4B",               "family": "Alibaba", "params_b": 4.00,  "active_b": 4.00,  "context_k": 128, "quality": 9,  "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 8B",               "family": "Alibaba", "params_b": 8.00,  "active_b": 8.00,  "context_k": 128, "quality": 14, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 14B",              "family": "Alibaba", "params_b": 14.0,  "active_b": 14.0,  "context_k": 128, "quality": 18, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 32B",              "family": "Alibaba", "params_b": 32.8,  "active_b": 32.8,  "context_k": 128, "quality": 24, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"]},
+    {"name": "Qwen3 30B-A3B",          "family": "Alibaba", "params_b": 30.0,  "active_b": 3.0,   "context_k": 128, "quality": 21, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"], "moe": True},
+    {"name": "Qwen3 235B-A22B",        "family": "Alibaba", "params_b": 235.0, "active_b": 22.0,  "context_k": 128, "quality": 36, "license": "Apache 2.0", "tags": ["multilingual", "reasoning"], "moe": True},
 
     # ── DeepSeek ──────────────────────────────────────────────────────────────
     # DeepSeek V3.2 is AA: 42; V3 (older) estimated at ~36; R1 (reasoning) ~38
