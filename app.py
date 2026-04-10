@@ -650,10 +650,11 @@ app.layout = html.Div([
                             lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
                         ),
                     )[["model", "provider", "quality", "value", "price", "speed", "latency", "context"]].to_dict("records"))(df),
-                    sort_action="custom",
+                    sort_action="native",
                     sort_mode="single",
                     filter_action="none",
-                    page_action="none",
+                    page_action="native",
+                    page_size=100,
                     style_table={"overflowX": "auto"},
                     style_header={
                         "backgroundColor": "#111111",
@@ -1338,22 +1339,16 @@ def add_to_compare(n_clicks, model_name, current_selection):
 # ── Table view ────────────────────────────────────────────────────────────────
 @callback(
     Output("model-table", "data"),
-    Input("model-table",     "sort_by"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("model-search",    "value"),
 )
-def update_table(sort_by, providers, min_quality, search):
+def update_table(providers, min_quality, search):
     filtered = _apply_filters(providers, min_quality, search or "").copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
-    if sort_by:
-        col = sort_by[0]["column_id"]
-        asc = sort_by[0]["direction"] == "asc"
-        filtered = filtered.sort_values(col, ascending=asc, na_position="last")
-    else:
-        filtered = filtered.sort_values("quality", ascending=False)
+    filtered = filtered.sort_values("quality", ascending=False)
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
 
