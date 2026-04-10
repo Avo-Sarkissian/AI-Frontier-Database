@@ -946,10 +946,22 @@ input[id^="local-"].dash-input:focus {
 
 @media (max-width: 1280px) {
   .dash-graph { max-height: 68vh !important; }
+  /* Opt-out: tall list charts (e.g. runnable local models) need
+     their full computed height — the page scrolls to show them.
+     Without this, Plotly crushes N-row charts into ~68vh and bars
+     and right-side annotations pile up unreadably. */
+  .chart-card--uncapped .dash-graph {
+    height: auto !important;
+    max-height: none !important;
+  }
 }
 
 @media (max-width: 1024px) {
   .dash-graph { height: 58vh !important; max-height: 58vh !important; }
+  .chart-card--uncapped .dash-graph {
+    height: auto !important;
+    max-height: none !important;
+  }
 }
 
 @media (max-width: 768px) {

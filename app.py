@@ -820,7 +820,7 @@ app.layout = html.Div([
                     ),
                     config=_GRAPH_CONFIG, style={"minHeight": "400px"},
                 ),
-            ])], className="chart-card"),
+            ])], className="chart-card chart-card--uncapped"),
         ]),
 
         # Image Gen ────────────────────────────────────────────────────────────
