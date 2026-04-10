@@ -932,6 +932,22 @@ input[id^="local-"].dash-input:focus {
   .stat-value { font-size: 15px; }
 }
 
+/* ── DataTable header — full cell clickable ──────── */
+.dash-header {
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.dash-header:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+/* Ensure sort arrow + label fill the full header width */
+.dash-header-cell-content {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 4px !important;
+}
+
 /* ── Responsive chart heights ─────────────────────── */
 /* Plotly listens to ResizeObserver when responsive=True,
    so overriding .dash-graph height via CSS triggers a reflow. */

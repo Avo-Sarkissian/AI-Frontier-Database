@@ -168,6 +168,21 @@ def _apply_filters(providers, min_quality, search: str = "") -> pd.DataFrame:
     return filtered
 
 
+def _ctx_to_k(c) -> float | None:
+    """Convert context string ('400k', '1m', '128k') to numeric thousands for sorting."""
+    if not c:
+        return None
+    s = str(c).strip().lower()
+    try:
+        if s.endswith('m'):
+            return float(s[:-1]) * 1000
+        if s.endswith('k'):
+            return float(s[:-1])
+        return float(s) / 1000
+    except ValueError:
+        return None
+
+
 def _quality_label(pct: float) -> str:
     """pct is quality normalised to 0–100 relative to the dataset max."""
     if pct >= 90: return "Exceptional"
@@ -616,30 +631,32 @@ app.layout = html.Div([
                 dash_table.DataTable(
                     id="model-table",
                     columns=[
-                        {"name": "Model",            "id": "model",    "type": "text"},
-                        {"name": "Provider",          "id": "provider", "type": "text"},
-                        {"name": "Score",             "id": "quality",  "type": "numeric",
+                        {"name": "Model",            "id": "model",      "type": "text"},
+                        {"name": "Provider",          "id": "provider",   "type": "text"},
+                        {"name": "Score",             "id": "quality",    "type": "numeric",
                          "format": {"specifier": ".1f"}},
-                        {"name": "Value (score/$)",   "id": "value",    "type": "numeric",
+                        {"name": "Value (score/$)",   "id": "value",      "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Price ($/M tok)",   "id": "price",    "type": "numeric",
+                        {"name": "Price ($/M tok)",   "id": "price",      "type": "numeric",
                          "format": {"specifier": ".4f"}},
-                        {"name": "Speed (tok/s)",     "id": "speed",    "type": "numeric",
+                        {"name": "Speed (tok/s)",     "id": "speed",      "type": "numeric",
                          "format": {"specifier": ".0f"}},
-                        {"name": "Latency (s)",       "id": "latency",  "type": "numeric",
+                        {"name": "Latency (s)",       "id": "latency",    "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Context",           "id": "context",  "type": "text"},
+                        {"name": "Context (k tok)",   "id": "context_k",  "type": "numeric",
+                         "format": {"specifier": ",.0f"}},
                     ],
                     data=(lambda _df: _df.assign(
                         value=_df.apply(
                             lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
-                        )
-                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context"]].to_dict("records"))(df),
+                        ),
+                        context_k=_df["context"].apply(_ctx_to_k),
+                    )[["model", "provider", "quality", "value", "price", "speed", "latency", "context_k"]].to_dict("records"))(df),
                     sort_action="native",
                     sort_mode="single",
                     filter_action="none",
                     page_action="native",
-                    page_size=50,
+                    page_size=25,
                     style_table={"overflowX": "auto"},
                     style_header={
                         "backgroundColor": "#111111",
@@ -653,6 +670,7 @@ app.layout = html.Div([
                         "borderTop": "none",
                         "paddingTop": "10px",
                         "paddingBottom": "10px",
+                        "cursor": "pointer",
                     },
                     style_cell={
                         "backgroundColor": "#0e0e0e",
@@ -669,23 +687,18 @@ app.layout = html.Div([
                         "maxWidth": "260px",
                     },
                     style_cell_conditional=[
-                        {"if": {"column_id": "quality"},  "color": "#f2f2f2", "textAlign": "right"},
-                        {"if": {"column_id": "value"},    "color": "#34d399",  "textAlign": "right"},
-                        {"if": {"column_id": "price"},    "textAlign": "right"},
-                        {"if": {"column_id": "speed"},    "textAlign": "right"},
-                        {"if": {"column_id": "latency"},  "textAlign": "right"},
+                        {"if": {"column_id": "quality"},   "color": "#f2f2f2", "textAlign": "right"},
+                        {"if": {"column_id": "value"},     "color": "#34d399", "textAlign": "right"},
+                        {"if": {"column_id": "price"},     "textAlign": "right"},
+                        {"if": {"column_id": "speed"},     "textAlign": "right"},
+                        {"if": {"column_id": "latency"},   "textAlign": "right"},
+                        {"if": {"column_id": "context_k"}, "textAlign": "right"},
                     ],
                     style_data_conditional=[
                         {"if": {"row_index": "odd"}, "backgroundColor": "#0a0a0a"},
                         {"if": {"state": "active"},
                          "backgroundColor": "rgba(0,212,255,0.06)",
                          "border": "1px solid rgba(0,212,255,0.2)"},
-                        *[
-                            {"if": {"filter_query": f'{{provider}} = "{p}"',
-                                    "column_id": "provider"},
-                             "color": PROVIDER_COLORS.get(p, DEFAULT_COLOR)}
-                            for p in sorted(df["provider"].unique())
-                        ],
                     ],
                     style_as_list_view=True,
                 ),
