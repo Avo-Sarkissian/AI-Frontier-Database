@@ -87,11 +87,11 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
             text=f"{speed_str}  ·  {vram_str}{tight_tag}",
             showarrow=False,
             xanchor="left",
-            font=dict(size=9, family=_FONT, color=color),
+            font=dict(size=11, family=_FONT, color=color),
             xref="x", yref="y",
         )
 
-    height = max(400, len(runnable) * 28 + 80)
+    height = max(480, len(runnable) * 42 + 80)
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -108,19 +108,20 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=11), standoff=12),
+            title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
             range=[0, max_q * 1.45],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
-            tickfont=dict(color=_TICK, size=10, family=_FONT),
+            tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            tickfont=dict(color="#888888", size=10, family=_FONT),
+            tickfont=dict(color="#aaaaaa", size=12, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),
         barmode="overlay",
-        margin=dict(l=20, r=210, t=52, b=36),
+        bargap=0.35,
+        margin=dict(l=20, r=220, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(
