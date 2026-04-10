@@ -339,17 +339,15 @@ GPUS: list[dict] = [
     {"name": "Apple M5 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
-    # ── Apple iPhone / iPad (on-device inference via Core ML / llama.cpp Metal) ─
-    # Usable RAM = total RAM minus ~2 GB OS reservation. Bandwidth from Apple specs.
-    # A-series chips use the same unified memory architecture as M-series but
-    # with less total capacity — only tiny models (≤ 4 GB) fit on phones.
-    {"name": "iPhone 15 Pro — A17 Pro",  "vram_gb": 6,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "iPhone / iPad"},
-    {"name": "iPhone 16 Pro — A18 Pro",  "vram_gb": 6,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "iPhone / iPad"},
-    {"name": "iPhone 16e — A16",         "vram_gb": 6,   "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "iPhone / iPad"},
-    # iPad Pro M4: same chip as MacBook, much more headroom than phones
-    {"name": "iPad Pro M4 (8 GB)",       "vram_gb": 8,   "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "iPhone / iPad"},
-    {"name": "iPad Pro M4 (16 GB)",      "vram_gb": 16,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "iPhone / iPad"},
-    {"name": "iPad Air M2 (8 GB)",       "vram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "iPhone / iPad"},
+    # ── Apple iPhone (on-device inference via llama.cpp Metal / Core ML) ────────
+    # Named by chip, not device. Usable RAM ≈ total minus ~2 GB OS reservation.
+    # Only models ≤ ~4 GB VRAM fit on phones — filter enforces this automatically.
+    # Bandwidth from Apple silicon spec pages.
+    {"name": "A16 (iPhone 14 Pro / 16e)", "vram_gb": 6,  "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A17 Pro (iPhone 15 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A18 Pro (iPhone 16 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 75,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    # A19 Pro (iPhone 17 Pro, Sep 2025): 12 GB RAM, improved memory bandwidth
+    {"name": "A19 Pro (iPhone 17 Pro)",   "vram_gb": 10, "bandwidth_gbps": 84,   "hw_type": "apple",  "category": "Apple — iPhone"},
     # ── AMD RDNA 4 (2025) ─────────────────────────────────────────────────────
     # RX 9070 XT: 16 GB GDDR6, 256-bit, 717 GB/s — RDNA4 flagship mainstream
     # RX 9070:    16 GB GDDR6, 256-bit, 640 GB/s
