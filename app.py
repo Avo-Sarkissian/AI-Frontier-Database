@@ -953,6 +953,11 @@ app.layout = html.Div([
 # CALLBACKS
 # ══════════════════════════════════════════════════════════════════════════════
 
+_VALID_TABS = {
+    "overview", "recommend", "performance", "landscape", "rankings",
+    "compare", "budget", "table", "local", "imagegen", "videogen", "embeddings",
+}
+
 # ── URL: restore state on load ────────────────────────────────────────────────
 @callback(
     Output("tabs",            "value"),
@@ -966,6 +971,8 @@ def init_from_url(search: str):
         return "overview", [], 0
     params    = parse_qs(search.lstrip("?"))
     tab       = params.get("tab", ["overview"])[0]
+    if tab not in _VALID_TABS:
+        tab = "overview"
     raw_p     = params.get("p",   [""])[0]
     providers = [x for x in raw_p.split(",") if x] if raw_p else []
     try:
