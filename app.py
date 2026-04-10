@@ -1076,7 +1076,7 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     # Show/hide provider row and hardware row based on mode
     prov_style = {"paddingTop": "0", "display": "none"} if mode == "local" \
                  else {"paddingTop": "0"}
-    hw_style   = {"paddingTop": "0"} if mode in ("hybrid", "local") \
+    hw_style   = {"paddingTop": "0"} if mode in ("hybrid", "hybrid2", "local") \
                  else {"paddingTop": "0", "display": "none"}
 
     # Resolve providers for API tiers
@@ -1091,7 +1091,7 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
 
     # Build local_df when needed
     local_df = None
-    if mode in ("hybrid", "local"):
+    if mode in ("hybrid", "hybrid2", "local"):
         gpu_meta       = GPU_BY_NAME.get(gpu_preset or "", {})
         vram_gb        = float(vram_per_gpu or 32) * int(num_gpus or 1)
         bandwidth_gbps = gpu_meta.get("bandwidth_gbps", 1792)
