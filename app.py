@@ -264,6 +264,15 @@ _GRAPH_CONFIG = {
     "modeBarButtonsToRemove": ["select2d", "lasso2d", "toImage"],
     "responsive": True,
 }
+# For charts whose layout.height is authoritative (e.g. tall bar lists where
+# row count determines height). responsive=True would make Plotly fit the
+# container and ignore layout.height, crushing N-row charts.
+_GRAPH_CONFIG_FIXED = {
+    "displayModeBar": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": ["select2d", "lasso2d", "toImage"],
+    "responsive": False,
+}
 _LOADING = dict(type="dot", color="#00d4ff")
 
 
@@ -818,7 +827,7 @@ app.layout = html.Div([
                                      bandwidth_gbps=1792, hw_type="nvidia"),
                         quant="Q4",
                     ),
-                    config=_GRAPH_CONFIG, style={"minHeight": "400px"},
+                    config=_GRAPH_CONFIG_FIXED,
                 ),
             ])], className="chart-card chart-card--uncapped"),
         ]),
