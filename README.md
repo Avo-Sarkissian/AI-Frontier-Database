@@ -1,87 +1,96 @@
 # AI Frontier
 
-> An interactive dashboard that maps the entire AI model landscape — comparing 255+ large language models on cost, speed, and intelligence in one place.
+> An interactive dashboard mapping the entire AI model landscape — comparing 255+ large language models on cost, speed, and intelligence in one place, updated hourly.
+
+![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
+![Dash](https://img.shields.io/badge/Dash-Plotly-informational?logo=plotly&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Data](https://img.shields.io/badge/Data-Live%20%E2%80%93%20hourly-brightgreen)
 
 ---
 
-## What is this?
+## Overview
 
-Every week, dozens of new AI models are released by companies like OpenAI, Google, Anthropic, Meta, and many others. Each model makes different tradeoffs: some are incredibly smart but expensive, some are blazing fast but less capable, and some are surprisingly powerful for almost no cost.
+Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens of others. Each makes different tradeoffs — some excel at reasoning but cost more, some are fast but less capable, and some punch well above their price point.
 
-**AI Frontier** makes those tradeoffs visible. It pulls live data from [Artificial Analysis](https://artificialanalysis.ai/) and lets you explore the full competitive landscape through 11 interactive tabs.
-
----
-
-## The Dashboard
-
-### Overview — Cost vs. Intelligence
-The landing page. Every bubble is one AI model — move left for cheaper models, move up for smarter ones. The dotted line traces the **Pareto frontier**: models that give you the best intelligence for their price. Bubble size encodes throughput (tok/s). Both color and marker shape encode provider, so the chart is readable without relying on color alone.
-
-### Agent Stack — Model Recommendations
-Pick a workflow (API-only, Hybrid, or Local-only) and get a three-tier stack: **Fast** (haiku-class sub-tasks), **Balanced** (coding and writing), and **Reasoning** (planning and delegation). In Hybrid or Local mode, filter by your GPU and quantization level.
-
-### Landscape — Provider Ecosystem
-A treemap of the AI industry: tile area = number of models released, color intensity = average intelligence. Followed by a provider leaderboard showing best model, provider average, and model count.
-
-### Rankings — Top 25 Models
-A leaderboard of the highest-scoring models, color-coded by company. Tier-separator lines mark meaningful performance gaps. Sort by **Intelligence**, **Value (score/$)**, or **Speed**. Below the leaderboard: a **Value Leaders** chart ranking the top 15 models by intelligence per dollar.
-
-### Compare — Head-to-Head Radar
-Pick up to 5 models and compare them across five dimensions simultaneously: Intelligence, Speed, Affordability, Context Window, and Latency. Raw values table below the chart.
-
-### Budget — Monthly Cost Calculator
-Enter a monthly token volume and see each model's projected API cost, sorted cheapest-first.
-
-### Table — Full Data
-Sortable table of all 255+ models. Columns: Score, Value (score/$), Price, Speed, Latency, and Context Window (in k tokens). Click any column header to sort in either direction.
-
-### Run Local — Open-Weight Models
-Select your GPU and quantization level to see which open-weight models fit in your VRAM, with estimated inference speed.
-
-### Image Gen — Image Model Rankings
-ELO-based leaderboard of image generation models across 15 style categories, sourced from the AA Image Arena. Includes a scatter view comparing ELO vs. price.
-
-### Video Gen — Video Model Rankings
-Ranked comparison of video generation models with pricing and quality data.
+**AI Frontier** makes those tradeoffs visible. It scrapes live benchmark data from [Artificial Analysis](https://artificialanalysis.ai/) every hour and surfaces the full competitive landscape through 11 interactive tabs — no sign-in, no API key required.
 
 ---
 
-## Data
+## Dashboard Tabs
 
-| Metric | Source | Description |
+| Tab | Description |
+|---|---|
+| **Overview** | Bubble scatter of every model — x = price, y = intelligence, size = speed. Dotted Pareto frontier highlights best value per dollar. Color and marker shape both encode provider for colorblind accessibility. |
+| **Agent Stack** | Pick a workflow (API-only, Hybrid, Local-only) and get a three-tier model recommendation: Fast, Balanced, and Reasoning. Filter by GPU and quantization in Hybrid/Local mode. |
+| **Landscape** | Treemap of the AI industry: tile area = model count per provider, color intensity = average intelligence. Followed by a provider leaderboard. |
+| **Rankings** | Top 25 models by Intelligence, Value (score/$), or Speed. Tier-separator lines mark meaningful performance gaps. |
+| **Compare** | Head-to-head radar chart across five dimensions: Intelligence, Speed, Affordability, Context Window, and Latency. Supports up to 5 models simultaneously. |
+| **Budget** | Enter a monthly token volume and see projected API cost per model, sorted cheapest-first. |
+| **Table** | Full sortable table of all 255+ models with every available metric. |
+| **Run Local** | Select a GPU and quantization level to see which open-weight models fit in VRAM, with estimated inference speed. |
+| **Image Gen** | ELO-based leaderboard of image generation models across 15 style categories from the AA Image Arena. |
+| **Video Gen** | Ranked comparison of video generation models with pricing and quality data. |
+| **Trends** | Price-over-time chart tracking how API pricing has shifted across daily snapshots. |
+
+---
+
+## Data Sources
+
+| Metric | Source | Notes |
 |---|---|---|
-| **Intelligence** | [Artificial Analysis](https://artificialanalysis.ai/) | Composite benchmark score across reasoning, coding, and knowledge tasks |
-| **Price** | Artificial Analysis | USD per 1M tokens — blended 3:1 output/input ratio, from the single cheapest API host |
-| **Speed** | Artificial Analysis | Tokens/second from the same host as the price |
-| **Latency** | Artificial Analysis | Median time-to-first-token (TTFT) in seconds |
-| **Context Window** | Artificial Analysis | Maximum input length the model supports |
-| **Image ELO** | AA Image Arena | Human-preference ranking across 15 style categories |
+| Intelligence | [Artificial Analysis](https://artificialanalysis.ai/) | Composite of reasoning, coding, math, and knowledge benchmarks |
+| Price | Artificial Analysis | USD per 1M tokens — blended 3:1 output/input ratio, cheapest available host |
+| Speed | Artificial Analysis | Median tokens/second from the same host as the price |
+| Latency | Artificial Analysis | Median time-to-first-token (TTFT) in seconds |
+| Context Window | Artificial Analysis | Maximum supported input length |
+| Image ELO | AA Image Arena | Human-preference ranking across 15 style categories |
+| Open-weight models | Manufacturer specs | GPU VRAM, parameter counts, quantization levels |
 
-Data is scraped live from Artificial Analysis. The LLM dataset currently covers **255+ models** across **29+ providers**. A daily snapshot is saved each run and used to power the Rankings history.
+The LLM dataset currently covers **255+ models** across **29+ providers**. A timestamped snapshot is saved on each run and powers the Trends tab.
 
 ---
 
 ## Running Locally
 
-You'll need Python 3.11+.
+Requires **Python 3.11+**.
 
 ```bash
-# 1. Clone the repo
+# Clone the repo
 git clone https://github.com/Avo-Sarkissian/AI-Frontier-Database.git
 cd AI-Frontier-Database
 
-# 2. Create and activate a virtual environment
+# Create and activate a virtual environment
 python -m venv ai-frontier
 source ai-frontier/bin/activate   # Windows: ai-frontier\Scripts\activate
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Launch the dashboard
+# Launch the dashboard
 python app.py
 ```
 
-Open **http://localhost:8050** in your browser. The scraper fetches fresh data on startup and every hour in the background.
+Open **http://localhost:8050**. The scraper fetches fresh data on startup and runs in the background every hour — no manual refresh needed.
+
+---
+
+## Architecture
+
+```
+app.py                   # Dash app entry point, tab routing, background scraper
+components/
+  charts/                # One module per visualization (pareto, radar, treemap, …)
+  stack_recommender.py   # Agent stack recommendation logic
+data/
+  scraper.py             # Pulls live data from Artificial Analysis API
+  ingest.py             # Parses API response, manages CSV cache and history
+  raw/                   # Live cache + daily timestamped snapshots
+utils/
+  model_lookup.py        # Shared model metadata helpers
+assets/
+  style.css              # Global dark theme, typography
+```
 
 ---
 
@@ -89,12 +98,13 @@ Open **http://localhost:8050** in your browser. The scraper fetches fresh data o
 
 | Tool | Role |
 |---|---|
-| [Plotly Dash](https://dash.plotly.com/) | Interactive web framework |
-| [Plotly](https://plotly.com/python/) | Charts and visualizations |
-| [Pandas](https://pandas.pydata.org/) | Data processing |
-| [requests](https://docs.python-requests.org/) | Live data scraping from AA API |
-| [NumPy](https://numpy.org/) | Numerical operations (Pareto, correlation) |
+| [Plotly Dash](https://dash.plotly.com/) | Interactive web framework — Python functions rendered as a live site |
+| [Plotly](https://plotly.com/python/) | All charts and visualizations |
+| [Pandas](https://pandas.pydata.org/) | Data ingestion, filtering, and Pareto computation |
+| [requests](https://docs.python-requests.org/) | Live data scraping from the Artificial Analysis API |
+| [NumPy](https://numpy.org/) | Numerical operations (Pareto frontier, correlation) |
+| [Render](https://render.com/) | Cloud hosting — redeploys automatically on every push |
 
 ---
 
-*Data Visualization project — Northeastern University, Spring 2026*
+*Data Visualization — EECE 5642, Northeastern University, Spring 2026*

@@ -28,6 +28,9 @@ qa-*.png
 *.png
 .playwright-mcp/
 
+# Claude Code local config (not project-level CLAUDE.md)
+.claude/
+
 # Python cache
 __pycache__/
 *.pyc
