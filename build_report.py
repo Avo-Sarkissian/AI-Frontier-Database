@@ -71,7 +71,7 @@ def add_body(doc, text, indent=False):
     """Body paragraph — 12pt Times New Roman, justified, first-line indent."""
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    para_spacing(p, before=0, after=6, line=1.15)
+    para_spacing(p, before=0, after=3, line=1.13)
     if indent:
         pPr = p._p.get_or_add_pPr()
         ind = OxmlElement("w:ind")
@@ -140,7 +140,7 @@ set_run_font(affil_run, size=11, color=(80, 80, 80))
 email_p = doc.add_paragraph()
 email_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 para_spacing(email_p, before=0, after=12)
-email_run = email_p.add_run("avohsarkissian@gmail.com")
+email_run = email_p.add_run("sarkissian.a@northeastern.edu")
 set_run_font(email_run, size=11, color=(80, 80, 80))
 
 # Divider line
@@ -359,20 +359,73 @@ add_body(doc,
 add_body(doc,
     "Trends — line chart over time. The historical snapshot system makes this tab possible. "
     "Plotting API prices over time shows a market that moves fast: several major providers dropped "
-    "prices significantly between February and April 2026. A static dataset would miss this "
-    "entirely.",
+    "prices significantly between February and April 2026. A static dataset would miss this entirely.",
+    indent=True)
+
+add_heading(doc, "4.3  Run Local: Hardware Compatibility and Inference Estimation", level=2)
+
+add_body(doc,
+    "The Run Local tab addresses a question that no major leaderboard answers: given specific "
+    "hardware, which open-weight models can I actually run, and how fast will they be? Running "
+    "models locally has real advantages — data never leaves the machine, there is no per-token cost "
+    "after the hardware is purchased, latency has no network component, and inference works offline. "
+    "The challenge is that the answer depends on the interaction between model size, quantization "
+    "level, and the GPU's available VRAM and memory bandwidth. Figuring this out manually requires "
+    "looking up specs across multiple sources and doing arithmetic — the tab automates all of it.",
     indent=True)
 
 add_body(doc,
-    "Run Local — VRAM compatibility calculator. The user selects a GPU and quantization level; "
-    "the dashboard filters the open-weight model catalog to models whose estimated VRAM requirement "
-    "fits the selected GPU's memory and displays estimated inference speed in tokens per second. "
-    "VRAM requirements scale with parameter count and bit-width; the formula accounts for model "
-    "weights, KV-cache overhead, and activation memory. Quantization levels range from full "
-    "precision (FP16/BF16) through 8-bit and 4-bit approximations.",
+    "The user selects a GPU from a dropdown covering NVIDIA RTX 3000, 4000, and 5000 series; "
+    "AMD RX 7000 series; Apple Silicon M-series (M1 through M4, Pro/Max/Ultra variants); and Intel "
+    "Arc. They also select a quantization level: FP16/BF16 (full precision), Q8, Q4, or Q2. The "
+    "dashboard immediately updates two outputs: a compatibility table listing every model that fits "
+    "in the selected GPU's VRAM, and a scatter plot of all models in the catalog with intelligence "
+    "score on the x-axis and estimated tokens per second on the y-axis.",
     indent=True)
 
-add_heading(doc, "4.3  Design Principles", level=2)
+add_body(doc,
+    "VRAM requirement is estimated as: VRAM ≈ N × B × 1.2, where N is the parameter count in "
+    "billions, B is bytes per parameter at the selected quantization level (2 for FP16/BF16, 1 for "
+    "Q8, 0.5 for Q4, 0.25 for Q2), and the 1.2 overhead factor accounts for KV-cache, activations, "
+    "and framework memory. A model is marked compatible if this estimate falls below the GPU's VRAM "
+    "capacity. Inference speed is estimated as: tokens/sec ≈ bandwidth (GB/s) ÷ (N × B). This "
+    "captures a key property of LLM inference: for single-user local use, the bottleneck is almost "
+    "always memory bandwidth rather than compute. A GPU with twice the bandwidth produces roughly "
+    "twice the throughput for the same model at the same quantization level.",
+    indent=True)
+
+add_body(doc,
+    "Apple Silicon deserves a specific note here. The M-series chips use a unified memory "
+    "architecture where the CPU, GPU, and neural engine share the same physical memory pool. This "
+    "gives them two advantages in the Run Local context: the VRAM capacity is the full system memory "
+    "(up to 192 GB on an M2 Ultra), and memory bandwidth is competitive with discrete GPUs at a "
+    "fraction of the power draw. An M3 Max with 128 GB of unified memory can run 70B parameter "
+    "models at Q4 — something that would require a multi-GPU setup on discrete hardware. The "
+    "dashboard reflects this accurately because the catalog uses official Apple-published bandwidth "
+    "figures rather than extrapolations.",
+    indent=True)
+
+add_body(doc,
+    "The scatter plot uses two visual layers. Compatible models are plotted in full color with "
+    "marker size proportional to parameter count; incompatible models are shown in a muted gray "
+    "rather than hidden entirely. Showing incompatible models matters because a user can immediately "
+    "see how close a model is to fitting — a model requiring 26 GB on a 24 GB GPU might become "
+    "compatible at the next quantization level down. The intelligence score axis lets the user "
+    "evaluate the quality tradeoff of quantizing further: dropping from Q8 to Q4 roughly halves "
+    "VRAM and doubles speed, but may reduce benchmark performance by a few points depending on the "
+    "model architecture.",
+    indent=True)
+
+add_body(doc,
+    "Critically, every open-weight model in the catalog carries the same composite intelligence "
+    "score used throughout the rest of the dashboard. This means a user can directly compare a "
+    "locally running Llama 3.3 70B at Q4 against GPT-4o or Claude 3.5 Sonnet on the same 0–100 "
+    "scale. That cross-ecosystem comparison — local hardware versus hosted API, side by side — is "
+    "the core contribution of this tab and something dedicated local inference tools like Ollama or "
+    "LM Studio do not provide.",
+    indent=True)
+
+add_heading(doc, "4.4  Design Principles", level=2)
 
 add_body(doc,
     "Three decisions carried through all eleven tabs. First, data-ink ratio: gridlines, outer "
@@ -393,7 +446,7 @@ add_body(doc,
     "right-skewed distributions hide the variation at the low end, where most models sit.",
     indent=True)
 
-add_heading(doc, "4.4  Technical Stack", level=2)
+add_heading(doc, "4.5  Technical Stack", level=2)
 
 add_body(doc,
     "The dashboard runs on Plotly Dash, which compiles Python component trees into a live web "
