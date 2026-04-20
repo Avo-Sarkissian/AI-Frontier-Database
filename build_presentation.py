@@ -156,7 +156,7 @@ def add_chip(slide, x, y, label, *, color=ACCENT, fill=ACCENT_DIM, size=9):
     return shp, w
 
 
-TOTAL_SLIDES = 8
+TOTAL_SLIDES = 11
 
 
 def add_header(slide, eyebrow, title, page_num):
@@ -582,14 +582,146 @@ for i, (tier, where, role, col) in enumerate(tiers):
              where, size=10, bold=True, color=TEXT_2, align=PP_ALIGN.RIGHT)
 
 
-# ── Slide 8 — DEMO ─────────────────────────────────────────────────────────
+# ── Slide 8 — CONTRIBUTIONS + NOVELTY ─────────────────────────────────────
+s = prs.slides.add_slide(BLANK)
+set_bg(s)
+add_header(s, "08 · CONTRIBUTIONS", "What's new here", 8)
+add_footer(s)
+
+add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.45),
+         "Most leaderboards rank models. Most pricing pages don't include quality. AI Frontier does both, live.",
+         size=14, color=TEXT_2)
+
+contrib_items = [
+    ("LIVE DATA",
+     "Hourly scrape of 255+ models. No manual refresh, no stale numbers. Over 30 daily snapshots preserved for trend analysis.",
+     ACCENT),
+    ("CROSS-MODAL",
+     "Text, image generation, and video generation in one dashboard. Local open-weight models alongside paid APIs — a comparison that doesn't exist in one place elsewhere.",
+     PURPLE),
+    ("HYBRID STACK",
+     "Agent Stack tab recommends a three-tier model setup (reasoning, balanced, fast) for agentic workflows. Practical output, not just a ranking.",
+     GREEN),
+    ("OPEN SOURCE",
+     "Full pipeline — scraper, scoring, all eleven visualization modules — is public on GitHub and redeployable.",
+     ORANGE),
+]
+gap = Inches(0.18)
+cw = (SLIDE_W - Inches(1.2) - gap * 3) / 4
+ch = Inches(3.5)
+cy = Inches(2.55)
+for i, (title, body, col) in enumerate(contrib_items):
+    cx = Inches(0.6) + (cw + gap) * i
+    add_rect(s, cx, cy, cw, ch, fill=BG_CARD)
+    add_rect(s, cx, cy, cw, Inches(0.05), fill=col)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.35), cw - Inches(0.6),
+             Inches(0.35), title, size=10, bold=True, color=col, tracking=160)
+    add_text(s, cx + Inches(0.3), cy + Inches(0.85), cw - Inches(0.6),
+             Inches(2.5), body, size=12, color=TEXT_1)
+
+
+# ── Slide 9 — FUTURE WORK ──────────────────────────────────────────────────
+s = prs.slides.add_slide(BLANK)
+set_bg(s)
+add_header(s, "09 · FUTURE", "What comes next", 9)
+add_footer(s)
+
+add_text(s, Inches(0.6), Inches(1.85), Inches(12), Inches(0.45),
+         "The infrastructure is in place — most of these are data and UI additions, not architecture changes.",
+         size=14, color=TEXT_2)
+
+future_items = [
+    ("Per-category scores",
+     "Reasoning, coding, math, and knowledge breakdowns are collected but not yet surfaced in the Compare tab. Adding them makes model selection more precise."),
+    ("Cost modeling",
+     "The Budget tab estimates from token count only. Caching multipliers and multi-turn conversation overhead matter in production — these should be factored in."),
+    ("Latency monitoring",
+     "Track actual measured time-to-first-token by region rather than relying on published medians. Provider SLAs vary and are not always reflected in spec sheets."),
+    ("Saved comparisons",
+     "Let users bookmark a set of models and return to a pre-filtered view. Currently everything resets on refresh."),
+    ("Mobile layout",
+     "The dashboard is usable on desktop but not optimized for smaller screens. Several tabs would benefit from a stacked single-column layout on mobile."),
+]
+lx = Inches(0.6)
+fw = SLIDE_W - Inches(1.2)
+fh = Inches(0.72)
+fgap = Inches(0.12)
+fy0 = Inches(2.55)
+for i, (title, body) in enumerate(future_items):
+    yy = fy0 + (fh + fgap) * i
+    add_rect(s, lx, yy, fw, fh, fill=BG_CARD)
+    add_rect(s, lx, yy, Inches(0.06), fh, fill=ACCENT)
+    add_text(s, lx + Inches(0.25), yy + Inches(0.12), Inches(2.4), Inches(0.3),
+             title, size=11, bold=True, color=TEXT_1)
+    add_text(s, lx + Inches(2.75), yy + Inches(0.12), fw - Inches(3.0), Inches(0.48),
+             body, size=11, color=TEXT_2)
+
+
+# ── Slide 10 — REFERENCES + MEMBER ─────────────────────────────────────────
+s = prs.slides.add_slide(BLANK)
+set_bg(s)
+add_header(s, "10 · REFS", "References and contributions", 10)
+add_footer(s)
+
+# Left: References
+rlx = Inches(0.6); rly = Inches(1.95); rlw = Inches(7.8); rlh = Inches(4.85)
+add_rect(s, rlx, rly, rlw, rlh, fill=BG_CARD)
+add_text(s, rlx + Inches(0.3), rly + Inches(0.3), rlw - Inches(0.6), Inches(0.3),
+         "REFERENCES", size=9, bold=True, color=ACCENT, tracking=140)
+
+refs = [
+    ("Artificial Analysis API", "artificialanalysis.ai — live pricing and benchmark aggregation"),
+    ("MMLU-Pro", "Wang et al., 2024. MMLU-Pro: Massive Multitask Language Understanding Pro"),
+    ("GPQA", "Rein et al., 2023. GPQA: A Graduate-Level Google-Proof Q&A Benchmark"),
+    ("LiveCodeBench", "Jain et al., 2024. LiveCodeBench: Holistic and Contamination Free Evaluation"),
+    ("AIME / MATH-500", "AMC/AIME competition problems; Hendrycks et al., MATH dataset"),
+    ("Humanity's Last Exam", "Scale AI, 2025. Humanity's Last Exam benchmark"),
+    ("HuggingFace", "huggingface.co — open-weight model cards and parameter counts"),
+    ("Plotly Dash", "plotly.com/dash — Python web framework for interactive visualizations"),
+]
+ry0 = rly + Inches(0.75)
+for i, (title, detail) in enumerate(refs):
+    yy = ry0 + Inches(0.5) * i
+    add_text(s, rlx + Inches(0.5), yy, rlw - Inches(0.8), Inches(0.25),
+             f"[{i+1}]  {title}", size=11, bold=True, color=TEXT_1)
+    add_text(s, rlx + Inches(0.5), yy + Inches(0.22), rlw - Inches(0.8), Inches(0.22),
+             detail, size=10, color=TEXT_3)
+
+# Right: Member contributions
+rmx = Inches(8.65); rmy = Inches(1.95); rmw = Inches(4.1); rmh = Inches(4.85)
+add_rect(s, rmx, rmy, rmw, rmh, fill=BG_CARD)
+add_text(s, rmx + Inches(0.3), rmy + Inches(0.3), rmw - Inches(0.6), Inches(0.3),
+         "MEMBER CONTRIBUTIONS", size=9, bold=True, color=ACCENT, tracking=140)
+add_text(s, rmx + Inches(0.3), rmy + Inches(0.75), rmw - Inches(0.6), Inches(0.45),
+         "Avo Sarkissian", size=18, bold=True, color=TEXT_1)
+add_text(s, rmx + Inches(0.3), rmy + Inches(1.2), rmw - Inches(0.6), Inches(0.25),
+         "Northeastern University · EECE 5642", size=10, color=TEXT_3)
+
+member_tasks = [
+    "Data pipeline + hourly scraper",
+    "Composite intelligence scoring",
+    "All 11 visualization modules",
+    "VRAM compatibility calculator",
+    "Hybrid stack recommender",
+    "Render deployment + CI",
+    "Presentation + report",
+]
+mt0 = rmy + Inches(1.7)
+for i, task in enumerate(member_tasks):
+    yy = mt0 + Inches(0.42) * i
+    add_rect(s, rmx + Inches(0.35), yy + Inches(0.12), Inches(0.08), Inches(0.08), fill=ACCENT)
+    add_text(s, rmx + Inches(0.58), yy, rmw - Inches(0.8), Inches(0.35),
+             task, size=11, color=TEXT_2)
+
+
+# ── Slide 11 — DEMO ────────────────────────────────────────────────────────
 s = prs.slides.add_slide(BLANK)
 set_bg(s)
 
 # Header chip + page number
 add_chip(s, Inches(0.6), Inches(0.6), "07 · LIVE", color=ACCENT, fill=ACCENT_DIM)
 add_text(s, SLIDE_W - Inches(1.2), Inches(0.65), Inches(0.6), Inches(0.3),
-         f"08 / {TOTAL_SLIDES:02d}", size=9, color=TEXT_3, align=PP_ALIGN.RIGHT,
+         f"11 / {TOTAL_SLIDES:02d}", size=9, color=TEXT_3, align=PP_ALIGN.RIGHT,
          tracking=120, bold=True)
 
 add_text(s, Inches(0.6), Inches(1.6), Inches(12), Inches(2.0),
