@@ -116,7 +116,7 @@ def add_figure(doc, img_path, fig_num, caption_text):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para_spacing(p, before=10, after=2)
-    p.add_run().add_picture(img_path, width=Inches(5.0))
+    p.add_run().add_picture(img_path, width=Inches(6.0))
     cap = doc.add_paragraph()
     cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     para_spacing(cap, before=2, after=12)
