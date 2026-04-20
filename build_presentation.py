@@ -727,7 +727,7 @@ add_text(s, SLIDE_W - Inches(1.2), Inches(0.65), Inches(0.6), Inches(0.3),
 add_text(s, Inches(0.6), Inches(1.6), Inches(12), Inches(2.0),
          "Live Demo", size=80, bold=True, color=TEXT_1)
 add_text(s, Inches(0.6), Inches(3.05), Inches(12), Inches(0.6),
-         "→ localhost:8050", size=24, color=ACCENT, bold=True)
+         "→ ai-frontier-database.onrender.com", size=20, color=ACCENT, bold=True)
 
 # Walkthrough cards
 items = [

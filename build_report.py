@@ -216,7 +216,8 @@ add_body(doc,
     "tools covered the local hardware question at all. The dashboard pulls live price and "
     "performance data on an hourly schedule and organizes it into eleven views, each built around "
     "a question users actually ask. It's been deployed at a public URL and all the code is "
-    "open-source at https://github.com/Avo-Sarkissian/AI-Frontier-Database.",
+    "open-source at https://github.com/Avo-Sarkissian/AI-Frontier-Database. "
+    "The live dashboard is at https://ai-frontier-database.onrender.com.",
     indent=True)
 
 
