@@ -160,15 +160,16 @@ pPr.append(pBdr)
 # ── Abstract ─────────────────────────────────────────────────────────────────
 add_heading(doc, "Abstract")
 abstract_text = (
-    "The number of commercially available large language models has grown to the point where no "
-    "single leaderboard covers all the dimensions that matter for practical use: price, throughput, "
-    "latency, context window size, and benchmark performance. AI Frontier is an interactive "
-    "dashboard that aggregates live data for 255+ models across 29 providers, refreshed every hour "
-    "from the Artificial Analysis API, and makes the full competitive landscape navigable through "
-    "eleven specialized views. The system runs entirely in Python using Plotly Dash and has been "
-    "deployed at a public URL since March 2026. This report covers the data pipeline, composite "
-    "intelligence scoring methodology, visualization design decisions, and the tradeoffs made when "
-    "building a real-time data visualization tool without a JavaScript build step."
+    "Hundreds of large language models are now publicly available through hosted APIs, each with "
+    "different tradeoffs in price, speed, and capability — but there's no single place to compare "
+    "them across all those dimensions at once. AI Frontier is an interactive dashboard tracking "
+    "255+ models across 29 providers, pulling live pricing and benchmark data every hour from the "
+    "Artificial Analysis API. It covers text, image, and video generation models alongside a "
+    "hardware compatibility tool for locally runnable open-weight models. The whole system runs in "
+    "Python using Plotly Dash and has been live since March 2026. This report describes the data "
+    "pipeline, the composite intelligence scoring approach, and the design decisions behind each "
+    "of the eleven visualization tabs — with particular attention to the Run Local feature, which "
+    "turned out to be the most technically involved part of the project."
 )
 p = add_body(doc, abstract_text)
 
@@ -177,36 +178,32 @@ p = add_body(doc, abstract_text)
 add_heading(doc, "1.  Introduction")
 
 add_body(doc,
-    "Selecting a large language model for a real application used to be straightforward — a handful "
-    "of options existed and the best one was obvious for most tasks. That changed fast. As of spring "
-    "2026, over 29 companies offer models through hosted APIs, each making different tradeoffs in "
-    "price, capability, and latency. A model that scores 70 on reasoning benchmarks might cost twenty "
-    "times more per token than one that scores 65. A local model that fits on a consumer GPU might "
-    "outperform a paid API for a narrow task. Without a way to see all of this together, model "
-    "selection is largely guesswork.",
+    "A year ago, picking an LLM for a project meant choosing from maybe five or six realistic "
+    "options. That's not the case anymore. As of spring 2026, there are commercially hosted models "
+    "from OpenAI, Anthropic, Google, Meta, Mistral, Cohere, and dozens of others, each with "
+    "different pricing tiers, context windows, and benchmark profiles. A model scoring 70 on "
+    "reasoning benchmarks might cost 20 times more per token than one scoring 65. Some tasks don't "
+    "need the smartest model available — they need the fastest or cheapest one that clears a "
+    "minimum quality bar. Without a unified place to see this, choosing a model is mostly "
+    "trial and error.",
     indent=True)
 
 add_body(doc,
-    "Existing leaderboards do one thing well. The LMSYS Chatbot Arena ranks models on human "
-    "preference. The Hugging Face Open LLM Leaderboard tracks open-weight models on academic "
-    "benchmarks. But neither shows live pricing, and most don't update on a daily schedule. Provider "
-    "dashboards show pricing but not quality scores. Nobody shows both, live, with a way to filter "
-    "and compare across text, image, and video generation alongside locally runnable models.",
+    "Existing tools each solve part of the problem. The LMSYS Chatbot Arena has good quality "
+    "coverage but doesn't show pricing. The Hugging Face Open LLM Leaderboard is useful for "
+    "open-weight models but doesn't include hosted API services. Provider pricing pages list costs "
+    "but not benchmark scores. And none of them address local hardware compatibility — if you want "
+    "to know whether Llama 3.3 70B will run on your GPU at a useful speed, you're cross-referencing "
+    "multiple spec sheets and doing arithmetic by hand.",
     indent=True)
 
 add_body(doc,
-    "AI Frontier fills that gap. The core idea is simple: pull current price and performance data "
-    "for every major model on a regular schedule and surface it through enough visualization types "
-    "that different kinds of users can answer different questions. A developer wants to know the "
-    "cheapest model above a quality threshold. A researcher wants to see which provider is "
-    "consistently leading. A student wants to know what will fit in their GPU's memory. Each of "
-    "those questions needs a different view of the same data.",
-    indent=True)
-
-add_body(doc,
-    "The project was built for EECE 5642 (Data Visualization) at Northeastern University. "
-    "The dashboard is publicly accessible and all code is open-source at "
-    "https://github.com/Avo-Sarkissian/AI-Frontier-Database.",
+    "AI Frontier started from that specific frustration. I kept needing to have three or four tabs "
+    "open simultaneously to make even basic model selection decisions, and none of the existing "
+    "tools covered the local hardware question at all. The dashboard pulls live price and "
+    "performance data on an hourly schedule and organizes it into eleven views, each built around "
+    "a question users actually ask. It's been deployed at a public URL and all the code is "
+    "open-source at https://github.com/Avo-Sarkissian/AI-Frontier-Database.",
     indent=True)
 
 
@@ -215,33 +212,30 @@ add_heading(doc, "2.  Data Sources and Pipeline")
 add_heading(doc, "2.1  Cloud Model Data", level=2)
 
 add_body(doc,
-    "The primary data source is the Artificial Analysis API, which tracks pricing and benchmark "
-    "data for commercially hosted LLMs. For each model it provides: price per million tokens "
-    "(input and output, at the cheapest available provider), median tokens per second (throughput), "
-    "median time-to-first-token (latency), context window size, and a composite intelligence score. "
-    "The API is queried once per hour by a background thread that starts when the application "
-    "launches.",
+    "The main data source is the Artificial Analysis API, which aggregates pricing and benchmark "
+    "results for commercially hosted LLMs. For each model it returns price per million tokens "
+    "(input and output, at the cheapest available host), median throughput in tokens per second, "
+    "median time-to-first-token, context window size, and a composite quality score. The scraper "
+    "runs as a background thread that fires once an hour, starting when the app launches.",
     indent=True)
 
 add_body(doc,
-    "Each successful API response is written to a CSV cache and also saved as a timestamped "
-    "snapshot in a history directory. Over 30 daily snapshots have accumulated since the project "
-    "launched; these power the Trends tab, which shows how model pricing has shifted over time. A "
-    "blended price per million tokens is computed from raw input/output prices using a 3:1 "
-    "output-to-input ratio, approximating real-world usage patterns and collapsing two numbers "
-    "into one for display.",
+    "Every successful response gets written to a live CSV cache and also saved as a timestamped "
+    "snapshot. By mid-April 2026 over 30 daily snapshots had accumulated, which is what powers "
+    "the Trends tab. The price field shown throughout the dashboard is a blended rate computed "
+    "from raw input/output prices at a 3:1 output-to-input ratio — a rough approximation of "
+    "real-world token usage, but better than showing two separate numbers on every chart.",
     indent=True)
 
 add_heading(doc, "2.2  Local Model and Hardware Data", level=2)
 
 add_body(doc,
-    "The second data source is a manually curated catalog of open-weight models and GPU hardware "
-    "specifications. GPU memory bandwidth and VRAM capacity were pulled from official product pages "
-    "(NVIDIA, AMD, Apple, Intel). Model parameter counts and quantization support were taken from "
-    "Hugging Face model cards. This catalog is static rather than live — it is updated when "
-    "significant new hardware generations or model families are released. It backs the Run Local "
-    "tab, which estimates whether a given model fits in a selected GPU's memory and how fast it "
-    "would run.",
+    "The local model catalog is a separate, manually maintained dataset. GPU specs — VRAM "
+    "capacity and memory bandwidth — came from official product pages for NVIDIA, AMD, Apple, "
+    "and Intel hardware. Model parameter counts and quantization support came from Hugging Face "
+    "model cards. This one doesn't update automatically; I update it when a notable new GPU "
+    "generation or model family ships. Hardware specs don't change the way API prices do, so a "
+    "static catalog is the right call here.",
     indent=True)
 
 
@@ -249,9 +243,9 @@ add_body(doc,
 add_heading(doc, "3.  Intelligence Score and Benchmark Methodology")
 
 add_body(doc,
-    "The intelligence score displayed throughout the dashboard is inherited from Artificial "
-    "Analysis, which aggregates results from multiple public evaluations into a single 0–100 "
-    "composite. The score covers four categories:",
+    "Rather than building a custom benchmark aggregation, the dashboard uses the composite "
+    "intelligence score that Artificial Analysis computes and exposes through their API. It's a "
+    "0–100 score averaged across four categories:",
     indent=True)
 
 add_bullet(doc,
@@ -269,17 +263,19 @@ add_bullet(doc,
     bold_prefix="Knowledge:")
 
 add_body(doc,
-    "Using multiple benchmarks matters here. A model fine-tuned heavily on MMLU training data "
-    "might rank first on that test alone but fall to the middle on LiveCodeBench. Averaging across "
-    "categories rewards models that are broadly capable rather than narrowly optimized, and it "
-    "allows API-hosted and local open-weight models to be compared on the same scale.",
+    "The rationale for averaging across categories is contamination resistance. A model that was "
+    "heavily fine-tuned on MMLU-style data might top that individual test while being mediocre on "
+    "code or math. An average across four independent evaluations is harder to game and gives a "
+    "more reliable picture of general capability. It also means API and open-weight models end up "
+    "on the same scale, which is important for the Run Local comparison.",
     indent=True)
 
 add_body(doc,
-    "The main limitation of composite scores is that they smooth over real differences. Two models "
-    "with the same composite score can have completely different strength profiles — one excellent "
-    "at coding and weak at math, the other the reverse. The Compare tab (radar chart) exists "
-    "specifically to surface these within-score differences.",
+    "The downside of any composite score is that it collapses real differences. Two models at 72 "
+    "can have completely different profiles — one strong at reasoning and weak at math, the other "
+    "the reverse. That's exactly what the Compare tab is for: it breaks out all four dimensions "
+    "on a radar chart so you can see where models actually differ rather than just comparing "
+    "single numbers.",
     indent=True)
 
 
@@ -288,7 +284,7 @@ add_heading(doc, "4.  Dashboard Design")
 add_heading(doc, "4.1  Tab Structure", level=2)
 
 add_body(doc,
-    "The dashboard is organized into eleven tabs, each targeting a distinct question type:",
+    "The dashboard has eleven tabs, each built around a specific question:",
     indent=True)
 
 tabs = [
@@ -318,151 +314,154 @@ for tab, desc in tabs:
 add_heading(doc, "4.2  Visualization Choices", level=2)
 
 add_body(doc,
-    "Overview — bubble scatter with Pareto frontier. The challenge with comparing 255 models "
-    "simultaneously is that a ranked list hides tradeoffs. The bubble scatter encodes three "
-    "variables at once: price on the x-axis, quality score on the y-axis, and throughput as bubble "
-    "size. Log scale on price is necessary because model prices span roughly three orders of "
-    "magnitude — from under $0.01 to over $15 per million tokens — and a linear axis would "
-    "compress most models into one corner of the chart.",
+    "Overview — bubble scatter with Pareto frontier. The problem with showing 255 models "
+    "simultaneously is that a ranked list throws away the tradeoff information. A model ranked "
+    "5th might be half the price of the model ranked 4th with nearly identical quality. The bubble "
+    "scatter puts price on the x-axis, quality on the y-axis, and encodes throughput as bubble "
+    "size, so three variables are visible at once. Price needs to be on a log scale — the spread "
+    "goes from under a cent to over $15 per million tokens, and a linear axis would compress nearly "
+    "everything into one corner.",
     indent=True)
 
 add_body(doc,
-    "A dotted Pareto frontier connects the models that are undominated in the price-quality "
-    "tradeoff: points where any improvement in quality requires paying more, and any cost reduction "
-    "means accepting lower quality. The frontier is computed in Pandas on each data load using a "
-    "standard non-dominated sorting pass. Models on or near this curve represent the best practical "
-    "options for most use cases. Each provider is assigned both a color and a distinct marker shape, "
-    "making the chart readable for colorblind viewers without a separate mode or toggle.",
+    "The dotted Pareto frontier connects models that aren't dominated in the cost-quality "
+    "tradeoff — points where you can't improve quality without paying more, or cut cost without "
+    "accepting lower performance. It's recomputed from the live data on every load using a standard "
+    "non-dominated sorting pass in Pandas. Provider colors and marker shapes are both encoded on "
+    "the same dots, so colorblind users don't need a separate accessibility mode.",
     indent=True)
 
 add_body(doc,
-    "Rankings — horizontal bars with tier separators. For one-dimensional ranked comparisons, "
-    "horizontal bar charts are clearer than scatter plots. Tier separator lines are drawn wherever "
-    "the score gap between adjacent models exceeds a fixed threshold, marking meaningful performance "
-    "breaks rather than implying uniform spacing across the range.",
+    "Rankings — horizontal bars with tier separators. Rankings are one-dimensional comparisons, "
+    "and horizontal bars handle that more clearly than a scatter with one wasted axis. Tier "
+    "separator lines appear wherever the gap between adjacent models is large enough to represent "
+    "a real break in performance, not just noise. This keeps users from treating a 72 and a 71 as "
+    "equivalent just because they're next to each other on the list.",
     indent=True)
 
 add_body(doc,
-    "Compare — radar chart. Head-to-head comparison across five dimensions is a natural use case "
-    "for a radar chart. Each axis is normalized so all five dimensions are comparable on the same "
-    "scale. The limitation is that interpretation depends on axis ordering, which is fixed — "
-    "reordering axes would change the visible shape without changing any underlying values.",
+    "Compare — radar chart. When you want to see how five models differ across five dimensions at "
+    "once, a radar chart is the right tool. Each axis is normalized 0–5. The known limitation is "
+    "that the shape depends on axis ordering, which is fixed — rearranging the axes would change "
+    "what the polygon looks like without changing any underlying data. It's still more useful than "
+    "five separate bar charts for getting a quick cross-model profile.",
     indent=True)
 
 add_body(doc,
     "Landscape — treemap. Tile area encodes model count per provider; color intensity encodes "
-    "average intelligence. This communicates structural patterns that scatter plots miss — which "
-    "providers dominate by volume, which are new entrants, which specialize in high-capability "
-    "models. A ranked bar chart below it allows precise comparison of the same providers.",
+    "average intelligence score. It answers a different question than the other tabs: who dominates "
+    "by volume, which providers are newcomers with a narrow catalog, which ones specialize in "
+    "high-capability models. A ranked bar chart sits directly below it for precise comparisons — "
+    "the treemap gives the big picture, the bar chart gives the exact numbers.",
     indent=True)
 
 add_body(doc,
-    "Trends — line chart over time. The historical snapshot system makes this tab possible. "
-    "Plotting API prices over time shows a market that moves fast: several major providers dropped "
-    "prices significantly between February and April 2026. A static dataset would miss this entirely.",
+    "Trends — line chart over time. This tab only works because the scraper saves timestamped "
+    "snapshots rather than overwriting the same file. Looking at prices from February through "
+    "April 2026 makes something obvious that a static dataset would hide completely: the market "
+    "moved fast. Several major providers dropped prices significantly in that window.",
     indent=True)
 
 add_heading(doc, "4.3  Run Local: Hardware Compatibility and Inference Estimation", level=2)
 
 add_body(doc,
-    "The Run Local tab addresses a question that no major leaderboard answers: given specific "
-    "hardware, which open-weight models can I actually run, and how fast will they be? Running "
-    "models locally has real advantages — data never leaves the machine, there is no per-token cost "
-    "after the hardware is purchased, latency has no network component, and inference works offline. "
-    "The challenge is that the answer depends on the interaction between model size, quantization "
-    "level, and the GPU's available VRAM and memory bandwidth. Figuring this out manually requires "
-    "looking up specs across multiple sources and doing arithmetic — the tab automates all of it.",
+    "The most technically involved tab to build was Run Local. The question it answers — which "
+    "open-weight models will actually fit on my GPU, and how fast will they run — isn't something "
+    "any major leaderboard addresses. Running models locally has specific advantages: data stays "
+    "on the machine, there's no per-token cost after the hardware is paid for, there's no network "
+    "latency, and it works offline. The complication is that the answer depends on parameter count, "
+    "quantization level, and the GPU's VRAM and memory bandwidth all interacting together. Working "
+    "it out manually means pulling specs from several product pages and doing arithmetic — the tab "
+    "automates all of that.",
     indent=True)
 
 add_body(doc,
-    "The user selects a GPU from a dropdown covering NVIDIA RTX 3000, 4000, and 5000 series; "
-    "AMD RX 7000 series; Apple Silicon M-series (M1 through M4, Pro/Max/Ultra variants); and Intel "
-    "Arc. They also select a quantization level: FP16/BF16 (full precision), Q8, Q4, or Q2. The "
-    "dashboard immediately updates two outputs: a compatibility table listing every model that fits "
-    "in the selected GPU's VRAM, and a scatter plot of all models in the catalog with intelligence "
-    "score on the x-axis and estimated tokens per second on the y-axis.",
+    "Users pick a GPU from a dropdown covering NVIDIA RTX 3000, 4000, and 5000 series; AMD RX "
+    "7000 series; Apple Silicon from M1 through M4 (Pro, Max, and Ultra variants); and Intel Arc. "
+    "Then they select a quantization level: FP16/BF16 for full precision, or Q8, Q4, Q2 for "
+    "progressively smaller weights. Two outputs update immediately: a compatibility table of every "
+    "model that fits in the selected GPU's VRAM, and a scatter plot of the full catalog with "
+    "intelligence score on the x-axis and estimated tokens per second on the y-axis.",
     indent=True)
 
 add_body(doc,
-    "VRAM requirement is estimated as: VRAM ≈ N × B × 1.2, where N is the parameter count in "
-    "billions, B is bytes per parameter at the selected quantization level (2 for FP16/BF16, 1 for "
-    "Q8, 0.5 for Q4, 0.25 for Q2), and the 1.2 overhead factor accounts for KV-cache, activations, "
-    "and framework memory. A model is marked compatible if this estimate falls below the GPU's VRAM "
-    "capacity. Inference speed is estimated as: tokens/sec ≈ bandwidth (GB/s) ÷ (N × B). This "
-    "captures a key property of LLM inference: for single-user local use, the bottleneck is almost "
-    "always memory bandwidth rather than compute. A GPU with twice the bandwidth produces roughly "
-    "twice the throughput for the same model at the same quantization level.",
+    "VRAM is estimated as N × B × 1.2, where N is parameter count in billions, B is bytes per "
+    "weight (2 for FP16/BF16, 1 for Q8, 0.5 for Q4, 0.25 for Q2), and the 1.2 factor covers "
+    "KV-cache, activations, and runtime overhead. Speed is estimated as memory bandwidth (GB/s) "
+    "divided by (N × B). That formula comes from a straightforward observation: local LLM inference "
+    "at single-user scale is almost always memory-bandwidth-bound rather than compute-bound. Every "
+    "forward pass loads the model weights from memory; the GPU's ability to move data is the "
+    "bottleneck, not its floating-point throughput. Double the bandwidth, roughly double the "
+    "tokens per second.",
     indent=True)
 
 add_body(doc,
-    "Apple Silicon deserves a specific note here. The M-series chips use a unified memory "
-    "architecture where the CPU, GPU, and neural engine share the same physical memory pool. This "
-    "gives them two advantages in the Run Local context: the VRAM capacity is the full system memory "
-    "(up to 192 GB on an M2 Ultra), and memory bandwidth is competitive with discrete GPUs at a "
-    "fraction of the power draw. An M3 Max with 128 GB of unified memory can run 70B parameter "
-    "models at Q4 — something that would require a multi-GPU setup on discrete hardware. The "
-    "dashboard reflects this accurately because the catalog uses official Apple-published bandwidth "
-    "figures rather than extrapolations.",
+    "Apple Silicon is worth calling out specifically. The M-series chips use unified memory, "
+    "meaning the CPU, GPU, and neural engine all share the same physical pool. That makes the "
+    "effective 'VRAM' the full system memory — 96 GB on an M2 Max, 192 GB on an M2 Ultra — rather "
+    "than a discrete chip with its own fixed capacity. Combined with memory bandwidth that's "
+    "competitive with mid-range discrete GPUs, this makes Apple Silicon surprisingly capable for "
+    "local inference. An M3 Max at 128 GB can run a 70B model at Q4 comfortably; on an RTX 4090 "
+    "(24 GB), that same model needs Q2 just to fit. The dashboard uses Apple's published bandwidth "
+    "figures, so the estimates reflect real hardware rather than guesses.",
     indent=True)
 
 add_body(doc,
-    "The scatter plot uses two visual layers. Compatible models are plotted in full color with "
-    "marker size proportional to parameter count; incompatible models are shown in a muted gray "
-    "rather than hidden entirely. Showing incompatible models matters because a user can immediately "
-    "see how close a model is to fitting — a model requiring 26 GB on a 24 GB GPU might become "
-    "compatible at the next quantization level down. The intelligence score axis lets the user "
-    "evaluate the quality tradeoff of quantizing further: dropping from Q8 to Q4 roughly halves "
-    "VRAM and doubles speed, but may reduce benchmark performance by a few points depending on the "
-    "model architecture.",
+    "The scatter plot shows incompatible models in muted gray rather than hiding them. That "
+    "decision matters: a model needing 26 GB on a 24 GB card shows up dimmed rather than absent, "
+    "so the user can see it's close and try a lower quantization level without guessing. Compatible "
+    "models are plotted in full color with marker size proportional to parameter count, making it "
+    "easy to spot where large-but-slow models cluster versus the smaller-but-faster ones. Dropping "
+    "from Q8 to Q4 cuts VRAM roughly in half and doubles speed, but may shave a few benchmark "
+    "points depending on the model — the scatter makes that tradeoff visible.",
     indent=True)
 
 add_body(doc,
-    "Critically, every open-weight model in the catalog carries the same composite intelligence "
-    "score used throughout the rest of the dashboard. This means a user can directly compare a "
-    "locally running Llama 3.3 70B at Q4 against GPT-4o or Claude 3.5 Sonnet on the same 0–100 "
-    "scale. That cross-ecosystem comparison — local hardware versus hosted API, side by side — is "
-    "the core contribution of this tab and something dedicated local inference tools like Ollama or "
-    "LM Studio do not provide.",
+    "Every open-weight model in the catalog uses the same composite intelligence score as the "
+    "cloud models elsewhere in the dashboard. That means Llama 3.3 70B at Q4 on a local GPU and "
+    "GPT-4o on a hosted API both appear on the same 0–100 axis. Tools like Ollama and LM Studio "
+    "handle local inference well, but they don't put local models in context against the broader "
+    "API landscape. That comparison is what makes Run Local more than just a VRAM calculator.",
     indent=True)
 
 add_heading(doc, "4.4  Design Principles", level=2)
 
 add_body(doc,
-    "Three decisions carried through all eleven tabs. First, data-ink ratio: gridlines, outer "
-    "frames, and chart borders were stripped back wherever they add visual weight without encoding "
-    "information. The dark background (#0a0a0a) with high-contrast data elements reduces perceived "
-    "clutter compared to a white background at equivalent data density.",
+    "A few design choices applied across all eleven tabs. The biggest was data-ink ratio — every "
+    "gridline, chart border, and legend entry that didn't encode actual data got removed. The dark "
+    "background (#0a0a0a) helps here: dark backgrounds make data elements stand out without needing "
+    "the heavy whitespace that a white-background chart at the same density would require.",
     indent=True)
 
 add_body(doc,
-    "Second, colorblind accessibility: each provider gets both a color and a distinct marker shape, "
-    "kept consistent across all tabs. A user who learns either the colors or the shapes can navigate "
-    "between tabs without re-reading a legend.",
+    "Provider colors and marker shapes are both encoded on the same dots and bars, and they stay "
+    "consistent across all eleven tabs. That came from a specific accessibility concern — someone "
+    "with red-green colorblindness shouldn't need a separate mode to read the charts. Keeping the "
+    "same shapes across tabs also means you only have to learn the legend once.",
     indent=True)
 
 add_body(doc,
-    "Third, appropriate scales: price axes use log scale throughout. Context window sizes, which "
-    "range from 8K to over one million tokens, also use log scale. Linear scales for heavily "
-    "right-skewed distributions hide the variation at the low end, where most models sit.",
+    "Price axes use log scale throughout, as do context window sizes (which range from 8K to over "
+    "a million tokens). Linear scales for distributions this skewed compress all the variation into "
+    "one end of the axis. Most models sit at the low end of both price and context ranges, which is "
+    "exactly where log scale preserves the most detail.",
     indent=True)
 
 add_heading(doc, "4.5  Technical Stack", level=2)
 
 add_body(doc,
-    "The dashboard runs on Plotly Dash, which compiles Python component trees into a live web "
-    "interface without a JavaScript build step. All visualization logic is in Python using Plotly's "
-    "graph objects API; Dash handles HTTP routing, callback wiring, and component state. Using a "
-    "single language for the full stack — data pipeline, computation, and UI — simplified "
-    "deployment significantly. There is no Node.js dependency, no webpack config, and no separate "
-    "API server.",
+    "I built the whole stack in Python — data pipeline, scraper, and dashboard — using Plotly "
+    "Dash for the web layer. Dash compiles Python component trees into a live web app without a "
+    "JavaScript build step, which kept everything simple. No Node.js, no webpack, no separate API "
+    "server. The whole thing starts with python app.py.",
     indent=True)
 
 add_body(doc,
-    "The application is hosted on Render, which starts it with python app.py and redeploys "
-    "automatically on every push to the GitHub repository. The tradeoff is that some UI interactions "
-    "that would be instant in a React application require a server round-trip in Dash. In practice "
-    "this was acceptable because the dataset is under one megabyte and most callbacks return in "
-    "under 200 milliseconds.",
+    "The app is hosted on Render, which redeploys automatically on every GitHub push. The main "
+    "tradeoff with Dash versus a React frontend is that client-side interactions need a server "
+    "round-trip. In practice that wasn't a problem — the dataset is under a megabyte, callbacks "
+    "come back in roughly 200ms on the Render instance, and the use case doesn't require instant "
+    "client-side updates the way a real-time trading dashboard would.",
     indent=True)
 
 
@@ -470,25 +469,23 @@ add_body(doc,
 add_heading(doc, "5.  Contributions")
 
 add_body(doc,
-    "What AI Frontier adds relative to existing tools is the combination of live data with "
-    "multi-modal coverage. Static leaderboards go stale within days of a new model release. Most "
-    "pricing tools do not include benchmark scores. AI Frontier scrapes both automatically, covers "
-    "text generation, image generation, and video generation in one place, and includes local "
-    "open-weight models alongside API services — a side-by-side comparison that does not exist "
-    "elsewhere in a unified interface.",
+    "The thing this project adds that existing tools don't have is live, multi-modal coverage in "
+    "one place. Leaderboards like LMSYS and Open LLM are either human-preference ranked with no "
+    "pricing, or benchmark-only with no API metadata. Provider pricing pages don't have quality "
+    "scores. Nobody covers text, image, and video generation models alongside local hardware "
+    "compatibility in a single interface that updates automatically.",
     indent=True)
 
 add_body(doc,
-    "The Agent Stack tab translates the raw leaderboard data into a concrete configuration "
-    "decision. Given a workflow type, it recommends a three-tier model setup — reasoning, balanced, "
-    "and fast — and surfaces specific model options at each tier. For users building agentic "
-    "pipelines, this answers the practical question of which model to use for which subtask.",
+    "The Agent Stack tab goes a step further than ranking: given a workflow type, it recommends "
+    "a three-tier model configuration — reasoning, balanced, and fast — and lists specific models "
+    "at each tier. For anyone building an agentic pipeline, that's a more direct answer than "
+    "scrolling a ranked list and making the configuration decision themselves.",
     indent=True)
 
 add_body(doc,
-    "The full data pipeline and all eleven visualization modules are open-source. The dashboard "
-    "has served live data continuously since March 2026, with over 30 hourly snapshots preserved "
-    "for trend analysis.",
+    "All the code is open-source. The dashboard has been live since March 2026 with over 30 "
+    "daily snapshots archived, meaning the Trends tab will only get more useful over time.",
     indent=True)
 
 
@@ -496,27 +493,27 @@ add_body(doc,
 add_heading(doc, "6.  Future Work")
 
 add_body(doc,
-    "Several extensions are worth building. Per-category breakdown scores — reasoning, coding, "
-    "math, and knowledge separately — are collected by Artificial Analysis but not yet surfaced in "
-    "the Compare tab. Adding them would allow more targeted model selection than a single composite "
-    "number permits.",
+    "The most useful thing I didn't get to is per-category score breakdowns in the Compare tab. "
+    "Artificial Analysis provides reasoning, coding, math, and knowledge scores separately, but "
+    "currently the dashboard only shows the composite. Surfacing those four dimensions on the "
+    "radar chart would let users make much more targeted selections.",
     indent=True)
 
 add_body(doc,
-    "The Budget tab currently estimates cost from a token count alone. Prompt caching and multi-turn "
-    "context accumulation both affect real production API costs and are straightforward to model "
-    "given the existing pricing data. Fine-tuning cost estimation — factoring in training compute "
-    "alongside inference pricing — is a related addition that would be useful for teams evaluating "
-    "whether to fine-tune a cheaper model versus using a better one off-the-shelf.",
+    "The Budget tab only estimates cost from raw token count. It doesn't account for prompt "
+    "caching, which can cut effective cost by 80% or more for certain use cases, or for multi-turn "
+    "context buildup. Both matter for real production applications. Fine-tuning cost estimation — "
+    "weighing training compute against inference savings — is a related addition that would help "
+    "teams decide whether to fine-tune a cheaper model or just pay for a better one.",
     indent=True)
 
 add_body(doc,
-    "Measured API latency by region is the other obvious addition. Published time-to-first-token "
-    "medians from provider spec sheets are not always consistent with real-world performance under "
-    "load. The hourly polling infrastructure is already in place; extending it to include synthetic "
-    "request timing would give a more complete operational picture. A mobile-optimized layout is "
-    "also on the list — several tabs assume a wide desktop viewport and would need reworking for "
-    "smaller screens.",
+    "Real measured latency by region would also be valuable. Published time-to-first-token medians "
+    "from provider spec sheets don't always match what you actually see, especially under load. "
+    "The hourly scraper is already running; adding a synthetic request layer would just mean "
+    "logging actual response times alongside the existing metadata. A mobile layout is also on the "
+    "list — most tabs are built for a wide desktop viewport and would need real work on smaller "
+    "screens.",
     indent=True)
 
 
@@ -524,12 +521,14 @@ add_body(doc,
 add_heading(doc, "7.  Conclusion")
 
 add_body(doc,
-    "AI Frontier demonstrates that a practical, continuously updated data visualization tool can be "
-    "built and deployed entirely in Python without sacrificing interactivity or visual quality. The "
-    "dashboard aggregates live data from multiple sources, applies a composite benchmark scoring "
-    "methodology, and presents the results through eleven distinct visualization types — each "
-    "chosen to answer a specific class of user question. The project is publicly accessible, "
-    "open-source, and has remained operational since March 2026.",
+    "Building this project made a few things clear that weren't before. The LLM market moves fast "
+    "enough that a static tool is basically outdated the week it's published — prices dropped "
+    "meaningfully for several providers just in the time between starting this project and "
+    "finishing it. The Run Local comparison ended up mattering more than expected: there are "
+    "open-weight models that are competitive with paid APIs and run comfortably on consumer "
+    "hardware, but you'd never know it without something that puts them on the same scale. The "
+    "dashboard is still running at the GitHub link below and will keep updating as long as the "
+    "Artificial Analysis API does.",
     indent=True)
 
 
