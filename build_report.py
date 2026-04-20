@@ -111,6 +111,19 @@ def add_caption(doc, text):
     return p
 
 
+def add_figure(doc, img_path, fig_num, caption_text):
+    """Insert a centered figure with an italic caption."""
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para_spacing(p, before=10, after=2)
+    p.add_run().add_picture(img_path, width=Inches(5.0))
+    cap = doc.add_paragraph()
+    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    para_spacing(cap, before=2, after=12)
+    r = cap.add_run(f"Figure {fig_num}. {caption_text}")
+    set_run_font(r, size=10, italic=True, color=(90, 90, 90))
+
+
 # ── Title block ──────────────────────────────────────────────────────────────
 title_p = doc.add_paragraph()
 title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -331,6 +344,12 @@ add_body(doc,
     "the same dots, so colorblind users don't need a separate accessibility mode.",
     indent=True)
 
+add_figure(doc,
+    "/Users/avosarkissian/.claude/image-cache/185c344c-569b-4894-8aa8-44ed10cc2a4d/2.png",
+    1, "Overview tab: Cost vs. Intelligence bubble scatter with Pareto frontier overlay. "
+       "Each dot is one model; bubble size encodes throughput. The dotted line connects "
+       "undominated models in the cost-quality tradeoff.")
+
 add_body(doc,
     "Rankings — horizontal bars with tier separators. Rankings are one-dimensional comparisons, "
     "and horizontal bars handle that more clearly than a scatter with one wasted axis. Tier "
@@ -347,6 +366,11 @@ add_body(doc,
     "five separate bar charts for getting a quick cross-model profile.",
     indent=True)
 
+add_figure(doc,
+    "/Users/avosarkissian/.claude/image-cache/185c344c-569b-4894-8aa8-44ed10cc2a4d/5.png",
+    2, "Compare tab: radar chart for five models across Speed, Affordability, Intelligence, "
+       "Context, and Latency. Raw values shown in the table below the chart.")
+
 add_body(doc,
     "Landscape — treemap. Tile area encodes model count per provider; color intensity encodes "
     "average intelligence score. It answers a different question than the other tabs: who dominates "
@@ -361,6 +385,11 @@ add_body(doc,
     "April 2026 makes something obvious that a static dataset would hide completely: the market "
     "moved fast. Several major providers dropped prices significantly in that window.",
     indent=True)
+
+add_figure(doc,
+    "/Users/avosarkissian/.claude/image-cache/185c344c-569b-4894-8aa8-44ed10cc2a4d/4.png",
+    3, "Image Gen tab: ELO-ranked image generation models broken out by style category. "
+       "Bar length is ELO score from the AA Image Arena; price per 1k images annotated on each bar.")
 
 add_heading(doc, "4.3  Run Local: Hardware Compatibility and Inference Estimation", level=2)
 
@@ -415,6 +444,12 @@ add_body(doc,
     "from Q8 to Q4 cuts VRAM roughly in half and doubles speed, but may shave a few benchmark "
     "points depending on the model — the scatter makes that tradeoff visible.",
     indent=True)
+
+add_figure(doc,
+    "/Users/avosarkissian/.claude/image-cache/185c344c-569b-4894-8aa8-44ed10cc2a4d/1.png",
+    4, "Run Local tab: VRAM Requirement vs. Intelligence scatter (top) and ranked compatibility "
+       "table (bottom) for an NVIDIA RTX 5090 at Q4. Compatible models are colored by family; "
+       "incompatible models shown in gray.")
 
 add_body(doc,
     "Every open-weight model in the catalog uses the same composite intelligence score as the "
@@ -482,6 +517,12 @@ add_body(doc,
     "at each tier. For anyone building an agentic pipeline, that's a more direct answer than "
     "scrolling a ranked list and making the configuration decision themselves.",
     indent=True)
+
+add_figure(doc,
+    "/Users/avosarkissian/.claude/image-cache/185c344c-569b-4894-8aa8-44ed10cc2a4d/3.png",
+    5, "Agent Stack tab: three-tier model configuration for a Hybrid workflow. Fast tier runs "
+       "locally; Balanced and Reasoning tiers use cloud APIs. Each card shows VRAM, speed, "
+       "price, and latency for the recommended model.")
 
 add_body(doc,
     "All the code is open-source. The dashboard has been live since March 2026 with over 30 "
