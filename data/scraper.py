@@ -85,8 +85,16 @@ def _parse_api_response(data: dict) -> list[list]:
         )
 
         # Price — blended 3:1 output:input ratio, per 1M tokens
+        # Field was renamed; fall back to computing from raw input/output prices.
         price = hm.get("price_1m_blended_3_to_1")
         if price is None or price <= 0:
+            p_in  = hm.get("price_1m_input_tokens")
+            p_out = hm.get("price_1m_output_tokens")
+            if p_in is not None and p_out is not None and p_in >= 0 and p_out >= 0:
+                price = (3 * p_out + 1 * p_in) / 4
+            else:
+                continue
+        if price <= 0:
             continue
 
         # Speed and latency
