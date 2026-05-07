@@ -74,8 +74,8 @@ Seed-OSS-36B-Instruct,ByteDance Seed,36.2,36.2,512,25.16,Apache 2.0,reasoning,Fa
 Qwen3 235B A22B 2507 Instruct,Alibaba,235.0,22.0,256,24.96,Apache 2.0,,True
 Qwen3 Coder 480B A35B Instruct,Alibaba,480.0,35.0,262,24.77,Apache 2.0,code,True
 Qwen3 VL 32B (Reasoning),Alibaba,33.4,33.4,256,24.72,Apache 2.0,"vision,reasoning",False
-gpt-oss-120B (low),OpenAI,117.0,5.1,131,24.47,Apache 2.0,reasoning,True
 gpt-oss-20B (high),OpenAI,21.0,3.6,131,24.47,Apache 2.0,reasoning,True
+gpt-oss-120B (low),OpenAI,117.0,5.1,131,24.47,Apache 2.0,reasoning,True
 MiniMax M1 80k,MiniMax,456.0,45.9,1000,24.43,Apache 2.0,reasoning,True
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,24.27,Nvidia Nemotron Open Model License,reasoning,True
 LongCat Flash Lite,LongCat,68.5,3.0,256,23.93,MIT,,True
@@ -101,8 +101,8 @@ Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,18.68,NVIDIA Open
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,18.62,Apache 2.0,vision,True
 Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,18.56,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
 Llama 4 Maverick,Meta,402.0,17.0,1000,18.36,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
-Sarvam 105B (high),Sarvam,106.0,10.3,128,18.16,Apache 2.0,reasoning,True
 Magistral Small 1.2,Mistral,24.0,24.0,128,18.16,Apache 2.0,"vision,reasoning",False
+Sarvam 105B (high),Sarvam,106.0,10.3,128,18.16,Apache 2.0,reasoning,True
 Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,17.63,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,17.38,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 VL 32B Instruct,Alibaba,33.4,33.4,256,17.19,Apache 2.0,vision,False
@@ -163,14 +163,14 @@ Reka Flash 3,Reka AI,21.0,21.0,128,9.52,Apache 2.0,reasoning,False
 Llama 3 Instruct 70B,Meta,70.0,70.0,8,8.88,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Gemma 3 12B Instruct,Google,12.2,12.2,128,8.79,Gemma license,vision,False
 Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,8.73,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
-Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,8.39,MIT,,False
 Sarvam M (Reasoning),Sarvam,23.6,23.6,33,8.39,Apache 2.0,reasoning,False
+Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,8.39,MIT,,False
 Qwen3 1.7B (Reasoning),Alibaba,2.03,2.03,32,7.96,Apache 2.0,reasoning,False
 Granite 3.3 8B (Non-reasoning),IBM,8.17,8.17,128,7.0,Apache 2.0,,False
 Qwen3 1.7B (Non-reasoning),Alibaba,2.03,2.03,32,6.76,Apache 2.0,,False
 Qwen3 0.6B (Reasoning),Alibaba,0.752,0.752,32,6.47,Apache 2.0,reasoning,False
-Llama 3 Instruct 8B,Meta,8.0,8.0,8,6.38,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Gemma 3n E4B Instruct,Google,8.39,4.0,32,6.38,Gemma license,vision,True
+Llama 3 Instruct 8B,Meta,8.0,8.0,8,6.38,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Gemma 3 4B Instruct,Google,4.3,4.3,128,6.3,Gemma license,vision,False
 Llama 3.2 Instruct 1B,Meta,1.0,1.0,128,6.28,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 0.6B (Non-reasoning),Alibaba,0.752,0.752,32,5.68,Apache 2.0,,False
