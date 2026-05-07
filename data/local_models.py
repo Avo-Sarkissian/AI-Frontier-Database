@@ -1,11 +1,19 @@
 """
 Local / open-weight model catalog for the 'Run Local' tab.
 
+Model data is loaded from data/raw/aa_local_models.csv, which is kept fresh
+by data/local_scraper.py running as a background thread (same pattern as the
+main model scraper). The hardcoded _MODELS_RAW list is no longer the source
+of truth and is kept only as a last-resort fallback when no cache exists.
+
 VRAM formula:  params_b × bytes_per_weight × OVERHEAD_FACTOR
 Speed formula: memory_bandwidth_gbps / model_gb × efficiency
                (memory-bandwidth-bound inference, validated against llama.cpp benchmarks)
 """
+from pathlib import Path
 import pandas as pd
+
+_LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 
 # ── Quantization ─────────────────────────────────────────────────────────────
 QUANT_LEVELS = ["FP16", "Q8", "Q5", "Q4", "Q3", "Q2"]
@@ -445,6 +453,33 @@ def calc_speed_tps(
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
+def _load_models_raw() -> list[dict]:
+    """
+    Load open-weight model specs from the scraped CSV cache.
+    Falls back to _MODELS_RAW if the cache doesn't exist yet.
+    """
+    if _LOCAL_CACHE.exists():
+        df = pd.read_csv(_LOCAL_CACHE)
+        rows = []
+        for _, row in df.iterrows():
+            tag_str = str(row.get("tags", "")) if pd.notna(row.get("tags")) else ""
+            tags = [t for t in tag_str.split(",") if t]
+            rows.append({
+                "name":      str(row["name"]),
+                "family":    str(row["family"]),
+                "params_b":  float(row["params_b"]),
+                "active_b":  float(row["active_b"]),
+                "context_k": int(row["context_k"]),
+                "quality":   float(row["quality"]),
+                "license":   str(row["license"]),
+                "tags":      tags,
+                "moe":       bool(row["moe"]),
+            })
+        return rows
+    return _MODELS_RAW
+
+
 def get_local_df(
     quant: str = "Q4",
     vram_gb: float = 24.0,
@@ -459,10 +494,10 @@ def get_local_df(
         vram_req_gb   - VRAM required at selected quantization
         speed_tps     - estimated tokens/second on the given hardware
         fits          - "yes" | "tight" (< 1 GB headroom) | "no"
-        fit_color     - hex color for the fit status
     """
+    models = _load_models_raw()
     rows = []
-    for m in _MODELS_RAW:
+    for m in models:
         if tags:
             if not any(t in m["tags"] for t in tags):
                 continue
