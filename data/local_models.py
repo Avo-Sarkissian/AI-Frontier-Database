@@ -105,11 +105,14 @@ _MODELS_RAW: list[dict] = [
     {"name": "Gemma 3 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 5,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
     {"name": "Gemma 3 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 9,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
     {"name": "Gemma 3 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 13, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
-    # ── Gemma 4 (2025) — quality estimated ~35–40% above Gemma 3 peers ──────
-    {"name": "Gemma 4 1B",          "family": "Google", "params_b": 1.0,   "active_b": 1.0,   "context_k": 128, "quality": 3,  "license": "Gemma ToS", "tags": ["multilingual"]},
-    {"name": "Gemma 4 4B",          "family": "Google", "params_b": 4.0,   "active_b": 4.0,   "context_k": 128, "quality": 8,  "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
-    {"name": "Gemma 4 12B",         "family": "Google", "params_b": 12.0,  "active_b": 12.0,  "context_k": 128, "quality": 14, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
-    {"name": "Gemma 4 27B",         "family": "Google", "params_b": 27.0,  "active_b": 27.0,  "context_k": 128, "quality": 20, "license": "Gemma ToS", "tags": ["multilingual", "vision"]},
+    # ── Gemma 4 (Apr 2026) — Apache 2.0, multimodal (text+image+video; E2B/E4B also audio)
+    # Sizes: E2B / E4B (MoE+PLE, on-device), 26B-A4B (MoE), 31B (dense)
+    # E2B/E4B: PLE gives "effective" active-param footprint; total params ~2-4× larger.
+    # Context: 128k (E2B/E4B), 256k (26B-A4B, 31B). Quality = AA exact from live data.
+    {"name": "Gemma 4 E2B",     "family": "Google", "params_b": 5.5,  "active_b": 2.0,  "context_k": 128, "quality": 9,  "license": "Apache 2.0", "tags": ["multilingual", "vision", "reasoning"], "moe": True},
+    {"name": "Gemma 4 E4B",     "family": "Google", "params_b": 8.2,  "active_b": 4.0,  "context_k": 128, "quality": 15, "license": "Apache 2.0", "tags": ["multilingual", "vision", "reasoning"], "moe": True},
+    {"name": "Gemma 4 26B-A4B", "family": "Google", "params_b": 26.0, "active_b": 4.0,  "context_k": 256, "quality": 31, "license": "Apache 2.0", "tags": ["multilingual", "vision", "reasoning"], "moe": True},
+    {"name": "Gemma 4 31B",     "family": "Google", "params_b": 31.0, "active_b": 31.0, "context_k": 256, "quality": 39, "license": "Apache 2.0", "tags": ["multilingual", "vision", "reasoning"]},
 
     # ── Microsoft Phi ─────────────────────────────────────────────────────────
     {"name": "Phi-3 Mini 3.8B",     "family": "Microsoft", "params_b": 3.82,  "active_b": 3.82,  "context_k": 128, "quality": 4,  "license": "MIT", "tags": []},
