@@ -64,8 +64,11 @@ def _parse(data: dict) -> pd.DataFrame | None:
 
         params_b = model_obj.get("parameters")        # total, integer billions
         active_b = model_obj.get("inference_parameters_active_billions")
-        if params_b is None or active_b is None or active_b <= 0:
+        if params_b is None or params_b <= 0:
             continue
+        # Dense models don't expose active_b separately — fall back to total
+        if active_b is None or active_b <= 0:
+            active_b = params_b
 
         ctx_tokens = model_obj.get("context_window_tokens") or 0
         context_k  = max(1, round(ctx_tokens / 1000)) if ctx_tokens else 128
