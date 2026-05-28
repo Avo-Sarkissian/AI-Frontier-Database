@@ -274,24 +274,51 @@ GPUS: list[dict] = [
     {"name": "NVIDIA RTX 2080 Ti",       "vram_gb": 11,  "bandwidth_gbps": 616,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     # ── NVIDIA Data Center (Blackwell) ───────────────────────────────────────
     # GB200 NVL2: 2×B200 on NVLink, 384 GB HBM3e, 16 TB/s aggregate bandwidth
-    # B200 SXM: 192 GB HBM3e, 8 TB/s
+    # B300 SXM (Blackwell Ultra, 2025): 288 GB HBM3e, 8 TB/s — refreshed B200
+    # B200 SXM: 192 GB HBM3e, 8 TB/s | B200 PCIe: 192 GB HBM3e, 8 TB/s (lower TDP)
     {"name": "NVIDIA GB200 NVL2",        "vram_gb": 384, "bandwidth_gbps": 16000, "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    {"name": "NVIDIA B300 SXM",          "vram_gb": 288, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     {"name": "NVIDIA B200 SXM",          "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    {"name": "NVIDIA B200 PCIe",         "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     # ── NVIDIA Data Center (Hopper) ──────────────────────────────────────────
     # H200 SXM: 141 GB HBM3e, 4.8 TB/s | H200 PCIe: 141 GB, 3.35 TB/s
+    # H100 NVL: 2×H100 PCIe with NVLink bridge, 188 GB HBM3, 7.8 TB/s aggregate
+    # GH200 (Grace Hopper Superchip, 144 GB HBM3e variant): 144 GB, 4.9 TB/s HBM
+    {"name": "NVIDIA GH200 144GB",       "vram_gb": 144, "bandwidth_gbps": 4900,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H200 SXM",          "vram_gb": 141, "bandwidth_gbps": 4800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H200 PCIe",         "vram_gb": 141, "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H100 NVL",          "vram_gb": 188, "bandwidth_gbps": 7800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H100 SXM",          "vram_gb": 80,  "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H100 PCIe",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     # ── NVIDIA Data Center (Ada / Ampere) ────────────────────────────────────
     # L40S: 48 GB GDDR6, 864 GB/s (inference-optimised Ada successor to A100)
     # L40: 48 GB GDDR6, 864 GB/s | A40: 48 GB GDDR6, 696 GB/s
+    # L4: 24 GB GDDR6, 300 GB/s — Ada inference card, common on GCP
+    # A10: 24 GB GDDR6, 600 GB/s — Ampere inference card, common on AWS
+    # T4:  16 GB GDDR6, 320 GB/s — Turing inference workhorse, still ubiquitous
     {"name": "NVIDIA L40S",              "vram_gb": 48,  "bandwidth_gbps": 864,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA L40",               "vram_gb": 48,  "bandwidth_gbps": 864,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA L4",                "vram_gb": 24,  "bandwidth_gbps": 300,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA A40",               "vram_gb": 48,  "bandwidth_gbps": 696,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA A100 80GB",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA A100 40GB",         "vram_gb": 40,  "bandwidth_gbps": 1555,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A10",               "vram_gb": 24,  "bandwidth_gbps": 600,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA V100 32GB",         "vram_gb": 32,  "bandwidth_gbps": 900,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA T4",                "vram_gb": 16,  "bandwidth_gbps": 320,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    # ── AMD Instinct (CDNA, Data Center) ─────────────────────────────────────
+    # MI355X (CDNA 4, 2025): 288 GB HBM3e, 8 TB/s — Blackwell-class memory
+    # MI325X (CDNA 3, late 2024): 256 GB HBM3e, 6 TB/s
+    # MI300X (CDNA 3, 2023):     192 GB HBM3,   5.3 TB/s
+    # MI250X (CDNA 2):           128 GB HBM2e, 3.2 TB/s — Frontier supercomputer
+    {"name": "AMD Instinct MI355X",      "vram_gb": 288, "bandwidth_gbps": 8000,  "hw_type": "amd",    "category": "AMD Instinct (Data Center)"},
+    {"name": "AMD Instinct MI325X",      "vram_gb": 256, "bandwidth_gbps": 6000,  "hw_type": "amd",    "category": "AMD Instinct (Data Center)"},
+    {"name": "AMD Instinct MI300X",      "vram_gb": 192, "bandwidth_gbps": 5300,  "hw_type": "amd",    "category": "AMD Instinct (Data Center)"},
+    {"name": "AMD Instinct MI250X",      "vram_gb": 128, "bandwidth_gbps": 3200,  "hw_type": "amd",    "category": "AMD Instinct (Data Center)"},
+    # ── Intel Gaudi (Data Center) ────────────────────────────────────────────
+    # Gaudi 3 (2024): 128 GB HBM2e, 3.7 TB/s
+    # Gaudi 2 (2022): 96 GB HBM2e,  2.45 TB/s
+    {"name": "Intel Gaudi 3",            "vram_gb": 128, "bandwidth_gbps": 3700,  "hw_type": "intel",  "category": "Intel Gaudi (Data Center)"},
+    {"name": "Intel Gaudi 2",            "vram_gb": 96,  "bandwidth_gbps": 2450,  "hw_type": "intel",  "category": "Intel Gaudi (Data Center)"},
     # ── NVIDIA Professional Workstation ──────────────────────────────────────
     {"name": "NVIDIA RTX 6000 Ada",      "vram_gb": 48,  "bandwidth_gbps": 960,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA RTX 5000 Ada",      "vram_gb": 32,  "bandwidth_gbps": 576,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
