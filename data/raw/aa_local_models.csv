@@ -1,4 +1,5 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
+GLM-5.2 (max),Z AI,753.0,40.0,1000,51.09,Mit,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,44.44,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,44.27,MIT,reasoning,True
 Kimi K2.6,Kimi,1000.0,32.0,256,42.84,Modified MIT,"vision,reasoning",True
@@ -23,11 +24,11 @@ MiniMax-M2.5,MiniMax,230.0,10.0,205,33.65,MIT,reasoning,True
 Hy3-preview (Reasoning),Tencent,295.0,21.0,256,33.58,TENCENT HY COMMUNITY LICENSE AGREEMENT,reasoning,True
 DeepSeek V3.2 (Reasoning),DeepSeek,685.0,37.0,128,33.45,MIT,reasoning,True
 MiMo-V2-Flash (Feb 2026),Xiaomi,309.0,15.0,256,33.22,MIT,reasoning,True
-Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,33.0,Apache 2.0,"vision,reasoning",True
 Kimi K2 Thinking,Kimi,1000.0,32.0,256,32.7,Modified MIT License,reasoning,True
 GLM-5 (Non-reasoning),Z AI,744.0,40.0,200,32.41,MIT,,True
 Qwen3.5 122B A10B (Reasoning),Alibaba,125.0,10.0,262,32.28,Apache 2.0,"vision,reasoning",True
 Qwen3.5 397B A17B (Non-reasoning),Alibaba,397.0,17.0,262,31.98,Apache 2.0,vision,True
+Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,31.65,Apache 2.0,"vision,reasoning",True
 MiniMax-M2.1,MiniMax,230.0,10.0,205,31.36,MIT,reasoning,True
 DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,31.22,Mit,,True
 MiMo-V2-Flash (Reasoning),Xiaomi,309.0,15.0,256,31.2,MIT,reasoning,True
@@ -142,8 +143,8 @@ Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,8.76,Apache 2.0,vision,False
 Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA Open Model License Agreement,,False
 Qwen3 32B (Non-reasoning),Alibaba,32.8,32.8,33,8.63,Apache 2.0,,False
-Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Mistral Small 3.1,Mistral,24.0,24.0,128,8.59,Apache 2.0,vision,False
+Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,8.5,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 VL 8B Instruct,Alibaba,8.77,8.77,256,8.42,Apache 2.0,vision,False
 Pixtral Large,Mistral,124.0,124.0,128,8.15,Mistral Research License,vision,False
@@ -161,8 +162,8 @@ Qwen3 30B A3B (Non-reasoning),Alibaba,30.5,3.3,33,6.8,Apache 2.0,,True
 Llama 3.1 Instruct 70B,Meta,70.0,70.0,128,6.75,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
 Sarvam 30B (high),Sarvam,32.2,2.4,66,6.64,Apache 2.0,reasoning,True
-Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
 Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,6.23,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
+Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
 Llama 3.1 Instruct 8B,Meta,8.0,8.0,128,6.1,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Ministral 3 3B,Mistral,3.0,3.0,256,5.63,Apache 2.0,vision,False
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,5.3,Jamba Open Model License Agreement,,True
@@ -188,15 +189,16 @@ Gemma 3 12B Instruct,Google,12.2,12.2,128,3.39,Gemma license,vision,False
 Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,3.33,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,3.03,MIT,,False
 Command-R+ (Apr '24),Cohere,104.0,104.0,128,2.99,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-LFM2 2.6B,Liquid AI,2.57,2.57,33,2.71,lfm 1.0,,False
 LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
+LFM2 2.6B,Liquid AI,2.57,2.57,33,2.71,lfm 1.0,,False
 Jamba 1.5 Mini,AI21 Labs,52.0,12.0,256,2.7,Jamba Open Model License Agreement,,True
 Jamba 1.6 Mini,AI21 Labs,52.0,12.0,256,2.55,Jamba Open Model License Agreement,,True
 Mixtral 8x7B Instruct,Mistral,46.7,12.9,33,2.43,Apache 2.0,,True
 Mistral 7B Instruct,Mistral,7.0,7.0,8,2.14,Apache 2.0,,False
 Command-R (Mar '24),Cohere,35.0,35.0,128,2.14,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-Llama 3 Instruct 8B,Meta,8.0,8.0,8,1.19,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+Granite 3.3 8B (Non-reasoning),IBM,8.17,8.17,128,1.75,Apache 2.0,,False
 Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
+Llama 3 Instruct 8B,Meta,8.0,8.0,8,1.19,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 LFM2 1.2B,Liquid AI,1.17,1.17,33,1.15,lfm 1.0,,False
 Gemma 3 4B Instruct,Google,4.3,4.3,128,1.12,Gemma license,vision,False
 Llama 3.2 Instruct 1B,Meta,1.0,1.0,128,1.1,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,,False
