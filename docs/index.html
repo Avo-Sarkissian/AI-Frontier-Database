@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Frontier</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left"><h1>AI FRONTIER</h1>
+      <span class="subtitle">LLM comparison dashboard</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="btn-refresh" class="header-icon-btn" title="Reload">⟳</button>
+      <button id="btn-share" class="header-icon-btn" title="Copy URL">↗</button>
+    </div>
+  </div>
+
+  <div class="stat-bar">
+    <div class="stat"><div id="stat-model-count" class="stat-value">—</div><div class="stat-label">Models tracked</div></div>
+    <div class="stat"><div id="stat-provider-count" class="stat-value">—</div><div class="stat-label">Providers</div></div>
+    <div class="stat"><div id="stat-floor-price" class="stat-value" style="color:#00d4ff">—</div><div class="stat-label">Floor price / 1M</div></div>
+    <div class="stat"><div id="stat-peak-quality" class="stat-value">—</div><div class="stat-label">Peak intelligence</div></div>
+  </div>
+
+  <div class="filters">
+    <span class="filter-label">PROVIDER</span>
+    <select id="filter-provider" multiple style="min-width:220px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-2);font-family:Inter,sans-serif;font-size:12px;padding:4px 8px;height:30px;outline:none;"></select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">MIN SCORE</span>
+    <select id="filter-quality" style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-2);font-family:Inter,sans-serif;font-size:12px;padding:4px 8px;height:30px;outline:none;">
+      <option value="0">≥ 0</option><option value="10">≥ 10</option>
+      <option value="15">≥ 15</option><option value="20">≥ 20</option>
+      <option value="25">≥ 25</option><option value="30">≥ 30</option>
+      <option value="35">≥ 35</option><option value="40">≥ 40</option>
+      <option value="45">≥ 45</option><option value="50">≥ 50</option>
+    </select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">SEARCH</span>
+    <input id="model-search" class="search-input" type="text" placeholder="model or provider…" />
+    <div class="filter-sep"></div>
+    <button id="btn-export" class="export-btn">↓ CSV</button>
+    <div style="flex:1"></div>
+    <button id="preset-all" class="preset-btn">All</button>
+    <button id="preset-strong" class="preset-btn">Top 25%</button>
+    <button id="preset-elite" class="preset-btn">Top 10%</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="tab-panels"></div>
+
+  <div id="detail-panel" class="detail-panel">
+    <button id="detail-close" class="detail-close">×</button>
+    <div id="detail-panel-body"></div>
+    <button id="detail-add-compare" class="detail-add-btn">+ Add to Compare</button>
+  </div>
+
+  <div id="py-status" class="py-status">warming up interactivity…</div>
+  <script src="app.js"></script>
+</body>
+</html>

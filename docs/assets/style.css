@@ -981,3 +981,66 @@ input[id^="local-"].dash-input:focus {
 @media (max-width: 480px) {
   .dash-graph { height: 46vh !important; max-height: 46vh !important; }
 }
+
+/* ── Static-site additions (Task 2) ──────────────── */
+
+/* Pyodide warm-up status bar at page bottom */
+.py-status {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 5px 32px;
+  z-index: 300;
+  pointer-events: none;
+}
+
+/* Detail panel close button */
+.detail-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 8px;
+  line-height: 1.4;
+  transition: color 0.1s ease, border-color 0.1s ease;
+}
+
+.detail-close:hover {
+  color: var(--text-2);
+  border-color: rgba(255,255,255,0.14);
+}
+
+/* Detail panel "Add to Compare" button */
+.detail-add-btn {
+  margin-top: 20px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 8px 14px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  text-align: center;
+}
+
+.detail-add-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 212, 255, 0.30);
+  background: var(--accent-dim);
+}
