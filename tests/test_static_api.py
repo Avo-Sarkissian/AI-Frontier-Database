@@ -12,6 +12,9 @@ def test_overview_speed_mode_uses_quadrant():
     # quadrant + pareto differ; just assert valid figure for speed axis.
     fig = json.loads(api.update_overview([], 0, "", "speed"))
     assert "data" in fig
+    speed = api.update_overview([], 0, "", "speed")
+    price = api.update_overview([], 0, "", "price")
+    assert speed != price
 
 
 def test_filters_reduce_rows_via_table():

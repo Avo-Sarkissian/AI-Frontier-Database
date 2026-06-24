@@ -171,7 +171,7 @@ def _detail_html(row: pd.Series, provider: str) -> str:
 
     divider = '<div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0;"></div>'
 
-    ctx_str = str(row.get("context", "N/A")) if pd.notna(row.get("context")) else "N/A"
+    ctx_str = (str(row.get("context", "N/A")) or "N/A") if pd.notna(row.get("context")) else "N/A"
     price_str = f"${row['price']:.4f} / 1M tokens"
 
     return (
@@ -222,7 +222,7 @@ def update_compare(providers, min_quality, search, selected_models, triggered):
     if triggered in ("filter-provider", "filter-quality", "model-search"):
         capped = compute_diverse5(f)
     else:
-        capped = (list(selected_models) or [])[:5]
+        capped = (selected_models or [])[:5]
     return json.dumps({
         "figure": json.loads(build_radar(f, capped).to_json()),
         "options": options,
