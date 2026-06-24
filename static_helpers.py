@@ -8,8 +8,8 @@ def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
     filtered = df.copy()
     if providers:
         filtered = filtered[filtered["provider"].isin(providers)]
-    if min_quality and min_quality > 0:
-        filtered = filtered[filtered["quality"] >= min_quality]
+    if min_quality and float(min_quality) > 0:
+        filtered = filtered[filtered["quality"] >= float(min_quality)]
     if search and search.strip():
         # Escape user input so characters like (, [, * are treated as
         # plain text rather than regex metacharacters.
@@ -22,7 +22,7 @@ def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
     return filtered
 
 
-def compute_diverse5(dataframe: pd.DataFrame) -> list:
+def compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
     """Pick 5 diverse models spanning quality, value, speed, and budget tiers."""
     valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)].copy()
     if valid.empty:
@@ -55,7 +55,7 @@ def compute_diverse5(dataframe: pd.DataFrame) -> list:
     return picks[:5]
 
 
-def ctx_to_k(c):
+def ctx_to_k(c) -> float | None:
     """Convert context string ('400k', '1m', '128k') to numeric thousands for sorting."""
     if not c:
         return None
