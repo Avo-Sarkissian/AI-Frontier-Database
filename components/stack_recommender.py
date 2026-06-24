@@ -382,26 +382,44 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> html.Div:
     })
 
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+# ── Pure selection logic (no Dash dependency) ──────────────────────────────────
 
-def build_stack_cards(
-    df:           pd.DataFrame,
-    providers:    list[str] | None = None,
-    mode:         str = "api",
-    local_df:     pd.DataFrame | None = None,
-) -> html.Div:
+def select_stack(
+    df:        pd.DataFrame,
+    providers: list[str] | None = None,
+    mode:      str = "api",
+    local_df:  pd.DataFrame | None = None,
+) -> dict:
     """
+    Pure model-selection logic — returns plain data with no Dash objects.
+
+    Returns:
+        {
+            "tiers": [
+                {
+                    "name":      str,          # e.g. "Fast"
+                    "key":       str,          # e.g. "fast"
+                    "color":     str,          # hex accent color
+                    "tagline":   str,
+                    "picks":     pd.DataFrame, # selected model rows
+                    "source":    str,          # "API" | "LOCAL"
+                    "use_cases": list[str],
+                    "advice":    dict,         # best_for / tradeoff / avoid_if
+                },
+                ...  # 3 tiers total
+            ]
+        }
+
     mode: "api" | "hybrid" | "hybrid2" | "local"
     providers: filter cloud models to these providers (None = all)
     local_df:  output of get_local_df(); required for hybrid/local modes
     hybrid2: Fast=local, Balanced=local, Reasoning=API
     """
-    # Filtered cloud pool
     api_pool = df.copy()
     if providers:
         api_pool = api_pool[api_pool["provider"].isin(providers)]
 
-    cards = []
+    tiers_out = []
 
     for tier in _API_TIERS:
         key = tier["key"]
@@ -427,8 +445,302 @@ def build_stack_cards(
                 picks  = _pick_api_tier(api_pool, tier)
                 source = "API"
 
-        cards.append(_tier_card(tier, picks, source))
+        tiers_out.append({
+            "name":      tier["label"],
+            "key":       key,
+            "color":     tier["color"],
+            "tagline":   tier["tagline"],
+            "picks":     picks,
+            "source":    source,
+            "use_cases": _USE_CASES[key],
+            "advice":    _TIER_ADVICE[key],
+        })
 
+    return {"tiers": tiers_out}
+
+
+# ── HTML-string renderer (Pyodide-safe, no Dash) ───────────────────────────────
+
+def _h(tag: str, inner: str = "", style: str | None = None, cls: str | None = None) -> str:
+    """Minimal HTML tag builder mirroring dash.html structure."""
+    s = f' style="{style}"' if style else ""
+    c = f' class="{cls}"' if cls else ""
+    return f"<{tag}{c}{s}>{inner}</{tag}>"
+
+
+def _dict_to_style(d: dict) -> str:
+    """Convert a CSS dict (camelCase keys) to an inline style string."""
+    def _camel_to_kebab(k: str) -> str:
+        import re
+        return re.sub(r'([A-Z])', r'-\1', k).lower()
+
+    parts = []
+    for k, v in d.items():
+        parts.append(f"{_camel_to_kebab(k)}:{v}")
+    return ";".join(parts)
+
+
+def _chip_html(text: str, bg: str = "#1e2a1e") -> str:
+    style = _dict_to_style({
+        "display": "inline-block",
+        "padding": "2px 7px",
+        "borderRadius": "3px",
+        "fontSize": "10px",
+        "fontFamily": _FONT,
+        "fontWeight": "500",
+        "color": "#ccc",
+        "background": bg,
+        "marginRight": "4px",
+        "letterSpacing": "0.02em",
+        "whiteSpace": "nowrap",
+    })
+    return _h("span", text, style=style)
+
+
+def _row_shell_html(name: str, quality: float, sub_label: str, sub_color: str,
+                    chips_html: str, is_top: bool) -> str:
+    if is_top:
+        header = _h("div",
+            _h("span", name, style=_dict_to_style({
+                "fontSize": "13px", "fontWeight": "600",
+                "color": "#f2f2f2", "fontFamily": _FONT,
+            })) +
+            _h("span", f"{quality:.1f}", style=_dict_to_style({
+                "fontSize": "13px", "fontWeight": "700",
+                "color": "#f2f2f2", "fontFamily": _FONT, "marginLeft": "auto",
+            })),
+            style=_dict_to_style({"display": "flex", "justifyContent": "space-between",
+                                   "alignItems": "baseline"}),
+        )
+        sublabel_div = _h("div", sub_label, style=_dict_to_style({
+            "fontSize": "10px", "color": sub_color, "fontFamily": _FONT,
+            "marginTop": "2px", "fontWeight": "500",
+        }))
+        chips_div = _h("div", chips_html, style=_dict_to_style({
+            "marginTop": "5px", "display": "flex", "flexWrap": "wrap", "gap": "2px",
+        }))
+        return _h("div", header + sublabel_div + chips_div, style=_dict_to_style({
+            "padding": "12px 14px", "borderRadius": "6px",
+            "background": "rgba(255,255,255,0.05)",
+            "border": "1px solid rgba(255,255,255,0.1)",
+            "marginBottom": "8px",
+        }))
+    else:
+        header = _h("div",
+            _h("span", name, style=_dict_to_style({
+                "fontSize": "11px", "color": "#ccc",
+                "fontFamily": _FONT, "fontWeight": "500",
+            })) +
+            _h("span", f"{quality:.1f}", style=_dict_to_style({
+                "fontSize": "11px", "color": "#888",
+                "fontFamily": _FONT, "marginLeft": "auto",
+            })),
+            style=_dict_to_style({"display": "flex", "justifyContent": "space-between",
+                                   "alignItems": "baseline"}),
+        )
+        sublabel_div = _h("div", sub_label, style=_dict_to_style({
+            "fontSize": "10px", "color": sub_color,
+            "fontFamily": _FONT, "marginTop": "1px",
+        }))
+        chips_div = _h("div", chips_html, style=_dict_to_style({
+            "marginTop": "5px", "display": "flex", "flexWrap": "wrap", "gap": "2px",
+        }))
+        return _h("div", header + sublabel_div + chips_div, style=_dict_to_style({
+            "padding": "9px 12px", "borderRadius": "4px",
+            "background": "rgba(255,255,255,0.02)",
+            "border": "1px solid rgba(255,255,255,0.05)",
+            "marginBottom": "6px",
+        }))
+
+
+def _api_row_html(row: pd.Series, is_top: bool = False) -> str:
+    provider  = str(row.get("provider", ""))
+    pcolor    = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
+    price     = row["price"]
+    speed     = row["speed"]
+    quality   = row["quality"]
+
+    price_str = f"${price:.4f}/M" if price < 0.01 else f"${price:.3f}/M" if price < 1 else f"${price:.2f}/M"
+    speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
+    lat       = row.get("latency", float("nan"))
+    lat_str   = f"{lat:.2f}s TTFT" if pd.notna(lat) and lat > 0 else None
+
+    name = str(row["model"])
+    if len(name) > 36:
+        name = name[:35] + "…"
+
+    chips_html = (
+        _chip_html(price_str, "#1a2a1a") +
+        _chip_html(speed_str, "#1a1a2a") +
+        (_chip_html(lat_str, "#2a1a1a") if lat_str else "")
+    )
+    return _row_shell_html(name, quality, provider, pcolor, chips_html, is_top)
+
+
+def _local_row_html(row: pd.Series, is_top: bool = False) -> str:
+    family  = str(row.get("family", ""))
+    fcolor  = _FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR)
+    quality = row["quality"]
+    speed   = row.get("speed_tps", 0)
+    vram    = row.get("vram_req_gb", 0)
+    tight   = row.get("fits") == "tight"
+
+    speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
+    vram_str  = f"{vram:.1f} GB VRAM" + (" ⚠" if tight else "")
+
+    name = str(row["name"])
+    if len(name) > 36:
+        name = name[:35] + "…"
+
+    chips_html = _chip_html(vram_str, "#1a1a2e") + _chip_html(speed_str, "#1a2a1a")
+    return _row_shell_html(name, quality, family, fcolor, chips_html, is_top)
+
+
+def _tier_card_html(tier_data: dict) -> str:
+    """Render a single tier card as an HTML string."""
+    name      = tier_data["name"]
+    key       = tier_data["key"]
+    color     = tier_data["color"]
+    tagline   = tier_data["tagline"]
+    picks     = tier_data["picks"]
+    source    = tier_data["source"]
+    use_cases = tier_data["use_cases"]
+    advice    = tier_data["advice"]
+    icon      = _TIER_ICONS[key]
+
+    # Source badge
+    badge_bg  = "rgba(0,212,255,0.12)" if source == "API" else "rgba(134,239,172,0.12)"
+    badge_col = "#00d4ff"              if source == "API" else "#86efac"
+    badge = _h("span", source, style=_dict_to_style({
+        "fontSize": "9px", "letterSpacing": "0.08em", "fontWeight": "700",
+        "color": badge_col, "background": badge_bg,
+        "padding": "2px 6px", "borderRadius": "3px",
+        "fontFamily": _FONT, "marginLeft": "8px",
+        "verticalAlign": "middle",
+    }))
+
+    # Header row
+    header = _h("div",
+        _h("span", icon + " " + name, style=_dict_to_style({
+            "fontSize": "14px", "fontWeight": "700", "color": color,
+            "fontFamily": _FONT, "letterSpacing": "0.02em",
+        })) + badge,
+        style=_dict_to_style({
+            "borderBottom": f"2px solid {color}",
+            "paddingBottom": "10px", "marginBottom": "14px",
+            "display": "flex", "alignItems": "center",
+        }),
+    )
+
+    # Tagline
+    tagline_div = _h("div", tagline, style=_dict_to_style({
+        "fontSize": "11px", "color": "#777", "fontFamily": _FONT,
+        "marginBottom": "14px", "lineHeight": "1.5",
+    }))
+
+    # Model rows / empty state
+    if picks.empty:
+        body = _h("div",
+            "No models match — try adjusting VRAM or quant level." if source == "LOCAL"
+            else "No models match these criteria.",
+            style=_dict_to_style({"color": "#555", "fontSize": "12px", "padding": "16px 0"}),
+        )
+    else:
+        row_fn = _local_row_html if source == "LOCAL" else _api_row_html
+        body = _h("div", "".join(
+            row_fn(row, is_top=(i == 0))
+            for i, (_, row) in enumerate(picks.iterrows())
+        ))
+
+    # Use cases section
+    uc_label = _h("div", "USE CASES", style=_dict_to_style({
+        "fontSize": "9px", "letterSpacing": "0.1em", "color": "#555",
+        "fontFamily": _FONT, "marginBottom": "6px", "marginTop": "14px",
+    }))
+    uc_items = "".join(
+        _h("div", f"· {uc}", style=_dict_to_style({
+            "fontSize": "11px", "color": "#666", "fontFamily": _FONT, "marginBottom": "3px",
+        }))
+        for uc in use_cases
+    )
+    use_cases_div = _h("div", uc_label + uc_items)
+
+    # Advisor section
+    def _advice_row_html(label: str, text: str, text_color: str = "#555") -> str:
+        lbl = _h("span", label, style=_dict_to_style({
+            "fontSize": "9px", "letterSpacing": "0.08em", "color": "#444",
+            "fontFamily": _FONT, "fontWeight": "600", "marginRight": "6px",
+            "flexShrink": "0",
+        }))
+        val = _h("span", text, style=_dict_to_style({
+            "fontSize": "10px", "color": text_color, "fontFamily": _FONT, "lineHeight": "1.4",
+        }))
+        return _h("div", lbl + val, style=_dict_to_style({"display": "flex", "marginBottom": "5px"}))
+
+    divider = _h("div", "", style=_dict_to_style({
+        "height": "1px", "background": "rgba(255,255,255,0.05)", "margin": "14px 0 12px",
+    }))
+    advisor = _h("div",
+        divider +
+        _advice_row_html("BEST FOR",  advice["best_for"],  "#5a8a5a") +
+        _advice_row_html("TRADEOFF",  advice["tradeoff"],  "#666") +
+        _advice_row_html("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
+    )
+
+    return _h("div",
+        header + tagline_div + body + use_cases_div + advisor,
+        style=_dict_to_style({
+            "flex": "1",
+            "minWidth": "260px",
+            "background": "#111",
+            "border": "1px solid rgba(255,255,255,0.07)",
+            "borderRadius": "8px",
+            "padding": "20px",
+        }),
+    )
+
+
+def build_stack_cards_html(
+    df:        pd.DataFrame,
+    providers: list[str] | None = None,
+    mode:      str = "api",
+    local_df:  pd.DataFrame | None = None,
+) -> str:
+    """
+    HTML-string renderer — Pyodide-safe, no Dash dependency.
+    Returns the same tier cards as build_stack_cards() but as a raw HTML string.
+
+    mode: "api" | "hybrid" | "hybrid2" | "local"
+    providers: filter cloud models to these providers (None = all)
+    local_df:  output of get_local_df(); required for hybrid/local modes
+    """
+    data = select_stack(df, providers=providers, mode=mode, local_df=local_df)
+    cards_html = "".join(_tier_card_html(t) for t in data["tiers"])
+    return _h("div", cards_html, style=_dict_to_style({
+        "display": "flex",
+        "gap": "16px",
+        "flexWrap": "wrap",
+        "alignItems": "flex-start",
+    }))
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+
+def build_stack_cards(
+    df:           pd.DataFrame,
+    providers:    list[str] | None = None,
+    mode:         str = "api",
+    local_df:     pd.DataFrame | None = None,
+) -> html.Div:
+    """
+    mode: "api" | "hybrid" | "hybrid2" | "local"
+    providers: filter cloud models to these providers (None = all)
+    local_df:  output of get_local_df(); required for hybrid/local modes
+    hybrid2: Fast=local, Balanced=local, Reasoning=API
+    """
+    data = select_stack(df, providers=providers, mode=mode, local_df=local_df)
+    cards = [_tier_card(tier_cfg, t["picks"], t["source"])
+             for tier_cfg, t in zip(_API_TIERS, data["tiers"])]
     return html.Div(cards, style={
         "display": "flex",
         "gap": "16px",
