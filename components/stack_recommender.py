@@ -11,8 +11,12 @@ Tiers:
   balanced  — best quality/price value (API) or quality/VRAM efficiency (local)
   reasoning — raw quality, no price constraint (API or local)
 """
+import re
 import pandas as pd
-from dash import html
+try:
+    from dash import html
+except ImportError:  # dash-free env (Pyodide): only the HTML-string renderer is used
+    html = None
 
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
 from data.local_models import FAMILY_COLORS as _FAMILY_COLORS, DEFAULT_FAMILY_COLOR
@@ -170,7 +174,7 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5) -> pd.Da
 
 # ── Shared chip helper ─────────────────────────────────────────────────────────
 
-def _chip(text: str, bg: str = "#1e2a1e") -> html.Span:
+def _chip(text: str, bg: str = "#1e2a1e") -> "html.Span":
     return html.Span(text, style={
         "display": "inline-block",
         "padding": "2px 7px",
@@ -188,7 +192,7 @@ def _chip(text: str, bg: str = "#1e2a1e") -> html.Span:
 
 # ── Row renderers ──────────────────────────────────────────────────────────────
 
-def _api_row(row: pd.Series, is_top: bool = False) -> html.Div:
+def _api_row(row: pd.Series, is_top: bool = False) -> "html.Div":
     provider  = str(row.get("provider", ""))
     pcolor    = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
     price     = row["price"]
@@ -213,7 +217,7 @@ def _api_row(row: pd.Series, is_top: bool = False) -> html.Div:
     return _row_shell(name, quality, provider, pcolor, chips, is_top)
 
 
-def _local_row(row: pd.Series, is_top: bool = False) -> html.Div:
+def _local_row(row: pd.Series, is_top: bool = False) -> "html.Div":
     family   = str(row.get("family", ""))
     fcolor   = _FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR)
     quality  = row["quality"]
@@ -289,7 +293,7 @@ def _row_shell(name, quality, sub_label, sub_color, chips, is_top):
 
 # ── Card builder ───────────────────────────────────────────────────────────────
 
-def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> html.Div:
+def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
     """
     source: "API" | "LOCAL"
     """
@@ -471,7 +475,6 @@ def _h(tag: str, inner: str = "", style: str | None = None, cls: str | None = No
 def _dict_to_style(d: dict) -> str:
     """Convert a CSS dict (camelCase keys) to an inline style string."""
     def _camel_to_kebab(k: str) -> str:
-        import re
         return re.sub(r'([A-Z])', r'-\1', k).lower()
 
     parts = []
@@ -731,13 +734,16 @@ def build_stack_cards(
     providers:    list[str] | None = None,
     mode:         str = "api",
     local_df:     pd.DataFrame | None = None,
-) -> html.Div:
+) -> "html.Div":
     """
     mode: "api" | "hybrid" | "hybrid2" | "local"
     providers: filter cloud models to these providers (None = all)
     local_df:  output of get_local_df(); required for hybrid/local modes
     hybrid2: Fast=local, Balanced=local, Reasoning=API
     """
+    if html is None:
+        raise RuntimeError("dash is required for build_stack_cards; "
+                           "use build_stack_cards_html in dash-free environments")
     data = select_stack(df, providers=providers, mode=mode, local_df=local_df)
     cards = [_tier_card(tier_cfg, t["picks"], t["source"])
              for tier_cfg, t in zip(_API_TIERS, data["tiers"])]

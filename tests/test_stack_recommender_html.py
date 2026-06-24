@@ -19,15 +19,17 @@ def test_html_renderer_returns_string_with_same_tiers():
 def test_dash_renderer_still_works():
     df = get_models()
     comp = build_stack_cards(df, ["Anthropic"], mode="api")
-    assert comp is not None  # unchanged dash component path
+    assert hasattr(comp, "children")
+    # three tier cards (Fast / Balanced / Reasoning)
+    assert len(comp.children) == 3
 
 
 def test_html_renderer_contains_model_names():
     """HTML output should include actual model name text (not just tier labels)."""
     df = get_models()
     html = build_stack_cards_html(df, ["Anthropic", "Google", "OpenAI"], mode="api")
-    # The output must have some content beyond just tier headers
-    assert "<div" in html or "<span" in html
+    # "tok/s" only appears when speed chip rows render — proves model rows are present
+    assert "tok/s" in html
 
 
 def test_html_renderer_contains_advice_sections():
