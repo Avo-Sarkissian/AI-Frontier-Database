@@ -48,6 +48,247 @@
   </div>
 
   <div class="tabs" id="tabs"></div>
+
+  <!-- Per-tab control rows: injected here between tabs and panels -->
+  <!-- Overview tab controls -->
+  <div id="tab-controls-overview" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">X AXIS</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="overview-xaxis" value="price" checked /> Price
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="overview-xaxis" value="speed" /> Speed
+    </label>
+  </div>
+
+  <!-- Rankings tab controls -->
+  <div id="tab-controls-rankings" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">SORT BY</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="rankings-sort" value="intelligence" checked /> Intelligence
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="rankings-sort" value="value" /> Value
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="rankings-sort" value="speed" /> Speed
+    </label>
+  </div>
+
+  <!-- Compare tab controls -->
+  <div id="tab-controls-compare" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">MODELS</span>
+    <select id="radar-model-select" multiple style="min-width:300px;"></select>
+  </div>
+
+  <!-- Budget tab controls -->
+  <div id="tab-controls-budget" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">MONTHLY TOKENS (M)</span>
+    <input id="budget-tokens" type="number" value="1" min="0.1" step="0.1"
+      style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
+             color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
+             padding:6px 10px;width:100px;outline:none;" />
+  </div>
+
+  <!-- Table tab controls -->
+  <div id="tab-controls-table" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">SORT BY</span>
+    <select id="table-sort-col" style="min-width:150px;">
+      <option value="quality">Intelligence</option>
+      <option value="value">Value</option>
+      <option value="price">Price</option>
+      <option value="speed">Speed</option>
+      <option value="latency">Latency</option>
+      <option value="context">Context</option>
+      <option value="model">Model</option>
+      <option value="provider">Provider</option>
+    </select>
+    <div class="filter-sep"></div>
+    <select id="table-sort-dir" style="min-width:130px;">
+      <option value="desc">↓ High → Low</option>
+      <option value="asc">↑ Low → High</option>
+    </select>
+  </div>
+
+  <!-- Run Local tab controls -->
+  <div id="tab-controls-local" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">GPU</span>
+    <select id="local-gpu-preset" style="min-width:200px;"></select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">VRAM (GB)</span>
+    <input id="local-vram" type="number" value="32" min="1" step="1"
+      style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
+             color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
+             padding:6px 10px;width:72px;outline:none;" />
+    <div class="filter-sep"></div>
+    <span class="filter-label">GPUs</span>
+    <select id="local-num-gpus" style="min-width:72px;">
+      <option value="1">×1</option>
+      <option value="2">×2</option>
+      <option value="4">×4</option>
+      <option value="8">×8</option>
+    </select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">QUANT</span>
+    <select id="local-quant" style="min-width:80px;"></select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">TAGS</span>
+    <select id="local-tags" multiple style="min-width:160px;">
+      <option value="code">Code</option>
+      <option value="reasoning">Reasoning</option>
+      <option value="vision">Vision</option>
+      <option value="audio">Audio</option>
+    </select>
+  </div>
+
+  <!-- Image Gen tab controls -->
+  <div id="tab-controls-image" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">PROVIDER</span>
+    <select id="image-provider-filter" multiple style="min-width:200px;">
+      <option value="Adobe">Adobe</option>
+      <option value="Alibaba">Alibaba</option>
+      <option value="Amazon">Amazon</option>
+      <option value="Api Airforce">Api Airforce</option>
+      <option value="Baidu">Baidu</option>
+      <option value="Black Forest Labs">Black Forest Labs</option>
+      <option value="Bria">Bria</option>
+      <option value="ByteDance Seed">ByteDance Seed</option>
+      <option value="Bytedance">Bytedance</option>
+      <option value="DeepSeek">DeepSeek</option>
+      <option value="Eigen AI">Eigen AI</option>
+      <option value="Fal">Fal</option>
+      <option value="Google">Google</option>
+      <option value="HiDream">HiDream</option>
+      <option value="Ideogram">Ideogram</option>
+      <option value="ImagineArt">ImagineArt</option>
+      <option value="KlingAI">KlingAI</option>
+      <option value="Krea">Krea</option>
+      <option value="Leonardo.Ai">Leonardo.Ai</option>
+      <option value="Luma Labs">Luma Labs</option>
+      <option value="Meituan">Meituan</option>
+      <option value="Microsoft">Microsoft</option>
+      <option value="Midjourney">Midjourney</option>
+      <option value="MiniMax">MiniMax</option>
+      <option value="NVIDIA">NVIDIA</option>
+      <option value="OpenAI">OpenAI</option>
+      <option value="OpenGVLab">OpenGVLab</option>
+      <option value="Playground AI">Playground AI</option>
+      <option value="Pruna AI">Pruna AI</option>
+      <option value="Recraft">Recraft</option>
+      <option value="Reve">Reve</option>
+      <option value="Runway">Runway</option>
+      <option value="Sourceful">Sourceful</option>
+      <option value="Stability.ai">Stability.ai</option>
+      <option value="Tencent">Tencent</option>
+      <option value="VectorSpaceLab">VectorSpaceLab</option>
+      <option value="Vidu">Vidu</option>
+      <option value="Z AI">Z AI</option>
+      <option value="xAI">xAI</option>
+    </select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">TAGS</span>
+    <select id="image-tag-filter" multiple style="min-width:200px;">
+      <option value="photorealistic">Photorealistic</option>
+      <option value="artistic">Artistic</option>
+      <option value="text">Text &amp; Type</option>
+      <option value="fast">Fast</option>
+      <option value="open_weights">Open Weights</option>
+    </select>
+  </div>
+
+  <!-- Video Gen tab controls -->
+  <div id="tab-controls-video" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">PROVIDER</span>
+    <select id="video-provider-filter" multiple style="min-width:200px;">
+      <option value="Alibaba">Alibaba</option>
+      <option value="ByteDance">ByteDance</option>
+      <option value="Genmo">Genmo</option>
+      <option value="Google">Google</option>
+      <option value="Kuaishou">Kuaishou</option>
+      <option value="Lightricks">Lightricks</option>
+      <option value="Luma AI">Luma AI</option>
+      <option value="MiniMax">MiniMax</option>
+      <option value="OpenAI">OpenAI</option>
+      <option value="Pika">Pika</option>
+      <option value="Runway">Runway</option>
+      <option value="Stability AI">Stability AI</option>
+      <option value="Zhipu AI">Zhipu AI</option>
+    </select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">TAGS</span>
+    <select id="video-tag-filter" multiple style="min-width:200px;">
+      <option value="cinematic">Cinematic</option>
+      <option value="realistic">Realistic</option>
+      <option value="artistic">Artistic</option>
+      <option value="fast">Fast</option>
+      <option value="open-weights">Open Weights</option>
+    </select>
+  </div>
+
+  <!-- Agent Stack tab controls -->
+  <div id="tab-controls-recommend" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">WORKFLOW</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="radio" name="recommend-mode" value="api" checked /> API Only
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="radio" name="recommend-mode" value="hybrid" /> Hybrid — Fast local
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="radio" name="recommend-mode" value="hybrid2" /> Hybrid — Fast + Balanced local
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="recommend-mode" value="local" /> Local Only
+    </label>
+  </div>
+  <!-- Providers row for Agent Stack (shown unless local mode) -->
+  <div id="recommend-providers-row" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">PROVIDERS</span>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="Anthropic" checked /> Anthropic
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="Google" checked /> Google
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="OpenAI" checked /> OpenAI
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="xAI" /> xAI
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="DeepSeek" /> DeepSeek
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
+      <input type="checkbox" name="recommend-providers" value="Mistral" /> Mistral
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="checkbox" name="recommend-providers" value="__all__" /> All
+    </label>
+  </div>
+  <!-- Hardware row for Agent Stack (shown in hybrid/local modes) -->
+  <div id="recommend-hw-row" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">GPU</span>
+    <select id="recommend-gpu-preset" style="min-width:200px;"></select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">VRAM (GB)</span>
+    <input id="recommend-vram" type="number" value="32" min="1" step="1"
+      style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
+             color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
+             padding:6px 10px;width:72px;outline:none;" />
+    <div class="filter-sep"></div>
+    <span class="filter-label">GPUs</span>
+    <select id="recommend-num-gpus" style="min-width:72px;">
+      <option value="1">×1</option>
+      <option value="2">×2</option>
+      <option value="4">×4</option>
+      <option value="8">×8</option>
+    </select>
+    <div class="filter-sep"></div>
+    <span class="filter-label">QUANT</span>
+    <select id="recommend-quant" style="min-width:80px;"></select>
+  </div>
+
   <div id="tab-panels"></div>
 
   <div id="detail-panel" class="detail-panel">
