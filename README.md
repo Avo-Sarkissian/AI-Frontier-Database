@@ -7,6 +7,10 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Data](https://img.shields.io/badge/Data-Live%20%E2%80%93%20hourly-brightgreen)
 
+### 🔗 Live dashboard → **https://avo-sarkissian.github.io/AI-Frontier-Database/**
+
+Hosted free on GitHub Pages. The full interactive dashboard runs entirely in your browser — the same Python chart code is executed client-side via [Pyodide](https://pyodide.org/) (WebAssembly), so there is no server. Charts paint instantly from a pre-rendered snapshot; the live filters/calculators activate after a one-time background load (a few seconds, cached thereafter).
+
 ---
 
 ## Overview
@@ -75,6 +79,20 @@ Open **http://localhost:8050**. The scraper fetches fresh data on startup and ru
 
 ---
 
+## Static site (GitHub Pages)
+
+The public site at **https://avo-sarkissian.github.io/AI-Frontier-Database/** is a static, server-free build of the same dashboard, served from the `docs/` folder on `main`.
+
+```bash
+# Regenerate the static site into docs/ (pre-rendered figures + Pyodide bundle)
+python build_static.py
+git add docs && git commit -m "rebuild static site" && git push   # Pages auto-deploys (~1 min)
+```
+
+How it works: `build_static.py` pre-renders every chart's default state to JSON and zips the project's Python (chart builders, data loaders, `static_api.py`) plus `plotly` into `docs/pybundle.zip`. The page loads the pre-rendered figures instantly, then boots Pyodide in the background and calls the **same** Python chart code in the browser for live filtering — so the static site is faithful to the Dash app with zero hosting cost. The hourly scraper and `python app.py` remain the local source of truth; refreshing the data and re-running `build_static.py` is all it takes to update the live site.
+
+---
+
 ## Architecture
 
 ```
@@ -90,6 +108,10 @@ utils/
   model_lookup.py        # Shared model metadata helpers
 assets/
   style.css              # Global dark theme, typography
+static_helpers.py        # Pure dash-free helpers shared by app.py + the static build
+static_api.py            # Browser bridge — ports the Dash callbacks to JSON-returning functions (runs in Pyodide)
+build_static.py          # Pre-renders figures + bundles Python into docs/ for GitHub Pages
+docs/                    # The static GitHub Pages site (index.html, app.js, figures/, pybundle.zip)
 ```
 
 ---
@@ -103,7 +125,8 @@ assets/
 | [Pandas](https://pandas.pydata.org/) | Data ingestion, filtering, and Pareto computation |
 | [requests](https://docs.python-requests.org/) | Live data scraping from the Artificial Analysis API |
 | [NumPy](https://numpy.org/) | Numerical operations (Pareto frontier, correlation) |
-| [Render](https://render.com/) | Cloud hosting — redeploys automatically on every push |
+| [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
+| [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
 
 ---
 
