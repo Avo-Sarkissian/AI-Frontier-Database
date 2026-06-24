@@ -7,7 +7,15 @@ import json
 import pandas as pd
 
 from data.ingest import get_models
+from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
+from data.image_models import get_image_df
+from data.video_models import get_video_df
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
+from components.charts.local_scatter import build_local_scatter
+from components.charts.local_compat import build_local_compat
+from components.charts.image_scatter import build_image_faceted
+from components.charts.video_chart import build_video_rankings, build_video_scatter
+from components.stack_recommender import build_stack_cards_html
 from components.charts.pareto import build_pareto_scatter
 from components.charts.quadrant import build_quadrant
 from components.charts.treemap import build_treemap
@@ -263,3 +271,109 @@ def model_detail(model_name, provider):
     if rows.empty:
         return ""
     return _detail_html(rows.iloc[0], provider)
+
+
+# ── Task 5: Local / Image / Video / Agent-Stack callbacks ─────────────────────
+
+def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags):
+    """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}."""
+    vram_gb = float(vram_per_gpu or 8) * int(num_gpus or 1)
+    gpu_count = int(num_gpus or 1)
+    bw = bandwidth_gbps or 1792
+    eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
+    ldf = get_local_df(
+        quant=quant or "Q4",
+        vram_gb=vram_gb,
+        bandwidth_gbps=eff_bw,
+        hw_type=hw_type or "nvidia",
+        tags=list(tags) if tags else None,
+    )
+    return json.dumps({
+        "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4").to_json()),
+        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4").to_json()),
+    })
+
+
+def local_hw_for_gpu(gpu_name):
+    """Mirror app.py update_local_hw — returns hw metadata for a GPU preset."""
+    g = GPU_BY_NAME.get(gpu_name)
+    if not g:
+        return json.dumps(None)
+    return json.dumps({"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"], "hw_type": g["hw_type"]})
+
+
+def gpu_options():
+    """Return JSON list of GPU option dicts for the local-tab preset dropdown."""
+    return json.dumps(get_gpu_options())
+
+
+def quant_levels():
+    """Return JSON list of quantization level strings."""
+    return json.dumps(list(QUANT_LEVELS))
+
+
+def update_image(providers, tags):
+    """Mirror app.py update_image_charts — returns image faceted figure JSON."""
+    d = get_image_df()
+    if providers:
+        d = d[d["provider"].isin(list(providers))]
+    if tags:
+        for tag in tags:
+            if tag == "open_weights":
+                d = d[d["open_weights"] == True]
+            else:
+                d = d[d["tags"].apply(lambda t: tag in t)]
+    return build_image_faceted(d).to_json()
+
+
+def update_video(providers, tags):
+    """Mirror app.py update_video_charts — returns {"rankings":.., "scatter":..}."""
+    d = get_video_df()
+    if providers:
+        d = d[d["provider"].isin(list(providers))]
+    if tags:
+        for tag in tags:
+            if tag == "open-weights":
+                d = d[d["open_weights"] == True]
+            else:
+                d = d[d["tags"].apply(lambda t: tag in t)]
+    paid = d[d["price_per_sec"] > 0] if not d.empty else d
+    return json.dumps({
+        "rankings": json.loads(build_video_rankings(d).to_json()),
+        "scatter":  json.loads(build_video_scatter(paid if not paid.empty else d).to_json()),
+    })
+
+
+def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
+    """Mirror app.py update_recommend — returns {"cards_html":.., "show_providers":bool, "show_hw":bool}."""
+    mode = mode or "api"
+    show_providers = mode != "local"
+    show_hw = mode in ("hybrid", "hybrid2", "local")
+
+    # Resolve providers for API tiers
+    if mode == "local":
+        providers = None
+    elif not selected:
+        providers = []
+    elif "__all__" in selected:
+        providers = None
+    else:
+        providers = list(selected)
+
+    # Build local_df when needed (hybrid / local modes)
+    local_df = None
+    if show_hw:
+        meta = GPU_BY_NAME.get(gpu_preset or "", {})
+        vram_gb = float(vram_per_gpu or 32) * int(num_gpus or 1)
+        gpu_count = int(num_gpus or 1)
+        bw = meta.get("bandwidth_gbps", 1792)
+        eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
+        local_df = get_local_df(
+            quant=quant or "Q4",
+            vram_gb=vram_gb,
+            bandwidth_gbps=eff_bw,
+            hw_type=meta.get("hw_type", "nvidia"),
+        )
+
+    cards = build_stack_cards_html(_DF, providers, mode=mode, local_df=local_df)
+    return json.dumps({"cards_html": cards, "show_providers": show_providers, "show_hw": show_hw})

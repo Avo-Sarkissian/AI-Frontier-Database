@@ -33,3 +33,23 @@ def test_compare_caps_at_five_and_returns_parts():
 def test_export_csv_is_text():
     csv = api.export_csv(["Anthropic"], 0, "")
     assert "model" in csv.splitlines()[0]
+
+
+# ── Task 5 tests ──────────────────────────────────────────────────────────────
+
+def test_local_returns_two_figs():
+    out = json.loads(api.update_local(32, 1, "Q4", 1792, "nvidia", None))
+    assert "scatter" in out and "compat" in out
+
+
+def test_recommend_modes_toggle_rows():
+    api_only = json.loads(api.update_recommend(["Anthropic"], "api", "NVIDIA RTX 5090", 32, 1, "Q4"))
+    local = json.loads(api.update_recommend([], "local", "NVIDIA RTX 5090", 32, 1, "Q4"))
+    assert api_only["show_hw"] is False and api_only["show_providers"] is True
+    assert local["show_hw"] is True and local["show_providers"] is False
+    assert "<" in api_only["cards_html"]
+
+
+def test_video_and_image():
+    assert "data" in json.loads(api.update_image(None, None))
+    assert "rankings" in json.loads(api.update_video(None, None))
