@@ -11,9 +11,10 @@
 ## Global Constraints
 
 - Reuse `assets/style.css` verbatim — no visual redesign.
-- Do not modify `app.py`'s runtime behavior; the Dash app must still run with `python app.py` after this work.
-- The only existing source module that may change is `components/stack_recommender.py`, and only additively (new dash-free code paths; existing dash-component path preserved).
-- `static_api.py` must not import `dash`, `requests`, `flask`, or `gunicorn` (Pyodide has none of them).
+- Do not change `app.py`'s runtime behavior; the Dash app must still run with `python app.py` after this work. (Task 0 refactors `app.py` to delegate 6 pure helpers to `static_helpers` — behavior must stay byte-identical; all call sites unchanged.)
+- Pure helpers live ONCE in `static_helpers.py` (imports only `re` + `pandas`) and are imported by `app.py`, `static_api.py`, and `build_static.py`. Do not duplicate them.
+- Existing source modules that may change: `app.py` (Task 0, delegation only) and `components/stack_recommender.py` (Task 3, additive — new dash-free path; existing dash-component path preserved).
+- `static_api.py` and `static_helpers.py` must not import `dash`, `requests`, `flask`, or `gunicorn` (Pyodide has none of them).
 - Bundle preserves package layout so `Path(__file__).parent / "raw" / ...` resolves: `data/ingest.py` → `data/raw/aa_models.csv`.
 - All `static_api` functions return **JSON strings** (via `fig.to_json()` / `json.dumps(...)`) — never live objects — so JS parses with `JSON.parse`.
 - Pin Pyodide to a single concrete version across `app.js` (use `v0.27.7`); pin Plotly.js to a version compatible with the installed plotly.py major (plotly.py 6.x → Plotly.js 3.x; use `plotly-3.0.1.min.js`).
@@ -25,6 +26,7 @@
 ## File Structure
 
 **New files**
+- `static_helpers.py` (root; bundled into the zip) — pure dash-free helpers shared by `app.py`, `static_api.py`, `build_static.py`.
 - `build_static.py` (root) — pre-renders default figures, copies CSS, builds `docs/pybundle.zip`, writes `docs/figures/manifest.json`.
 - `static_api.py` (root; bundled into the zip) — the bridge: ports the 19 callbacks to plain JSON-returning functions.
 - `docs/index.html` — UI shell (header, stat bar, global filters, tab nav, empty chart containers, detail panel).
@@ -37,10 +39,125 @@
 - `tests/test_stack_recommender_html.py`, `tests/test_static_api.py`, `tests/test_build_static.py`.
 
 **Modified files**
+- `app.py` — Task 0: delegate 6 pure helpers to `static_helpers` (behavior unchanged).
 - `components/stack_recommender.py` — split selection from rendering; add HTML-string renderer.
 - `.claude/skills/refresh-models/SKILL.md` (or the skill's script) — change the deploy step.
 - `README.md` — document the static site + build command.
 - `.gitignore` — ensure `docs/pybundle.zip` and generated figures are NOT ignored (they must ship); but ignore `docs/figures/*.png` if any.
+
+---
+
+## Phase 0 — Shared dash-free helpers
+
+Goal: one source of truth for the pure helper functions, imported by `app.py`, `static_api.py`, and `build_static.py` — no duplication.
+
+### Task 0: Extract `static_helpers.py` and delegate from `app.py`
+
+**Files:**
+- Create: `static_helpers.py`
+- Modify: `app.py` (replace 6 helper defs with imports/shims — call sites unchanged)
+- Create: `tests/test_static_helpers.py`
+
+**Interfaces:**
+- Produces (all pure, dash-free):
+  - `apply_filters(df, providers, min_quality, search="") -> DataFrame`
+  - `compute_diverse5(df) -> list[str]`
+  - `ctx_to_k(c) -> float | None`
+  - `quality_label(pct: float) -> str`
+  - `provider_options(df) -> list[dict]`
+  - `model_options(df) -> list[dict]`
+- Consumed by: `app.py` (Task 0), `build_static.py` (Task 1), `static_api.py` (Tasks 4–5).
+
+**Constraint:** `static_helpers.py` imports only `re` and `pandas` — never `dash`. `app.py` runtime behavior must be byte-identical after refactor.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/test_static_helpers.py
+from data.ingest import get_models
+import static_helpers as h
+
+def test_apply_filters_provider_and_quality():
+    df = get_models()
+    out = h.apply_filters(df, ["Anthropic"], 40, "")
+    assert len(out) > 0 and (out["provider"] == "Anthropic").all() and (out["quality"] >= 40).all()
+
+def test_compute_diverse5_returns_up_to_five():
+    df = get_models()
+    picks = h.compute_diverse5(df)
+    assert 0 < len(picks) <= 5 and len(set(picks)) == len(picks)
+
+def test_ctx_to_k_and_quality_label():
+    assert h.ctx_to_k("1m") == 1000 and h.ctx_to_k("128k") == 128
+    assert h.quality_label(95) == "Exceptional" and h.quality_label(10) == "Limited"
+
+def test_options_shape():
+    df = get_models()
+    assert all(set(o) == {"label", "value"} for o in h.provider_options(df))
+    assert all(set(o) == {"label", "value"} for o in h.model_options(df))
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `python -m pytest tests/test_static_helpers.py -v`
+Expected: FAIL (`static_helpers` does not exist).
+
+- [ ] **Step 3: Create `static_helpers.py`** — move the bodies of `_apply_filters` (parameterized on `df`), `_compute_diverse5`, `_ctx_to_k`, `_quality_label`, `_provider_options`, `_model_options` from `app.py` (lines 86–194) **verbatim** (renamed without the leading underscore; `apply_filters` takes `df` as its first parameter).
+
+```python
+"""Pure, dash-free helpers shared by app.py, static_api.py, build_static.py.
+Imports only stdlib + pandas so this module loads under Pyodide."""
+import re
+import pandas as pd
+
+def apply_filters(df, providers, min_quality, search=""):
+    filtered = df.copy()
+    if providers:
+        filtered = filtered[filtered["provider"].isin(providers)]
+    if min_quality and float(min_quality) > 0:
+        filtered = filtered[filtered["quality"] >= float(min_quality)]
+    if search and str(search).strip():
+        pat = re.escape(str(search).strip())
+        mask = (filtered["model"].str.contains(pat, case=False, na=False) |
+                filtered["provider"].str.contains(pat, case=False, na=False))
+        filtered = filtered[mask]
+    return filtered
+
+# compute_diverse5, ctx_to_k, quality_label, provider_options, model_options:
+# move verbatim from app.py (86-194); compute_diverse5/ctx_to_k/quality_label
+# already take their argument, so they port unchanged (just drop the underscore).
+```
+
+- [ ] **Step 4: Modify `app.py` to delegate** — replace the 6 helper definitions with imports plus a single shim for `_apply_filters` (which closes over the module global `df`):
+
+```python
+from static_helpers import (
+    apply_filters,
+    compute_diverse5 as _compute_diverse5,
+    ctx_to_k as _ctx_to_k,
+    quality_label as _quality_label,
+    provider_options as _provider_options,
+    model_options as _model_options,
+)
+
+def _apply_filters(providers, min_quality, search=""):
+    return apply_filters(df, providers, min_quality, search)
+```
+
+Delete the original `def _apply_filters / _compute_diverse5 / _ctx_to_k / _quality_label / _provider_options / _model_options` bodies. Leave all call sites untouched.
+
+- [ ] **Step 5: Run tests + verify the Dash app imports**
+
+Run: `python -m pytest tests/test_static_helpers.py -v` → PASS.
+Run: `python -c "import app; print('app imports OK')"` → prints OK (no error). Then `python app.py` briefly and confirm Overview/Compare/Table render unchanged (Playwright screenshot at `http://localhost:8050`).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add static_helpers.py app.py tests/test_static_helpers.py
+git commit -m "refactor: extract pure dash-free helpers into static_helpers"
+git push origin main
+```
 
 ---
 
@@ -133,39 +250,20 @@ from components.charts.local_compat import build_local_compat
 from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
 
+from static_helpers import compute_diverse5, provider_options, model_options
+
 ROOT = Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
 FIG  = DOCS / "figures"
 
-# Reuse the exact diverse-5 logic from app.py (copy, do not import app.py — it
-# starts scrapers at import time).
-def _compute_diverse5(d: pd.DataFrame) -> list[str]:
-    valid = d[(d["quality"] > 0) & (d["price"] > 0)].copy()
-    if valid.empty:
-        return []
-    picks: list[str] = []
-    def _add(rows):
-        for _, row in rows.iterrows():
-            if row["model"] not in picks:
-                picks.append(row["model"]); return
-    _add(valid.sort_values("quality", ascending=False))
-    v = valid[valid["quality"] >= 35].copy()
-    v["_val"] = v["quality"] / v["price"]
-    _add(v.sort_values("_val", ascending=False) if not v.empty
-         else valid.assign(_val=valid["quality"]/valid["price"]).sort_values("_val", ascending=False))
-    fast = valid[(valid["speed"] > 0) & (valid["quality"] >= 40)]
-    _add(fast.sort_values("speed", ascending=False) if not fast.empty else valid.sort_values("speed", ascending=False))
-    cheap = valid[valid["quality"] >= 50]
-    _add(cheap.sort_values("price") if not cheap.empty else valid.sort_values("price"))
-    mid = valid[(valid["quality"] >= 40) & (valid["quality"] <= 70)]
-    _add(mid.sort_values("quality", ascending=False) if not mid.empty else valid.sort_values("quality", ascending=False))
-    return picks[:5]
+# Do NOT import app.py — it starts background scrapers at import time. Shared
+# pure logic lives in static_helpers (imported above).
 
 
 def export_default_figures(out_dir: Path) -> list[str]:
     out_dir.mkdir(parents=True, exist_ok=True)
     df = get_models()
-    diverse5 = _compute_diverse5(df)
+    diverse5 = compute_diverse5(df)
     local_df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=1792, hw_type="nvidia")
     img_df = get_image_df()
     vdf = get_video_df()
@@ -196,9 +294,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "floor_price":      f"${df['price'].min():.3f}",
         "peak_quality":     f"{df['quality'].max():.1f}",
         "diverse5":         diverse5,
-        "provider_options": [{"label": p, "value": p} for p in sorted(df["provider"].unique())],
-        "model_options":    [{"label": f"{r['model']} ({r['provider']})", "value": r["model"]}
-                             for _, r in df[df["quality"] > 0].sort_values("quality", ascending=False).iterrows()],
+        "provider_options": provider_options(df),
+        "model_options":    model_options(df),
         "p75":              round(float(df["quality"].quantile(0.75)), 1),
         "p90":              round(float(df["quality"].quantile(0.90)), 1),
         "generated":        datetime.now().strftime("%b %d  %H:%M"),
@@ -530,7 +627,7 @@ git push origin main
   - `update_table(providers, min_quality, search, sort_col, sort_dir) -> str` (records)
   - `export_csv(providers, min_quality, search) -> str` (CSV text)
   - `model_detail(model_name, provider) -> str` (HTML string for detail body)
-- Consumes: `_apply_filters`, `_compute_diverse5`, `_build_raw_table_html`, `_ctx_to_k`, `_quality_label` — copied verbatim from `app.py` (lines 86–260) but with dash-component table builders replaced by HTML-string builders.
+- Consumes: `apply_filters`, `compute_diverse5`, `ctx_to_k`, `quality_label`, `model_options`, `provider_options` — **imported from `static_helpers`** (Task 0), never re-defined. Only `_build_raw_table_html` and `_detail_html` are new here (HTML-string mirrors of `app.py`'s dash-component `_build_raw_table` / detail body).
 
 `static_api.py` skeleton (port of the callbacks; mirror `app.py` logic exactly):
 
@@ -558,30 +655,19 @@ from components.charts.local_compat import build_local_compat
 from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
 from components.stack_recommender import build_stack_cards_html
+from static_helpers import (apply_filters, compute_diverse5, ctx_to_k,
+                            quality_label, model_options, provider_options)
 
 _DF = get_models()
 
-def _df():
-    return _DF
-
-# ---- helpers copied verbatim from app.py (86-194) ----
 def _apply_filters(providers, min_quality, search=""):
-    filtered = _DF.copy()
-    if providers:
-        filtered = filtered[filtered["provider"].isin(providers)]
-    if min_quality and float(min_quality) > 0:
-        filtered = filtered[filtered["quality"] >= float(min_quality)]
-    if search and str(search).strip():
-        pat = re.escape(str(search).strip())
-        mask = (filtered["model"].str.contains(pat, case=False, na=False) |
-                filtered["provider"].str.contains(pat, case=False, na=False))
-        filtered = filtered[mask]
-    return filtered
+    return apply_filters(_DF, providers, min_quality, search)
 
-# _compute_diverse5, _ctx_to_k, _quality_label: copy verbatim from app.py.
-# _build_raw_table_html(df, selected): mirror app.py _build_raw_table but emit an
-# HTML <table> string instead of dash html.Table (same columns/colors).
-# _model_options(df), _provider_options(df): copy verbatim (return list[dict]).
+# Local additions only — HTML-string mirrors of app.py's dash builders:
+#   _build_raw_table_html(df, selected) ↔ app.py _build_raw_table (201-260)
+#   _detail_html(row, provider)         ↔ app.py detail body (1330-1389)
+# All other helpers (compute_diverse5, ctx_to_k, quality_label, model_options,
+# provider_options) come from static_helpers — do NOT redefine them.
 
 # ---- ported callbacks ----
 def update_overview(providers, min_quality, search, xaxis):
@@ -604,9 +690,9 @@ def update_value_leaders(providers, min_quality, search):
 
 def update_compare(providers, min_quality, search, selected_models, triggered):
     f = _apply_filters(providers, min_quality, search or "")
-    options = _model_options(f)
+    options = model_options(f)
     if triggered in ("filter-provider", "filter-quality", "model-search"):
-        capped = _compute_diverse5(f)
+        capped = compute_diverse5(f)
     else:
         capped = (list(selected_models) or [])[:5]
     return json.dumps({
@@ -682,7 +768,7 @@ def test_export_csv_is_text():
 Run: `python -m pytest tests/test_static_api.py -v`
 Expected: FAIL (`static_api` missing functions).
 
-- [ ] **Step 3: Implement `static_api.py`** (complete the skeleton above; copy `_compute_diverse5`, `_ctx_to_k`, `_quality_label`, `_model_options`, `_provider_options` verbatim from `app.py`; implement `_build_raw_table_html` and `_detail_html` as HTML-string mirrors of `app.py`'s `_build_raw_table` and the detail body).
+- [ ] **Step 3: Implement `static_api.py`** (complete the skeleton above; import `compute_diverse5`, `ctx_to_k`, `quality_label`, `model_options`, `provider_options` from `static_helpers` — do not redefine; implement only `_build_raw_table_html` and `_detail_html` as HTML-string mirrors of `app.py`'s `_build_raw_table` and the detail body).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -862,7 +948,7 @@ git push origin main
 def build_pybundle():
     bundle = DOCS / "pybundle.zip"
     include = [
-        "static_api.py",
+        "static_api.py", "static_helpers.py",
         "components/__init__.py", "components/stack_recommender.py",
         "components/charts",                      # whole dir
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
@@ -1255,6 +1341,8 @@ git push origin main
 - Deployment + refresh workflow → Tasks 10, 11. ✓
 - Verification vs. live app → Tasks 7, 8, 12. ✓
 - Render left running until verified → Task 12 Step 3. ✓
+
+**Code reuse (resolved):** Pure helpers live once in `static_helpers.py` (Task 0), imported by `app.py`/`static_api.py`/`build_static.py` — no duplication. `app.py` change is delegation-only (call sites unchanged).
 
 **Placeholder scan:** Browser-render tasks use explicit "serve + screenshot-compare vs. live app" verification (no pytest possible there); `model_detail`/`_build_raw_table_html`/`_detail_html` reference `app.py` exact line ranges to mirror — implementer copies that markup. No "TBD/TODO".
 
