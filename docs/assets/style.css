@@ -1,0 +1,983 @@
+/* ═══════════════════════════════════════════════════
+   AI Frontier — Design System
+   Reference: Linear, Vercel, high-density dark dashboards
+   ═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:           #0a0a0a;
+  --bg-card:      #111111;
+  --bg-elevated:  #161616;
+  --bg-hover:     #1c1c1c;
+  --border:       rgba(255, 255, 255, 0.07);
+  --border-faint: rgba(255, 255, 255, 0.04);
+  --text-1:       #ededed;
+  --text-2:       #888888;
+  --text-3:       #666666;
+  --text-4:       #2a2a2a;
+  --accent:       #00d4ff;
+  --accent-dim:   rgba(0, 212, 255, 0.10);
+  --accent-mid:   rgba(0, 212, 255, 0.20);
+  --green:        #22c55e;
+  --green-dim:    rgba(34, 197, 94, 0.10);
+  --radius:       8px;
+  --radius-sm:    5px;
+  --radius-xs:    4px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Header ───────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.header h1 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  color: var(--text-1);
+  text-transform: uppercase;
+}
+
+.header .subtitle {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0.01em;
+}
+
+.header-badge {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: var(--radius-xs);
+  padding: 2px 7px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Stat bar ─────────────────────────────────────── */
+.stat-bar {
+  display: flex;
+  gap: 1px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--border);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 24px;
+  background: var(--bg);
+  flex: 1;
+  min-width: 0;
+}
+
+.stat:first-child { padding-left: 0; }
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.035em;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #777777;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+}
+
+/* ── Filter bar ───────────────────────────────────── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #777777;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.filter-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 6px;
+}
+
+/* ── Dash 4 Dropdown overrides ────────────────────── */
+/* Dash 4.0 rewrote the dropdown with new class names  */
+
+/* Trigger button (the visible "box") */
+.dash-dropdown {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xs) !important;
+  color: var(--text-2) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: border-color 0.15s ease !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dash-dropdown:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.dash-dropdown[aria-expanded="true"] {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0 !important;
+}
+
+/* Inner layout */
+.dash-dropdown-grid-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-height: 28px !important;
+}
+
+/* Placeholder text */
+.dash-dropdown-placeholder {
+  color: var(--text-3) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Selected value text */
+.dash-dropdown-value {
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* "X selected" count badge */
+.dash-dropdown-value-count {
+  font-size: 11px !important;
+  color: var(--accent) !important;
+  background: var(--accent-dim) !important;
+  border: 1px solid rgba(0,212,255,0.15) !important;
+  border-radius: 3px !important;
+  padding: 1px 6px !important;
+  white-space: nowrap !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Each selected item chip */
+.dash-dropdown-value-item {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text-2) !important;
+  font-size: 11px !important;
+  padding: 1px 6px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Chevron icon */
+.dash-dropdown-trigger-icon {
+  color: var(--text-3) !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+/* Clear (×) button */
+.dash-dropdown-clear {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-3) !important;
+  cursor: pointer !important;
+  padding: 0 2px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.dash-dropdown-clear:hover {
+  color: var(--text-2) !important;
+}
+
+/* Popup/menu panel */
+.dash-dropdown-content {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75) !important;
+  z-index: 1000 !important;
+  font-family: 'Inter', sans-serif !important;
+  min-width: 180px !important;
+  overflow: hidden !important;
+}
+
+/* Search input row */
+.dash-dropdown-search-container {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 10px !important;
+  border-bottom: 1px solid var(--border) !important;
+  gap: 6px !important;
+}
+
+.dash-dropdown-search {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  outline: none !important;
+  width: 100% !important;
+}
+
+.dash-dropdown-search::placeholder {
+  color: var(--text-3) !important;
+}
+
+.dash-dropdown-search-icon {
+  color: var(--text-3) !important;
+  flex-shrink: 0 !important;
+}
+
+/* "Select all" / "Deselect all" action row */
+.dash-dropdown-actions {
+  padding: 6px 10px !important;
+  border-bottom: 1px solid var(--border-faint) !important;
+  display: flex !important;
+  gap: 8px !important;
+}
+
+.dash-dropdown-action-button {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text-3) !important;
+  font-size: 10px !important;
+  font-family: 'Inter', sans-serif !important;
+  letter-spacing: 0.04em !important;
+  padding: 2px 8px !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  transition: color 0.1s ease, border-color 0.1s ease !important;
+}
+
+.dash-dropdown-action-button:hover {
+  color: var(--text-2) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Options list */
+.dash-dropdown-options {
+  overflow-y: auto !important;
+  max-height: 220px !important;
+}
+
+/* Individual option wrapper */
+.dash-options-list-option-wrapper {
+  padding: 0 !important;
+}
+
+/* Option row / checkbox */
+.dash-options-list-option-checkbox,
+.dash-dropdown-option {
+  display: flex !important;
+  align-items: center !important;
+  padding: 7px 12px !important;
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  width: 100% !important;
+  text-align: left !important;
+  gap: 8px !important;
+  transition: background 0.1s ease, color 0.1s ease !important;
+}
+
+.dash-options-list-option-checkbox:hover,
+.dash-dropdown-option:hover,
+.dash-options-list-option-checkbox:focus,
+.dash-dropdown-option:focus {
+  background: var(--bg-hover) !important;
+  color: var(--text-1) !important;
+  outline: none !important;
+}
+
+.dash-options-list-option-checkbox[aria-checked="true"],
+.dash-dropdown-option[aria-selected="true"] {
+  color: var(--accent) !important;
+  background: var(--accent-dim) !important;
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
+.tabs {
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--bg) !important;
+  padding: 0 32px !important;
+}
+
+/* Dash renders tabs as flex children inside .tab-container */
+.tab-container {
+  display: flex !important;
+  gap: 0 !important;
+}
+
+.tab {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #999999 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  letter-spacing: 0.01em !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.tab:hover {
+  color: #cccccc !important;
+}
+
+.tab--selected {
+  color: var(--text-1) !important;
+  border-bottom: 2px solid var(--accent) !important;
+  background: transparent !important;
+}
+
+/* Kill Dash's default tab chrome */
+.react-tabs__tab-list {
+  border-bottom: none !important;
+  margin: 0 !important;
+}
+
+/* ── Tab content area ────────────────────────────── */
+.tab-content {
+  padding: 0;
+}
+
+/* ── Chart description ───────────────────────────── */
+.chart-desc-wrap {
+  padding: 14px 32px 0;
+}
+
+.chart-desc {
+  font-size: 12px;
+  color: #777777;
+  line-height: 1.6;
+  max-width: 720px;
+  letter-spacing: 0.01em;
+}
+
+/* Compact single-line chart caption (replaces chart-desc-wrap) */
+.chart-caption {
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 10px 32px 2px;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+
+/* ── Chart card ───────────────────────────────────── */
+.chart-card {
+  margin: 16px 32px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Plotly modebar ───────────────────────────────── */
+.modebar {
+  background: transparent !important;
+  top: 6px !important;
+  right: 8px !important;
+}
+
+.modebar-btn path {
+  fill: var(--text-4) !important;
+  transition: fill 0.15s ease;
+}
+
+.modebar-btn:hover path {
+  fill: var(--text-3) !important;
+}
+
+.modebar-group {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+}
+
+/* ── Dash internals ───────────────────────────────── */
+._dash-loading-callback {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Remove Dash tab panel border artifacts */
+.dash-tab-panel {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ── Budget slider ────────────────────────────────── */
+.budget-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 32px 0;
+}
+
+.budget-input-wrap input[type=number] {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-1);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 6px 10px;
+  width: 120px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.budget-input-wrap input[type=number]:focus {
+  border-color: rgba(255,255,255,0.18);
+}
+
+.budget-unit {
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ── Model detail panel ───────────────────────────── */
+.detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.detail-panel.open {
+  transform: translateX(0);
+}
+
+.detail-panel-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 8px;
+  line-height: 1.4;
+  transition: color 0.1s ease, border-color 0.1s ease;
+}
+
+.detail-panel-close:hover {
+  color: var(--text-2);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.detail-panel-provider {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.detail-panel-model {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.3;
+  margin-bottom: 20px;
+  padding-right: 32px;
+}
+
+.detail-panel-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+.detail-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.detail-metric:last-child {
+  border-bottom: none;
+}
+
+.detail-metric-label {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.detail-metric-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-metric-value.accent {
+  color: var(--accent);
+}
+
+/* ── Header icon buttons (refresh / share) ───────────*/
+.header-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 9px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon-btn:hover {
+  color: var(--text-1);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--bg-hover);
+}
+
+.header-icon-btn:active {
+  background: var(--bg-elevated);
+}
+
+/* ── Global model search input ────────────────────── */
+.search-input {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xs) !important;
+  color: var(--text-1) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  padding: 5px 10px !important;
+  outline: none !important;
+  width: 200px;
+  transition: border-color 0.15s ease !important;
+}
+
+.search-input:focus {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.search-input::placeholder {
+  color: var(--text-3) !important;
+}
+
+/* ── CSV export button ────────────────────────────── */
+.export-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.export-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 212, 255, 0.25);
+  background: var(--accent-dim);
+}
+
+/* ── Preset quick-filter bar ──────────────────────── */
+.presets-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Individual preset pill button */
+.preset-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 4px 12px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  color: var(--text-1);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--bg-hover);
+}
+
+.preset-btn:active {
+  background: var(--bg-elevated);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Detail panel "→ Compare" button ─────────────── */
+.detail-compare-btn {
+  margin-top: 20px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 8px 14px;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  text-align: center;
+}
+
+.detail-compare-btn:hover {
+  color: var(--accent);
+  border-color: rgba(0, 212, 255, 0.30);
+  background: var(--accent-dim);
+}
+
+/* ── Local tab: hardware profile inputs ──────────────*/
+.local-hw-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* Fit-status badge used in compat chart annotations */
+.fit-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.fit-badge.yes   { background: rgba(34,197,94,0.12);  color: #22c55e; }
+.fit-badge.tight { background: rgba(250,176,5,0.12);  color: #fab005; }
+.fit-badge.no    { background: rgba(255,255,255,0.05); color: #333;   }
+
+/* Number inputs inside the Local tab filters */
+input[id^="local-"].dash-input:focus {
+  border-color: rgba(255,255,255,0.18) !important;
+}
+
+/* ── Insights tab ─────────────────────────────────── */
+.insight-hero {
+  padding: 32px 32px 0;
+}
+
+.insight-heading {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.insight-subheading {
+  font-size: 12px;
+  color: #888888;
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+.insight-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px 32px 4px;
+}
+
+.insight-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.insight-card-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+.insight-card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.insight-card-body {
+  font-size: 11px;
+  color: #888888;
+  line-height: 1.5;
+}
+
+.insight-card-footnote {
+  font-size: 10px;
+  color: #555555;
+  line-height: 1.5;
+  border-top: 1px solid var(--border-faint);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+/* ── Accessibility: raise chart-caption contrast ───── */
+.chart-caption {
+  color: #888888;   /* was var(--text-3) = #666666 — raised to meet WCAG AA */
+}
+
+/* ── Responsive: 1024px ───────────────────────────── */
+@media (max-width: 1024px) {
+  .header { padding: 0 20px; }
+  .stat-bar { padding: 0 20px; }
+  .filters { padding: 10px 20px; }
+  .tabs { padding: 0 20px !important; }
+  .chart-desc-wrap { padding: 12px 20px 0; }
+  .chart-card { margin: 12px 20px 20px; }
+  .footer { padding: 12px 20px; }
+
+  .stat { padding: 14px 16px; }
+  .stat-value { font-size: 18px; }
+
+  .detail-panel { width: 280px; }
+}
+
+/* ── Responsive: 1024px insight cards ────────────── */
+@media (max-width: 1024px) {
+  .insight-cards { grid-template-columns: repeat(2, 1fr); padding: 16px 20px 4px; }
+  .insight-hero  { padding: 24px 20px 0; }
+}
+
+/* ── Responsive: 768px (tablet) ──────────────────── */
+@media (max-width: 768px) {
+  .header { padding: 0 16px; height: 48px; }
+  .header .subtitle { display: none; }
+
+  .stat-bar {
+    padding: 0 16px;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .stat {
+    flex: 1 1 calc(50% - 1px);
+    min-width: calc(50% - 1px);
+    padding: 12px 16px;
+  }
+  .stat:nth-child(5) {
+    flex: 1 1 100%;
+    border-top: 1px solid var(--border);
+  }
+  .stat-value { font-size: 16px; }
+
+  .filters {
+    padding: 8px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-sep { display: none; }
+  .dash-dropdown { min-width: 0 !important; }
+
+  .tabs { padding: 0 16px !important; }
+  .tab { padding: 10px 12px !important; font-size: 11px !important; }
+
+  .chart-desc-wrap { padding: 10px 16px 0; }
+  .chart-card { margin: 10px 16px 16px; }
+  .footer { padding: 10px 16px; }
+
+  .detail-panel { width: 100vw; border-left: none; border-top: 1px solid var(--border); }
+}
+
+/* ── Responsive: 480px (mobile) ──────────────────── */
+@media (max-width: 480px) {
+  .header h1 { font-size: 11px; }
+  .header-badge { display: none; }
+
+  .stat { flex: 1 1 100%; padding: 10px 16px; }
+  .stat:nth-child(5) { flex: 1 1 100%; }
+
+  .tab { padding: 8px 10px !important; font-size: 10px !important; }
+  .stat-value { font-size: 15px; }
+}
+
+/* ── DataTable header ────────────────────────────── */
+.dash-header {
+  cursor: pointer !important;
+}
+.dash-header:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ── Responsive chart heights ─────────────────────── */
+/* Plotly listens to ResizeObserver when responsive=True,
+   so overriding .dash-graph height via CSS triggers a reflow. */
+
+@media (max-width: 1280px) {
+  .dash-graph { max-height: 68vh !important; }
+  /* Opt-out: tall list charts (e.g. runnable local models) need
+     their full computed height — the page scrolls to show them.
+     Without this, Plotly crushes N-row charts into ~68vh and bars
+     and right-side annotations pile up unreadably. */
+  .chart-card--uncapped .dash-graph {
+    height: auto !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dash-graph { height: 58vh !important; max-height: 58vh !important; }
+  .chart-card--uncapped .dash-graph {
+    height: auto !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-graph { height: 52vh !important; max-height: 52vh !important; }
+
+  /* Tab bar scrolls horizontally instead of wrapping */
+  .tabs {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .tabs::-webkit-scrollbar { display: none !important; }
+  .tab-container { flex-wrap: nowrap !important; min-width: max-content !important; }
+}
+
+@media (max-width: 480px) {
+  .dash-graph { height: 46vh !important; max-height: 46vh !important; }
+}
