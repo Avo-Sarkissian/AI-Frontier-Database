@@ -487,7 +487,8 @@ async function rerenderActiveFilterCharts() {
     const sort = document.querySelector('input[name="rankings-sort"]:checked')?.value || "intelligence";
     try {
       renderJsonFig("chart-rankings", await window.AF.callPy("update_rankings", p, q, s, sort));
-      renderJsonFig("chart-value_leaders", await window.AF.callPy("update_value_leaders", p, q, s));
+      // Value Leaders is built once on the full dataset (matches Dash app — no callback).
+      // Do NOT re-render it here; it keeps the pre-loaded figures/value_leaders.json figure.
     } catch (e) { console.error("rankings render failed:", e); }
   } else if (tab === "compare") {
     await refreshCompare("filter-provider");
@@ -616,11 +617,22 @@ function attachParetoClickHandler() {
   });
 }
 
+// ---- Overview caption text (mirrors app.py) ----
+const OVERVIEW_CAPTIONS = {
+  price: "Each bubble is one model. X = price per 1M tokens (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier. Click any bubble for full details.",
+  speed: "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. Bubble size = affordability (larger = cheaper). Click any bubble for full details.",
+};
+function updateOverviewCaption() {
+  const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
+  const el = document.getElementById("overview-desc");
+  if (el) el.textContent = OVERVIEW_CAPTIONS[x] || OVERVIEW_CAPTIONS.price;
+}
+
 // ---- Wire per-tab controls ----
 function wireTabControls() {
   // Overview X-axis
   document.querySelectorAll('input[name="overview-xaxis"]').forEach(r => {
-    r.onchange = () => rerenderActiveFilterCharts();
+    r.onchange = () => { updateOverviewCaption(); rerenderActiveFilterCharts(); };
   });
 
   // Rankings sort
@@ -712,6 +724,14 @@ function wireTabControls() {
 
 async function init() {
   buildTabsAndPanels();
+  // Inject overview caption just above the chart-pareto card (matches Dash app layout)
+  const overviewPanel = document.getElementById("panel-overview");
+  if (overviewPanel) {
+    const cap = document.createElement("p");
+    cap.id = "overview-desc";
+    cap.className = "chart-caption";
+    overviewPanel.insertBefore(cap, overviewPanel.firstChild);
+  }
   await loadManifest();
   // Show controls for the initial tab
   showTabControls("overview");
@@ -720,6 +740,7 @@ async function init() {
   await Promise.all(chartLoads);
   wireGlobalControls();
   wireTabControls();
+  updateOverviewCaption();  // set caption for initial price x-axis
   wireDetailPanel();  // wires close/add-compare immediately; pareto click re-attached after each render
   applyUrlState();    // restore tab + filters from URL params (pure JS, no Pyodide needed)
   bootPyodide();      // fire-and-forget; pyReady gate protects filter calls
