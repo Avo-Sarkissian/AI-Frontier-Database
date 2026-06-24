@@ -982,6 +982,29 @@ input[id^="local-"].dash-input:focus {
   .dash-graph { height: 46vh !important; max-height: 46vh !important; }
 }
 
+/* ── Header right actions ────────────────────────── */
+.header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Filter selects ──────────────────────────────── */
+#filter-provider, #filter-quality {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  outline: none;
+}
+
+#filter-provider {
+  min-width: 220px;
+}
+
 /* ── Static-site additions (Task 2) ──────────────── */
 
 /* Pyodide warm-up status bar at page bottom */

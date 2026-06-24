@@ -12,6 +12,7 @@ const TABS = [
   { id: "video",     label: "Video Gen",   charts: ["video_rankings", "video_scatter"] },
 ];
 
+// window.AF.state contract: { providers: string[], minQuality: number, search: string, tab: string }
 window.AF = { pyReady: false, figCache: {}, manifest: null, state: {
   providers: [], minQuality: 0, search: "", tab: "overview" } };
 
@@ -47,7 +48,7 @@ function switchTab(id) {
   });
   // Plotly needs a resize when a hidden plot becomes visible.
   setTimeout(() => document.querySelectorAll("#panel-" + id + " .js-plotly-plot")
-    .forEach(el => { try { Plotly.Plots.resize(el); } catch (e) {} }), 60);
+    .forEach(el => { try { Plotly.Plots.resize(el); } catch (e) { console.warn("resize:", e); } }), 60);
 }
 
 async function renderFigure(divId, figId) {
@@ -77,6 +78,9 @@ async function loadManifest() {
 async function init() {
   buildTabsAndPanels();
   await loadManifest();
-  for (const t of TABS) for (const c of t.charts) await renderFigure("chart-" + c, c);
+  await Promise.all(TABS.flatMap(t => t.charts.map(c => renderFigure("chart-" + c, c))));
 }
-init();
+init().catch(err => {
+  const s = document.getElementById("py-status");
+  if (s) { s.style.display = "block"; s.textContent = "Failed to load: " + err.message; }
+});

@@ -11,7 +11,7 @@
   <div class="header">
     <div class="header-left"><h1>AI FRONTIER</h1>
       <span class="subtitle">LLM comparison dashboard</span></div>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div class="header-right-actions">
       <button id="btn-refresh" class="header-icon-btn" title="Reload">⟳</button>
       <button id="btn-share" class="header-icon-btn" title="Copy URL">↗</button>
     </div>
@@ -26,10 +26,10 @@
 
   <div class="filters">
     <span class="filter-label">PROVIDER</span>
-    <select id="filter-provider" multiple style="min-width:220px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-2);font-family:Inter,sans-serif;font-size:12px;padding:4px 8px;height:30px;outline:none;"></select>
+    <select id="filter-provider" multiple style="min-width:220px;"></select>
     <div class="filter-sep"></div>
     <span class="filter-label">MIN SCORE</span>
-    <select id="filter-quality" style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-2);font-family:Inter,sans-serif;font-size:12px;padding:4px 8px;height:30px;outline:none;">
+    <select id="filter-quality">
       <option value="0">≥ 0</option><option value="10">≥ 10</option>
       <option value="15">≥ 15</option><option value="20">≥ 20</option>
       <option value="25">≥ 25</option><option value="30">≥ 30</option>
