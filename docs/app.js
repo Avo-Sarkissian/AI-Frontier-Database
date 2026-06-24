@@ -214,16 +214,24 @@ _im.version = _version_shim
 import static_api
 `);
     window.AF.pyodide = pyodide;
+    // Convert JS values to Python-native types so json.dumps works inside Python.
+    // Arrays become Python lists, objects become dicts, primitives pass through.
+    const toPyArg = (v) => {
+      if (v === null || v === undefined) return v;
+      if (Array.isArray(v)) return pyodide.toPy(v);
+      if (typeof v === "object") return pyodide.toPy(v);
+      return v;
+    };
     window.AF.callPy = async (fn, ...args) => {
       const py = pyodide.globals.get("static_api");
-      const res = py[fn](...args);
+      const res = py[fn](...args.map(toPyArg));
       const s = res.toString();
       if (typeof res.destroy === "function") res.destroy();
       return JSON.parse(s);
     };
     window.AF.callPyRaw = async (fn, ...args) => {
       const py = pyodide.globals.get("static_api");
-      const res = py[fn](...args);
+      const res = py[fn](...args.map(toPyArg));
       const s = res.toString();
       if (typeof res.destroy === "function") res.destroy();
       return s;
@@ -467,7 +475,8 @@ async function rerenderActiveFilterCharts() {
   if (tab === "overview") {
     const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
     try {
-      renderJsonFig("chart-pareto", await window.AF.callPy("update_overview", p, q, s, x));
+      await renderJsonFig("chart-pareto", await window.AF.callPy("update_overview", p, q, s, x));
+      attachParetoClickHandler();
     } catch (e) { console.error("overview render failed:", e); }
   } else if (tab === "landscape") {
     try {
@@ -520,6 +529,91 @@ function wireGlobalControls() {
   document.getElementById("preset-all").onclick = () => setPreset(0, []);
   document.getElementById("preset-strong").onclick = () => setPreset(window.AF.manifest.p75, []);
   document.getElementById("preset-elite").onclick = () => setPreset(window.AF.manifest.p90, []);
+
+  // CSV export — get filtered CSV text from Python, trigger download.
+  document.getElementById("btn-export").onclick = async () => {
+    if (!window.AF.pyReady) return;
+    const [p, q, s] = readGlobalFilters();
+    try {
+      const csv = await window.AF.callPyRaw("export_csv", p, q, s);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "ai_frontier_export.csv"; a.click();
+    } catch (e) { console.error("export_csv failed:", e); }
+  };
+
+  // Share — copy URL with ?tab=&p=&q=
+  document.getElementById("btn-share").onclick = () => {
+    const { tab, providers, minQuality } = window.AF.state;
+    const params = new URLSearchParams();
+    if (tab) params.set("tab", tab);
+    if (providers && providers.length) params.set("p", providers.join(","));
+    if (minQuality > 0) params.set("q", minQuality);
+    const url = location.origin + location.pathname + (params.toString() ? "?" + params : "");
+    navigator.clipboard?.writeText(url);
+    history.replaceState(null, "", url);
+  };
+
+  document.getElementById("btn-refresh").onclick = () => location.reload();
+}
+
+// ---- Restore state from URL on page load ----
+function applyUrlState() {
+  const u = new URLSearchParams(location.search);
+  if (u.get("q")) {
+    const qEl = document.getElementById("filter-quality");
+    if (qEl) qEl.value = u.get("q");
+  }
+  if (u.get("p")) {
+    const set = new Set(u.get("p").split(","));
+    const pEl = document.getElementById("filter-provider");
+    if (pEl) Array.from(pEl.options).forEach(o => { o.selected = set.has(o.value); });
+  }
+  if (u.get("tab")) switchTab(u.get("tab"));
+}
+
+// ---- Detail panel — Plotly click on pareto → model_detail HTML ----
+function wireDetailPanel() {
+  document.getElementById("detail-close").onclick = () =>
+    document.getElementById("detail-panel").className = "detail-panel";
+  document.getElementById("detail-add-compare").onclick = async () => {
+    const m = window.AF.detailModel; if (!m) return;
+    const sel = document.getElementById("radar-model-select");
+    const chosen = Array.from(sel.selectedOptions).map(o => o.value);
+    if (!chosen.includes(m) && chosen.length < 5) {
+      Array.from(sel.options).forEach(o => { if (o.value === m) o.selected = true; });
+    }
+    // Switch to compare tab without triggering auto-rerender, then refresh with correct selection.
+    window.AF.state.tab = "compare";
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("tab--selected", b.dataset.tab === "compare"));
+    TABS.forEach(t => { document.getElementById("panel-" + t.id).style.display = t.id === "compare" ? "block" : "none"; });
+    showTabControls("compare");
+    await refreshCompare("radar-model-select");
+  };
+  attachParetoClickHandler();
+}
+
+// Attach (or re-attach) plotly_click on the Pareto chart.
+// Must be called after every Plotly.react on that div because react() clears handlers.
+function attachParetoClickHandler() {
+  const div = document.getElementById("chart-pareto");
+  if (!div || !div.on) return;
+  div.removeAllListeners && div.removeAllListeners("plotly_click");
+  div.on("plotly_click", async (ev) => {
+    if (!window.AF.pyReady) return;
+    const cd = ev.points?.[0]?.customdata;
+    if (!cd) return;
+    // customdata is [model, provider] array
+    const model = Array.isArray(cd) ? cd[0] : cd;
+    const provider = Array.isArray(cd) ? cd[1] : "";
+    try {
+      const html = await window.AF.callPyRaw("model_detail", model, provider);
+      if (!html) return;
+      document.getElementById("detail-panel-body").innerHTML = html;
+      document.getElementById("detail-panel").className = "detail-panel open";
+      window.AF.detailModel = model;
+    } catch (e) { console.error("model_detail failed:", e); }
+  });
 }
 
 // ---- Wire per-tab controls ----
@@ -626,7 +720,9 @@ async function init() {
   await Promise.all(chartLoads);
   wireGlobalControls();
   wireTabControls();
-  bootPyodide();  // fire-and-forget; pyReady gate protects filter calls
+  wireDetailPanel();  // wires close/add-compare immediately; pareto click re-attached after each render
+  applyUrlState();    // restore tab + filters from URL params (pure JS, no Pyodide needed)
+  bootPyodide();      // fire-and-forget; pyReady gate protects filter calls
 }
 init().catch(err => {
   const s = document.getElementById("py-status");
