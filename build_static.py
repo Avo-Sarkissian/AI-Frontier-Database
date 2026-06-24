@@ -81,11 +81,76 @@ def copy_css():
     shutil.copy(ROOT / "assets" / "style.css", DOCS / "assets" / "style.css")
 
 
+def build_pybundle():
+    """Build pybundle.zip: project Python + plotly/tenacity vendored from venv."""
+    import importlib.util, site
+
+    bundle = DOCS / "pybundle.zip"
+    include = [
+        "static_api.py", "static_helpers.py",
+        "components/__init__.py", "components/stack_recommender.py",
+        "components/charts",                      # whole dir
+        "data/__init__.py", "data/ingest.py", "data/local_models.py",
+        "data/image_models.py", "data/video_models.py", "data/embedding_models.py",
+        "data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv",
+    ]
+
+    # Resolve site-packages so we can vendor plotly + tenacity
+    site_pkgs = []
+    for sp in site.getsitepackages():
+        p = Path(sp)
+        if p.is_dir():
+            site_pkgs.append(p)
+    # Also check importlib for the venv's site-packages
+    try:
+        spec = importlib.util.find_spec("plotly")
+        if spec and spec.submodule_search_locations:
+            plotly_root = Path(list(spec.submodule_search_locations)[0]).parent
+            if plotly_root not in site_pkgs:
+                site_pkgs.insert(0, plotly_root)
+    except Exception:
+        pass
+
+    def find_pkg(name):
+        for sp in site_pkgs:
+            candidate = sp / name
+            if candidate.is_dir():
+                return candidate
+        return None
+
+    vendor_pkgs = []
+    for pkg_name in ("plotly", "_plotly_utils", "tenacity"):
+        pkg_dir = find_pkg(pkg_name)
+        if pkg_dir:
+            vendor_pkgs.append((pkg_name, pkg_dir))
+            print(f"  vendoring {pkg_name} from {pkg_dir}")
+        else:
+            print(f"  WARNING: {pkg_name} not found in site-packages — Pyodide will need micropip")
+
+    with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as z:
+        # Project files
+        for rel in include:
+            p = ROOT / rel
+            if p.is_dir():
+                for f in p.rglob("*.py"):
+                    z.write(f, f.relative_to(ROOT))
+            else:
+                z.write(p, rel)
+        # Vendor plotly + tenacity
+        for pkg_name, pkg_dir in vendor_pkgs:
+            for f in pkg_dir.rglob("*"):
+                if f.is_file() and f.suffix in (".py", ".json", ""):
+                    arc = pkg_name / f.relative_to(pkg_dir)
+                    z.write(f, str(arc))
+
+    print("pybundle.zip:", bundle.stat().st_size // 1024, "KB")
+
+
 def main():
     export_default_figures(FIG)
     copy_css()
     (DOCS / ".nojekyll").write_text("")
-    # build_pybundle() added in Task 9.
+    build_pybundle()
     print("Static build complete →", DOCS)
 
 
