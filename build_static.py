@@ -125,7 +125,12 @@ def build_pybundle():
             vendor_pkgs.append((pkg_name, pkg_dir))
             print(f"  vendoring {pkg_name} from {pkg_dir}")
         else:
-            print(f"  WARNING: {pkg_name} not found in site-packages — Pyodide will need micropip")
+            if pkg_name in ("plotly", "_plotly_utils"):
+                raise RuntimeError(
+                    f"{pkg_name} not found in site-packages — cannot build a working "
+                    f"Pyodide bundle. Install it in this environment (pip install plotly) and rebuild."
+                )
+            print(f"  NOTE: optional {pkg_name} not vendored")
 
     with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as z:
         # Project files
@@ -139,6 +144,10 @@ def build_pybundle():
         # Vendor plotly + tenacity
         for pkg_name, pkg_dir in vendor_pkgs:
             for f in pkg_dir.rglob("*"):
+                # Only .py + .json (plot schema / templates) + extensionless files are
+                # needed for figure construction via fig.to_json(). Deliberately EXCLUDE
+                # plotly's bundled .js (plotly.min.js is ~3.5MB) and HTML-export assets —
+                # the browser renders with its own Plotly.js, so those would only bloat the zip.
                 if f.is_file() and f.suffix in (".py", ".json", ""):
                     arc = pkg_name / f.relative_to(pkg_dir)
                     z.write(f, str(arc))

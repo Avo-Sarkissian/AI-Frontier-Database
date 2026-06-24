@@ -105,7 +105,7 @@ sys.path.insert(0, "/bundle")
 import importlib.metadata as _im
 _orig_version = _im.version
 def _version_shim(name):
-    _VERSIONS = {"plotly": "6.5.2", "narwhals": "1.0.0"}
+    _VERSIONS = {"plotly": "6.5.2", "narwhals": "1.0.0", "tenacity": "8.2.3"}
     if name in _VERSIONS:
         return _VERSIONS[name]
     return _orig_version(name)
@@ -177,6 +177,8 @@ async function rerenderActiveFilterCharts() {
       const result = await window.AF.callPy("update_compare", p, q, s, [], "filter-provider");
       renderJsonFig("chart-radar", result.figure);
     } catch (e) { console.error("compare render failed:", e); }
+  // NOTE: Table, Compare (full), Run Local, Image Gen, Video Gen, and Agent Stack tabs
+  // get their complete control wiring in a later task (Task 8); missing branches here are intentional.
   } else if (tab === "budget") {
     const tok = Number(document.getElementById("budget-tokens")?.value || 1);
     try {
