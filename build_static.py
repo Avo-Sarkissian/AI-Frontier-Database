@@ -7,8 +7,8 @@ import pandas as pd
 
 from data.ingest import get_models
 from data.local_models import get_local_df
-from data.image_models import get_image_df
-from data.video_models import get_video_df
+from data.image_models import get_image_df, get_image_providers
+from data.video_models import get_video_df, get_video_providers
 from components.charts.pareto import build_pareto_scatter
 from components.charts.quadrant import build_quadrant
 from components.charts.treemap import build_treemap
@@ -70,6 +70,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "model_options":    model_options(df),
         "p75":              round(float(df["quality"].quantile(0.75)), 1),
         "p90":              round(float(df["quality"].quantile(0.90)), 1),
+        "image_providers":  get_image_providers(),
+        "video_providers":  get_video_providers(),
         "generated":        datetime.now().strftime("%b %d  %H:%M"),
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest))

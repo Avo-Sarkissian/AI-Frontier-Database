@@ -164,6 +164,23 @@ async function loadManifest() {
       radarSel.appendChild(opt);
     });
   }
+  // Populate image/video provider filters from manifest (dynamic, survives catalog refreshes)
+  const imgProvSel = document.getElementById("image-provider-filter");
+  if (imgProvSel && m.image_providers) {
+    imgProvSel.innerHTML = "";
+    m.image_providers.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p; imgProvSel.appendChild(opt);
+    });
+  }
+  const vidProvSel = document.getElementById("video-provider-filter");
+  if (vidProvSel && m.video_providers) {
+    vidProvSel.innerHTML = "";
+    m.video_providers.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p; vidProvSel.appendChild(opt);
+    });
+  }
 }
 
 // ---- Pyodide boot ----
@@ -580,9 +597,9 @@ function wireTabControls() {
   if (vidProvider) vidProvider.onchange = () => refreshVideo();
   if (vidTags) vidTags.onchange = () => refreshVideo();
 
-  // Agent Stack mode radios
+  // Agent Stack mode radios — update row visibility immediately (pre-boot), then refresh data
   document.querySelectorAll('input[name="recommend-mode"]').forEach(r => {
-    r.onchange = () => refreshRecommend();
+    r.onchange = () => { showTabControls("recommend"); refreshRecommend(); };
   });
   // Agent Stack providers checkboxes
   document.querySelectorAll('input[name="recommend-providers"]').forEach(c => {
