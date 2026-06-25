@@ -306,6 +306,9 @@ async function populateDynamicSelects() {
         window.AF.localHwMeta = hw;
         const vramInput = document.getElementById("local-vram");
         if (vramInput) vramInput.value = hw.vram_gb;
+        // Same default preset feeds the Agent Stack tab's VRAM cap.
+        const recVramInput = document.getElementById("recommend-vram");
+        if (recVramInput) recVramInput.value = hw.vram_gb;
       }
     } catch (e) { console.warn("local_hw_for_gpu init:", e); }
 
@@ -716,7 +719,15 @@ function wireTabControls() {
   const recVram = document.getElementById("recommend-vram");
   const recNumGpus = document.getElementById("recommend-num-gpus");
   const recQuant = document.getElementById("recommend-quant");
-  if (recGpu) recGpu.onchange = () => refreshRecommend();
+  if (recGpu) recGpu.onchange = async () => {
+    // Sync VRAM to the selected preset so the 'fits' filter uses the real
+    // hardware capacity (mirrors the Local tab + Dash update_recommend_hw).
+    try {
+      const hw = await window.AF.callPy("local_hw_for_gpu", recGpu.value);
+      if (hw && recVram) recVram.value = hw.vram_gb;
+    } catch (e) { console.error("recommend gpu preset sync:", e); }
+    refreshRecommend();
+  };
   if (recVram) recVram.oninput = debounce(() => refreshRecommend(), 300);
   if (recNumGpus) recNumGpus.onchange = () => refreshRecommend();
   if (recQuant) recQuant.onchange = () => refreshRecommend();

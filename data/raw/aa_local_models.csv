@@ -5,6 +5,7 @@ MiniMax-M3,MiniMax,428.0,23.0,1000,44.44,MINIMAX COMMUNITY LICENSE,"vision,reaso
 Kimi K2.6,Kimi,1000.0,32.0,256,42.84,Modified MIT,"vision,reasoning",True
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,42.24,Mit,reasoning,True
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,41.95,Modified MIT License,"vision,reasoning,code",True
+Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,40.83,MIT,reasoning,True
 "DeepSeek V4 Flash (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.28,MIT,reasoning,True
 GLM-5.1 (Reasoning),Z AI,744.0,40.0,200,40.16,Mit,reasoning,True
@@ -34,7 +35,7 @@ DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,31.22,Mit,,True
 MiMo-V2-Flash (Reasoning),Xiaomi,309.0,15.0,256,31.2,MIT,reasoning,True
 Ring-2.6-1T,InclusionAI,1000.0,63.0,262,30.57,MIT,reasoning,True
 Mistral Medium 3.5,Mistral,128.0,128.0,256,29.95,Other,"vision,reasoning",False
-Step 3.7 Flash,StepFun,198.0,11.0,256,29.73,Apache 2.0,"vision,reasoning",True
+Step 3.7 Flash,StepFun,198.0,11.0,262,29.73,Apache 2.0,"vision,reasoning",True
 Kimi K2.5 (Non-reasoning),Kimi,1000.0,32.0,256,29.4,Modified MIT License,vision,True
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.35,Apache 2.0,"vision,reasoning",False
 Qwen3.5 27B (Non-reasoning),Alibaba,27.8,27.8,262,29.31,Apache 2.0,vision,False
@@ -81,6 +82,7 @@ DeepSeek R1 0528 (May '25),DeepSeek,685.0,37.0,128,20.08,MIT,reasoning,True
 Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,19.77,Apache 2.0,reasoning,True
 GLM-4.5 (Reasoning),Z AI,355.0,32.0,128,19.49,MIT,reasoning,True
 Kimi K2,Kimi,1000.0,32.0,128,19.4,Modified MIT License,,True
+Ling 2.6 Flash,InclusionAI,107.0,7.4,262,19.25,Mit,,True
 Seed-OSS-36B-Instruct,ByteDance Seed,36.2,36.2,512,18.34,Apache 2.0,reasoning,False
 Qwen3 235B A22B 2507 Instruct,Alibaba,235.0,22.0,256,18.16,Apache 2.0,,True
 Qwen3 Coder 480B A35B Instruct,Alibaba,480.0,35.0,262,17.98,Apache 2.0,code,True
@@ -144,8 +146,8 @@ Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,8.76,Apache 2.0,vision,False
 Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA Open Model License Agreement,,False
 Qwen3 32B (Non-reasoning),Alibaba,32.8,32.8,33,8.63,Apache 2.0,,False
-Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Mistral Small 3.1,Mistral,24.0,24.0,128,8.59,Apache 2.0,vision,False
+Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,8.5,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 VL 8B Instruct,Alibaba,8.77,8.77,256,8.42,Apache 2.0,vision,False
 Pixtral Large,Mistral,124.0,124.0,128,8.15,Mistral Research License,vision,False
@@ -190,13 +192,13 @@ Gemma 3 12B Instruct,Google,12.2,12.2,128,3.39,Gemma license,vision,False
 Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,3.33,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,3.03,MIT,,False
 Command-R+ (Apr '24),Cohere,104.0,104.0,128,2.99,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 LFM2 2.6B,Liquid AI,2.57,2.57,33,2.71,lfm 1.0,,False
+LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 Jamba 1.5 Mini,AI21 Labs,52.0,12.0,256,2.7,Jamba Open Model License Agreement,,True
 Jamba 1.6 Mini,AI21 Labs,52.0,12.0,256,2.55,Jamba Open Model License Agreement,,True
 Mixtral 8x7B Instruct,Mistral,46.7,12.9,33,2.43,Apache 2.0,,True
-Command-R (Mar '24),Cohere,35.0,35.0,128,2.14,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
 Mistral 7B Instruct,Mistral,7.0,7.0,8,2.14,Apache 2.0,,False
+Command-R (Mar '24),Cohere,35.0,35.0,128,2.14,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
 Granite 3.3 8B (Non-reasoning),IBM,8.17,8.17,128,1.75,Apache 2.0,,False
 Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
 Llama 3 Instruct 8B,Meta,8.0,8.0,8,1.19,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
