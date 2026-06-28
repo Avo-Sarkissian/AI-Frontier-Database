@@ -88,3 +88,13 @@
   border-color: rgba(0, 212, 255, 0.30);
   background: var(--accent-dim);
 }
+
+/* Data freshness badge */
+.freshness {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-3, #666);
+  font-family: Inter, -apple-system, sans-serif;
+  margin-right: 4px;
+  white-space: nowrap;
+}

@@ -12,3 +12,9 @@ def test_manifest_fetched_no_store_and_version_captured():
 def test_data_assets_are_version_busted():
     assert "figures/${figId}.json?v=" in APP
     assert "pybundle.zip?v=" in APP
+
+def test_freshness_badge_present():
+    assert 'id="data-freshness"' in HTML
+    assert "function relativeTime(" in APP
+    assert "function renderFreshness(" in APP
+    assert "setInterval(renderFreshness, 60000)" in APP

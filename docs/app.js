@@ -322,6 +322,30 @@ async function populateDynamicSelects() {
 // ---- Debounce helper ----
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
+// ---- Relative time + freshness badge ----
+function relativeTime(iso) {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function renderFreshness() {
+  const el = document.getElementById("data-freshness");
+  if (!el) return;
+  const iso = window.AF.generatedIso;
+  if (!iso) { el.textContent = ""; el.title = ""; return; }
+  el.textContent = "Updated " + relativeTime(iso);
+  el.title = new Date(iso).toUTCString();
+}
+
 // ---- Read current filter state ----
 function readGlobalFilters() {
   const providers = Array.from(document.getElementById("filter-provider").selectedOptions).map(o => o.value);
@@ -746,6 +770,8 @@ async function init() {
     overviewPanel.insertBefore(cap, overviewPanel.firstChild);
   }
   await loadManifest();
+  renderFreshness();
+  setInterval(renderFreshness, 60000);
   // Show controls for the initial tab
   showTabControls("overview");
   // Load static figures for all chart tabs
