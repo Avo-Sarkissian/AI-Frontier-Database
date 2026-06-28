@@ -135,7 +135,7 @@ function switchTab(id) {
 async function renderFigure(divId, figId) {
   let fig = window.AF.figCache[figId];
   if (!fig) {
-    const r = await fetch(`figures/${figId}.json`);
+    const r = await fetch(`figures/${figId}.json?v=${window.AF.version || ""}`);
     fig = await r.json();
     window.AF.figCache[figId] = fig;
   }
@@ -143,8 +143,10 @@ async function renderFigure(divId, figId) {
 }
 
 async function loadManifest() {
-  const m = await (await fetch("figures/manifest.json")).json();
+  const m = await (await fetch("figures/manifest.json", { cache: "no-store" })).json();
   window.AF.manifest = m;
+  window.AF.version = m.version || "";
+  window.AF.generatedIso = m.generated_iso || null;
   document.getElementById("stat-model-count").textContent = m.model_count;
   document.getElementById("stat-provider-count").textContent = m.provider_count;
   document.getElementById("stat-floor-price").textContent = m.floor_price;
@@ -198,7 +200,7 @@ async function bootPyodide() {
     if (statusEl) statusEl.textContent = "loading packages…";
     await pyodide.loadPackage(["pandas", "numpy", "narwhals"]);
     if (statusEl) statusEl.textContent = "loading bundle…";
-    const buf = await (await fetch("pybundle.zip")).arrayBuffer();
+    const buf = await (await fetch(`pybundle.zip?v=${window.AF.version || ""}`)).arrayBuffer();
     pyodide.unpackArchive(buf, "zip", { extractDir: "/bundle" });
     await pyodide.runPythonAsync(`
 import sys
