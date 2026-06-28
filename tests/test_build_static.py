@@ -1,6 +1,7 @@
 # tests/test_build_static.py
-import json, subprocess, sys
+import json, subprocess, sys, re
 from pathlib import Path
+from datetime import datetime
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -17,3 +18,10 @@ def test_build_produces_figures_and_manifest(tmp_path):
     manifest = json.loads((figdir / "manifest.json").read_text())
     assert int(manifest["model_count"]) > 0
     assert manifest["provider_options"] and manifest["diverse5"]
+
+def test_manifest_has_version_and_iso():
+    subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
+    manifest = json.loads((ROOT / "docs" / "figures" / "manifest.json").read_text())
+    assert re.fullmatch(r"\d{8}T\d{6}Z", manifest.get("version", "")), manifest.get("version")
+    # generated_iso must parse as ISO-8601
+    datetime.fromisoformat(manifest["generated_iso"])

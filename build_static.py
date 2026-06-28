@@ -1,6 +1,6 @@
 """Pre-render default figures + bundle Python for the static Pyodide site."""
 import json, shutil, zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -60,6 +60,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
         (out_dir / f"{fid}.json").write_text(fig.to_json())
         written.append(f"{fid}.json")
 
+    _now = datetime.now(timezone.utc)
     manifest = {
         "model_count":      int(len(df)),
         "provider_count":   int(df["provider"].nunique()),
@@ -72,7 +73,9 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "p90":              round(float(df["quality"].quantile(0.90)), 1),
         "image_providers":  get_image_providers(),
         "video_providers":  get_video_providers(),
-        "generated":        datetime.now().strftime("%b %d  %H:%M"),
+        "generated":        _now.strftime("%b %d  %H:%M"),
+        "version":          _now.strftime("%Y%m%dT%H%M%SZ"),
+        "generated_iso":    _now.isoformat(),
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest))
     return written
