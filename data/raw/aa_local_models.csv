@@ -112,14 +112,14 @@ Devstral Small 2,Mistral,24.0,24.0,256,13.14,Apache 2.0,vision,False
 DeepSeek R1 (Jan '25),DeepSeek,685.0,37.0,128,12.57,MIT,reasoning,True
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.42,NVIDIA Open Model License Agreement,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.37,Apache 2.0,vision,True
-Magistral Small 1.2,Mistral,24.0,24.0,128,11.95,Apache 2.0,"vision,reasoning",False
 Sarvam 105B (high),Sarvam,106.0,10.3,128,11.94,Apache 2.0,reasoning,True
+Qwen3 32B (Reasoning),Alibaba,32.8,32.8,33,11.55,Apache 2.0,reasoning,False
+Magistral Small 1.2,Mistral,24.0,24.0,128,11.29,Apache 2.0,"vision,reasoning",False
 Qwen3 VL 32B Instruct,Alibaba,33.4,33.4,256,11.06,Apache 2.0,vision,False
 Ministral 3 14B,Mistral,14.0,14.0,256,11.05,Apache 2.0,vision,False
 GLM-4.6V (Non-reasoning),Z AI,108.0,12.0,128,10.98,MIT,vision,True
 Qwen3 235B A22B (Non-reasoning),Alibaba,235.0,22.0,33,10.86,Apache 2.0,,True
 Qwen3 VL 8B (Reasoning),Alibaba,8.77,8.77,256,10.58,Apache 2.0,"vision,reasoning",False
-Qwen3 32B (Reasoning),Alibaba,32.8,32.8,33,10.46,Apache 2.0,reasoning,False
 DeepSeek V3 (Dec '24),DeepSeek,671.0,37.0,128,10.39,DEEPSEEK LICENSE AGREEMENT,,True
 Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,10.24,Apache 2.0,"vision,reasoning",False
 Qwen3 14B (Reasoning),Alibaba,14.8,14.8,33,10.15,Apache 2.0,reasoning,False
@@ -132,8 +132,8 @@ Qwen3 Omni 30B A3B (Reasoning),Alibaba,35.3,3.0,66,9.63,Apache 2.0,"vision,audio
 Qwen2.5 Instruct 72B,Alibaba,72.0,72.0,131,9.57,Qwen License Agreement,,False
 Qwen3 30B A3B (Reasoning),Alibaba,30.5,3.3,33,9.31,Apache 2.0,reasoning,True
 Devstral Small (Jul '25),Mistral,24.0,24.0,256,9.26,Apache 2.0,,False
-Mistral Large 2 (Nov '24),Mistral,123.0,123.0,128,9.15,Mistral Research License,,False
 GLM-4.5V (Reasoning),Z AI,108.0,12.0,64,9.15,MIT,"vision,reasoning",True
+Mistral Large 2 (Nov '24),Mistral,123.0,123.0,128,9.15,Mistral Research License,,False
 Mistral Small 3.2,Mistral,24.0,24.0,128,9.12,Apache 2.0,vision,False
 Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,9.08,NVIDIA Open Model License Agreement,reasoning,False
 Qwen3 30B A3B 2507 Instruct,Alibaba,30.5,3.3,262,9.06,Apache 2.0,,True
@@ -145,8 +145,8 @@ Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,8.76,Apache 2.0,vision,False
 Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA Open Model License Agreement,,False
 Qwen3 32B (Non-reasoning),Alibaba,32.8,32.8,33,8.63,Apache 2.0,,False
-Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Mistral Small 3.1,Mistral,24.0,24.0,128,8.59,Apache 2.0,vision,False
+Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,8.5,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 VL 8B Instruct,Alibaba,8.77,8.77,256,8.42,Apache 2.0,vision,False
 Pixtral Large,Mistral,124.0,124.0,128,8.15,Mistral Research License,vision,False
@@ -166,8 +166,8 @@ Ministral 3 3B,Mistral,3.0,3.0,256,6.77,Apache 2.0,vision,False
 Llama 3.1 Instruct 70B,Meta,70.0,70.0,128,6.75,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
 Sarvam 30B (high),Sarvam,32.2,2.4,66,6.64,Apache 2.0,reasoning,True
-Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,6.23,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
+Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,6.23,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Llama 3.1 Instruct 8B,Meta,8.0,8.0,128,6.1,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,5.3,Jamba Open Model License Agreement,,True
 Granite 4.0 H Small,IBM,32.0,9.0,128,5.24,Apache 2.0,,True
@@ -191,16 +191,16 @@ Gemma 3 12B Instruct,Google,12.2,12.2,128,3.39,Gemma license,vision,False
 Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,3.33,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,3.03,MIT,,False
 Command-R+ (Apr '24),Cohere,104.0,104.0,128,2.99,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 LFM2 2.6B,Liquid AI,2.57,2.57,33,2.71,lfm 1.0,,False
+LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 Jamba 1.5 Mini,AI21 Labs,52.0,12.0,256,2.7,Jamba Open Model License Agreement,,True
 Jamba 1.6 Mini,AI21 Labs,52.0,12.0,256,2.55,Jamba Open Model License Agreement,,True
 Mixtral 8x7B Instruct,Mistral,46.7,12.9,33,2.43,Apache 2.0,,True
-Mistral 7B Instruct,Mistral,7.0,7.0,8,2.14,Apache 2.0,,False
 Command-R (Mar '24),Cohere,35.0,35.0,128,2.14,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
+Mistral 7B Instruct,Mistral,7.0,7.0,8,2.14,Apache 2.0,,False
 Granite 3.3 8B (Non-reasoning),IBM,8.17,8.17,128,1.75,Apache 2.0,,False
-Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
 Llama 3 Instruct 8B,Meta,8.0,8.0,8,1.19,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
 LFM2 1.2B,Liquid AI,1.17,1.17,33,1.15,lfm 1.0,,False
 Gemma 3 4B Instruct,Google,4.3,4.3,128,1.12,Gemma license,vision,False
 Llama 3.2 Instruct 1B,Meta,1.0,1.0,128,1.1,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,,False
