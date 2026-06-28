@@ -172,15 +172,19 @@ def swap_bundle_csvs():
     if not bundle.exists():
         raise RuntimeError("pybundle.zip missing — run a full `python build_static.py` first.")
     tmp = bundle.with_suffix(".zip.tmp")
-    with zipfile.ZipFile(bundle) as zin, \
-         zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
-        for item in zin.infolist():
-            if item.filename in DATA_CSVS:
-                continue                                    # drop stale copy
-            zout.writestr(item, zin.read(item.filename))    # pass everything else through
-        for rel in DATA_CSVS:
-            zout.write(ROOT / rel, rel)                     # add fresh copy
-    tmp.replace(bundle)
+    try:
+        with zipfile.ZipFile(bundle) as zin, \
+             zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                if item.filename in DATA_CSVS:
+                    continue                                    # drop stale copy
+                zout.writestr(item, zin.read(item.filename))    # pass everything else through
+            for rel in DATA_CSVS:
+                zout.write(ROOT / rel, rel)                     # add fresh copy
+        tmp.replace(bundle)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
     print("swapped CSVs into pybundle.zip")
 
 

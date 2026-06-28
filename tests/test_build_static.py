@@ -3,6 +3,9 @@ import json, subprocess, sys, re, zipfile
 from pathlib import Path
 from datetime import datetime
 
+import pytest
+import build_static
+
 ROOT = Path(__file__).resolve().parent.parent
 
 DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv"]
@@ -28,7 +31,7 @@ def test_manifest_has_version_and_iso():
     # generated_iso must parse as ISO-8601
     datetime.fromisoformat(manifest["generated_iso"])
 
-def test_data_only_swaps_csvs_and_preserves_plotly(tmp_path):
+def test_data_only_swaps_csvs_and_preserves_plotly():
     # Full build first so a bundle exists.
     subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
     bundle = ROOT / "docs" / "pybundle.zip"
@@ -48,3 +51,9 @@ def test_data_only_swaps_csvs_and_preserves_plotly(tmp_path):
         for csv in DATA_CSVS:
             assert csv in after
             assert z.read(csv) == (ROOT / csv).read_bytes()
+
+def test_swap_raises_if_bundle_missing(tmp_path, monkeypatch):
+    # Point the module's DOCS at an empty dir so pybundle.zip is absent.
+    monkeypatch.setattr(build_static, "DOCS", tmp_path)
+    with pytest.raises(RuntimeError, match="pybundle.zip missing"):
+        build_static.swap_bundle_csvs()
