@@ -18,6 +18,7 @@ def test_workflow_present_and_wired():
         "git diff --quiet -- data/raw/",
         "git ls-files --others --exclude-standard -- data/raw/",
         "build_static.py --data-only",
+        "git pull --rebase --autostash origin main",
         "git push",
     ]:
         assert needle in txt, f"workflow missing: {needle}"

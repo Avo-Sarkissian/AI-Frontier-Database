@@ -53,4 +53,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- data/raw docs
           git commit -m "data: hourly AA refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
+          git pull --rebase --autostash origin main
           git push
