@@ -98,3 +98,33 @@
   margin-right: 4px;
   white-space: nowrap;
 }
+
+/* Refresh button loading state */
+.header-icon-btn.is-loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--bg-card, #15171c);
+  border: 1px solid var(--border, #2a2d34);
+  color: #e6e6e6;
+  font-family: Inter, -apple-system, sans-serif;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 1000;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

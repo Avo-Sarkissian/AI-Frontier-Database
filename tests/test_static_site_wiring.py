@@ -18,3 +18,12 @@ def test_freshness_badge_present():
     assert "function relativeTime(" in APP
     assert "function renderFreshness(" in APP
     assert "setInterval(renderFreshness, 60000)" in APP
+
+def test_refresh_button_rewired():
+    assert "async function doRefresh(" in APP
+    assert '{ cache: "no-store" }' in APP            # manifest re-check
+    assert 'document.getElementById("btn-refresh").onclick = doRefresh' in APP
+    # old bare reload wiring is gone
+    assert 'getElementById("btn-refresh").onclick = () => location.reload()' not in APP
+    assert 'id="toast"' in HTML
+    assert "function toast(" in APP

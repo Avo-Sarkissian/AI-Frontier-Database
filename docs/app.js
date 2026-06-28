@@ -337,6 +337,38 @@ function relativeTime(iso) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
+// ---- Toast ----
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+// ---- Refresh: pull latest published snapshot ----
+async function doRefresh() {
+  const btn = document.getElementById("btn-refresh");
+  btn.classList.add("is-loading");
+  try {
+    const m = await (await fetch("figures/manifest.json", { cache: "no-store" })).json();
+    if (m.version && m.version !== window.AF.version) {
+      const u = new URL(location.href);
+      u.searchParams.set("v", m.version);
+      location.replace(u.toString());   // fresh figures + pybundle + Pyodide reboot
+      return;                            // navigating away; leave spinner on
+    }
+    toast("Already up to date — updated " + relativeTime(window.AF.generatedIso));
+  } catch (e) {
+    console.error("refresh failed:", e);
+    location.reload();                   // safe fallback
+    return;
+  }
+  btn.classList.remove("is-loading");
+}
+
 function renderFreshness() {
   const el = document.getElementById("data-freshness");
   if (!el) return;
@@ -584,7 +616,7 @@ function wireGlobalControls() {
     history.replaceState(null, "", url);
   };
 
-  document.getElementById("btn-refresh").onclick = () => location.reload();
+  document.getElementById("btn-refresh").onclick = doRefresh;
 }
 
 // ---- Restore state from URL on page load ----
