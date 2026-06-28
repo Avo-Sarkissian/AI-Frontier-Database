@@ -1,5 +1,5 @@
 """Pre-render default figures + bundle Python for the static Pyodide site."""
-import json, shutil, zipfile
+import json, shutil, sys, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,6 +27,12 @@ from static_helpers import compute_diverse5, provider_options, model_options
 ROOT = Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
 FIG  = DOCS / "figures"
+
+DATA_CSVS = [
+    "data/raw/aa_models.csv",
+    "data/raw/aa_local_models.csv",
+    "data/raw/aa_image_models.csv",
+]
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
 # pure logic lives in static_helpers (imported above).
@@ -160,6 +166,32 @@ def build_pybundle():
     print("pybundle.zip:", bundle.stat().st_size // 1024, "KB")
 
 
+def swap_bundle_csvs():
+    """Replace the 3 data CSVs inside docs/pybundle.zip without re-vendoring plotly."""
+    bundle = DOCS / "pybundle.zip"
+    if not bundle.exists():
+        raise RuntimeError("pybundle.zip missing — run a full `python build_static.py` first.")
+    tmp = bundle.with_suffix(".zip.tmp")
+    with zipfile.ZipFile(bundle) as zin, \
+         zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            if item.filename in DATA_CSVS:
+                continue                                    # drop stale copy
+            zout.writestr(item, zin.read(item.filename))    # pass everything else through
+        for rel in DATA_CSVS:
+            zout.write(ROOT / rel, rel)                     # add fresh copy
+    tmp.replace(bundle)
+    print("swapped CSVs into pybundle.zip")
+
+
+def rebuild_data_only():
+    """Data-only refresh for the hourly bot: figures + manifest + CSV swap, no plotly re-vendor."""
+    export_default_figures(FIG)
+    copy_css()
+    swap_bundle_csvs()
+    print("Data-only rebuild complete →", DOCS)
+
+
 def main():
     export_default_figures(FIG)
     copy_css()
@@ -169,4 +201,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--data-only" in sys.argv:
+        rebuild_data_only()
+    else:
+        main()
