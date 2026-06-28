@@ -16,6 +16,7 @@ def test_workflow_present_and_wired():
         "python -m data.local_scraper",
         "python -m data.image_scraper",
         "git diff --quiet -- data/raw/",
+        "git ls-files --others --exclude-standard -- data/raw/",
         "build_static.py --data-only",
         "git push",
     ]:
