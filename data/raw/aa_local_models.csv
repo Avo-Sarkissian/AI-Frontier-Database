@@ -191,8 +191,8 @@ Gemma 3 12B Instruct,Google,12.2,12.2,128,3.39,Gemma license,vision,False
 Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,3.33,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,3.03,MIT,,False
 Command-R+ (Apr '24),Cohere,104.0,104.0,128,2.99,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 LFM2 2.6B,Liquid AI,2.57,2.57,33,2.71,lfm 1.0,,False
+LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.71,lfm 1.0,,False
 Jamba 1.5 Mini,AI21 Labs,52.0,12.0,256,2.7,Jamba Open Model License Agreement,,True
 Jamba 1.6 Mini,AI21 Labs,52.0,12.0,256,2.55,Jamba Open Model License Agreement,,True
 Mixtral 8x7B Instruct,Mistral,46.7,12.9,33,2.43,Apache 2.0,,True
