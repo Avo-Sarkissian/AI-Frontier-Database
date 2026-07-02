@@ -64,7 +64,6 @@ Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,23.38,Apache 2.0,vision,Tru
 GLM-4.6 (Non-reasoning),Z AI,357.0,32.0,200,22.98,MIT,,True
 GLM-4.7-Flash (Reasoning),Z AI,31.2,3.0,200,22.89,MIT,reasoning,True
 Command A+,Cohere,218.0,25.0,192,22.51,Apache 2.0,"vision,reasoning",True
-Qwen3 235B A22B 2507 (Reasoning),Alibaba,235.0,22.0,256,22.34,Apache 2.0,reasoning,True
 HyperNova 60B 2605,Multiverse Computing,58.7,4.8,131,22.14,Apache 2.0,reasoning,True
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,22.0,Apache 2.0,"vision,audio,reasoning",False
 Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,21.44,Apache 2.0,"vision,reasoning",False
@@ -80,6 +79,7 @@ Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,20.1,Apache 2.0,vision,True
 Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,20.09,Apache 2.0,"vision,reasoning",False
 DeepSeek R1 0528 (May '25),DeepSeek,685.0,37.0,128,20.08,MIT,reasoning,True
 Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,19.77,Apache 2.0,reasoning,True
+Qwen3 235B A22B 2507 (Reasoning),Alibaba,235.0,22.0,256,19.61,Apache 2.0,reasoning,True
 Kimi K2,Kimi,1000.0,32.0,128,19.4,Modified MIT License,,True
 Ling 2.6 Flash,InclusionAI,107.0,7.4,262,19.25,Mit,,True
 Devstral 2,Mistral,125.0,125.0,256,19.16,Modified MIT License,,False
