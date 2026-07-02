@@ -121,7 +121,6 @@ Qwen3 235B A22B (Non-reasoning),Alibaba,235.0,22.0,33,10.86,Apache 2.0,,True
 Qwen3 VL 8B (Reasoning),Alibaba,8.77,8.77,256,10.58,Apache 2.0,"vision,reasoning",False
 Mistral Small 3.2,Mistral,24.0,24.0,128,10.56,Apache 2.0,vision,False
 Qwen3 14B (Reasoning),Alibaba,14.8,14.8,33,10.38,Apache 2.0,reasoning,False
-Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,10.24,Apache 2.0,"vision,reasoning",False
 Llama 4 Scout,Meta,109.0,17.0,10000,10.04,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
 Qwen3 VL 30B A3B Instruct,Alibaba,30.0,3.0,256,10.02,Apache 2.0,vision,True
 Hermes 4 - Llama-3.1 70B (Reasoning),Nous Research,70.6,70.6,128,9.97,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
@@ -136,8 +135,8 @@ Mistral Large 2 (Nov '24),Mistral,123.0,123.0,128,9.15,Mistral Research License,
 Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,9.08,NVIDIA Open Model License Agreement,reasoning,False
 Qwen3 30B A3B 2507 Instruct,Alibaba,30.5,3.3,262,9.06,Apache 2.0,,True
 Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,9.0,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
-NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
 Ministral 3 8B,Mistral,8.0,8.0,256,8.96,Apache 2.0,vision,False
+NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
 NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,8.84,NVIDIA Open Model License Agreement,reasoning,False
 Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,8.76,Apache 2.0,vision,False
