@@ -39,7 +39,6 @@ Step 3.7 Flash,StepFun,198.0,11.0,262,29.73,Apache 2.0,"vision,reasoning",True
 Kimi K2.5 (Non-reasoning),Kimi,1000.0,32.0,256,29.4,Modified MIT License,vision,True
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.35,Apache 2.0,"vision,reasoning",False
 Qwen3.5 27B (Non-reasoning),Alibaba,27.8,27.8,262,29.31,Apache 2.0,vision,False
-Command A+,Cohere,218.0,25.0,192,29.29,Apache 2.0,"vision,reasoning",True
 Qwen3.6 27B (Non-reasoning),Alibaba,27.8,27.8,262,29.28,Apache 2.0,vision,False
 Qwen3.5 35B A3B (Reasoning),Alibaba,36.0,3.0,262,29.26,Apache 2.0,"vision,reasoning",True
 DeepSeek V4 Flash (Non-reasoning),DeepSeek,284.0,13.0,1000,28.65,Mit,,True
@@ -64,6 +63,7 @@ Kimi K2 0905,Kimi,1000.0,32.0,256,23.54,Modified MIT License,,True
 Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,23.38,Apache 2.0,vision,True
 GLM-4.6 (Non-reasoning),Z AI,357.0,32.0,200,22.98,MIT,,True
 GLM-4.7-Flash (Reasoning),Z AI,31.2,3.0,200,22.89,MIT,reasoning,True
+Command A+,Cohere,218.0,25.0,192,22.51,Apache 2.0,"vision,reasoning",True
 Qwen3 235B A22B 2507 (Reasoning),Alibaba,235.0,22.0,256,22.34,Apache 2.0,reasoning,True
 HyperNova 60B 2605,Multiverse Computing,58.7,4.8,131,22.14,Apache 2.0,reasoning,True
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,22.0,Apache 2.0,"vision,audio,reasoning",False
