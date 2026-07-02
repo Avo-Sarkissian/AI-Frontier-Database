@@ -26,6 +26,7 @@ pnpm-debug.log*
 # screenshots / debug images
 qa-*.png
 *.png
+!screenshots/*.png
 .playwright-mcp/
 
 # Claude Code local config (not project-level CLAUDE.md)
