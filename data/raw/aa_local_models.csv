@@ -128,21 +128,21 @@ DeepSeek R1 Distill Llama 70B,DeepSeek,70.0,70.0,128,9.93,LLAMA 3.3 COMMUNITY LI
 Ling-flash-2.0,InclusionAI,103.0,6.1,128,9.74,MIT,,True
 Qwen3 Omni 30B A3B (Reasoning),Alibaba,35.3,3.0,66,9.63,Apache 2.0,"vision,audio,reasoning",True
 Qwen2.5 Instruct 72B,Alibaba,72.0,72.0,131,9.57,Qwen License Agreement,,False
+Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,9.4,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 30B A3B (Reasoning),Alibaba,30.5,3.3,33,9.31,Apache 2.0,reasoning,True
 Devstral Small (Jul '25),Mistral,24.0,24.0,256,9.26,Apache 2.0,,False
-GLM-4.5V (Reasoning),Z AI,108.0,12.0,64,9.15,MIT,"vision,reasoning",True
 Mistral Large 2 (Nov '24),Mistral,123.0,123.0,128,9.15,Mistral Research License,,False
+GLM-4.5V (Reasoning),Z AI,108.0,12.0,64,9.15,MIT,"vision,reasoning",True
 Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,9.08,NVIDIA Open Model License Agreement,reasoning,False
 Qwen3 30B A3B 2507 Instruct,Alibaba,30.5,3.3,262,9.06,Apache 2.0,,True
 Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,9.0,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
-Ministral 3 8B,Mistral,8.0,8.0,256,8.96,Apache 2.0,vision,False
 NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
+Ministral 3 8B,Mistral,8.0,8.0,256,8.96,Apache 2.0,vision,False
 NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,8.84,NVIDIA Open Model License Agreement,reasoning,False
 Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,8.76,Apache 2.0,vision,False
 Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA Open Model License Agreement,,False
 Qwen3 32B (Non-reasoning),Alibaba,32.8,32.8,33,8.63,Apache 2.0,,False
-Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,8.59,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,8.5,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3 VL 8B Instruct,Alibaba,8.77,8.77,256,8.42,Apache 2.0,vision,False
 LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.32,lfm 1.0,reasoning,True
