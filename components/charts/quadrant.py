@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+    dedupe_to_best_variant,
 )
 
 _ZONE = "rgba(255,255,255,0.02)"
@@ -21,6 +22,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
         df["speed"].notna() &
         df["quality"].notna()
     ].copy()
+    plot_df = dedupe_to_best_variant(plot_df)
 
     if plot_df.empty:
         return go.Figure()

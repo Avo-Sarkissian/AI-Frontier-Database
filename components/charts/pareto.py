@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
-    BG, GRID, TICK, AXIS, FONT,
+    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant,
 )
 
 
@@ -42,6 +42,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         df["price"].notna() &
         df["quality"].notna()
     ].copy()
+    plot_df = dedupe_to_best_variant(plot_df)
 
     # Normalize speed for bubble size (8–36px range)
     max_speed = plot_df["speed"].replace(0, np.nan).max()

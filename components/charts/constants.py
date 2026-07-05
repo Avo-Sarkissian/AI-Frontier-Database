@@ -3,6 +3,7 @@ Shared chart constants — imported by all chart modules.
 Single source of truth for colors and styling.
 """
 import re as _re
+import pandas as _pd
 
 # Ordered from most-specific to least-specific so longer matches win
 _NAME_SUBS = [
@@ -24,6 +25,39 @@ def clean_model_name(name: str, max_len: int = 32) -> str:
     if len(name) > max_len:
         name = name[:max_len - 1] + '…'
     return name
+
+
+_BASE_MODEL_RE = _re.compile(r'\s*\([^)]*\)\s*$')
+
+
+def base_model_name(name: str) -> str:
+    """Strip a trailing parenthetical (reasoning effort, snapshot date, …) to
+    get the underlying model family name, e.g. 'GPT-5.5 (xhigh)' -> 'GPT-5.5'."""
+    stripped = _BASE_MODEL_RE.sub('', name).strip()
+    return stripped or name
+
+
+def dedupe_to_best_variant(df: _pd.DataFrame) -> _pd.DataFrame:
+    """Collapse same-family variants (reasoning-effort tiers, dated snapshots,
+    …) to a single row — the highest-quality variant per family.
+
+    Providers publish wildly different numbers of variants per model (OpenAI
+    benchmarks five reasoning-effort tiers per GPT-5 model, Anthropic
+    benchmarks one or two, some models only have one row at all), so plotting
+    every row lets a single family dominate a landscape chart with near-
+    duplicate points at the same price. Keeping only the peak variant makes
+    the "best this model can do" comparison fair across providers.
+    """
+    if df.empty:
+        return df
+    working = df.copy()
+    working["_base_model"] = working["model"].apply(base_model_name)
+    return (
+        working.sort_values("quality", ascending=False)
+        .drop_duplicates("_base_model", keep="first")
+        .drop(columns="_base_model")
+    )
+
 
 PROVIDER_COLORS: dict[str, str] = {
     "Anthropic":              "#c084fc",  # purple
