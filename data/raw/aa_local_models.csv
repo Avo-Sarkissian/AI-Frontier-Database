@@ -2,7 +2,7 @@ name,family,params_b,active_b,context_k,quality,license,tags,moe
 GLM-5.2 (max),Z AI,753.0,40.0,1000,51.09,Mit,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,44.44,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,44.27,MIT,reasoning,True
-Kimi K2.6,Kimi,1000.0,32.0,256,42.84,Modified MIT,"vision,reasoning",True
+Kimi K2.6,Kimi,1000.0,32.0,256,44.22,Modified MIT,"vision,reasoning",True
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,42.24,Mit,reasoning,True
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,41.95,Modified MIT License,"vision,reasoning,code",True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
