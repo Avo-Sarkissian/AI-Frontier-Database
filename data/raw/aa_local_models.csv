@@ -39,6 +39,7 @@ Kimi K2.5 (Non-reasoning),Kimi,1000.0,32.0,256,29.4,Modified MIT License,vision,
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.35,Apache 2.0,"vision,reasoning",False
 Qwen3.5 27B (Non-reasoning),Alibaba,27.8,27.8,262,29.31,Apache 2.0,vision,False
 Qwen3.5 35B A3B (Reasoning),Alibaba,36.0,3.0,262,29.26,Apache 2.0,"vision,reasoning",True
+GLM-4.6 (Reasoning),Z AI,357.0,32.0,200,28.7,MIT,reasoning,True
 DeepSeek V4 Flash (Non-reasoning),DeepSeek,284.0,13.0,1000,28.65,Mit,,True
 MiniMax-M2,MiniMax,230.0,10.0,205,28.31,MIT,reasoning,True
 Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,28.12,Apache 2.0,vision,True
@@ -50,7 +51,6 @@ Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,25.69,Apache 2.0,"vision,reasoni
 Step 3.5 Flash,StepFun,196.0,11.0,256,25.5,Apache 2.0,reasoning,True
 DeepSeek V3.2 Exp (Reasoning),DeepSeek,685.0,37.0,128,25.45,MIT,reasoning,True
 NVIDIA Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,25.41,Nvidia Nemotron Open Model License,reasoning,True
-GLM-4.6 (Reasoning),Z AI,357.0,32.0,200,25.05,MIT,reasoning,True
 Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,24.85,Apache 2.0,vision,False
 DeepSeek V3.2 (Non-reasoning),DeepSeek,685.0,37.0,128,24.66,MIT,,True
 Trinity Large Thinking,Arcee AI,399.0,13.0,512,24.47,Apache 2.0,reasoning,True
@@ -191,8 +191,8 @@ Mixtral 8x7B Instruct,Mistral,46.7,12.9,33,2.43,Apache 2.0,,True
 Command-R (Mar '24),Cohere,35.0,35.0,128,2.14,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
 Mistral 7B Instruct,Mistral,7.0,7.0,8,2.14,Apache 2.0,,False
 Granite 3.3 8B (Non-reasoning),IBM,8.17,8.17,128,1.75,Apache 2.0,,False
-Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
 Llama 3 Instruct 8B,Meta,8.0,8.0,8,1.19,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+Gemma 3n E4B Instruct,Google,8.39,4.0,32,1.19,Gemma license,vision,True
 Gemma 3 4B Instruct,Google,4.3,4.3,128,1.12,Gemma license,vision,False
 Llama 3.2 Instruct 1B,Meta,1.0,1.0,128,1.1,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,,False
 LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,1.01,lfm 1.0,vision,False
