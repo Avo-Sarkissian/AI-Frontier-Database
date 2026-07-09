@@ -34,8 +34,8 @@ DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,31.22,Mit,,True
 Ring-2.6-1T,InclusionAI,1000.0,63.0,262,30.57,MIT,reasoning,True
 Qwen3.6 27B (Non-reasoning),Alibaba,27.8,27.8,262,30.46,Apache 2.0,vision,False
 DeepSeek V3.1 Terminus (Reasoning),DeepSeek,685.0,37.0,128,30.44,MIT,reasoning,True
+Step 3.7 Flash,StepFun,198.0,11.0,262,30.27,Apache 2.0,"vision,reasoning",True
 Mistral Medium 3.5,Mistral,128.0,128.0,256,29.95,Other,"vision,reasoning",False
-Step 3.7 Flash,StepFun,198.0,11.0,262,29.73,Apache 2.0,"vision,reasoning",True
 Kimi K2.5 (Non-reasoning),Kimi,1000.0,32.0,256,29.4,Modified MIT License,vision,True
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.35,Apache 2.0,"vision,reasoning",False
 Qwen3.5 27B (Non-reasoning),Alibaba,27.8,27.8,262,29.31,Apache 2.0,vision,False
