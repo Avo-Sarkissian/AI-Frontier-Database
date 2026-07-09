@@ -42,8 +42,8 @@ Qwen3.5 35B A3B (Reasoning),Alibaba,36.0,3.0,262,29.26,Apache 2.0,"vision,reason
 GLM-4.6 (Reasoning),Z AI,357.0,32.0,200,28.7,MIT,reasoning,True
 DeepSeek V4 Flash (Non-reasoning),DeepSeek,284.0,13.0,1000,28.65,Mit,,True
 MiniMax-M2,MiniMax,230.0,10.0,205,28.31,MIT,reasoning,True
-Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,28.12,Apache 2.0,vision,True
 MiMo-V2.5-Pro (Non-reasoning),Xiaomi,1023.0,41.7,1000,27.86,Mit,,True
+Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,27.6,Apache 2.0,vision,True
 GLM-4.7 (Non-reasoning),Z AI,357.0,32.0,200,26.56,MIT,,True
 DeepSeek V3.1 Terminus (Reasoning),DeepSeek,685.0,37.0,128,26.35,MIT,reasoning,True
 Hy3-preview (Non-reasoning),Tencent,295.0,21.0,256,26.1,TENCENT HY COMMUNITY LICENSE AGREEMENT,,True
