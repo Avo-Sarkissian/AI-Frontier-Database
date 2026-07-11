@@ -18,6 +18,7 @@ MiMo-V2.5,Xiaomi,310.0,15.0,1000,37.2,Mit,"vision,reasoning",True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.05,Apache 2.0,"vision,reasoning",False
 GLM-5.1 (Non-reasoning),Z AI,744.0,40.0,200,35.37,Mit,,True
 Kimi K2.6 (Non-reasoning),Kimi,1000.0,32.0,256,34.58,Modified MIT,vision,True
+GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.05,Mit,,True
 Qwen3.5 27B (Reasoning),Alibaba,27.8,27.8,262,33.78,Apache 2.0,"vision,reasoning",False
 GLM-4.7 (Reasoning),Z AI,357.0,32.0,200,33.7,MIT,reasoning,True
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,33.68,Apache 2.0,"vision,reasoning",True
@@ -155,8 +156,8 @@ Qwen3 14B (Non-reasoning),Alibaba,14.8,14.8,33,7.02,Apache 2.0,,False
 GLM-4.5V (Non-reasoning),Z AI,108.0,12.0,64,7.0,MIT,vision,True
 Mistral Small 3,Mistral,24.0,24.0,32,6.93,Apache 2.0,,False
 Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.9,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
-Qwen3 30B A3B (Non-reasoning),Alibaba,30.5,3.3,33,6.8,Apache 2.0,,True
 Ministral 3 3B,Mistral,3.0,3.0,256,6.8,Apache 2.0,vision,False
+Qwen3 30B A3B (Non-reasoning),Alibaba,30.5,3.3,33,6.8,Apache 2.0,,True
 Llama 3.1 Instruct 70B,Meta,70.0,70.0,128,6.75,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
 Sarvam 30B (high),Sarvam,32.2,2.4,66,6.64,Apache 2.0,reasoning,True
