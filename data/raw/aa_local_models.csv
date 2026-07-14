@@ -12,11 +12,11 @@ Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
 GLM-5.1 (Reasoning),Z AI,744.0,40.0,200,40.16,Mit,reasoning,True
 GLM-5 (Reasoning),Z AI,744.0,40.0,200,39.5,MIT,reasoning,True
 MiniMax-M2.7,MiniMax,230.0,10.0,205,38.13,NON-COMMERCIAL LICENSE,reasoning,True
-Kimi K2.5 (Reasoning),Kimi,1000.0,32.0,256,38.11,Modified MIT License,"vision,reasoning",True
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,37.76,OpenMDW,reasoning,True
 "DeepSeek V4 Flash (Reasoning, High Effort)",DeepSeek,284.0,13.0,1000,37.36,MIT,reasoning,True
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,37.2,Mit,"vision,reasoning",True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.05,Apache 2.0,"vision,reasoning",False
+Kimi K2.5 (Reasoning),Kimi,1000.0,32.0,256,35.37,Modified MIT License,"vision,reasoning",True
 GLM-5.1 (Non-reasoning),Z AI,744.0,40.0,200,35.37,Mit,,True
 Kimi K2.6 (Non-reasoning),Kimi,1000.0,32.0,256,34.58,Modified MIT,vision,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.05,Mit,,True
@@ -55,7 +55,7 @@ DeepSeek V3.2 Exp (Reasoning),DeepSeek,685.0,37.0,128,25.45,MIT,reasoning,True
 NVIDIA Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,25.41,Nvidia Nemotron Open Model License,reasoning,True
 DeepSeek V3.2 (Non-reasoning),DeepSeek,685.0,37.0,128,24.66,MIT,,True
 Trinity Large Thinking,Arcee AI,399.0,13.0,512,24.47,Apache 2.0,reasoning,True
-Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.15,Apache 2.0,vision,True
+Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.16,Apache 2.0,vision,True
 gpt-oss-120b (high),OpenAI,117.0,5.1,131,23.83,Apache 2.0,reasoning,True
 Kimi K2 0905,Kimi,1000.0,32.0,256,23.54,Modified MIT License,,True
 Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,23.38,Apache 2.0,vision,True
