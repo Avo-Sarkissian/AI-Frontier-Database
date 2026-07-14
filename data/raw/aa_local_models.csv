@@ -85,7 +85,6 @@ Qwen3 235B A22B 2507 Instruct,Alibaba,235.0,22.0,256,18.16,Apache 2.0,,True
 Qwen3 Coder 480B A35B Instruct,Alibaba,480.0,35.0,262,17.98,Apache 2.0,code,True
 Qwen3 VL 32B (Reasoning),Alibaba,33.4,33.4,256,17.93,Apache 2.0,"vision,reasoning",False
 HyperNova 60B 2605,Multiverse Computing,58.7,4.8,131,17.8,Apache 2.0,reasoning,True
-gpt-oss-120b (low),OpenAI,117.0,5.1,131,17.7,Apache 2.0,reasoning,True
 MiniMax M1 80k,MiniMax,456.0,45.9,1000,17.67,Apache 2.0,reasoning,True
 Devstral Small 2,Mistral,24.0,24.0,256,17.44,Apache 2.0,vision,False
 GLM-4.6V (Reasoning),Z AI,108.0,12.0,128,16.75,MIT,"vision,reasoning",True
@@ -96,6 +95,7 @@ Mistral Large 3,Mistral,675.0,41.0,256,15.93,Apache 2.0,vision,True
 GLM-4.7-Flash (Non-reasoning),Z AI,31.2,3.0,200,15.52,MIT,,True
 DeepSeek V3 0324,DeepSeek,671.0,37.0,128,15.43,MIT,,True
 Nemotron 3 Nano Omni 30B A3B Reasoning,NVIDIA,30.0,3.0,256,14.93,NVIDIA Open Model License Agreement,"vision,audio,reasoning",True
+gpt-oss-120b (low),OpenAI,117.0,5.1,131,14.91,Apache 2.0,reasoning,True
 gpt-oss-20b (high),OpenAI,21.0,3.6,131,14.89,Apache 2.0,reasoning,True
 Mistral Small 3.1,Mistral,24.0,24.0,128,14.74,Apache 2.0,vision,False
 Qwen3 30B A3B 2507 (Reasoning),Alibaba,30.5,3.3,262,14.44,Apache 2.0,reasoning,True
