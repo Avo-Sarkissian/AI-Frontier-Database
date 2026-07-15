@@ -8,6 +8,7 @@ Kimi K2.7 Code,Kimi,1000.0,32.0,256,41.95,Modified MIT License,"vision,reasoning
 Hy3,Tencent,299.0,21.0,256,41.23,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,40.83,MIT,reasoning,True
+Inkling,Thinking Machines,975.0,41.0,256,40.74,Apache 2.0,"vision,reasoning",True
 "DeepSeek V4 Flash (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.28,MIT,reasoning,True
 GLM-5.1 (Reasoning),Z AI,744.0,40.0,200,40.16,Mit,reasoning,True
 GLM-5 (Reasoning),Z AI,744.0,40.0,200,39.5,MIT,reasoning,True
@@ -16,8 +17,8 @@ Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,37.76,OpenMDW,reaso
 "DeepSeek V4 Flash (Reasoning, High Effort)",DeepSeek,284.0,13.0,1000,37.36,MIT,reasoning,True
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,37.2,Mit,"vision,reasoning",True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.05,Apache 2.0,"vision,reasoning",False
-Kimi K2.5 (Reasoning),Kimi,1000.0,32.0,256,35.37,Modified MIT License,"vision,reasoning",True
 GLM-5.1 (Non-reasoning),Z AI,744.0,40.0,200,35.37,Mit,,True
+Kimi K2.5 (Reasoning),Kimi,1000.0,32.0,256,35.37,Modified MIT License,"vision,reasoning",True
 Kimi K2.6 (Non-reasoning),Kimi,1000.0,32.0,256,34.58,Modified MIT,vision,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.05,Mit,,True
 Qwen3.5 27B (Reasoning),Alibaba,27.8,27.8,262,33.78,Apache 2.0,"vision,reasoning",False
@@ -71,10 +72,10 @@ Qwen3 Coder Next,Alibaba,79.7,3.0,256,21.11,Apache 2.0,code,True
 DeepSeek V3.1 (Non-reasoning),DeepSeek,685.0,37.0,128,21.05,MIT,,True
 DeepSeek V3.1 (Reasoning),DeepSeek,685.0,37.0,128,20.67,MIT,reasoning,True
 Qwen3 VL 235B A22B (Reasoning),Alibaba,235.0,22.0,262,20.6,Apache 2.0,"vision,reasoning",True
-North Mini Code,Cohere,30.0,3.0,256,20.56,Apache 2.0,"reasoning,code",True
 Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,20.1,Apache 2.0,vision,True
 Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,20.09,Apache 2.0,"vision,reasoning",False
 DeepSeek R1 0528 (May '25),DeepSeek,685.0,37.0,128,20.08,MIT,reasoning,True
+North Mini Code,Cohere,30.0,3.0,256,19.8,Apache 2.0,"reasoning,code",True
 Qwen3 235B A22B 2507 (Reasoning),Alibaba,235.0,22.0,256,19.61,Apache 2.0,reasoning,True
 Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,19.56,Apache 2.0,"vision,reasoning",True
 Kimi K2,Kimi,1000.0,32.0,128,19.4,Modified MIT License,,True
