@@ -8,7 +8,7 @@ Kimi K2.7 Code,Kimi,1000.0,32.0,256,41.95,Modified MIT License,"vision,reasoning
 Hy3,Tencent,299.0,21.0,256,41.23,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,40.83,MIT,reasoning,True
-Inkling,Thinking Machines,975.0,41.0,1000,40.74,Apache 2.0,"vision,audio,reasoning",True
+Inkling (xhigh),Thinking Machines,975.0,41.0,1000,40.74,Apache 2.0,"vision,audio,reasoning",True
 "DeepSeek V4 Flash (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.28,MIT,reasoning,True
 GLM-5.1 (Reasoning),Z AI,744.0,40.0,200,40.16,Mit,reasoning,True
 GLM-5 (Reasoning),Z AI,744.0,40.0,200,39.5,MIT,reasoning,True
