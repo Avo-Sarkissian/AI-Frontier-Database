@@ -3,17 +3,17 @@ GLM-5.2 (max),Z AI,753.0,40.0,1000,51.09,Mit,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,44.44,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,44.27,MIT,reasoning,True
 Kimi K2.6,Kimi,1000.0,32.0,256,44.22,Modified MIT,"vision,reasoning",True
+"DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,43.11,MIT,reasoning,True
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,42.24,Mit,reasoning,True
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,41.95,Modified MIT License,"vision,reasoning,code",True
 Hy3,Tencent,299.0,21.0,256,41.23,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
-"DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,40.83,MIT,reasoning,True
 "DeepSeek V4 Flash (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.28,MIT,reasoning,True
 GLM-5.1 (Reasoning),Z AI,744.0,40.0,200,40.16,Mit,reasoning,True
 GLM-5 (Reasoning),Z AI,744.0,40.0,200,39.5,MIT,reasoning,True
 MiniMax-M2.7,MiniMax,230.0,10.0,205,38.13,NON-COMMERCIAL LICENSE,reasoning,True
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,37.76,OpenMDW,reasoning,True
-"DeepSeek V4 Flash (Reasoning, High Effort)",DeepSeek,284.0,13.0,1000,37.36,MIT,reasoning,True
+"DeepSeek V4 Flash (Reasoning, High Effort)",DeepSeek,284.0,13.0,1000,37.46,MIT,reasoning,True
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,37.2,Mit,"vision,reasoning",True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.05,Apache 2.0,"vision,reasoning",False
 GLM-5.1 (Non-reasoning),Z AI,744.0,40.0,200,35.37,Mit,,True
@@ -111,9 +111,9 @@ Qwen3 235B A22B (Reasoning),Alibaba,235.0,22.0,33,13.43,Apache 2.0,reasoning,Tru
 QwQ 32B,Alibaba,32.8,32.8,131,13.37,Apache 2.0,reasoning,False
 Qwen3 VL 30B A3B (Reasoning),Alibaba,30.0,3.0,256,13.34,Apache 2.0,"vision,reasoning",True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.19,Apache 2.0,"vision,audio",False
+Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.5,Apache 2.0,"vision,audio,reasoning",True
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.42,NVIDIA Open Model License Agreement,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.37,Apache 2.0,vision,True
-Sarvam 105B (high),Sarvam,106.0,10.3,128,11.94,Apache 2.0,reasoning,True
 Qwen3 32B (Reasoning),Alibaba,32.8,32.8,33,11.55,Apache 2.0,reasoning,False
 Magistral Small 1.2,Mistral,24.0,24.0,128,11.29,Apache 2.0,"vision,reasoning",False
 Qwen3 VL 32B Instruct,Alibaba,33.4,33.4,256,11.06,Apache 2.0,vision,False
@@ -138,6 +138,7 @@ Qwen3 30B A3B 2507 Instruct,Alibaba,30.5,3.3,262,9.06,Apache 2.0,,True
 Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,9.0,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
 Ministral 3 8B,Mistral,8.0,8.0,256,8.96,Apache 2.0,vision,False
 NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
+Gemma 4 E4B (Non-reasoning),Google,8.0,4.5,128,8.91,Apache 2.0,"vision,audio",True
 NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,8.84,NVIDIA Open Model License Agreement,reasoning,False
 Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA Open Model License Agreement,,False
@@ -156,11 +157,10 @@ Qwen3 14B (Non-reasoning),Alibaba,14.8,14.8,33,7.02,Apache 2.0,,False
 GLM-4.5V (Non-reasoning),Z AI,108.0,12.0,64,7.0,MIT,vision,True
 Mistral Small 3,Mistral,24.0,24.0,32,6.93,Apache 2.0,,False
 Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.9,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
-Ministral 3 3B,Mistral,3.0,3.0,256,6.8,Apache 2.0,vision,False
 Qwen3 30B A3B (Non-reasoning),Alibaba,30.5,3.3,33,6.8,Apache 2.0,,True
+Ministral 3 3B,Mistral,3.0,3.0,256,6.8,Apache 2.0,vision,False
 Llama 3.1 Instruct 70B,Meta,70.0,70.0,128,6.75,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
-Sarvam 30B (high),Sarvam,32.2,2.4,66,6.64,Apache 2.0,reasoning,True
 Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.01,MIT,,False
 Gemma 3 12B Instruct,Google,12.2,12.2,128,5.51,Gemma license,vision,False
