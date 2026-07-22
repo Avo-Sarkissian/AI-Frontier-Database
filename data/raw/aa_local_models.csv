@@ -81,8 +81,8 @@ Kimi K2,Kimi,1000.0,32.0,128,19.4,Modified MIT License,,True
 Devstral 2,Mistral,125.0,125.0,256,19.16,Modified MIT License,,False
 DeepSeek R1 (Jan '25),DeepSeek,685.0,37.0,128,18.51,MIT,reasoning,True
 Seed-OSS-36B-Instruct,ByteDance Seed,36.2,36.2,512,18.34,Apache 2.0,reasoning,False
-Trinity Large Thinking,Arcee AI,399.0,13.0,512,18.16,Apache 2.0,reasoning,True
 Qwen3 235B A22B 2507 Instruct,Alibaba,235.0,22.0,256,18.16,Apache 2.0,,True
+Trinity Large Thinking,Arcee AI,399.0,13.0,512,18.16,Apache 2.0,reasoning,True
 Qwen3 Coder 480B A35B Instruct,Alibaba,480.0,35.0,262,17.98,Apache 2.0,code,True
 Qwen3 VL 32B (Reasoning),Alibaba,33.4,33.4,256,17.93,Apache 2.0,"vision,reasoning",False
 HyperNova 60B 2605,Multiverse Computing,58.7,4.8,131,17.8,Apache 2.0,reasoning,True
