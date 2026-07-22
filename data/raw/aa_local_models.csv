@@ -112,9 +112,9 @@ Qwen3 235B A22B (Reasoning),Alibaba,235.0,22.0,33,13.43,Apache 2.0,reasoning,Tru
 QwQ 32B,Alibaba,32.8,32.8,131,13.37,Apache 2.0,reasoning,False
 Qwen3 VL 30B A3B (Reasoning),Alibaba,30.0,3.0,256,13.34,Apache 2.0,"vision,reasoning",True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.19,Apache 2.0,"vision,audio",False
-Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.5,Apache 2.0,"vision,audio,reasoning",True
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.42,NVIDIA Open Model License Agreement,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.37,Apache 2.0,vision,True
+Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.21,Apache 2.0,"vision,audio,reasoning",True
 Qwen3 32B (Reasoning),Alibaba,32.8,32.8,33,11.55,Apache 2.0,reasoning,False
 Magistral Small 1.2,Mistral,24.0,24.0,128,11.29,Apache 2.0,"vision,reasoning",False
 Qwen3 VL 32B Instruct,Alibaba,33.4,33.4,256,11.06,Apache 2.0,vision,False
