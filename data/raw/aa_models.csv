@@ -1,12 +1,12 @@
 model,provider,context,quality,price,speed,latency
-"Claude Opus 5 (Adaptive Reasoning, Max Effort)",Anthropic,1m,60.69,20.0,58.9533658281891,29.785134404
-"Claude Opus 5 (Adaptive Reasoning, Xhigh Effort)",Anthropic,1m,60.07,20.0,56.9419914763517,23.4109750466113
+"Claude Opus 5 (Adaptive Reasoning, Max Effort)",Anthropic,1m,60.69,20.0,62.1375301020723,29.8964383115
+"Claude Opus 5 (Adaptive Reasoning, Xhigh Effort)",Anthropic,1m,60.07,20.0,56.9419914763517,25.0530548545
 "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",Anthropic,1m,59.86,40.0,71.2592004082625,82.998985107
 GPT-5.6 Sol (max),OpenAI,1m,58.89,23.75,90.1731521330194,73.506412277
 "Claude Opus 5 (Adaptive Reasoning, High Effort)",Anthropic,1m,58.86,20.0,50.6894569189234,13.689725594
 GPT-5.6 Sol (xhigh),OpenAI,1m,57.65,23.75,85.079912386764,38.173404628
 Kimi K3,Kimi,1m,57.11,12.0,33.0049872741785,123.70952795
-"Claude Opus 5 (Adaptive Reasoning, Medium Effort)",Anthropic,1m,56.28,20.0,54.2744742343185,10.007220157
+"Claude Opus 5 (Adaptive Reasoning, Medium Effort)",Anthropic,1m,56.28,20.0,56.2991500247656,10.000296088
 GPT-5.6 Sol (high),OpenAI,1m,55.87,23.75,79.1971662850396,10.211587281
 "Claude Opus 4.8 (Adaptive Reasoning, Max Effort)",Anthropic,1m,55.69,20.0,61.8727571833398,34.719269278
 GPT-5.6 Terra (max),OpenAI,1m,54.95,11.875,164.168817636832,135.126817581
@@ -17,7 +17,7 @@ GPT-5.6 Terra (xhigh),OpenAI,1m,51.6,11.875,137.163848280976,8.035334759
 GPT-5.6 Luna (max),OpenAI,1m,51.24,4.75,220.424472643044,82.737005298
 GLM-5.2 (max),Z AI,205k,51.09,2.408,216.041064987642,1.423547783
 Muse Spark 1.1 (xhigh),Meta,1m,50.62,3.5,136.579146787486,0.896159910000002
-"Claude Opus 5 (Adaptive Reasoning, Low Effort)",Anthropic,1m,50.61,20.0,53.3173984956058,3.069417321
+"Claude Opus 5 (Adaptive Reasoning, Low Effort)",Anthropic,1m,50.61,20.0,56.8315112729989,3.11661273050001
 Gemini 3.5 Flash (high),Google,1m,50.2,7.125,263.532598061091,11.970213285
 Gemini 3.6 Flash (high),Google,1m,50.07,6.0,255.299347075783,11.9796347425
 GPT-5.6 Sol (low),OpenAI,1m,49.44,23.75,80.5118507653772,2.228855076
