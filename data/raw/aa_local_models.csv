@@ -18,6 +18,7 @@ Kimi K2.6 (Non-reasoning),Kimi,1000.0,32.0,256,34.58,Modified MIT,vision,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.05,Mit,,True
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,33.68,Apache 2.0,"vision,reasoning",True
 Hy3-preview (Reasoning),Tencent,295.0,21.0,256,33.58,TENCENT HY COMMUNITY LICENSE AGREEMENT,reasoning,True
+LongCat 2.0,LongCat,1600.0,48.0,1000,33.48,Mit,reasoning,True
 Qwen3.5 122B A10B (Reasoning),Alibaba,125.0,10.0,262,32.28,Apache 2.0,"vision,reasoning",True
 Qwen3.5 397B A17B (Non-reasoning),Alibaba,397.0,17.0,262,31.98,Apache 2.0,vision,True
 Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,31.65,Apache 2.0,"vision,reasoning",True
@@ -87,6 +88,7 @@ NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.38,NVIDIA Open M
 Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.9,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
 Ministral 3 3B,Mistral,3.0,3.0,256,6.31,Apache 2.0,vision,False
+Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.01,MIT,,False
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,5.3,Jamba Open Model License Agreement,,True
 Granite 4.0 H Small,IBM,32.0,9.0,128,5.24,Apache 2.0,,True
