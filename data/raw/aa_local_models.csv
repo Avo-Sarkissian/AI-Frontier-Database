@@ -10,6 +10,7 @@ Hy3,Tencent,299.0,21.0,256,41.23,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,40.96,Apache 2.0,"vision,reasoning",True
 Inkling (xhigh),Thinking Machines,975.0,41.0,1000,40.74,Apache 2.0,"vision,audio,reasoning",True
 "DeepSeek V4 Flash (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.28,MIT,reasoning,True
+Inkling Small,Thinking Machines,266.0,12.0,262,40.17,Apache 2.0,"vision,audio,reasoning",True
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,37.76,OpenMDW,reasoning,True
 "DeepSeek V4 Flash (Reasoning, High Effort)",DeepSeek,284.0,13.0,1000,37.46,MIT,reasoning,True
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,37.2,Mit,"vision,reasoning",True
