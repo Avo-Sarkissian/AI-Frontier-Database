@@ -75,8 +75,8 @@ Qwen3 Omni 30B A3B (Reasoning),Alibaba,35.3,3.0,66,9.63,Apache 2.0,"vision,audio
 Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,9.4,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
 Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,9.08,NVIDIA Open Model License Agreement,reasoning,False
 Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,9.0,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
-NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
 Ministral 3 8B,Mistral,8.0,8.0,256,8.96,Apache 2.0,vision,False
+NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.96,Nvidia Open Model License,"vision,reasoning",False
 Gemma 4 E4B (Non-reasoning),Google,8.0,4.5,128,8.91,Apache 2.0,"vision,audio",True
 NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,8.84,NVIDIA Open Model License Agreement,reasoning,False
 Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.8,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
