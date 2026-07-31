@@ -1,6 +1,7 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
-Kimi K3,Kimi,2800.0,104.0,1049,57.11,Kimi K3 License,"vision,reasoning",True
+Kimi K3 (max),Kimi,2800.0,104.0,1049,57.11,Kimi K3 License,"vision,reasoning",True
 GLM-5.2 (max),Z AI,753.0,40.0,1000,51.09,Mit,reasoning,True
+Kimi K3 (low),Kimi,2780.0,104.0,1049,46.6,Kimi K3,"vision,reasoning",True
 MiniMax-M3,MiniMax,428.0,23.0,1000,44.44,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,44.27,MIT,reasoning,True
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,43.11,MIT,reasoning,True
@@ -65,7 +66,7 @@ Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,13.72,Apache 2.0,,True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.19,Apache 2.0,"vision,audio",False
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.42,NVIDIA Open Model License Agreement,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.37,Apache 2.0,vision,True
-Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,11.9,Apache 2.0,"vision,audio,reasoning",True
+Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.21,Apache 2.0,"vision,audio,reasoning",True
 Magistral Small 1.2,Mistral,24.0,24.0,128,11.29,Apache 2.0,"vision,reasoning",False
 Ministral 3 14B,Mistral,14.0,14.0,256,11.05,Apache 2.0,vision,False
 Llama 4 Scout,Meta,109.0,17.0,10000,10.04,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
@@ -83,12 +84,11 @@ Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.68,NVIDIA O
 LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.32,lfm 1.0,reasoning,True
 Command A,Cohere,111.0,111.0,256,7.67,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
 Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.64,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
-Llama 3.1 Instruct 8B,Meta,8.0,8.0,128,7.61,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,7.39,Nvidia Nemotron Open Model License,,True
 NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.38,NVIDIA Open Model License Agreement,,False
 Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.9,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+Ministral 3 3B,Mistral,3.0,3.0,256,6.8,Apache 2.0,vision,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.67,Apache 2.0,,False
-Ministral 3 3B,Mistral,3.0,3.0,256,6.31,Apache 2.0,vision,False
 Solar Mini,Upstage,10.7,10.7,4,6.23,Apache 2.0,,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.01,MIT,,False
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,5.3,Jamba Open Model License Agreement,,True
