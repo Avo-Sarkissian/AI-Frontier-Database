@@ -8,19 +8,48 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from components.charts.constants import BG, GRID, TICK, AXIS, FONT
+from components.charts.constants import BG, GRID, TICK, AXIS, FONT, empty_figure
 from data.image_models import PROVIDER_COLORS, DEFAULT_COLOR
 
+# Artificial Analysis migrated its arena to a new category taxonomy, and the
+# retired categories are no longer scored for new models: of the current top 12
+# by global ELO, only 1-2 carry an elo_general_photorealistic /
+# elo_cartoon_illustration / elo_text_typography value. Ranking on those columns
+# therefore filtered out every current flagship — GPT Image 2, Reve 2.1, all the
+# Nano Banana models — and the tab quietly showed a 2025-era leaderboard.
+#
+# Each column now names its successor first and keeps the retired column as a
+# fallback, so an older cached CSV (or an upstream revert) still renders.
 _CATEGORIES = [
-    {"key": "photorealistic", "label": "Photorealistic",        "accent": "#60a5fa",
-     "elo_col": "elo_general_photorealistic"},
-    {"key": "artistic",       "label": "Cartoon & Illustration", "accent": "#c084fc",
-     "elo_col": "elo_cartoon_illustration"},
-    {"key": "text",           "label": "Text & Typography",      "accent": "#f472b6",
-     "elo_col": "elo_text_typography"},
+    {"key": "photorealistic", "label": "Photorealistic",         "accent": "#60a5fa",
+     "elo_cols": ["elo_live_action_film", "elo_general_photorealistic"]},
+    {"key": "artistic",       "label": "Illustration & Animation", "accent": "#c084fc",
+     "elo_cols": ["elo_animation_gaming", "elo_cartoon_illustration"]},
+    {"key": "text",           "label": "Text Rendering",          "accent": "#f472b6",
+     "elo_cols": ["elo_text_rendering", "elo_text_typography"]},
 ]
 
 _TOP_N = 12  # models shown per column
+
+
+def _pick_elo_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
+    """First candidate column that actually carries values in this frame."""
+    for col in candidates:
+        if col in df.columns and df[col].notna().any():
+            return col
+    return None
+
+
+def _price_label(value, short: bool = False) -> str:
+    """Price per 1k images.
+
+    data/image_models.py fills a missing price with 0.0, so "no published
+    price" and "genuinely free" are indistinguishable downstream — printing
+    "free" for both asserted a commercial fact the data does not support.
+    """
+    if pd.isna(value) or value <= 0:
+        return "n/a"
+    return f"${value:.0f}/1k" if short else f"${value:.1f}/1k"
 
 
 def build_image_faceted(df: pd.DataFrame) -> go.Figure:
@@ -29,10 +58,15 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
     Uses per-category ELO from live AA arena data when available.
     Falls back to tag-based filtering + global ELO if category columns missing.
     """
+    if df.empty:
+        # Reachable: most provider x tag filter combinations select nothing,
+        # and this used to raise KeyError: 'elo' out of the fallback branch.
+        return empty_figure("No image models match these filters")
+
     col_dfs = []
     for cat in _CATEGORIES:
-        elo_col = cat["elo_col"]
-        if elo_col in df.columns and df[elo_col].notna().any():
+        elo_col = _pick_elo_column(df, cat["elo_cols"])
+        if elo_col:
             # Live data: rank by category-specific ELO
             cdf = df[df[elo_col].notna()].copy() \
                     .sort_values(elo_col, ascending=False) \
@@ -52,7 +86,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
                     .head(_TOP_N) \
                     .sort_values("elo", ascending=True) \
                     .reset_index(drop=True)
-            cdf["_elo_display"] = cdf["elo"]
+            cdf["_elo_display"] = cdf["elo"] if "elo" in cdf.columns else 0
         col_dfs.append(cdf)
 
     n_rows = max(len(cdf) for cdf in col_dfs)
@@ -82,9 +116,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
             hoverinfo="skip", showlegend=False,
         ), row=1, col=col_idx)
 
-        price_display = cdf["price_per_1k"].apply(
-            lambda p: "free" if p == 0 else f"${p:.1f}/1k"
-        )
+        price_display = cdf["price_per_1k"].apply(_price_label)
         # Quality bars
         fig.add_trace(go.Bar(
             y=short_name,
@@ -110,7 +142,7 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
         # Right-side annotations: price (no gen time in live data)
         for idx, row in cdf.iterrows():
             color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
-            price_str = "free" if row["price_per_1k"] == 0 else f"${row['price_per_1k']:.0f}/1k"
+            price_str = _price_label(row["price_per_1k"], short=True)
             ann_text = (
                 f"{row['gen_time_s']:.0f}s  ·  {price_str}"
                 if has_gen_time and row.get("gen_time_s", 0) > 0
@@ -133,8 +165,15 @@ def build_image_faceted(df: pd.DataFrame) -> go.Figure:
         paper_bgcolor=BG,
         plot_bgcolor=BG,
         font=dict(family=FONT, color="#999999", size=12),
+        title=dict(
+            text=("Image Models by Style"
+                  "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+                  "  ·  arena ELO within each category  ·  top 12 per column</span>"),
+            font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
+            x=0.0, xanchor="left", pad=dict(l=20, t=16),
+        ),
         barmode="overlay",
-        margin=dict(l=10, r=10, t=60, b=20),
+        margin=dict(l=10, r=10, t=96, b=20),
         height=height,
         hovermode="closest",
         hoverlabel=dict(
@@ -215,7 +254,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
 
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
-        price_str = "free" if row["price_per_1k"] == 0 else f"${row['price_per_1k']:.0f}/1k"
+        price_str = _price_label(row["price_per_1k"], short=True)
         ann_text = (
             f"{row['gen_time_s']:.0f}s  ·  {price_str}"
             if has_gen_time and row.get("gen_time_s", 0) > 0

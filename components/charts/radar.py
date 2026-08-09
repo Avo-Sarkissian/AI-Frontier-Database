@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
-    BG as _BG, FONT as _FONT,
+    BG as _BG, FONT as _FONT, empty_figure,
 )
 
 _PALETTE = [
@@ -47,7 +47,10 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
 
     plot_df = df[df["model"].isin(selected_models)].copy()
     if plot_df.empty:
-        return go.Figure()
+        # A bare go.Figure() renders with Plotly's default WHITE canvas, which
+        # flashed a blank white card inside the dark dashboard whenever the
+        # selection was cleared.
+        return empty_figure("Select up to 5 models to compare")
 
     # Normalize each dimension to 0–1 across the FULL dataset (not just selected)
     q_max  = df["quality"].max()
@@ -79,7 +82,12 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         values = [q_norm, s_norm, p_norm, c_norm, l_norm]
         values_pct = [round(v * 100) for v in values]
 
-        color = PROVIDER_COLORS.get(row.get("provider", ""), _PALETTE[idx % len(_PALETTE)])
+        # One trace per MODEL, so colour must vary per model. Keying it on the
+        # provider drew two Anthropic models in the identical hue and fill,
+        # making the one chart whose whole job is comparison unable to tell
+        # them apart. _PALETTE is indexed by trace instead, which is also what
+        # its per-index design was always for.
+        color = _PALETTE[idx % len(_PALETTE)]
 
         fig.add_trace(go.Scatterpolar(
             r=values + [values[0]],

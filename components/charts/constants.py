@@ -303,6 +303,54 @@ def legend_below(y: float = -0.16) -> dict:
 CHART_MARGIN = dict(l=56, r=28, t=52, b=104)
 
 
+def empty_figure(message: str = "No models match these filters"):
+    """A styled placeholder for a frame with nothing to plot.
+
+    Every render path receives a user-filtered frame, so "zero rows" is a
+    reachable state, not a theoretical one — and several charts either raised
+    (IndexError / KeyError on an empty frame) or returned a bare go.Figure(),
+    which renders as Plotly's default WHITE canvas inside a dark dashboard.
+    """
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    fig.update_layout(
+        paper_bgcolor=BG,
+        plot_bgcolor=BG,
+        font=dict(family=FONT, color="#999999", size=12),
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        margin=CHART_MARGIN,
+        annotations=[dict(
+            x=0.5, y=0.5, xref="paper", yref="paper",
+            text=message, showarrow=False,
+            font=dict(color="#666666", size=13, family=FONT),
+        )],
+    )
+    return fig
+
+
+def unique_labels(names) -> list[str]:
+    """Display names guaranteed distinct.
+
+    Charts truncate long model names for the axis, which can collapse two
+    models onto one categorical value — Plotly then draws both bars in the same
+    row, burying one of them where it can never be hovered. Collisions get a
+    numeric suffix so every bar keeps its own row.
+    """
+    seen: dict[str, int] = {}
+    out: list[str] = []
+    for name in names:
+        if name in seen:
+            seen[name] += 1
+            suffix = f" ({seen[name]})"
+            out.append(name[: max(0, len(name) - len(suffix))] + suffix)
+        else:
+            seen[name] = 1
+            out.append(name)
+    return out
+
+
 def log_ticks(lo: float, hi: float, fmt=None) -> tuple[list[float], list[str]]:
     """1-2-5 ticks across the decades spanned, with readable labels.
 

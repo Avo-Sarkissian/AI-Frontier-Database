@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+    empty_figure, unique_labels,
 )
 
 
@@ -46,12 +47,22 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         valid["_metric"] = valid["quality"]
         x_col, x_label, title_metric = "_metric", "AA Intelligence Index", "Intelligence"
 
+    if valid.empty:
+        # Reachable from the UI: any filter combination matching nothing used to
+        # raise IndexError out of _assign_tiers rather than render.
+        return empty_figure()
+
     ranked = valid.sort_values("_metric", ascending=False).head(top_n).copy()
     # Reverse for bottom-up bar display
     ranked = ranked.iloc[::-1].reset_index(drop=True)
 
-    colors      = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
-    short_names = ranked["model"].apply(clean_model_name)
+    colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in ranked["provider"]]
+    # clean_model_name truncates at 32 chars, which collapsed distinct models
+    # onto one categorical row — Plotly then stacked both bars there and the
+    # shorter one could never be hovered.
+    short_names = pd.Series(
+        unique_labels(ranked["model"].apply(clean_model_name)), index=ranked.index
+    )
 
     speed_str = ranked["speed"].apply(
         lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
@@ -104,22 +115,29 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
 
-    # Provider legend annotation on right (with price sub-label)
+    # Provider label on the right (with price sub-label). Collected into a list
+    # rather than added with fig.add_annotation, because update_layout(
+    # annotations=tier_annotations) below REPLACES the layout's annotation
+    # tuple — every one of these 25 labels was being silently discarded and the
+    # chart shipped with only the two tier tags.
+    annotations = []
     for i, row in ranked.iterrows():
-        color    = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         price_tag = (
             f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
             if pd.notna(row["price"]) and row["price"] > 0 else ""
         )
-        fig.add_annotation(
+        annotations.append(dict(
             x=max_metric * 1.06,
             y=short_names[i],
-            text=f"<span style='color:{color}'>{row['provider']}</span>{price_tag}",
+            # Provider identity is the text itself; keeping it at the chart's
+            # body grey rather than the provider hue puts this 10px label at
+            # 9.9:1 instead of the 3:1 several palette entries sit at.
+            text=f"{row['provider']}{price_tag}",
             showarrow=False,
             xanchor="left",
-            font=dict(size=10, family=_FONT, color=color),
+            font=dict(size=10, family=_FONT, color="#999999"),
             xref="x", yref="y",
-        )
+        ))
 
     # ── Tier separator lines ──────────────────────────────────────────────────
     # Separate tiers: a new tier begins when the gap between adjacent models
@@ -131,7 +149,6 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             # Line falls between index i-1 and i (in the reversed/bottom-up list)
             tier_changes.append(i - 0.5)
 
-    tier_annotations = []
     for y_pos in tier_changes:
         fig.add_shape(
             type="line",
@@ -142,7 +159,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         )
         # Tier label
         tier_num = tiers[int(y_pos + 0.5)]
-        tier_annotations.append(dict(
+        annotations.append(dict(
             x=max_metric * 1.27,
             y=y_pos,
             text=f"<span style='color:#444'>T{tier_num}</span>",
@@ -188,7 +205,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
-        annotations=tier_annotations,
+        annotations=annotations,
     )
 
     return fig
