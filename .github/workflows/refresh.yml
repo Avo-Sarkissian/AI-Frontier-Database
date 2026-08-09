@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "23 * * * *"        # hourly at :23 (off the top of the hour)
   workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: "Publish even if a dataset lost >20% of its rows (upstream really did prune)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -19,11 +24,23 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: pip install "plotly==6.5.2"
-      - name: Scrape AA (failures fall back to cache, never fail the job)
+      # A failing scraper keeps its cache so one bad upstream response can't wipe
+      # a dataset — but the run must NOT stay green. It used to swallow failures
+      # with `|| echo ::warning::`, which is how the image scrape 400'd for 29
+      # days (2026-07-11 onward) while every run reported success and quietly
+      # republished stale ELOs. Failures are recorded here and re-raised at the
+      # end, after whatever did succeed has been published.
+      - name: Scrape AA (cache kept on failure; failures re-raised at the end)
+        id: scrape
         run: |
-          python -m data.scraper       || echo "::warning::hosted scrape failed; kept cache"
-          python -m data.local_scraper || echo "::warning::local scrape failed; kept cache"
-          python -m data.image_scraper || echo "::warning::image scrape failed; kept cache"
+          failed=""
+          python -m data.scraper       || failed="$failed hosted"
+          python -m data.local_scraper || failed="$failed local"
+          python -m data.image_scraper || failed="$failed image"
+          echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
+          if [ -n "$failed" ]; then
+            echo "::error title=Scrape failed::no fresh data for:$failed (served cache instead)"
+          fi
       - name: Change guard — stop if no data moved
         id: guard
         run: |
@@ -33,16 +50,11 @@ jobs:
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Sanity check
+      # Absolute floor + relative drop. The old check was the floor alone, which
+      # a 53% contraction (329 -> 155 rows on 2026-07-24) sailed straight past.
+      - name: Sanity check — absolute floor and row-loss guard
         if: steps.guard.outputs.changed == 'true'
-        run: |
-          python -c "
-          import pandas as pd
-          for f in ['data/raw/aa_models.csv','data/raw/aa_local_models.csv','data/raw/aa_image_models.csv']:
-              df = pd.read_csv(f)
-              assert len(df) > 50, f'{f} only {len(df)} rows — refusing to publish'
-          print('sanity OK')
-          "
+        run: python data_guard.py ${{ inputs.allow_shrink && '--allow-shrink' || '' }}
       - name: Rebuild static site (data-only)
         if: steps.guard.outputs.changed == 'true'
         run: python build_static.py --data-only
@@ -55,3 +67,11 @@ jobs:
           git commit -m "data: hourly AA refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
           git pull --rebase --autostash origin main
           git push
+
+      # Last, so a broken scraper never blocks publishing the datasets that did
+      # refresh — but the run still goes red instead of hiding a dead endpoint.
+      - name: Report scrape failures
+        if: steps.scrape.outputs.failed != ''
+        run: |
+          echo "::error title=Stale datasets published::${{ steps.scrape.outputs.failed }} served from cache — the upstream endpoint is failing."
+          exit 1

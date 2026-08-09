@@ -1,16 +1,27 @@
 """
-Scrapes live image generation ELO data from the Artificial Analysis Image Arena API.
-Endpoint: https://artificialanalysis.ai/api/text-to-image/arena/preferences?supports_image_input=false
+Scrapes live image generation ELO data from the Artificial Analysis site.
 
-Each model has:
-  - global ELO (tag=null entry in elos[])
-  - 15 per-category ELOs (tag.label entries)
+Source: https://artificialanalysis.ai/text-to-image
 
-Saves to data/raw/aa_image_models.csv. Falls back silently on any failure.
+This used to call /api/text-to-image/arena/preferences directly. That endpoint
+is now key-gated — it answers every request with
+``400 {"error":"User key is required"}`` — and because the refresh workflow
+tolerated scraper failures, the job stayed green and quietly republished the
+cache for 29 days (2026-07-11 → 2026-08-09) while the Image Gen tab served
+frozen numbers.
+
+The comparison page renders the same data server-side, so we read it from the
+React Server Components payload the page ships instead. Each model carries:
+  - global ELO (the ``tag: null`` entry in ``elos[]``)
+  - ~34 per-category ELOs (``tag.displayName``; this was ``tag.label`` under the
+    old API, another reason the old parser could not have survived)
+
+Saves to data/raw/aa_image_models.csv. Returns False on any failure.
 
 Run standalone:  python -m data.image_scraper
 """
 
+import json
 import re
 import threading
 import time
@@ -25,13 +36,19 @@ _HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/123.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json",
-    "Referer": "https://artificialanalysis.ai/text-to-image",
+    "Accept": "text/html,application/xhtml+xml",
+    "Referer": "https://artificialanalysis.ai/",
 }
 
-_API_URL  = "https://artificialanalysis.ai/api/text-to-image/arena/preferences?supports_image_input=false"
-_TIMEOUT  = 30
+_PAGE_URL = "https://artificialanalysis.ai/text-to-image"
+_TIMEOUT  = 45          # the page is ~2 MB of HTML
 _CACHE    = Path(__file__).parent / "raw" / "aa_image_models.csv"
+
+# Next.js streams its RSC payload as a series of self.__next_f.push([1,"…"])
+# calls, each carrying a JS string literal. Concatenating those literals yields
+# the flight payload that holds the model records.
+_RSC_CHUNK_RE = re.compile(r'self\.__next_f\.push\(\[1,\s*("(?:[^"\\]|\\.)*")\]\)')
+_MODELS_KEY = '"textToImage":'
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -42,10 +59,64 @@ def _col(label: str) -> str:
     return f"elo_{s}"
 
 
+def _slice_json_array(text: str, start: int) -> str:
+    """Return the complete JSON array beginning at ``start``.
+
+    The payload is one long flight string, so we cannot json.loads the tail —
+    bracket-match to find where the array ends, skipping brackets inside
+    strings.
+    """
+    depth = 0
+    in_str = False
+    escaped = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    raise ValueError("unterminated JSON array in RSC payload")
+
+
+def _extract_models(html: str) -> list[dict]:
+    """Pull the textToImage model records out of the page's RSC payload."""
+    chunks = _RSC_CHUNK_RE.findall(html)
+    if not chunks:
+        raise ValueError("no RSC payload found — page structure changed")
+    payload = "".join(json.loads(c) for c in chunks)
+
+    # The key also appears as a UI label ("textToImage":"Text to Image"), so
+    # take the first occurrence whose value is actually an array.
+    at = payload.find(_MODELS_KEY)
+    while at != -1:
+        cursor = at + len(_MODELS_KEY)
+        while cursor < len(payload) and payload[cursor].isspace():
+            cursor += 1
+        if cursor < len(payload) and payload[cursor] == "[":
+            return json.loads(_slice_json_array(payload, cursor))
+        at = payload.find(_MODELS_KEY, at + 1)
+    raise ValueError(f"no array found for {_MODELS_KEY} in RSC payload")
+
+
 # ── Parser ────────────────────────────────────────────────────────────────────
 
-def _parse(data: dict) -> pd.DataFrame | None:
-    models = data.get("models", [])
+def _tag_label(tag: dict) -> str | None:
+    """Category name. displayName is the current field; label was the old API's."""
+    return tag.get("displayName") or tag.get("label") or tag.get("slug")
+
+
+def _parse(models: list[dict]) -> pd.DataFrame | None:
     if not models:
         return None
 
@@ -55,9 +126,9 @@ def _parse(data: dict) -> pd.DataFrame | None:
     for m in models:
         for elo_obj in m.get("elos", []):
             tag = elo_obj.get("tag")
-            if tag and isinstance(tag, dict):
-                lbl = tag["label"]
-                if lbl not in seen:
+            if isinstance(tag, dict):
+                lbl = _tag_label(tag)
+                if lbl and lbl not in seen:
                     seen.add(lbl)
                     all_labels.append(lbl)
 
@@ -81,7 +152,9 @@ def _parse(data: dict) -> pd.DataFrame | None:
             if tag is None:
                 global_elo = float(val)
             elif isinstance(tag, dict):
-                cat_elos[tag["label"]] = float(val)
+                lbl = _tag_label(tag)
+                if lbl:
+                    cat_elos[lbl] = float(val)
 
         if global_elo is None:
             continue
@@ -110,14 +183,14 @@ def _parse(data: dict) -> pd.DataFrame | None:
 def scrape_and_save() -> bool:
     """Fetch live data and write to cache CSV. Returns True on success."""
     try:
-        resp = requests.get(_API_URL, headers=_HEADERS, timeout=_TIMEOUT)
+        resp = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
-        data = resp.json()
+        models = _extract_models(resp.text)
     except Exception as exc:
         print(f"[image_scraper] Fetch error: {exc}")
         return False
 
-    df = _parse(data)
+    df = _parse(models)
     if df is None or df.empty:
         print("[image_scraper] No valid rows parsed")
         return False
