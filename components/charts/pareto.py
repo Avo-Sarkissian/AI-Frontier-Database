@@ -9,44 +9,15 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
-    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant, canonical_provider,
-    MAX_LEGEND_PROVIDERS, SPOTLIGHT_PROVIDERS,
-    BUBBLE_MIN_PX, BUBBLE_MAX_PX, BUBBLE_SPEED_REF,
+    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant,
+    BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
+    legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
 
 
-def _bubble_px(speed) -> float:
-    """Diameter for a throughput value.
-
-    Scaled against a fixed reference rather than the plotted subset's maximum,
-    so filtering the chart never resizes a model that is still on screen, and
-    sqrt-scaled so bubble *area* is proportional to throughput.
-    """
-    if pd.isna(speed) or speed <= 0:
-        return BUBBLE_MIN_PX
-    frac = min(float(speed), BUBBLE_SPEED_REF) / BUBBLE_SPEED_REF
-    return BUBBLE_MIN_PX + math.sqrt(frac) * (BUBBLE_MAX_PX - BUBBLE_MIN_PX)
-
-
 def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
-    """1-2-5 ticks across the decades the data spans, labelled as prices.
-
-    A log axis with no explicit tickvals makes Plotly fall back to "D2" minor
-    ticks, which render as the unreadable run "2 5 0.1 2 5 1 2 5 10 2 5 100" —
-    the leftmost label reads "2" for a $0.02 model.
-    """
-    if not (lo > 0 and hi > 0):
-        return [], []
-    vals: list[float] = []
-    decade = math.floor(math.log10(lo))
-    while 10 ** decade <= hi * 10:
-        for mantissa in (1, 2, 5):
-            v = mantissa * (10 ** decade)
-            if lo / 1.6 <= v <= hi * 1.6:
-                vals.append(v)
-        decade += 1
-    text = [f"${v:.2f}" if v < 1 else f"${v:g}" for v in vals]
-    return vals, text
+    """1-2-5 ticks labelled as prices."""
+    return log_ticks(lo, hi, fmt=lambda v: f"${v:.2f}" if v < 1 else f"${v:g}")
 
 
 def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
@@ -80,40 +51,14 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
     ].copy()
     plot_df = dedupe_to_best_variant(plot_df)
 
-    plot_df["size"] = plot_df["speed"].apply(_bubble_px)
+    plot_df["size"] = bubble_size(plot_df["speed"], BUBBLE_SPEED_REF).values
 
-    # Pearson r between log10(price) and quality. Needs at least three points
-    # to mean anything — with one row np.corrcoef returns nan, which used to
-    # print a literal "r = nan" over the chart whenever a search narrowed to a
-    # single model.
-    _corr_r = None
     valid_c = plot_df[plot_df["price"] > 0]
-    if len(valid_c) >= 3:
-        try:
-            r = np.corrcoef(np.log10(valid_c["price"]), valid_c["quality"])[0, 1]
-            if np.isfinite(r):
-                _corr_r = float(r)
-        except Exception:
-            pass
+    _corr_r = safe_corr(np.log10(valid_c["price"]), valid_c["quality"])
 
     fig = go.Figure()
 
-    # --- Only spotlight providers earn their own series; the rest are "Other".
-    # Restricting to that set is what keeps the colours on screen a subset the
-    # palette validator has cleared for all-pairs separation. ---
-    plot_df["canon_provider"] = plot_df["provider"].apply(canonical_provider)
-    counts = plot_df["canon_provider"].value_counts()
-    named = [p for p in counts.index if p in SPOTLIGHT_PROVIDERS][:MAX_LEGEND_PROVIDERS]
-    named_set = set(named)
-    plot_df["display_provider"] = plot_df["canon_provider"].apply(
-        lambda p: p if p in named_set else "Other"
-    )
-
-    # --- Per-provider scatter traces, densest provider first so the legend
-    # leads with the labs a reader is actually looking for ---
-    providers = [p for p in named if (plot_df["display_provider"] == p).any()]
-    if (plot_df["display_provider"] == "Other").any():
-        providers.append("Other")
+    plot_df, providers = spotlight_split(plot_df)
     for provider in providers:
         pdf = plot_df[plot_df["display_provider"] == provider]
         # Draw the biggest bubbles first so small ones land on top and stay
@@ -149,10 +94,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 symbol=symbol,
                 size=pdf["size"],
                 opacity=0.8,
-                # A background-coloured rim separates overlapping bubbles in the
-                # dense sub-$1 cluster. The old rgba(0,0,0,0) stroke was dead
-                # config and left that region an undifferentiated blob.
-                line=dict(width=0.8, color=BG),
+                line=marker_outline(),
             ),
             customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str)),
             hovertemplate=hover,
@@ -266,24 +208,8 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             showline=False,
             ticks="",
         ),
-        # Horizontal legend under the axis. The old vertical legend sat in a
-        # fixed 172px right gutter, where 25 entries ran ~487px tall against a
-        # ~300px plot area — clipped and scrollable — while squeezing the
-        # scatter into 39% of the width on narrow viewports.
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(255,255,255,0)",
-            borderwidth=0,
-            font=dict(color="#999999", size=11, family=FONT),
-            itemsizing="constant",
-            orientation="h",
-            x=0,
-            y=-0.16,
-            xanchor="left",
-            yanchor="top",
-            tracegroupgap=2,
-        ),
-        margin=dict(l=56, r=28, t=52, b=104),
+        legend=legend_below(),
+        margin=CHART_MARGIN,
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616",

@@ -2,6 +2,8 @@
 Speed vs Quality quadrant chart.
 Divides models into 4 zones based on median speed and quality.
 """
+import math
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -9,7 +11,8 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
-    dedupe_to_best_variant,
+    dedupe_to_best_variant, BUBBLE_PRICE_REF, bubble_size, safe_corr,
+    marker_outline, legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
 
 _ZONE = "rgba(255,255,255,0.02)"
@@ -30,51 +33,52 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     med_speed   = plot_df["speed"].median()
     med_quality = plot_df["quality"].median()
 
-    # Bubble size normalized on price (inverted: cheaper = bigger)
-    max_price = plot_df["price"].replace(0, np.nan).max()
-    if pd.isna(max_price) or max_price == 0:
-        max_price = 1
-    plot_df["size"] = plot_df["price"].apply(
-        lambda p: 8 + (1 - min(p / max_price, 1)) * 22 if pd.notna(p) and p > 0 else 8
-    )
+    # Bubble size encodes affordability (cheaper = bigger) on a fixed price
+    # reference. Normalising against the plotted frame's own max meant a model
+    # grew or shrank whenever the user narrowed a filter, even though its price
+    # had not changed.
+    plot_df["size"] = bubble_size(plot_df["price"], BUBBLE_PRICE_REF, invert=True).values
 
-    # Pearson r between speed and quality
-    _corr_r = None
-    try:
-        _corr_r = np.corrcoef(plot_df["speed"], plot_df["quality"])[0, 1]
-    except Exception:
-        pass
+    # Correlation on log speed, matching the axis the reader is looking at.
+    _corr_r = safe_corr(np.log10(plot_df["speed"]), plot_df["quality"])
+    _tickvals, _ticktext = log_ticks(
+        plot_df["speed"].min(), plot_df["speed"].max(), fmt=lambda v: f"{v:g}"
+    )
 
     fig = go.Figure()
 
-    # Quadrant shading
-    x_max = plot_df["speed"].max() * 1.15
+    # Throughput spans ~9 to ~2200 tok/s but nearly every model sits under 400,
+    # so on a linear axis two outliers stretched the scale and crushed the whole
+    # catalogue into the leftmost fifth of the plot. Log spreads it out.
+    x_min = plot_df["speed"].min() / 1.3
+    x_max = plot_df["speed"].max() * 1.3
     y_max = plot_df["quality"].max() * 1.15
+    lx0, lx1 = math.log10(x_min), math.log10(x_max)
+    lmed = math.log10(med_speed)
 
-    zone_labels = [
-        (0,         med_speed,   med_quality, y_max,       "Slow · Smart",  0.25, 0.75),
-        (med_speed, x_max,       med_quality, y_max,       "Fast · Smart",  0.75, 0.75),
-        (0,         med_speed,   0,           med_quality, "Slow · Weak",   0.25, 0.25),
-        (med_speed, x_max,       0,           med_quality, "Fast · Weak",   0.75, 0.25),
+    # Zone rectangles are drawn in data coordinates; on a log axis Plotly wants
+    # the exponents, hence the log10() on every x.
+    zones = [
+        (lx0,  lmed, med_quality, y_max,       "Slow · Smart"),
+        (lmed, lx1,  med_quality, y_max,       "Fast · Smart"),
+        (lx0,  lmed, 0,           med_quality, "Slow · Weak"),
+        (lmed, lx1,  0,           med_quality, "Fast · Weak"),
     ]
 
-    for x0, x1, y0, y1, label, rx, ry in zone_labels:
+    for x0, x1, y0, y1, _label in zones:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
                       fillcolor=_ZONE, line=dict(width=0), layer="below")
 
-    # Median crosshair lines
+    # Median crosshairs. The vertical one takes log10(median) because shapes on
+    # a log axis are positioned in exponent space — passing the raw 103.8 put
+    # the line at 10^103.8, i.e. far off the right of the plot.
     fig.add_hline(y=med_quality, line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
-    fig.add_vline(x=med_speed,   line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
+    fig.add_vline(x=lmed,        line=dict(color="rgba(255,255,255,0.12)", width=1, dash="dot"))
 
-    # Group small providers into "Other"
-    _counts = plot_df["provider"].value_counts()
-    _top_provs = set(_counts.head(10).index)
-    plot_df["display_provider"] = plot_df["provider"].apply(
-        lambda p: p if p in _top_provs else "Other"
-    )
-
-    # Per-provider scatter
-    providers = sorted(plot_df["display_provider"].unique(), key=lambda p: (p == "Other", p))
+    # Only spotlight providers get their own colour — the previous top-10-by-
+    # count rule put whichever providers happened to be dense on screen
+    # together, including pairs the palette validator never cleared.
+    plot_df, providers = spotlight_split(plot_df)
     for provider in providers:
         pdf = plot_df[plot_df["display_provider"] == provider]
         color  = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
@@ -103,33 +107,38 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
                 color=color,
                 symbol=symbol,
                 size=pdf["size"],
-                opacity=0.75,
-                line=dict(width=0.5, color="rgba(255,255,255,0.10)"),
+                opacity=0.8,
+                line=marker_outline(),
             ),
             customdata=list(zip(pdf["model"], pdf["provider"], pdf["price"], latency_str)),
             hovertemplate=hover,
         ))
 
-    # Zone annotation text
+    # Zone captions pinned to the outer corner of each quadrant. Centring them
+    # put "Slow · Smart" and "Slow · Weak" straight through the dense low-speed
+    # cluster and over the y-axis title.
     annotations = []
-    for x0, x1, y0, y1, label, rx, ry in zone_labels:
+    for x0, x1, y0, y1, label in zones:
+        outer_left = x0 == lx0
         annotations.append(dict(
-            x=x0 + (x1 - x0) * rx,
-            y=y0 + (y1 - y0) * ry,
+            x=x0 + (x1 - x0) * (0.04 if outer_left else 0.96),
+            y=y0 + (y1 - y0) * (0.94 if y1 == y_max else 0.08),
             text=label,
             showarrow=False,
-            font=dict(color="rgba(255,255,255,0.28)", size=13, family=_FONT),
+            xanchor="left" if outer_left else "right",
+            font=dict(color="rgba(255,255,255,0.3)", size=12, family=_FONT),
             xref="x", yref="y",
         ))
 
-    # Correlation annotation
+    # Correlation sits above the plot, not inside it — all four in-plot corners
+    # are taken by zone captions, and it collided with "Slow · Smart".
     if _corr_r is not None:
         annotations.append(dict(
-            x=0.01, y=0.99,
+            x=1.0, y=1.04,
             xref="paper", yref="paper",
-            text=f"r = {_corr_r:.2f}  (speed vs quality)",
+            text=f"r = {_corr_r:.2f}  (log speed vs quality)",
             showarrow=False,
-            xanchor="left", yanchor="top",
+            xanchor="right", yanchor="bottom",
             font=dict(color="#666666", size=10, family=_FONT),
         ))
 
@@ -137,17 +146,37 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     # Use 75th-percentile speed as threshold so labels stay in the genuinely
     # fast region, and cap at 5 to avoid label pile-ups.
     speed_p75 = plot_df["speed"].quantile(0.75)
-    fast_smart = plot_df[
+    candidates = plot_df[
         (plot_df["speed"] > speed_p75) & (plot_df["quality"] > med_quality)
-    ].sort_values("quality", ascending=False).head(5)
-    if not fast_smart.empty:
+    ].sort_values("quality", ascending=False)
+
+    # Take the best models that are far enough apart *on screen* to be legible.
+    # Simply taking the top 5 stacked three labels on one another — the leaders
+    # cluster tightly, so "Gemini 3.6 Flash" and "Gemini 3.5 Flash" landed on
+    # the same pixels. Distance is measured in normalised plot space so it
+    # tracks the log x axis rather than raw tok/s.
+    kept_rows, kept_pos, positions = [], [], []
+    x_span = (lx1 - lx0) or 1.0
+    for _, row in candidates.iterrows():
+        if len(kept_rows) >= 5:
+            break
+        nx = (math.log10(row["speed"]) - lx0) / x_span
+        ny = row["quality"] / y_max if y_max else 0.0
+        if any(math.dist((nx, ny), q) < 0.09 for q in kept_pos):
+            continue
+        kept_pos.append((nx, ny))
+        kept_rows.append(row)
+        positions.append("top center" if len(kept_rows) % 2 else "bottom center")
+
+    if kept_rows:
+        label_df = pd.DataFrame(kept_rows)
         fig.add_trace(go.Scatter(
-            x=fast_smart["speed"],
-            y=fast_smart["quality"],
+            x=label_df["speed"],
+            y=label_df["quality"],
             mode="text",
-            text=fast_smart["model"].apply(lambda m: m[:20] + "…" if len(m) > 20 else m),
-            textposition="top center",
-            textfont=dict(color="rgba(255,255,255,0.45)", size=10, family=_FONT),
+            text=label_df["model"].apply(lambda m: m[:20] + "…" if len(m) > 20 else m),
+            textposition=positions,
+            textfont=dict(color="rgba(255,255,255,0.5)", size=10, family=_FONT),
             hoverinfo="skip",
             showlegend=False,
         ))
@@ -167,11 +196,16 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Speed  (tokens / second)", font=dict(color=_AXIS, size=12), standoff=12),
+            title=dict(text="Speed  (tokens / second, log scale)",
+                       font=dict(color=_AXIS, size=12), standoff=12),
+            type="log",
+            tickmode="array" if _tickvals else "auto",
+            tickvals=_tickvals or None,
+            ticktext=_ticktext or None,
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
-            range=[0, x_max],
+            range=[lx0, lx1],
         ),
         yaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
@@ -180,13 +214,8 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             showgrid=True, showline=False, ticks="",
             range=[0, y_max],
         ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#999999", size=11, family=_FONT),
-            itemsizing="constant", orientation="v",
-            x=1.01, y=1, xanchor="left", tracegroupgap=2,
-        ),
-        margin=dict(l=56, r=172, t=52, b=52),
+        legend=legend_below(),
+        margin=CHART_MARGIN,
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",

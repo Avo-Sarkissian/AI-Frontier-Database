@@ -214,3 +214,137 @@ GRID  = "rgba(255,255,255,0.04)"
 TICK  = "#999999"
 AXIS  = "#aaaaaa"
 FONT  = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+
+# Price at or above which a bubble is drawn at its minimum size on charts that
+# encode affordability. Fixed, for the same reason BUBBLE_SPEED_REF is.
+BUBBLE_PRICE_REF = 20.0
+
+
+# ── Shared chart helpers ──────────────────────────────────────────────────────
+# Every chart that encodes a magnitude in marker size, prints a correlation, or
+# shows a per-provider legend hit the same three bugs. These exist so the fix
+# lives in one place rather than being re-derived per module.
+
+def bubble_size(values, ref: float, invert: bool = False) -> _pd.Series:
+    """Marker diameters for a magnitude, on a FIXED reference scale.
+
+    Normalising against the plotted frame's own max means the render paths —
+    which always receive a filtered frame — silently rescale every mark when the
+    user narrows a filter, so a model appears to change speed or price. Values
+    are clamped at ``ref`` and sqrt-scaled so bubble *area* tracks the
+    magnitude instead of diameter exaggerating it.
+
+    invert=True encodes "smaller value = bigger bubble" (affordability).
+    """
+    span = BUBBLE_MAX_PX - BUBBLE_MIN_PX
+
+    def _one(v):
+        if _pd.isna(v) or v <= 0:
+            return BUBBLE_MIN_PX
+        frac = min(float(v), ref) / ref
+        if invert:
+            frac = 1.0 - frac
+        return BUBBLE_MIN_PX + (frac ** 0.5) * span
+
+    return _pd.Series(values).apply(_one)
+
+
+def safe_corr(x, y, min_points: int = 3) -> float | None:
+    """Pearson r, or None when it would be meaningless.
+
+    np.corrcoef returns NaN for fewer than two distinct points, and NaN passes
+    an ``is not None`` guard — which is how "r = nan" ended up printed over a
+    chart whenever a search narrowed to a single model.
+    """
+    import numpy as np
+
+    xs, ys = _pd.Series(x).astype(float), _pd.Series(y).astype(float)
+    ok = xs.notna() & ys.notna()
+    xs, ys = xs[ok], ys[ok]
+    if len(xs) < min_points or xs.nunique() < 2 or ys.nunique() < 2:
+        return None
+    try:
+        r = np.corrcoef(xs, ys)[0, 1]
+    except Exception:
+        return None
+    return float(r) if np.isfinite(r) else None
+
+
+def marker_outline(width: float = 0.8) -> dict:
+    """Surface-coloured rim so overlapping marks stay countable.
+
+    Several charts specified ``color="rgba(0,0,0,0)"`` — a fully transparent
+    stroke, i.e. dead config — leaving dense clusters an undifferentiated blob.
+    """
+    return dict(width=width, color=BG)
+
+
+def legend_below(y: float = -0.16) -> dict:
+    """Horizontal legend under the axis.
+
+    The vertical-legend-in-a-fixed-gutter layout clipped entries behind a
+    scrollbar once they outgrew the plot height, and cost the data most of the
+    width on narrow viewports. Pair with CHART_MARGIN.
+    """
+    return dict(
+        bgcolor="rgba(0,0,0,0)",
+        bordercolor="rgba(255,255,255,0)",
+        borderwidth=0,
+        font=dict(color="#999999", size=11, family=FONT),
+        itemsizing="constant",
+        orientation="h",
+        x=0, y=y, xanchor="left", yanchor="top",
+        tracegroupgap=2,
+    )
+
+
+# Margin that pairs with legend_below(): the old dict(r=172) reserved a gutter
+# for the vertical legend and left narrow viewports 39% of the width for data.
+CHART_MARGIN = dict(l=56, r=28, t=52, b=104)
+
+
+def log_ticks(lo: float, hi: float, fmt=None) -> tuple[list[float], list[str]]:
+    """1-2-5 ticks across the decades spanned, with readable labels.
+
+    A log axis carrying no explicit tickvals makes Plotly fall back to "D2"
+    minor ticks, which render as a bare-mantissa run like
+    "2 5 0.1 2 5 1 2 5 10 2 5 100" — the leading label reads as a value in its
+    own right and misstates the axis by orders of magnitude.
+    """
+    import math
+
+    if not (lo > 0 and hi > 0 and hi >= lo):
+        return [], []
+    fmt = fmt or (lambda v: f"{v:g}")
+    vals: list[float] = []
+    decade = math.floor(math.log10(lo))
+    while 10 ** decade <= hi * 10:
+        for mantissa in (1, 2, 5):
+            v = mantissa * (10 ** decade)
+            if lo / 1.6 <= v <= hi * 1.6:
+                vals.append(v)
+        decade += 1
+    return vals, [fmt(v) for v in vals]
+
+
+def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider"):
+    """Split providers into their own series vs a shared "Other" bucket.
+
+    Returns ``(df, ordered_names)`` where df gains a ``display_provider``
+    column. Only SPOTLIGHT_PROVIDERS get their own colour, which is what keeps
+    the colours on screen a subset the palette validator has cleared for
+    all-pairs separation; names are ordered densest-first so the legend leads
+    with the labs a reader is looking for, and "Other" always sorts last.
+    """
+    out = df.copy()
+    out["_canon_provider"] = out[provider_col].apply(canonical_provider)
+    counts = out["_canon_provider"].value_counts()
+    named = [p for p in counts.index if p in SPOTLIGHT_PROVIDERS][:MAX_LEGEND_PROVIDERS]
+    named_set = set(named)
+    out["display_provider"] = out["_canon_provider"].apply(
+        lambda p: p if p in named_set else "Other"
+    )
+    ordered = [p for p in named if (out["display_provider"] == p).any()]
+    if (out["display_provider"] == "Other").any():
+        ordered.append("Other")
+    return out, ordered
