@@ -19,41 +19,50 @@ window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null, s
 const PLOT_CONFIG = { displaylogo: false, responsive: true,
   modeBarButtonsToRemove: ["select2d", "lasso2d", "toImage"] };
 
-const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js";
-
-// ---- Provider color map (mirrors PROVIDER_COLORS in constants.py) ----
+// ---- Provider color map — mirrors PROVIDER_COLORS in
+// components/charts/constants.py. Kept in sync by hand; tests/
+// test_static_site_wiring.py asserts they match.
 const PROVIDER_COLORS = {
-  "Anthropic": "#c084fc",
-  "OpenAI": "#34d399",
-  "Google": "#60a5fa",
-  "Meta": "#fb923c",
-  "DeepSeek": "#f472b6",
-  "Mistral": "#facc15",
-  "xAI": "#a3e635",
-  "Alibaba": "#38bdf8",
-  "Amazon": "#ff9900",
-  "NVIDIA": "#22d3ee",
-  "Microsoft Azure": "#818cf8",
-  "Cohere": "#f87171",
-  "Kimi": "#d4a1f5",
-  "Z AI": "#7dd3fc",
-  "MiniMax": "#86efac",
-  "InclusionAI": "#fca5a5",
-  "Xiaomi": "#6ee7b7",
-  "Baidu": "#fde68a",
-  "IBM": "#93c5fd",
-  "LG AI Research": "#c4b5fd",
-  "Nous Research": "#f9a8d4",
-  "Reka AI": "#a78bfa",
-  "AI21 Labs": "#34d399",
+  "OpenAI":                 "#0dad80",
+  "Anthropic":              "#9578ff",
+  "Google":                 "#124fff",
+  "Meta":                   "#d20811",
+  "DeepSeek":               "#964371",
+  "Alibaba":                "#016791",
+  "Mistral":                "#406e00",
+  "NVIDIA":                 "#0f99d5",
+  "Amazon":                 "#c68405",
+  "Kimi":                   "#b200c1",
+  "SpaceXAI":               "#a3e635",
+  "Microsoft":              "#818cf8",
+  "Cohere":                 "#f87171",
+  "Z AI":                   "#7dd3fc",
+  "MiniMax":                "#86efac",
+  "InclusionAI":            "#fca5a5",
+  "Xiaomi":                 "#6ee7b7",
+  "Baidu":                  "#fde68a",
+  "IBM":                    "#93c5fd",
+  "LG AI Research":         "#c4b5fd",
+  "Nous Research":          "#f9a8d4",
+  "Reka AI":                "#a78bfa",
+  "AI21 Labs":              "#2dd4bf",
   "Allen Institute for AI": "#67e8f9",
-  "Inception": "#fb7185",
-  "Upstage": "#fbbf24",
-  "Perplexity": "#a3a3a3",
-  "KwaiKAT": "#f97316",
-  "Deep Cogito": "#a8a29e",
+  "Inception":              "#fb7185",
+  "Upstage":                "#fbbf24",
+  "Perplexity":             "#a3a3a3",
+  "KwaiKAT":                "#f97316",
+  "Deep Cogito":            "#a8a29e",
+  "Thinking Machines":      "#5eead4",
+  "Tencent":                "#4ade80",
+  "StepFun":                "#e879f9",
+  "Arcee AI":               "#fcd34d",
+  "LongCat":                "#bef264",
+  "Sapiens AI":             "#f0abfc",
+  "Nex AGI":                "#94a3b8",
+  "Multiverse Computing":   "#d6d3d1",
+  "Celeris":                "#fdba74",
 };
-const DEFAULT_PROVIDER_COLOR = "#555555";
+const DEFAULT_PROVIDER_COLOR = "#6b7280";
 
 function buildTabsAndPanels() {
   const tabsEl = document.getElementById("tabs");
@@ -187,65 +196,77 @@ async function loadManifest() {
 
 // ---- Pyodide boot ----
 
-async function bootPyodide() {
+// Pyodide runs in a worker (docs/pyworker.js). On the main thread its boot
+// blocked the UI for ~3.8s of a 4.7s startup — single stalls up to 1.8s — while
+// the pre-rendered charts were already interactive at ~450ms, so hovering a
+// bubble during startup felt like the mouse had frozen.
+function bootPyodide() {
   const statusEl = document.getElementById("py-status");
-  if (statusEl) { statusEl.style.display = "block"; statusEl.textContent = "warming up interactivity…"; }
+  const setStatus = (text, show = true) => {
+    if (!statusEl) return;
+    statusEl.style.display = show ? "block" : "none";
+    if (text) statusEl.textContent = text;
+  };
+  setStatus("warming up interactivity…");
 
+  let worker;
   try {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = PYODIDE_URL; s.onload = res; s.onerror = rej; document.head.appendChild(s);
-    });
-    const pyodide = await loadPyodide();
-    if (statusEl) statusEl.textContent = "loading packages…";
-    await pyodide.loadPackage(["pandas", "numpy", "narwhals"]);
-    if (statusEl) statusEl.textContent = "loading bundle…";
-    const buf = await (await fetch(`pybundle.zip?v=${window.AF.version || ""}`)).arrayBuffer();
-    pyodide.unpackArchive(buf, "zip", { extractDir: "/bundle" });
-    await pyodide.runPythonAsync(`
-import sys
-sys.path.insert(0, "/bundle")
-import importlib.metadata as _im
-_orig_version = _im.version
-def _version_shim(name):
-    _VERSIONS = {"plotly": "6.5.2", "narwhals": "1.0.0", "tenacity": "8.2.3"}
-    if name in _VERSIONS:
-        return _VERSIONS[name]
-    return _orig_version(name)
-_im.version = _version_shim
-import static_api
-`);
-    window.AF.pyodide = pyodide;
-    // Convert JS values to Python-native types so json.dumps works inside Python.
-    // Arrays become Python lists, objects become dicts, primitives pass through.
-    const toPyArg = (v) => {
-      if (v === null || v === undefined) return v;
-      if (Array.isArray(v)) return pyodide.toPy(v);
-      if (typeof v === "object") return pyodide.toPy(v);
-      return v;
-    };
-    window.AF.callPy = async (fn, ...args) => {
-      const py = pyodide.globals.get("static_api");
-      const res = py[fn](...args.map(toPyArg));
-      const s = res.toString();
-      if (typeof res.destroy === "function") res.destroy();
-      return JSON.parse(s);
-    };
-    window.AF.callPyRaw = async (fn, ...args) => {
-      const py = pyodide.globals.get("static_api");
-      const res = py[fn](...args.map(toPyArg));
-      const s = res.toString();
-      if (typeof res.destroy === "function") res.destroy();
-      return s;
-    };
-    window.AF.pyReady = true;
-    if (statusEl) statusEl.style.display = "none";
-    await populateDynamicSelects();
-    rerenderActiveFilterCharts();
+    worker = new Worker("pyworker.js");
   } catch (err) {
-    console.error("Pyodide boot failed:", err);
-    if (statusEl) { statusEl.style.display = "block"; statusEl.textContent = "interactivity unavailable: " + err.message; }
+    console.error("Pyodide worker failed to start:", err);
+    setStatus("interactivity unavailable: " + err.message);
+    return;
   }
+
+  const pending = new Map();
+  let nextId = 1;
+
+  const rpc = (fn, args) => new Promise((resolve, reject) => {
+    if (!window.AF.pyReady) { reject(new Error("python not ready")); return; }
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ type: "call", id, fn, args });
+  });
+
+  window.AF.callPy = async (fn, ...args) => JSON.parse(await rpc(fn, args));
+  window.AF.callPyRaw = (fn, ...args) => rpc(fn, args);
+
+  worker.onmessage = (ev) => {
+    const msg = ev.data || {};
+    if (msg.type === "status") { setStatus(msg.text); return; }
+
+    if (msg.type === "ready") {
+      window.AF.pyReady = true;
+      setStatus("", false);
+      populateDynamicSelects()
+        .then(rerenderActiveFilterCharts)
+        .catch((e) => console.error("post-boot refresh failed:", e));
+      return;
+    }
+
+    if (msg.type === "bootError") {
+      console.error("Pyodide boot failed:", msg.message);
+      setStatus("interactivity unavailable: " + msg.message);
+      for (const { reject } of pending.values()) reject(new Error(msg.message));
+      pending.clear();
+      return;
+    }
+
+    if (msg.type === "result") {
+      const entry = pending.get(msg.id);
+      if (!entry) return;
+      pending.delete(msg.id);
+      if (msg.ok) entry.resolve(msg.value);
+      else entry.reject(new Error(msg.error));
+    }
+  };
+
+  worker.onerror = (err) => {
+    console.error("Pyodide worker error:", err.message || err);
+    setStatus("interactivity unavailable: " + (err.message || "worker error"));
+  };
+
+  worker.postMessage({ type: "boot", version: window.AF.version || "" });
 }
 
 // ---- Populate selects that need data from Python ----

@@ -92,6 +92,31 @@ def copy_css():
     shutil.copy(ROOT / "assets" / "style.css", DOCS / "assets" / "style.css")
 
 
+# Every visitor downloads pybundle.zip before the dashboard becomes interactive,
+# so its size is a user-facing latency budget, not an implementation detail.
+MAX_BUNDLE_MB = 6.0
+_MAX_VALIDATOR_FILES = 500
+
+
+def _assert_lean_plotly(pkg_dir: Path) -> None:
+    """Refuse to vendor a plotly that ships the per-attribute validator tree.
+
+    plotly < 6.1 generates one module per chart attribute — 13,329 files, ~7MB
+    compressed. Building against such an install once tripled pybundle.zip from
+    4.0MB to 11.4MB, which every visitor then re-downloaded before the page
+    became interactive. 6.1+ collapses them into a single _validators.json.
+    """
+    validators = pkg_dir / "validators"
+    n = sum(1 for f in validators.rglob("*.py")) if validators.is_dir() else 0
+    if n > _MAX_VALIDATOR_FILES:
+        raise RuntimeError(
+            f"plotly at {pkg_dir} ships {n} generated validator modules "
+            f"(>{_MAX_VALIDATOR_FILES}), which would bloat pybundle.zip to ~11MB "
+            f"and slow every page load. Build against plotly>=6.1 instead:\n"
+            f"    pip install 'plotly>=6.1'"
+        )
+
+
 def build_pybundle():
     """Build pybundle.zip: project Python + plotly/tenacity vendored from venv."""
     import importlib.util, site
@@ -133,6 +158,8 @@ def build_pybundle():
     for pkg_name in ("plotly", "_plotly_utils", "tenacity"):
         pkg_dir = find_pkg(pkg_name)
         if pkg_dir:
+            if pkg_name == "plotly":
+                _assert_lean_plotly(pkg_dir)
             vendor_pkgs.append((pkg_name, pkg_dir))
             print(f"  vendoring {pkg_name} from {pkg_dir}")
         else:
@@ -163,7 +190,14 @@ def build_pybundle():
                     arc = pkg_name / f.relative_to(pkg_dir)
                     z.write(f, str(arc))
 
-    print("pybundle.zip:", bundle.stat().st_size // 1024, "KB")
+    size_mb = bundle.stat().st_size / 1e6
+    print(f"pybundle.zip: {size_mb:.1f} MB")
+    if size_mb > MAX_BUNDLE_MB:
+        raise RuntimeError(
+            f"pybundle.zip is {size_mb:.1f}MB, over the {MAX_BUNDLE_MB}MB budget — "
+            f"every visitor downloads this before the dashboard goes interactive. "
+            f"Check what got vendored before publishing."
+        )
 
 
 def swap_bundle_csvs():

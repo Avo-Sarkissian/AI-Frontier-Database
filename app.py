@@ -729,10 +729,13 @@ app.layout = html.Div([
                 dcc.Dropdown(
                     id="local-tags",
                     options=[
-                        {"label": "Code",         "value": "code"},
-                        {"label": "Reasoning",    "value": "reasoning"},
-                        {"label": "Vision",       "value": "vision"},
-                        {"label": "Multilingual", "value": "multilingual"},
+                        # Must match the tag vocabulary in data/local_models.py:
+                        # "multilingual" was never emitted, so selecting it
+                        # matched zero models and blanked both Run Local charts.
+                        {"label": "Code",      "value": "code"},
+                        {"label": "Reasoning", "value": "reasoning"},
+                        {"label": "Vision",    "value": "vision"},
+                        {"label": "Audio",     "value": "audio"},
                     ],
                     multi=True,
                     placeholder="All capabilities",
@@ -874,9 +877,13 @@ app.layout = html.Div([
 # CALLBACKS
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Must match the dcc.Tab values in the layout exactly. It previously listed
+# "performance"/"imagegen"/"videogen" — none of which exist — while omitting the
+# real "image" and "video", so a shared ?tab=image link silently reset to
+# Overview.
 _VALID_TABS = {
-    "overview", "recommend", "performance", "landscape", "rankings",
-    "compare", "budget", "table", "local", "imagegen", "videogen",
+    "overview", "recommend", "landscape", "rankings", "compare",
+    "budget", "table", "local", "image", "video",
 }
 
 # ── URL: restore state on load ────────────────────────────────────────────────

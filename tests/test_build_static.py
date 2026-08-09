@@ -10,6 +10,24 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv"]
 
+
+def _ambient_plotly_is_lean() -> bool:
+    """build_pybundle refuses to vendor a pre-6.1 plotly (13k validator modules,
+    ~11MB bundle). Interpreters with such an install can't run the full-build
+    tests — CI installs plotly==6.5.2 explicitly, so they run there."""
+    import plotly
+    validators = Path(plotly.__file__).parent / "validators"
+    n = sum(1 for _ in validators.rglob("*.py")) if validators.is_dir() else 0
+    return n <= build_static._MAX_VALIDATOR_FILES
+
+
+needs_lean_plotly = pytest.mark.skipif(
+    not _ambient_plotly_is_lean(),
+    reason="ambient plotly ships the pre-6.1 validator tree; "
+           "build_static refuses to vendor it (pip install 'plotly>=6.1')",
+)
+
+@needs_lean_plotly
 def test_build_produces_figures_and_manifest(tmp_path):
     # Build writes into docs/figures by default; assert key artifacts exist & parse.
     subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
@@ -24,6 +42,7 @@ def test_build_produces_figures_and_manifest(tmp_path):
     assert int(manifest["model_count"]) > 0
     assert manifest["provider_options"] and manifest["diverse5"]
 
+@needs_lean_plotly
 def test_manifest_has_version_and_iso():
     subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
     manifest = json.loads((ROOT / "docs" / "figures" / "manifest.json").read_text())
@@ -31,6 +50,7 @@ def test_manifest_has_version_and_iso():
     # generated_iso must parse as ISO-8601
     datetime.fromisoformat(manifest["generated_iso"])
 
+@needs_lean_plotly
 def test_data_only_swaps_csvs_and_preserves_plotly():
     # Full build first so a bundle exists.
     subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)

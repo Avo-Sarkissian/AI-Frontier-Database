@@ -9,8 +9,44 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
-    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant,
+    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant, canonical_provider,
+    MAX_LEGEND_PROVIDERS, SPOTLIGHT_PROVIDERS,
+    BUBBLE_MIN_PX, BUBBLE_MAX_PX, BUBBLE_SPEED_REF,
 )
+
+
+def _bubble_px(speed) -> float:
+    """Diameter for a throughput value.
+
+    Scaled against a fixed reference rather than the plotted subset's maximum,
+    so filtering the chart never resizes a model that is still on screen, and
+    sqrt-scaled so bubble *area* is proportional to throughput.
+    """
+    if pd.isna(speed) or speed <= 0:
+        return BUBBLE_MIN_PX
+    frac = min(float(speed), BUBBLE_SPEED_REF) / BUBBLE_SPEED_REF
+    return BUBBLE_MIN_PX + math.sqrt(frac) * (BUBBLE_MAX_PX - BUBBLE_MIN_PX)
+
+
+def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
+    """1-2-5 ticks across the decades the data spans, labelled as prices.
+
+    A log axis with no explicit tickvals makes Plotly fall back to "D2" minor
+    ticks, which render as the unreadable run "2 5 0.1 2 5 1 2 5 10 2 5 100" —
+    the leftmost label reads "2" for a $0.02 model.
+    """
+    if not (lo > 0 and hi > 0):
+        return [], []
+    vals: list[float] = []
+    decade = math.floor(math.log10(lo))
+    while 10 ** decade <= hi * 10:
+        for mantissa in (1, 2, 5):
+            v = mantissa * (10 ** decade)
+            if lo / 1.6 <= v <= hi * 1.6:
+                vals.append(v)
+        decade += 1
+    text = [f"${v:.2f}" if v < 1 else f"${v:g}" for v in vals]
+    return vals, text
 
 
 def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
@@ -44,33 +80,45 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
     ].copy()
     plot_df = dedupe_to_best_variant(plot_df)
 
-    # Normalize speed for bubble size (8–36px range)
-    max_speed = plot_df["speed"].replace(0, np.nan).max()
-    if pd.isna(max_speed) or max_speed == 0:
-        max_speed = 1
-    plot_df["size"] = plot_df["speed"].apply(
-        lambda s: 8 + (s / max_speed) * 28 if pd.notna(s) and s > 0 else 8
-    )
+    plot_df["size"] = plot_df["speed"].apply(_bubble_px)
 
-    # Pearson r between log10(price) and quality
+    # Pearson r between log10(price) and quality. Needs at least three points
+    # to mean anything — with one row np.corrcoef returns nan, which used to
+    # print a literal "r = nan" over the chart whenever a search narrowed to a
+    # single model.
     _corr_r = None
-    try:
-        valid_c = plot_df[plot_df["price"] > 0]
-        _corr_r = np.corrcoef(np.log10(valid_c["price"]), valid_c["quality"])[0, 1]
-    except Exception:
-        pass
+    valid_c = plot_df[plot_df["price"] > 0]
+    if len(valid_c) >= 3:
+        try:
+            r = np.corrcoef(np.log10(valid_c["price"]), valid_c["quality"])[0, 1]
+            if np.isfinite(r):
+                _corr_r = float(r)
+        except Exception:
+            pass
 
     fig = go.Figure()
 
-    # --- Any provider with a defined color gets its own trace; rest = "Other" ---
-    plot_df["display_provider"] = plot_df["provider"].apply(
-        lambda p: p if p in PROVIDER_COLORS else "Other"
+    # --- Only spotlight providers earn their own series; the rest are "Other".
+    # Restricting to that set is what keeps the colours on screen a subset the
+    # palette validator has cleared for all-pairs separation. ---
+    plot_df["canon_provider"] = plot_df["provider"].apply(canonical_provider)
+    counts = plot_df["canon_provider"].value_counts()
+    named = [p for p in counts.index if p in SPOTLIGHT_PROVIDERS][:MAX_LEGEND_PROVIDERS]
+    named_set = set(named)
+    plot_df["display_provider"] = plot_df["canon_provider"].apply(
+        lambda p: p if p in named_set else "Other"
     )
 
-    # --- Per-provider scatter traces ---
-    providers = sorted(plot_df["display_provider"].unique(), key=lambda p: (p == "Other", p))
+    # --- Per-provider scatter traces, densest provider first so the legend
+    # leads with the labs a reader is actually looking for ---
+    providers = [p for p in named if (plot_df["display_provider"] == p).any()]
+    if (plot_df["display_provider"] == "Other").any():
+        providers.append("Other")
     for provider in providers:
         pdf = plot_df[plot_df["display_provider"] == provider]
+        # Draw the biggest bubbles first so small ones land on top and stay
+        # visible (and clickable) instead of disappearing underneath.
+        pdf = pdf.sort_values("size", ascending=False)
         color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
         symbol = PROVIDER_SHAPES.get(provider, DEFAULT_SHAPE)
 
@@ -100,8 +148,11 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 color=color,
                 symbol=symbol,
                 size=pdf["size"],
-                opacity=0.75,
-                line=dict(width=0.5, color="rgba(0,0,0,0)"),
+                opacity=0.8,
+                # A background-coloured rim separates overlapping bubbles in the
+                # dense sub-$1 cluster. The old rgba(0,0,0,0) stroke was dead
+                # config and left that region an undifferentiated blob.
+                line=dict(width=0.8, color=BG),
             ),
             customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str)),
             hovertemplate=hover,
@@ -144,6 +195,13 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
 
     _zero = "rgba(255,255,255,0.06)"
 
+    if not plot_df.empty:
+        tickvals, ticktext = _log_price_ticks(
+            float(plot_df["price"].min()), float(plot_df["price"].max())
+        )
+    else:
+        tickvals, ticktext = [], []
+
     # Correlation annotation
     corr_text = (
         f"r = {_corr_r:.2f}  (log price vs quality)"
@@ -183,6 +241,9 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 standoff=12,
             ),
             type="log",
+            tickmode="array" if tickvals else "auto",
+            tickvals=tickvals or None,
+            ticktext=ticktext or None,
             gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
@@ -205,19 +266,24 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             showline=False,
             ticks="",
         ),
+        # Horizontal legend under the axis. The old vertical legend sat in a
+        # fixed 172px right gutter, where 25 entries ran ~487px tall against a
+        # ~300px plot area — clipped and scrollable — while squeezing the
+        # scatter into 39% of the width on narrow viewports.
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(255,255,255,0.07)",
-            borderwidth=1,
+            bordercolor="rgba(255,255,255,0)",
+            borderwidth=0,
             font=dict(color="#999999", size=11, family=FONT),
             itemsizing="constant",
-            orientation="v",
-            x=1.01,
-            y=1,
+            orientation="h",
+            x=0,
+            y=-0.16,
             xanchor="left",
+            yanchor="top",
             tracegroupgap=2,
         ),
-        margin=dict(l=56, r=172, t=52, b=52),
+        margin=dict(l=56, r=28, t=52, b=104),
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616",
