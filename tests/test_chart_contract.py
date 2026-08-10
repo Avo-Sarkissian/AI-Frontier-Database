@@ -189,6 +189,22 @@ def test_safe_corr_computes_a_real_correlation():
 
 def test_spotlight_palette_is_not_silently_widened():
     """MAX_LEGEND_PROVIDERS tracks the validated set; widening it puts
-    unvalidated colour pairs on screen."""
-    assert len(SPOTLIGHT_PROVIDERS) == 10
+    unvalidated colour pairs on screen. Nine is the most brand-faithful colours
+    the #111111 surface will separate — a tenth made the set infeasible."""
+    assert len(SPOTLIGHT_PROVIDERS) == 9
     assert all(p in PROVIDER_COLORS for p in SPOTLIGHT_PROVIDERS)
+
+
+def test_user_specified_brand_colours_are_honoured():
+    """Anthropic keeps its orange and Meta its blue — explicit requirements,
+    and the two hues four and three other labs respectively also claim."""
+    import colorsys
+
+    def hue_deg(hex_colour):
+        r, g, b = (int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        return colorsys.rgb_to_hsv(r, g, b)[0] * 360
+
+    anthropic = hue_deg(PROVIDER_COLORS["Anthropic"])
+    meta = hue_deg(PROVIDER_COLORS["Meta"])
+    assert 10 <= anthropic <= 45, f"Anthropic should read orange, got hue {anthropic:.0f}"
+    assert 195 <= meta <= 240, f"Meta should read blue, got hue {meta:.0f}"

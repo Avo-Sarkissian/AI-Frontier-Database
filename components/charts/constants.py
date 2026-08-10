@@ -88,22 +88,30 @@ def canonical_provider(name: str) -> str:
 #
 #   node scripts/validate_palette.js "<hexes>" --mode dark --surface "#111111" --pairs all
 SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
-    "OpenAI", "Anthropic", "Google", "Meta", "DeepSeek",
-    "Alibaba", "Mistral", "NVIDIA", "Amazon", "Kimi",
+    "Anthropic", "Meta", "OpenAI", "Alibaba", "Google",
+    "NVIDIA", "Amazon", "Mistral", "DeepSeek",
 )
 
 PROVIDER_COLORS: dict[str, str] = {
-    # -- spotlight ten (validated as a set; see note above) --
-    "OpenAI":                 "#0dad80",  # green    · 6.57:1
-    "Anthropic":              "#9578ff",  # violet   · 5.76:1
-    "Google":                 "#124fff",  # blue     · 3.23:1
-    "Meta":                   "#d20811",  # red      · 3.40:1
-    "DeepSeek":               "#964371",  # plum     · 3.00:1
-    "Alibaba":                "#016791",  # teal     · 3.01:1
-    "Mistral":                "#406e00",  # olive    · 3.10:1
-    "NVIDIA":                 "#0f99d5",  # sky      · 5.88:1
-    "Amazon":                 "#c68405",  # amber    · 6.03:1
-    "Kimi":                   "#b200c1",  # magenta  · 3.29:1
+    # -- spotlight nine: each lab's own brand colour wherever the palette can
+    #    carry it. Four labs publish an orange (Anthropic, Alibaba, Amazon,
+    #    Mistral) and three a blue (Meta, Google, DeepSeek); only one of each can
+    #    own the hue, so the rest fall back to another of their own brand colours
+    #    and, failing that, to a distinct hue. Solved and validated as a set —
+    #    worst normal-vision pair ΔE 15.1, worst CVD ΔE 6.2 (floor band, legal
+    #    because every provider also carries its own marker shape), all ≥ 3:1 on
+    #    the #111111 surface. Adding a tenth makes the set infeasible: nine is
+    #    the most brand-faithful colours this surface will separate.
+    "Anthropic":              "#cc4104",  # Anthropic orange (#D97757)  · 3.89:1
+    "Meta":                   "#0566db",  # Meta blue (#0064E0)         · 3.53:1
+    "OpenAI":                 "#0e8c6d",  # OpenAI teal-green (#10A37F) · 4.49:1
+    "Alibaba":                "#ef8010",  # Alibaba orange, 11° off     · 6.98:1
+    "Google":                 "#ff4381",  # Google red (#EA4335), 23° off · 5.73:1
+    "NVIDIA":                 "#06b63b",  # NVIDIA green (#76B900), 15° off · 6.98:1
+    "Amazon":                 "#bd088c",  # AWS orange taken → magenta  · 3.22:1
+    "Mistral":                "#07b8bc",  # Mistral orange taken → cyan · 7.73:1
+    "DeepSeek":               "#7d9bff",  # DeepSeek blue (#4D6BFE)     · 7.20:1
+    "Kimi":                   "#b200c1",  # magenta
     # -- secondary providers: never share the Overview legend with each other,
     #    so they only need to read distinctly in the tabs that show them all --
     "SpaceXAI":               "#a3e635",  # lime
