@@ -3,6 +3,7 @@ Runs inside Pyodide. No dash/requests/flask imports.
 
 Task 5 extends this module (local/image/video/agent-stack).
 """
+import html
 import json
 import pandas as pd
 
@@ -86,7 +87,10 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
         price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
         speed_str = f"{int(r['speed']):,}" if pd.notna(r["speed"]) and r["speed"] > 0 else "—"
         lat_str = f"{r['latency']:.2f}s" if pd.notna(r["latency"]) and r["latency"] > 0 else "—"
-        ctx_str = str(r["context"]) if pd.notna(r.get("context")) else "—"
+        # Scraped values are third-party text: escape before interpolating into HTML.
+        ctx_str = html.escape(str(r["context"]), quote=True) if pd.notna(r.get("context")) else "—"
+        model_str = html.escape(str(r["model"]), quote=True)
+        provider_str = html.escape(str(r["provider"]), quote=True)
 
         model_td_style = (
             f"{cell_base}text-align:left;color:#ccc;max-width:260px;"
@@ -94,8 +98,8 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
         )
         row_html = (
             "<tr>"
-            + f'<td style="{model_td_style}">{r["model"]}</td>'
-            + f'<td style="{cell_base}text-align:left;color:{pcolor};">{r["provider"]}</td>'
+            + f'<td style="{model_td_style}">{model_str}</td>'
+            + f'<td style="{cell_base}text-align:left;color:{pcolor};">{provider_str}</td>'
             + _td(f"{r['quality']:.1f}", "#f2f2f2")
             + _td(price_str)
             + _td(speed_str)
@@ -179,13 +183,17 @@ def _detail_html(row: pd.Series, provider: str) -> str:
 
     divider = '<div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0;"></div>'
 
-    ctx_str = (str(row.get("context", "N/A")) or "N/A") if pd.notna(row.get("context")) else "N/A"
+    ctx_raw = (str(row.get("context", "N/A")) or "N/A") if pd.notna(row.get("context")) else "N/A"
+    # Scraped values are third-party text: escape before interpolating into HTML.
+    ctx_str = html.escape(ctx_raw, quote=True)
+    provider_str = html.escape(str(provider), quote=True)
+    model_str = html.escape(str(row["model"]), quote=True)
     price_str = f"${row['price']:.4f} / 1M tokens"
 
     return (
-        f'<div style="color:{color};font-size:10px;font-family:{_FONT};">{provider}</div>'
+        f'<div style="color:{color};font-size:10px;font-family:{_FONT};">{provider_str}</div>'
         f'<div style="font-size:16px;font-family:{_FONT};color:#f2f2f2;margin-bottom:12px;">'
-        f'{row["model"]}</div>'
+        f'{model_str}</div>'
         + intel_section
         + divider
         + _metric("Price", price_str)
