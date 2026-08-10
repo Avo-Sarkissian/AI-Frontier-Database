@@ -1,7 +1,21 @@
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 WF = ROOT / ".github" / "workflows" / "refresh.yml"
+
+# Drives a scraper module through its failure path with the network forced to
+# fail, then lets its __main__ block decide the process exit status.
+_FAIL_DRIVER = """
+import runpy, requests
+def _boom(*a, **k):
+    raise requests.RequestException("forced failure for test")
+requests.get = _boom
+runpy.run_module({mod!r}, run_name="__main__")
+"""
 
 def test_workflow_present_and_wired():
     assert WF.exists(), "refresh.yml not created"
@@ -39,6 +53,21 @@ def test_failure_is_reported_after_publishing():
     """Publishing what did succeed must come before the run is failed."""
     txt = WF.read_text()
     assert txt.index("git push") < txt.index("Report scrape failures")
+
+
+@pytest.mark.parametrize("mod", ["data.scraper", "data.local_scraper", "data.image_scraper"])
+def test_scraper_exits_nonzero_when_upstream_fails(mod):
+    """The workflow records failures with `python -m data.scraper || failed=...`.
+    That guard is dead code unless the module actually exits non-zero — which is
+    how the image endpoint 400'd for 29 days behind a green run."""
+    proc = subprocess.run(
+        [sys.executable, "-c", _FAIL_DRIVER.format(mod=mod)],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    assert proc.returncode != 0, (
+        f"{mod} exited 0 on a failed scrape, so refresh.yml's `||` guard never "
+        f"fires and stale data is published as fresh.\nstdout:\n{proc.stdout}"
+    )
 
 
 def test_row_loss_guard_replaces_the_bare_floor():

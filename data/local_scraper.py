@@ -10,6 +10,7 @@ Fields pulled per model:
 Run standalone:  python -m data.local_scraper
 """
 
+import sys
 import threading
 import time
 from pathlib import Path
@@ -161,3 +162,7 @@ if __name__ == "__main__":
         print(df[["name", "family", "params_b", "active_b", "quality"]].head(30).to_string())
     else:
         print("[local_scraper] Failed — no cache updated")
+    # Exit non-zero on failure so .github/workflows/refresh.yml can see it: the
+    # workflow records failures with `python -m data.local_scraper || failed=...`,
+    # which is dead code unless this process actually reports the failure.
+    sys.exit(0 if ok else 1)

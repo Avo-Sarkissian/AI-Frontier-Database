@@ -15,6 +15,7 @@ Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
+import sys
 import threading
 import time
 
@@ -195,3 +196,7 @@ if __name__ == "__main__":
         print("[scraper] Falling back to existing cache")
         df = load_cached()
         print(f"[scraper] Cache has {len(df)} models")
+    # Exit non-zero on failure so .github/workflows/refresh.yml can see it: the
+    # workflow records failures with `python -m data.scraper || failed=...`, which
+    # is dead code unless this process actually reports the failure.
+    sys.exit(0 if success else 1)
