@@ -5,7 +5,7 @@ Tile area = number of models; tile color = average quality score.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, FONT as _FONT
+from components.charts.constants import BG as _BG, FONT as _FONT, QUALITY_INDEX_MAX
 
 
 def build_treemap(df: pd.DataFrame) -> go.Figure:
@@ -40,8 +40,19 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
         hovertemplate=hover,
         marker=dict(
             colors=agg["avg_quality"],
+            # Fixed domain. Without cmin/cmax Plotly autoscales the ramp to
+            # whatever subset is on screen, so a provider changed colour with
+            # the filter — and could go DARKER as its average quality rose,
+            # inverting the encoding. A single-provider filter was worse still:
+            # the degenerate range collapsed to v±0.5 and every provider painted
+            # the same mid-ramp navy whatever its actual score.
+            cmin=0.0,
+            cmax=QUALITY_INDEX_MAX,
             colorscale=[
-                [0.0,  "#1a1a2e"],
+                # The old bottom stop (#1a1a2e) sat within 9 RGB units of the
+                # #111111 page, so the weakest provider was painted as the
+                # background.
+                [0.0,  "#243056"],
                 [0.3,  "#16213e"],
                 [0.55, "#0f3460"],
                 [0.75, "#1a5276"],

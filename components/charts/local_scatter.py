@@ -13,7 +13,10 @@ Models to the left of the line are runnable; those to the right are not.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT
+from components.charts.constants import (
+    BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+    bubble_size, legend_below, QUALITY_INDEX_MAX, LOCAL_SPEED_REF,
+)
 from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 _FIT_ALPHA  = 1.00   # fully runnable
@@ -45,7 +48,7 @@ def build_local_scatter(
                 continue
 
             # Scale bubble size: sqrt of tok/s so fast models aren't enormous
-            sizes = (sub["speed_tps"].clip(lower=1) ** 0.45 * 4).clip(upper=40)
+            sizes = bubble_size(sub["speed_tps"], LOCAL_SPEED_REF).values
 
             hover = (
                 "<b>%{customdata[0]}</b><br>"
@@ -71,7 +74,10 @@ def build_local_scatter(
                     opacity=opacity,
                     size=sizes,
                     sizemode="diameter",
-                    symbol="diamond" if sub["moe"].any() else "circle",
+                    # Per POINT, not per subgroup: `sub["moe"].any()` drew every
+                    # dense model in a mixed family as a diamond, making the
+                    # on-chart "◆ = MoE" key false for 24 of 38 dense models.
+                    symbol=["diamond" if m else "circle" for m in sub["moe"]],
                     line=dict(width=0.5, color="rgba(255,255,255,0.15)"),
                 ),
                 customdata=sub[["name", "speed_tps", "license", "context_k", "tags_str"]].values,
@@ -97,10 +103,10 @@ def build_local_scatter(
 
     import math
 
-    # Cap the X axis at 2.5× the user's VRAM — far-out-of-range models
-    # (e.g., 671B DeepSeek when you have 64 GB) were compressing the chart
-    # and making the runnable region invisible. Beyond 2.5× adds no insight.
-    x_max = max(vram_gb * 2.5, 8)
+    # The axis is logarithmic, so including the 600B-class models costs a
+    # little width rather than compressing the runnable region — and dropping
+    # them silently removed a third of the catalogue from the chart.
+    x_max = max(vram_gb * 2.5, float(df["vram_req_gb"].max()) * 1.15, 8)
     x_log_max = math.log10(x_max)
     x_log_min = math.log10(0.08)   # ~0.08 GB minimum so tiny models show
 
@@ -137,19 +143,18 @@ def build_local_scatter(
         ),
         yaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
-            range=[0, df["quality"].max() * 1.12],
+            range=[0, QUALITY_INDEX_MAX],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
         ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)", bordercolor="rgba(255,255,255,0.07)", borderwidth=1,
-            font=dict(color="#999999", size=10, family=_FONT),
-            x=1.01, y=1, xanchor="left",
-            tracegroupgap=2,
-            title=dict(text="FAMILY", font=dict(color="#777", size=10)),
-        ),
-        margin=dict(l=56, r=160, t=52, b=52),
+        # Up to 26 family entries in a vertical side legend meant ~10 were
+        # hidden behind a Plotly scrollbar, while its fixed 160px gutter left
+        # the plot 35% of the card on a phone.
+        legend={**legend_below(y=-0.14),
+                "font": dict(color="#999999", size=10, family=_FONT),
+                "title": dict(text="FAMILY", font=dict(color="#777", size=10))},
+        margin=dict(l=56, r=28, t=52, b=132),
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
@@ -158,8 +163,8 @@ def build_local_scatter(
         # Legend annotation for size = speed
         annotations=[
             dict(
-                x=1.01, y=0.02, xref="paper", yref="paper",
-                xanchor="left",
+                x=1.0, y=1.04, xref="paper", yref="paper",
+                xanchor="right",
                 text="Bubble size = tokens/s<br>◆ = MoE architecture",
                 showarrow=False,
                 font=dict(color="#666666", size=10, family=_FONT),

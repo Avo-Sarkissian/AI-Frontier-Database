@@ -9,7 +9,8 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
-    BG as _BG, FONT as _FONT, empty_figure,
+    BG as _BG, FONT as _FONT, empty_figure, QUALITY_INDEX_MAX, legend_below,
+    RADAR_SPEED_MAX, RADAR_PRICE_MAX, RADAR_LATENCY_MAX, RADAR_CONTEXT_K_MAX,
 )
 
 _PALETTE = [
@@ -52,14 +53,19 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         # selection was cleared.
         return empty_figure("Select up to 5 models to compare")
 
-    # Normalize each dimension to 0–1 across the FULL dataset (not just selected)
-    q_max  = df["quality"].max()
-    s_max  = df["speed"].replace(0, np.nan).max()
-    p_max  = df["price"].max()
-    l_max  = df["latency"].replace(0, np.nan).max()
+    # Fixed reference per axis. The comment here used to claim these were taken
+    # "across the FULL dataset", but both render paths hand this function an
+    # already-filtered frame, so the axes rescaled with the provider/search
+    # filters — the same model's profile changed shape, and the subtitle's
+    # "normalized 0-100 across all models" was untrue. Now a shape means the
+    # same thing in every filter state.
+    q_max = QUALITY_INDEX_MAX
+    s_max = RADAR_SPEED_MAX
+    p_max = RADAR_PRICE_MAX
+    l_max = RADAR_LATENCY_MAX
+    c_max = RADAR_CONTEXT_K_MAX
 
     df_ctx = df["context"].apply(_context_k)
-    c_max  = df_ctx.max()
 
     fig = go.Figure()
 
@@ -79,7 +85,10 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
         lat = row.get("latency", 0)
         l_norm = 1 - (lat / l_max) if (l_max and pd.notna(lat) and lat > 0) else 0
 
-        values = [q_norm, s_norm, p_norm, c_norm, l_norm]
+        # Clamp to [0, 1]. With a fixed ceiling a model can exceed it — a 70s
+        # TTFT against a 30s reference produced a NEGATIVE radius, which Plotly
+        # draws through the centre of the polar plot.
+        values = [min(1.0, max(0.0, v)) for v in (q_norm, s_norm, p_norm, c_norm, l_norm)]
         values_pct = [round(v * 100) for v in values]
 
         # One trace per MODEL, so colour must vary per model. Keying it on the
@@ -138,14 +147,10 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None) -> g
                 linecolor="rgba(255,255,255,0.06)",
             ),
         ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(255,255,255,0.07)",
-            borderwidth=1,
-            font=dict(color="#999999", size=11, family=_FONT),
-            x=1.05, y=1, xanchor="left",
-        ),
-        margin=dict(l=60, r=160, t=52, b=60),
+        # Model names are long, so the vertical legend was wider than its own
+        # 160px gutter and overlapped the polar plot on narrow viewports.
+        legend=legend_below(y=-0.08),
+        margin=dict(l=60, r=40, t=52, b=110),
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",

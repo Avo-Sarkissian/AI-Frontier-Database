@@ -75,16 +75,14 @@ def canonical_provider(name: str) -> str:
 
 
 # --- Spotlight series palette -------------------------------------------------
-# These ten providers can appear as their own series in the Overview scatter, so
-# every pair of them has to be separable. The set was solved for, not picked by
-# eye: it clears all six checks in the data-viz palette validator against this
-# chart's #111111 surface with all pairs in play (worst normal-vision ΔE 15.3,
-# worst CVD ΔE 6.3, every colour ≥ 3:1 contrast, all inside the dark lightness
-# band), while staying as close to each lab's brand hue as those gates allow.
+# These nine providers can appear as their own series in the Overview scatter,
+# so every pair of them has to be separable. The set was solved for, not picked
+# by eye — see the palette note below for the measured separations.
 #
 # The CVD figure sits in the 6–8 floor band, which is only legal alongside
-# secondary encoding — that is what PROVIDER_SHAPES below is for. Do not add an
-# eleventh spotlight provider without re-running the validator.
+# secondary encoding — that is what PROVIDER_SHAPES below is for. Do not add a
+# tenth spotlight provider without re-running the validator: at ten the set is
+# infeasible once brand hues are pinned.
 #
 #   node scripts/validate_palette.js "<hexes>" --mode dark --surface "#111111" --pairs all
 SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
@@ -226,6 +224,24 @@ FONT  = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 # Price at or above which a bubble is drawn at its minimum size on charts that
 # encode affordability. Fixed, for the same reason BUBBLE_SPEED_REF is.
 BUBBLE_PRICE_REF = 20.0
+
+# Local models run an order of magnitude slower than hosted APIs, so they get
+# their own throughput reference.
+LOCAL_SPEED_REF = 400.0
+
+# Ceiling for the AA Intelligence Index axis and colour ramps. Fixed so a
+# model keeps the same vertical position and the same tile colour whatever the
+# filter — scaling either to the filtered frame's own max made a provider's
+# tile darken while its average quality rose.
+QUALITY_INDEX_MAX = 70.0
+
+# Radar axis ceilings. Fixed for the same reason: the Compare chart claims
+# "normalized 0-100 across all models", so a model's profile must not change
+# shape when a filter narrows the frame it is drawn from.
+RADAR_SPEED_MAX    = 2500.0   # tok/s
+RADAR_PRICE_MAX    = 50.0     # USD / 1M tokens
+RADAR_LATENCY_MAX  = 30.0     # seconds TTFT
+RADAR_CONTEXT_K_MAX = 2000.0  # thousands of tokens
 
 
 # ── Shared chart helpers ──────────────────────────────────────────────────────
