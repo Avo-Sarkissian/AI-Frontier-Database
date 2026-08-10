@@ -104,7 +104,16 @@
       style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
              color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
              padding:6px 10px;width:100px;outline:none;" />
+    <span class="filter-label" style="margin-left:18px;">MIN INTELLIGENCE</span>
+    <input id="budget-min-intelligence" type="range" min="0" max="65" step="1" value="0"
+      style="width:170px;accent-color:#00d4ff;vertical-align:middle;" />
+    <span id="budget-min-intelligence-value"
+      style="font-family:Inter,sans-serif;font-size:13px;color:#f2f2f2;
+             min-width:26px;display:inline-block;">0</span>
   </div>
+
+  <!-- Budget answer: the cheapest model above the threshold -->
+  <div id="budget-answer" style="display:none;"></div>
 
   <!-- Table tab controls -->
   <div id="tab-controls-table" class="filters" style="border-top:none;padding-top:0;display:none;">

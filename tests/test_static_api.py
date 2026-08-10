@@ -1,6 +1,7 @@
 # tests/test_static_api.py
 import json
 import pandas as pd
+import pytest
 import static_api as api
 
 
@@ -104,3 +105,83 @@ def test_recommend_modes_toggle_rows():
 def test_video_and_image():
     assert "data" in json.loads(api.update_image(None, None))
     assert "rankings" in json.loads(api.update_video(None, None))
+
+
+# ── Budget tab: cheapest model above a minimum intelligence ──────────────────
+
+def _budget_df():
+    """Three priceable models: cheap+dumb, mid, expensive+smart."""
+    return pd.DataFrame([
+        {"model": "Cheap One", "provider": "Alibaba", "quality": 12.0,
+         "price": 0.10, "speed": 100.0, "latency": 1.0, "context": "128k"},
+        {"model": "Middle One", "provider": "Google", "quality": 34.0,
+         "price": 2.00, "speed": 100.0, "latency": 1.0, "context": "128k"},
+        {"model": "Smart One", "provider": "Anthropic", "quality": 55.0,
+         "price": 9.00, "speed": 100.0, "latency": 1.0, "context": "1m"},
+    ])
+
+
+def test_cheapest_above_picks_the_cheapest_qualifying_model():
+    from components.charts.cost_calc import cheapest_above
+    df = _budget_df()
+    # With no floor the answer is simply the cheapest model.
+    assert cheapest_above(df, 0)["model"] == "Cheap One"
+    # A floor of 20 rules out the cheap one, so the mid model wins.
+    best = cheapest_above(df, 20)
+    assert best["model"] == "Middle One"
+    assert best["n_qualifying"] == 2
+    # A floor above the mid model leaves only the expensive one.
+    assert cheapest_above(df, 40)["model"] == "Smart One"
+
+
+def test_cheapest_above_scales_cost_with_token_volume():
+    from components.charts.cost_calc import cheapest_above
+    best = cheapest_above(_budget_df(), 20, monthly_tokens_m=10.0)
+    assert best["monthly_cost"] == pytest.approx(20.0)   # 10M tokens x $2.00/M
+
+
+def test_cheapest_above_returns_none_when_nothing_qualifies():
+    """The empty case must be representable, not silently the whole list."""
+    from components.charts.cost_calc import cheapest_above
+    assert cheapest_above(_budget_df(), 99) is None
+
+
+def test_cost_calc_chart_honours_the_floor():
+    from components.charts.cost_calc import build_cost_calc
+    df = _budget_df()
+    unfiltered = build_cost_calc(df, monthly_tokens_m=1.0)
+    filtered = build_cost_calc(df, monthly_tokens_m=1.0, min_quality=40)
+    # The cost-bar trace is the second one (index 0 is the background track).
+    assert len(unfiltered.data[1].x) == 3
+    assert len(filtered.data[1].x) == 1
+    assert filtered.data[1].x[0] == pytest.approx(9.0)
+
+
+def test_cost_calc_chart_says_so_when_nothing_qualifies():
+    """A blank chart reads as broken; the empty state has to be explicit."""
+    from components.charts.cost_calc import build_cost_calc
+    fig = build_cost_calc(_budget_df(), min_quality=99)
+    text = " ".join(a.text for a in fig.layout.annotations)
+    assert "No model scores 99 or higher" in text
+
+
+def test_update_cost_calc_returns_figure_and_answer():
+    out = json.loads(api.update_cost_calc(1, [], 0, "", 40))
+    assert "data" in out["figure"] and "layout" in out["figure"]
+    assert out["floor"] == 40
+    assert out["best"]["quality"] >= 40
+
+
+def test_update_cost_calc_floor_composes_with_the_global_filter():
+    """The budget floor intersects the global MIN SCORE rather than replacing it."""
+    loose = json.loads(api.update_cost_calc(1, [], 0, "", 0))["best"]
+    strict = json.loads(api.update_cost_calc(1, [], 0, "", 45))["best"]
+    assert strict["quality"] >= 45
+    assert strict["monthly_cost"] >= loose["monthly_cost"]
+
+
+def test_update_cost_calc_tolerates_a_junk_floor():
+    """The slider is a DOM value; a non-numeric one must not blow up the tab."""
+    out = json.loads(api.update_cost_calc(1, [], 0, "", "not-a-number"))
+    assert out["floor"] == 0
+    assert out["best"] is not None

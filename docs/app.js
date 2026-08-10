@@ -122,6 +122,9 @@ function showTabControls(id) {
   const hwRow = document.getElementById("recommend-hw-row");
   if (provRow) provRow.style.display = "none";
   if (hwRow) hwRow.style.display = "none";
+  // The budget answer block lives outside #tab-panels, so it needs hiding too
+  const budgetAnswer = document.getElementById("budget-answer");
+  if (budgetAnswer && id !== "budget") budgetAnswer.style.display = "none";
 
   // Show controls for the active tab
   const ctrl = document.getElementById("tab-controls-" + id);
@@ -452,6 +455,77 @@ async function refreshCompare(triggered) {
   } catch (e) { console.error("refreshCompare failed:", e); }
 }
 
+// The Budget tab answers one question: what is the cheapest model smarter than X.
+// Python decides the winner (same frame the chart is built from) and this renders
+// it; nothing here re-derives it from the figure.
+function renderBudgetAnswer(best, floor) {
+  const host = document.getElementById("budget-answer");
+  if (!host) return;
+  host.replaceChildren();
+  if (!floor) { host.style.display = "none"; return; }
+  host.style.display = "block";
+
+  const card = document.createElement("div");
+  card.style.cssText =
+    "margin:0 24px 4px;padding:12px 16px;border:1px solid var(--border);" +
+    "border-left:2px solid #00d4ff;border-radius:4px;background:var(--bg-card);" +
+    "font-family:Inter,sans-serif;";
+
+  const label = document.createElement("div");
+  label.style.cssText =
+    "font-size:9px;letter-spacing:0.1em;color:#555;font-weight:600;margin-bottom:5px;";
+  label.textContent = `CHEAPEST MODEL SCORING ${floor}+`;
+  card.appendChild(label);
+
+  if (!best) {
+    const none = document.createElement("div");
+    none.style.cssText = "font-size:13px;color:#999;";
+    none.textContent = "No model in the current filters reaches that score.";
+    card.appendChild(none);
+    host.appendChild(card);
+    return;
+  }
+
+  const line = document.createElement("div");
+  line.style.cssText = "display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;";
+
+  const name = document.createElement("span");
+  name.style.cssText = "font-size:15px;color:#f2f2f2;";
+  name.textContent = best.model;                    // textContent: never markup
+
+  const prov = document.createElement("span");
+  prov.style.cssText =
+    "font-size:11px;color:" + (PROVIDER_COLORS[best.provider] || DEFAULT_PROVIDER_COLOR) + ";";
+  prov.textContent = best.provider;
+
+  const cost = document.createElement("span");
+  cost.style.cssText = "font-size:15px;color:#00d4ff;margin-left:auto;";
+  const c = best.monthly_cost;
+  cost.textContent = (c >= 1 ? "$" + c.toFixed(2) : "$" + c.toFixed(3)) + " / mo";
+
+  const meta = document.createElement("span");
+  meta.style.cssText = "font-size:11px;color:#777;";
+  meta.textContent =
+    `${best.quality.toFixed(1)} pts · $${best.price.toFixed(4)}/M tok · ` +
+    `${best.n_qualifying} model${best.n_qualifying === 1 ? "" : "s"} qualify`;
+
+  line.append(name, prov, cost);
+  card.append(line, meta);
+  host.appendChild(card);
+}
+
+async function refreshBudget() {
+  if (!window.AF.pyReady) return;
+  const [p, q, s] = readGlobalFilters();
+  const tok = Number(document.getElementById("budget-tokens")?.value || 1);
+  const floor = Number(document.getElementById("budget-min-intelligence")?.value || 0);
+  try {
+    const out = await window.AF.callPy("update_cost_calc", tok, p, q, s, floor);
+    renderJsonFig("chart-cost_calc", out.figure);
+    renderBudgetAnswer(out.best, out.floor);
+  } catch (e) { console.error("budget render failed:", e); }
+}
+
 async function refreshTable() {
   if (!window.AF.pyReady) return;
   const [p, q, s] = readGlobalFilters();
@@ -591,10 +665,7 @@ async function rerenderActiveFilterCharts() {
   } else if (tab === "compare") {
     await refreshCompare("filter-provider");
   } else if (tab === "budget") {
-    const tok = Number(document.getElementById("budget-tokens")?.value || 1);
-    try {
-      renderJsonFig("chart-cost_calc", await window.AF.callPy("update_cost_calc", tok, p, q, s));
-    } catch (e) { console.error("budget render failed:", e); }
+    await refreshBudget();
   } else if (tab === "table") {
     await refreshTable();
   } else if (tab === "local") {
@@ -756,6 +827,18 @@ function wireTabControls() {
   const budgetInput = document.getElementById("budget-tokens");
   if (budgetInput) {
     budgetInput.oninput = debounce(() => rerenderActiveFilterCharts(), 300);
+  }
+
+  // Budget minimum intelligence. The readout tracks the drag immediately; the
+  // re-render is debounced so dragging does not queue a call per pixel.
+  const minIntel = document.getElementById("budget-min-intelligence");
+  const minIntelOut = document.getElementById("budget-min-intelligence-value");
+  if (minIntel) {
+    const debouncedBudget = debounce(() => rerenderActiveFilterCharts(), 200);
+    minIntel.oninput = () => {
+      if (minIntelOut) minIntelOut.textContent = minIntel.value;
+      debouncedBudget();
+    };
   }
 
   // Table sort controls

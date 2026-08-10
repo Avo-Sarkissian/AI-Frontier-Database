@@ -24,7 +24,7 @@ from components.charts.provider_leaderboard import build_provider_leaderboard
 from components.charts.rankings import build_rankings
 from components.charts.bump_chart import build_value_leaders
 from components.charts.radar import build_radar
-from components.charts.cost_calc import build_cost_calc
+from components.charts.cost_calc import build_cost_calc, cheapest_above
 from static_helpers import (
     apply_filters,
     compute_diverse5,
@@ -247,10 +247,22 @@ def update_compare(providers, min_quality, search, selected_models, triggered):
     })
 
 
-def update_cost_calc(monthly_tokens_m, providers, min_quality, search):
+def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0):
+    """`min_intelligence` is the Budget tab's own floor. It composes with the
+    global MIN SCORE filter rather than replacing it, so the effective floor is
+    whichever is higher — the same as any two filters intersecting."""
     f = _apply_filters(providers, min_quality, search or "")
     tokens = float(monthly_tokens_m) if monthly_tokens_m else 1.0
-    return build_cost_calc(f, monthly_tokens_m=tokens).to_json()
+    try:
+        floor = float(min_intelligence or 0)
+    except (TypeError, ValueError):
+        floor = 0.0
+    fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor)
+    return json.dumps({
+        "figure": json.loads(fig.to_json()),
+        "best": cheapest_above(f, min_quality=floor, monthly_tokens_m=tokens),
+        "floor": floor,
+    })
 
 
 def update_table(providers, min_quality, search, sort_col, sort_dir):

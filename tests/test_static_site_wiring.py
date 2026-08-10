@@ -103,3 +103,22 @@ def test_escape_html_helper_actually_escapes():
         [node, "-e", block.group(0) + '\nprocess.stdout.write(escapeHtml("a & b"));'],
         capture_output=True, text=True, check=True,
     ).stdout == "a &amp; b"
+
+
+def test_budget_min_intelligence_is_wired():
+    """The Budget tab's own intelligence floor: control, readout, and the call
+    that carries it through to Python."""
+    assert 'id="budget-min-intelligence"' in HTML
+    assert 'id="budget-min-intelligence-value"' in HTML
+    assert 'id="budget-answer"' in HTML
+    # the floor is passed as the 5th argument of update_cost_calc
+    assert 'callPy("update_cost_calc", tok, p, q, s, floor)' in APP
+    assert "function refreshBudget(" in APP
+
+
+def test_budget_answer_is_built_with_dom_apis():
+    """The answer card shows a scraped model name, so it must not be assembled
+    as an HTML string (see the XSS fixes in static_api.py / renderTableRows)."""
+    block = APP[APP.index("function renderBudgetAnswer("):APP.index("async function refreshBudget(")]
+    assert "innerHTML" not in block
+    assert "name.textContent = best.model" in block
