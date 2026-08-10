@@ -32,14 +32,14 @@ function escapeHtml(value) {
 // components/charts/constants.py. Kept in sync by hand; tests/
 // test_static_site_wiring.py asserts they match.
 const PROVIDER_COLORS = {
-  "Anthropic":              "#cc4104",
+  "Anthropic":              "#d97757",
   "Meta":                   "#0566db",
-  "OpenAI":                 "#0e8c6d",
-  "Alibaba":                "#ef8010",
-  "Google":                 "#ff4381",
-  "NVIDIA":                 "#06b63b",
+  "OpenAI":                 "#52d678",
+  "Alibaba":                "#b46eb6",
+  "Google":                 "#fea92f",
+  "NVIDIA":                 "#777221",
   "Amazon":                 "#bd088c",
-  "Mistral":                "#07b8bc",
+  "Mistral":                "#dcb1f2",
   "DeepSeek":               "#7d9bff",
   "Kimi":                   "#b200c1",
   "SpaceXAI":               "#a3e635",

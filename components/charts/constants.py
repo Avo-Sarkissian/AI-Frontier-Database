@@ -91,23 +91,42 @@ SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
 )
 
 PROVIDER_COLORS: dict[str, str] = {
-    # -- spotlight nine: each lab's own brand colour wherever the palette can
-    #    carry it. Four labs publish an orange (Anthropic, Alibaba, Amazon,
-    #    Mistral) and three a blue (Meta, Google, DeepSeek); only one of each can
-    #    own the hue, so the rest fall back to another of their own brand colours
-    #    and, failing that, to a distinct hue. Solved and validated as a set —
-    #    worst normal-vision pair ΔE 15.1, worst CVD ΔE 6.2 (floor band, legal
-    #    because every provider also carries its own marker shape), all ≥ 3:1 on
-    #    the #111111 surface. Adding a tenth makes the set infeasible: nine is
-    #    the most brand-faithful colours this surface will separate.
-    "Anthropic":              "#cc4104",  # Anthropic orange (#D97757)  · 3.89:1
+    # -- spotlight nine. Anthropic is pinned to its EXACT published brand orange,
+    #    #D97757 ("clay", read off anthropic.com's own --swatch--clay token; the
+    #    darker --swatch--accent is #C6613F). That pin drives everything else here.
+    #
+    #    Clay is a muted, low-chroma coral, which makes it a far harder colour to
+    #    seat than the saturated orange that used to stand in for it: against the
+    #    old Alibaba orange it was ΔE 7.1 for normal vision (floor is 15) and
+    #    against the old NVIDIA green ΔE 1.5 under deuteranopia. No arrangement
+    #    within four colour changes clears the floors — the set had to be re-solved.
+    #
+    #    The binding constraint was subtle: OpenAI's old #0e8c6d is DARK, and clay
+    #    is light, so the two converged at ΔE 3.7 under protanopia — a pair no
+    #    other slot could separate. Lightening OpenAI's green fixed it (ΔE 17.5).
+    #
+    #    Result is better than the palette it replaces: worst normal-vision pair
+    #    ΔE 15.1, worst CVD ΔE 8.2 (deutan) / 9.6 (tritan) — above the ΔE 8 target,
+    #    so this set no longer leans on marker shape to be legal, though the shapes
+    #    stay as secondary encoding. All ≥ 3:1 on the #111111 surface. Nine is
+    #    still the ceiling; a tenth makes the set infeasible.
+    #
+    #    Brand fidelity is kept where the pin allows: Anthropic, Meta, Google and
+    #    DeepSeek wear their own hues. Alibaba's only brand colour is the orange
+    #    Anthropic now owns, so per the collision rule it takes a distinct hue;
+    #    OpenAI, NVIDIA and Mistral likewise moved to seat clay.
+    #
+    #    Re-validate any change with the dataviz skill's validator:
+    #      node scripts/validate_palette.js "<hexes>" --mode dark \
+    #           --surface "#111111" --pairs all
+    "Anthropic":              "#d97757",  # Anthropic clay — exact brand · 6.05:1
     "Meta":                   "#0566db",  # Meta blue (#0064E0)         · 3.53:1
-    "OpenAI":                 "#0e8c6d",  # OpenAI teal-green (#10A37F) · 4.49:1
-    "Alibaba":                "#ef8010",  # Alibaba orange, 11° off     · 6.98:1
-    "Google":                 "#ff4381",  # Google red (#EA4335), 23° off · 5.73:1
-    "NVIDIA":                 "#06b63b",  # NVIDIA green (#76B900), 15° off · 6.98:1
+    "OpenAI":                 "#52d678",  # teal-green, lightened off clay · 10.28:1
+    "Alibaba":                "#b46eb6",  # orange is Anthropic's → orchid · 5.30:1
+    "Google":                 "#fea92f",  # Google yellow (#FBBC05)     · 9.83:1
+    "NVIDIA":                 "#777221",  # green, darkened off Google  · 3.55:1
     "Amazon":                 "#bd088c",  # AWS orange taken → magenta  · 3.22:1
-    "Mistral":                "#07b8bc",  # Mistral orange taken → cyan · 7.73:1
+    "Mistral":                "#dcb1f2",  # Mistral orange taken → lavender · 9.44:1
     "DeepSeek":               "#7d9bff",  # DeepSeek blue (#4D6BFE)     · 7.20:1
     "Kimi":                   "#b200c1",  # magenta
     # -- secondary providers: never share the Overview legend with each other,
