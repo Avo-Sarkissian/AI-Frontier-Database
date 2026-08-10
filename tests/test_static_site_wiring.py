@@ -63,3 +63,43 @@ def test_refresh_button_rewired():
     assert 'getElementById("btn-refresh").onclick = () => location.reload()' not in APP
     assert 'id="toast"' in HTML
     assert "function toast(" in APP
+
+def test_table_rows_escape_scraped_text():
+    """docs/app.js:539 spliced ${r.model} straight into a template literal that
+    line 549 assigns to tbody.innerHTML — a second XSS sink independent of the
+    Python-rendered HTML."""
+    assert "${escapeHtml(r.model)}" in APP
+    assert "${escapeHtml(r.provider)}" in APP
+    # the raw interpolations are gone
+    assert "${r.model}</td>" not in APP
+    assert "${r.provider}</td>" not in APP
+
+
+def test_compare_option_list_is_built_with_dom_api():
+    """The compare <select> was rebuilt from an innerHTML template, so a scraped
+    model label was parsed as markup. createElement keeps option.value byte-exact
+    for the selection match on the next line."""
+    assert '`<option value="${o.value}">${o.label}</option>`' not in APP
+    assert "sel.replaceChildren(" in APP
+    assert "opt.textContent = o.label" in APP
+
+
+def test_escape_html_helper_actually_escapes():
+    """Run the real helper in node rather than trusting a grep."""
+    import json, shutil, subprocess
+    node = shutil.which("node")
+    if not node:
+        import pytest
+        pytest.skip("node not available")
+
+    block = re.search(r"const ESCAPE_MAP = .*?\n\}", APP, re.S)
+    assert block, "escapeHtml helper not found in docs/app.js"
+    payload = '<img src=x onerror=alert(1)>&"\''
+    script = block.group(0) + "\nprocess.stdout.write(escapeHtml(" + json.dumps(payload) + "));"
+    out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True).stdout
+    assert out == "&lt;img src=x onerror=alert(1)&gt;&amp;&quot;&#39;"
+    # ampersand first, so nothing is double-encoded
+    assert subprocess.run(
+        [node, "-e", block.group(0) + '\nprocess.stdout.write(escapeHtml("a & b"));'],
+        capture_output=True, text=True, check=True,
+    ).stdout == "a &amp; b"

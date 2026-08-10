@@ -13,6 +13,8 @@ Tiers:
 """
 import re
 import pandas as pd
+# Aliased: the name `html` below is Dash's html module, not the stdlib one.
+from html import escape as _escape
 try:
     from dash import html
 except ImportError:  # dash-free env (Pyodide): only the HTML-string renderer is used
@@ -502,6 +504,13 @@ def _chip_html(text: str, bg: str = "#1e2a1e") -> str:
 
 def _row_shell_html(name: str, quality: float, sub_label: str, sub_color: str,
                     chips_html: str, is_top: bool) -> str:
+    # `name` and `sub_label` are scraped third-party text (model/provider from the
+    # AA feed, name/family from the local-model catalog) and this string is assigned
+    # to innerHTML at docs/app.js:494 — escape before interpolating. Both callers
+    # truncate first, so escaping here cannot split an entity. `sub_color` and
+    # `chips_html` are generated internally and are not escaped.
+    name = _escape(str(name), quote=True)
+    sub_label = _escape(str(sub_label), quote=True)
     if is_top:
         header = _h("div",
             _h("span", name, style=_dict_to_style({

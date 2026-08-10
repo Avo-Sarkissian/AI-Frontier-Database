@@ -19,6 +19,15 @@ window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null, s
 const PLOT_CONFIG = { displaylogo: false, responsive: true,
   modeBarButtonsToRemove: ["select2d", "lasso2d", "toImage"] };
 
+// Model, provider and context strings come from the scraped Artificial Analysis
+// feed, so they are third-party text. Anything interpolated into an HTML string
+// that later reaches .innerHTML must go through this first. Prefer
+// createElement + textContent where the shape of the code allows it.
+const ESCAPE_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ESCAPE_MAP[c]);
+}
+
 // ---- Provider color map — mirrors PROVIDER_COLORS in
 // components/charts/constants.py. Kept in sync by hand; tests/
 // test_static_site_wiring.py asserts they match.
@@ -430,7 +439,14 @@ async function refreshCompare(triggered) {
     document.getElementById("compare-raw-table").innerHTML = out.raw_table_html;
     // Sync select options/value only when not triggered by the select itself
     if (triggered !== "radar-model-select") {
-      sel.innerHTML = out.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+      // Built with createElement so scraped labels can never be parsed as markup,
+      // and so option.value keeps the exact raw string the selection match needs.
+      // Mirrors how this same select is populated at boot.
+      sel.replaceChildren(...out.options.map(o => {
+        const opt = document.createElement("option");
+        opt.value = o.value; opt.textContent = o.label;
+        return opt;
+      }));
       Array.from(sel.options).forEach(o => { o.selected = out.value.includes(o.value); });
     }
   } catch (e) { console.error("refreshCompare failed:", e); }
@@ -533,11 +549,11 @@ function renderTableRows(records) {
     const price = r.price != null && r.price > 0   ? "$" + r.price.toFixed(4) : "—";
     const speed = r.speed != null && r.speed > 0   ? Math.round(r.speed).toLocaleString() : "—";
     const lat   = r.latency != null && r.latency > 0 ? r.latency.toFixed(2) + "s" : "—";
-    const ctx   = r.context != null ? String(r.context) : "—";
+    const ctx   = r.context != null ? escapeHtml(r.context) : "—";
 
     return `<tr>
-      <td style="${cellBase}text-align:left;color:#ccc;max-width:260px;overflow:hidden;text-overflow:ellipsis;">${r.model}</td>
-      <td style="${cellBase}text-align:left;color:${pcolor};">${r.provider}</td>
+      <td style="${cellBase}text-align:left;color:#ccc;max-width:260px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.model)}</td>
+      <td style="${cellBase}text-align:left;color:${pcolor};">${escapeHtml(r.provider)}</td>
       <td style="${cellBase}color:#f2f2f2;">${qual}</td>
       <td style="${cellBase}color:#34d399;">${val}</td>
       <td style="${cellBase}color:#888;">${price}</td>
