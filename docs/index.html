@@ -3,6 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Defence in depth behind the escaping in static_api.py / stack_recommender.py
+       / app.js: if a scraped model name ever reaches the DOM as markup again, this
+       stops it fetching or executing anything. Notes on the loosenings:
+         wasm-unsafe-eval — Pyodide compiles the CPython wasm module.
+         cdn.jsdelivr.net — pyworker.js importScripts() the Pyodide runtime and it
+                            fetches its wasm/stdlib from there (hence connect-src).
+         cdn.plot.ly      — the Plotly bundle.
+         style-src unsafe-inline — the Python renderers emit inline style="…" on
+                            every cell; script-src deliberately does NOT allow
+                            inline, and there are no inline <script> blocks.
+         fonts.googleapis/gstatic — assets/style.css:6 @imports the Inter face.
+       frame-ancestors/report-uri are omitted: they are ignored in a meta CSP. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.plot.ly https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <title>AI Frontier</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="assets/style.css" />
