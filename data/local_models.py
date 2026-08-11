@@ -13,6 +13,10 @@ Speed formula: memory_bandwidth_gbps / model_gb × efficiency
 from pathlib import Path
 import pandas as pd
 
+from components.charts.constants import (
+    PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider,
+)
+
 _LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 
 # ── Quantization ─────────────────────────────────────────────────────────────
@@ -47,26 +51,45 @@ _EFF: dict[str, float] = {
 
 
 # ── Color palette by model family ────────────────────────────────────────────
-FAMILY_COLORS: dict[str, str] = {
-    "Meta":        "#4c6ef5",
-    "Mistral":     "#fd7e14",
-    "Google":      "#2f9e44",
-    "Microsoft":   "#1c7ed6",
-    "Alibaba":     "#e64980",
-    "DeepSeek":    "#0c8599",
-    "TII":         "#7048e8",
-    "Cohere":      "#c92a2a",
-    "01.AI":       "#d9480f",
-    "Allen AI":    "#5c7cfa",
-    "InternLM":    "#74c0fc",
-    "IBM":         "#868e96",
-    "HuggingFace": "#fab005",
-    "Moonshot":    "#a9e34b",
-    "SOLAR":       "#ff6b6b",
-    "xAI":         "#aaaaaa",
-    "OpenAI":      "#10a37f",   # OpenAI brand green
+# A "family" in the open-weight catalog is a lab — the same entity the rest of
+# the dashboard colours by provider. This used to be a separate hand-kept palette,
+# which meant one lab read as two different colours depending on the tab (Meta was
+# indigo here and blue on Overview) and, worse, every lab added upstream since the
+# list was written fell through to grey: 40 of 97 catalog rows, including Kimi,
+# MiniMax, Z AI, Xiaomi and NVIDIA. Deriving it from PROVIDER_COLORS keeps the two
+# in step by construction.
+_FAMILY_ALIASES: dict[str, str] = {
+    "Allen AI": "Allen Institute for AI",
+    "Moonshot": "Kimi",          # Moonshot AI ships the Kimi models
 }
-DEFAULT_FAMILY_COLOR = "#555555"
+
+# Labs that only ever appear in the open-weight catalog, so they have no provider
+# entry to inherit. Kept distinct from each other and from the spotlight palette.
+_LOCAL_ONLY_COLORS: dict[str, str] = {
+    "TII":         "#7048e8",
+    "01.AI":       "#d9480f",
+    "InternLM":    "#74c0fc",
+    "HuggingFace": "#fab005",
+    "SOLAR":       "#ff6b6b",
+    "Liquid AI":   "#38bdf8",
+}
+
+FAMILY_COLORS: dict[str, str] = {
+    **_LOCAL_ONLY_COLORS,
+    **PROVIDER_COLORS,
+    **{alias: PROVIDER_COLORS[target]
+       for alias, target in _FAMILY_ALIASES.items() if target in PROVIDER_COLORS},
+}
+DEFAULT_FAMILY_COLOR = DEFAULT_COLOR
+
+
+def family_color(family: str) -> str:
+    """Colour for a catalog family, resolving upstream renames the same way the
+    provider palette does (e.g. xAI → SpaceXAI)."""
+    name = _FAMILY_ALIASES.get(family, family)
+    return FAMILY_COLORS.get(name) or PROVIDER_COLORS.get(
+        canonical_provider(name), DEFAULT_FAMILY_COLOR
+    )
 
 
 # ── Model catalog ─────────────────────────────────────────────────────────────

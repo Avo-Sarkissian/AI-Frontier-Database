@@ -208,3 +208,24 @@ def test_user_specified_brand_colours_are_honoured():
     meta = hue_deg(PROVIDER_COLORS["Meta"])
     assert 10 <= anthropic <= 45, f"Anthropic should read orange, got hue {anthropic:.0f}"
     assert 195 <= meta <= 240, f"Meta should read blue, got hue {meta:.0f}"
+
+
+def test_run_local_families_share_the_provider_palette():
+    """A lab must read as one colour across tabs. Run Local used to keep its own
+    hand-maintained family palette, so Meta was indigo there and blue on Overview,
+    and every lab added upstream since fell through to grey."""
+    from data.local_models import family_color, DEFAULT_FAMILY_COLOR
+    from data.local_models import get_local_df
+
+    catalog = get_local_df()
+    uncoloured = sorted({
+        f for f in catalog["family"].dropna().unique()
+        if family_color(f) == DEFAULT_FAMILY_COLOR
+    })
+    assert not uncoloured, f"families with no colour: {uncoloured}"
+
+    for family in catalog["family"].dropna().unique():
+        if family in PROVIDER_COLORS:
+            assert family_color(family) == PROVIDER_COLORS[family], (
+                f"{family} reads differently on Run Local than on Overview"
+            )
