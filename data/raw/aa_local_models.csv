@@ -16,7 +16,6 @@ Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,38.32,OpenMDW,reaso
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,38.04,Mit,"vision,reasoning",True
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,37.82,Unknown,reasoning,True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.7,Apache 2.0,"vision,reasoning",False
-Kimi K2.6 (Non-reasoning),Kimi,1000.0,32.0,256,35.44,Modified MIT,vision,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,34.26,Apache 2.0,"vision,reasoning",True
 LongCat 2.0,LongCat,1600.0,48.0,1000,33.91,Mit,reasoning,True
@@ -59,7 +58,6 @@ gpt-oss-120b (low),OpenAI,117.0,5.1,131,14.93,Apache 2.0,reasoning,True
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,14.54,Nvidia Nemotron Open Model License,reasoning,True
 Llama 4 Maverick,Meta,402.0,17.0,1000,14.48,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
 gpt-oss-20b (low),OpenAI,21.0,3.6,131,14.4,Apache 2.0,reasoning,True
-Ling 2.6 Flash,InclusionAI,107.0,7.4,262,14.22,Mit,,True
 Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,13.75,Apache 2.0,,True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.2,Apache 2.0,"vision,audio",False
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.4,NVIDIA Open Model License Agreement,reasoning,False
