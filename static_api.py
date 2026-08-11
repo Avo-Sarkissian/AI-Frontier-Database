@@ -74,7 +74,7 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
         + _th("Model", "left")
         + _th("Provider", "left")
         + _th("Intelligence")
-        + _th("Price ($/M tok)")
+        + _th("Price ($/M tok, 3:1)")
         + _th("Speed (tok/s)")
         + _th("Latency (TTFT)")
         + _th("Context")

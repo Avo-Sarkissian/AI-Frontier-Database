@@ -54,7 +54,7 @@ def _scatter_trace(day_df: pd.DataFrame) -> go.Scatter:
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "Price: $%{x:.4f}/M tokens<br>"
+            "Price: $%{x:.4f}/M tokens  ·  blended 3:1 out:in<br>"
             "Intelligence: %{y:.0f}<br>"
             "Speed: %{customdata[2]:.0f} tok/s<br>"
             "<extra></extra>"
@@ -207,7 +207,7 @@ def _apply_layout(
             pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
+            title=dict(text="Price / 1M tokens (USD, blended 3:1 output:input)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=11, family=_FONT),

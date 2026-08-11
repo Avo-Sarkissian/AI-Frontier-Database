@@ -93,7 +93,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
             "Speed: %{x:.0f} tok/s<br>"
-            "Price: $%{customdata[2]:.3f}/M tokens<br>"
+            "Price: $%{customdata[2]:.3f}/M tokens  ·  blended 3:1 out:in<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
         )

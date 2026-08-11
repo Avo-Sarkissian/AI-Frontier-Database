@@ -213,7 +213,7 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{customdata[2]:.0f}<br>"
-            "Price: $%{customdata[3]:.4f}/M tokens<br>"
+            "Price: $%{customdata[3]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
             "Value Score: %{customdata[4]:.0f}<br>"
             "<extra></extra>"
         ),

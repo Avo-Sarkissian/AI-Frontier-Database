@@ -62,7 +62,7 @@ def build_price_timeline(history_df: pd.DataFrame) -> go.Figure:
             hovertemplate=(
                 f"<b>{model}</b><br>"
                 "Date: %{x|%Y-%m-%d}<br>"
-                "Price: $%{y:.4f}/M tokens<br>"
+                "Price: $%{y:.4f}/M tokens  ·  blended 3:1 out:in<br>"
                 "<extra></extra>"
             ),
         ))
@@ -88,7 +88,7 @@ def build_price_timeline(history_df: pd.DataFrame) -> go.Figure:
             showgrid=True, showline=False, ticks="",
         ),
         yaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
+            title=dict(text="Price / 1M tokens (USD, blended 3:1 output:input)", font=dict(color=_AXIS, size=12), standoff=12),
             type="log",
             tickprefix="$",
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
@@ -133,7 +133,7 @@ def _single_snapshot(h: pd.DataFrame) -> go.Figure:
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "Price: $%{customdata[2]:.4f}/M tokens<br>"
+            "Price: $%{customdata[2]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
             "<extra></extra>"
         ),
         showlegend=False,
@@ -151,7 +151,7 @@ def _single_snapshot(h: pd.DataFrame) -> go.Figure:
             x=0.0, xanchor="left", pad=dict(l=20, t=16),
         ),
         xaxis=dict(
-            title=dict(text="Price / 1M tokens (USD)", font=dict(color=_AXIS, size=12), standoff=12),
+            title=dict(text="Price / 1M tokens (USD, blended 3:1 output:input)", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, tickprefix="$",
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",

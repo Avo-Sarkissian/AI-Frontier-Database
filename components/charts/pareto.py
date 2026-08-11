@@ -71,7 +71,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
-            "Price: $%{x:.3f}/M tokens<br>"
+            "Price: $%{x:.3f}/M tokens  ·  blended 3:1 out:in<br>"
             "Speed: %{customdata[2]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
@@ -178,7 +178,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(
-                text="Price  (USD / 1M tokens)",
+                text="Price  (USD / 1M tokens, blended 3:1 output:input)",
                 font=dict(color=AXIS, size=12),
                 standoff=12,
             ),

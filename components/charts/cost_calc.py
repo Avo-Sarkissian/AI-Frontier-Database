@@ -99,7 +99,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         "<b>%{customdata[0]}</b><br>"
         "Provider: %{customdata[1]}<br>"
         "Monthly cost: $%{x:,.2f}<br>"
-        "Price: $%{customdata[2]:.4f}/M tokens<br>"
+        "Price: $%{customdata[2]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
         "Intelligence: %{customdata[3]:.0f}<br>"
         "<extra></extra>"
     )

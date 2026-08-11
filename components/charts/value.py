@@ -34,7 +34,7 @@ def build_value_chart(df: pd.DataFrame, top_n: int = 30) -> go.Figure:
         "Provider: %{customdata[1]}<br>"
         "Value Score: %{x:.2f} score/$<br>"
         "AA Score: %{customdata[2]:.1f}<br>"
-        "Price: $%{customdata[3]:.4f}/M tokens<br>"
+        "Price: $%{customdata[3]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
         "<extra></extra>"
     )
 
