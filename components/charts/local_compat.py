@@ -8,7 +8,7 @@ Right-side annotations show estimated tok/s and VRAM required.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT
+from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels
 from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 
@@ -27,9 +27,11 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
 
     runnable = runnable.sort_values("quality", ascending=True).reset_index(drop=True)
 
-    # Truncate long names
-    runnable["short_name"] = runnable["name"].apply(
-        lambda n: n[:34] + "…" if len(n) > 34 else n
+    # Truncate long names, then force them distinct: several Nemotron variants
+    # share a 34-character prefix, and two models on one category means Plotly
+    # stacks both bars in the same row and buries one.
+    runnable["short_name"] = unique_labels(
+        runnable["name"].apply(lambda n: n[:34] + "…" if len(n) > 34 else n).tolist()
     )
 
     colors  = runnable["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR).tolist()

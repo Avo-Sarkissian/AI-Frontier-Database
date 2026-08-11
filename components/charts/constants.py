@@ -131,7 +131,7 @@ PROVIDER_COLORS: dict[str, str] = {
     "Kimi":                   "#b200c1",  # magenta
     # -- secondary providers: never share the Overview legend with each other,
     #    so they only need to read distinctly in the tabs that show them all --
-    "SpaceXAI":               "#a3e635",  # lime
+    "SpaceXAI":               "#ffffff",  # white — requested; xAI/SpaceX brand is white on black
     "Microsoft":              "#818cf8",  # indigo
     "Cohere":                 "#f87171",  # red
     "Z AI":                   "#7dd3fc",  # light blue

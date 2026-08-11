@@ -229,3 +229,14 @@ def test_run_local_families_share_the_provider_palette():
             assert family_color(family) == PROVIDER_COLORS[family], (
                 f"{family} reads differently on Run Local than on Overview"
             )
+
+
+def test_cost_chart_gives_every_model_its_own_row():
+    """Truncated names can collide (the Nemotron 3 Nano Reasoning/Non-reasoning
+    pair), and two models on one category makes Plotly stack both bars and draw
+    both right-hand labels on top of each other."""
+    from components.charts.cost_calc import build_cost_calc
+    from data.ingest import get_models
+
+    ys = list(build_cost_calc(get_models(), monthly_tokens_m=1.0).data[1].y)
+    assert len(ys) == len(set(ys)), "duplicate categories in the cost chart"

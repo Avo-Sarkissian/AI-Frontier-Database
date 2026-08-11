@@ -42,7 +42,7 @@ const PROVIDER_COLORS = {
   "Mistral":                "#dcb1f2",
   "DeepSeek":               "#7d9bff",
   "Kimi":                   "#b200c1",
-  "SpaceXAI":               "#a3e635",
+  "SpaceXAI":               "#ffffff",
   "Microsoft":              "#818cf8",
   "Cohere":                 "#f87171",
   "Z AI":                   "#7dd3fc",

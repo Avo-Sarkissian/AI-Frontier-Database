@@ -8,7 +8,7 @@ annotations show parameter count and license.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT
+from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels
 from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 
@@ -28,9 +28,10 @@ def build_local_rankings(df: pd.DataFrame) -> go.Figure:
     if ranked.empty:
         return _empty("No models found.")
 
-    # Truncate long names
-    ranked["short_name"] = ranked["name"].apply(
-        lambda n: n[:36] + "…" if len(n) > 36 else n
+    # Truncate long names, then force them distinct — a shared 36-character
+    # prefix would otherwise put two models on one category and bury a bar.
+    ranked["short_name"] = unique_labels(
+        ranked["name"].apply(lambda n: n[:36] + "…" if len(n) > 36 else n).tolist()
     )
 
     colors = ranked["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR).tolist()

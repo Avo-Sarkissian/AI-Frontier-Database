@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
-    PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
+    PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name, unique_labels,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
@@ -87,7 +87,13 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     plot_df = plot_df.head(top_n).reset_index(drop=True)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in plot_df["provider"]]
-    short_names = plot_df["model"].apply(clean_model_name)
+    # Truncation can collapse two models onto one category (the Nemotron 3 Nano
+    # "(Reasoning)" / "(Non-reasoning)" pair, for one). Plotly then stacks both
+    # bars in the same row and draws both right-hand labels on top of each other.
+    short_names = pd.Series(
+        unique_labels(plot_df["model"].apply(clean_model_name).tolist()),
+        index=plot_df.index,
+    )
 
     hover = (
         "<b>%{customdata[0]}</b><br>"
