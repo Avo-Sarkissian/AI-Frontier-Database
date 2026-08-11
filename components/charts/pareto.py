@@ -72,6 +72,7 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
             "Price: $%{x:.3f}/M tokens  ·  blended 3:1 out:in<br>"
+            "Rates: %{customdata[4]}<br>"
             "Speed: %{customdata[2]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
@@ -96,7 +97,8 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
                 opacity=0.8,
                 line=marker_outline(),
             ),
-            customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str)),
+            customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str,
+                                _rate_pair(pdf))),
             hovertemplate=hover,
         ))
 
@@ -221,3 +223,17 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
     )
 
     return fig
+
+
+def _rate_pair(df) -> list[str]:
+    """"$5.00 in · $25.00 out" per row, or "—" where the sides aren't known."""
+    import pandas as _pd
+
+    def _fmt(v):
+        return f"${v:,.2f}" if _pd.notna(v) and v > 0 else None
+
+    out = []
+    for pin, pout in zip(df.get("price_in", []), df.get("price_out", [])):
+        a, b = _fmt(pin), _fmt(pout)
+        out.append(f"{a} in  ·  {b} out" if a and b else "—")
+    return out

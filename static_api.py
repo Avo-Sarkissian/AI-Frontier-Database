@@ -75,6 +75,7 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
         + _th("Provider", "left")
         + _th("Intelligence")
         + _th("Price ($/M tok, 3:1)")
+        + _th("In / Out ($/M)")
         + _th("Speed (tok/s)")
         + _th("Latency (TTFT)")
         + _th("Context")
@@ -85,6 +86,11 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
     for _, r in rows.sort_values("quality", ascending=False).iterrows():
         pcolor = PROVIDER_COLORS.get(r["provider"], DEFAULT_COLOR)
         price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
+        rates_str = (
+            f"{r['price_in']:,.2f} / {r['price_out']:,.2f}"
+            if pd.notna(r.get("price_in")) and pd.notna(r.get("price_out"))
+            and r["price_out"] > 0 else "—"
+        )
         speed_str = f"{int(r['speed']):,}" if pd.notna(r["speed"]) and r["speed"] > 0 else "—"
         lat_str = f"{r['latency']:.2f}s" if pd.notna(r["latency"]) and r["latency"] > 0 else "—"
         # Scraped values are third-party text: escape before interpolating into HTML.
@@ -102,6 +108,7 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
             + f'<td style="{cell_base}text-align:left;color:{pcolor};">{provider_str}</td>'
             + _td(f"{r['quality']:.1f}", "#f2f2f2")
             + _td(price_str)
+            + _td(rates_str)
             + _td(speed_str)
             + _td(lat_str)
             + _td(ctx_str)
@@ -188,7 +195,12 @@ def _detail_html(row: pd.Series, provider: str) -> str:
     ctx_str = html.escape(ctx_raw, quote=True)
     provider_str = html.escape(str(provider), quote=True)
     model_str = html.escape(str(row["model"]), quote=True)
-    price_str = f"${row['price']:.4f} / 1M tokens"
+    price_str = f"${row['price']:.4f} / 1M  ·  3:1 blend"
+    p_in, p_out = row.get("price_in"), row.get("price_out")
+    rates_str = (
+        f"${p_in:,.2f} in  ·  ${p_out:,.2f} out"
+        if pd.notna(p_in) and pd.notna(p_out) and p_out > 0 else "—"
+    )
 
     return (
         f'<div style="color:{color};font-size:10px;font-family:{_FONT};">{provider_str}</div>'
@@ -197,6 +209,7 @@ def _detail_html(row: pd.Series, provider: str) -> str:
         + intel_section
         + divider
         + _metric("Price", price_str)
+        + _metric("Rates", rates_str)
         + _metric("Speed", speed_str)
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)

@@ -185,3 +185,49 @@ def test_update_cost_calc_tolerates_a_junk_floor():
     out = json.loads(api.update_cost_calc(1, [], 0, "", "not-a-number"))
     assert out["floor"] == 0
     assert out["best"] is not None
+
+
+# ── Input/output rates alongside the 3:1 blend ───────────────────────────────
+
+def test_ingest_parses_input_and_output_rates():
+    from data.ingest import load_from_raw
+    df = load_from_raw([
+        ["Some Model", "200k", "Anthropic", "63.0", "$20.0", "53", "32.0", "5.0", "25.0"],
+    ])
+    row = df.iloc[0]
+    assert row["price"] == 20.0          # the blend stays the cost basis
+    assert row["price_in"] == 5.0
+    assert row["price_out"] == 25.0
+
+
+def test_ingest_tolerates_rows_without_the_rate_columns():
+    """Rows written before the columns existed must still load, as NaN rather
+    than a wrong number — 90 archived history snapshots are in that shape."""
+    from data.ingest import load_from_raw
+    df = load_from_raw([
+        ["Old Model", "128k", "Google", "40.0", "$2.0", "100", "1.0"],
+    ])
+    assert df.iloc[0]["price"] == 2.0
+    assert pd.isna(df.iloc[0]["price_in"])
+    assert pd.isna(df.iloc[0]["price_out"])
+
+
+def test_price_side_columns_are_always_present():
+    from data.ingest import _with_price_sides
+    out = _with_price_sides(pd.DataFrame([{"model": "x", "price": 1.0}]))
+    assert "price_in" in out.columns and "price_out" in out.columns
+
+
+def test_detail_panel_shows_both_rates():
+    detail = api.model_detail("Claude Opus 5 (Adaptive Reasoning, Max Effort)", "Anthropic")
+    assert "in" in detail and "out" in detail
+    assert "$5.00 in" in detail and "$25.00 out" in detail
+
+
+def test_blended_price_is_consistent_with_the_two_sides():
+    """price must stay the 3:1 blend of the sides, not one of them."""
+    from data.ingest import get_models
+    df = get_models().dropna(subset=["price_in", "price_out"])
+    assert len(df) > 50
+    expected = (3 * df["price_out"] + df["price_in"]) / 4
+    assert ((df["price"] - expected).abs() < 0.01).mean() > 0.9

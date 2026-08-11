@@ -85,12 +85,13 @@ def _parse_api_response(data: dict) -> list[list]:
             f"{ctx_tokens // 1000}k" if ctx_tokens >= 1000 else str(ctx_tokens)
         )
 
-        # Price — blended 3:1 output:input ratio, per 1M tokens
-        # Field was renamed; fall back to computing from raw input/output prices.
+        # Price — blended 3:1 output:input ratio, per 1M tokens. Input and output
+        # are kept alongside it: the blend is the right basis for cost estimates,
+        # but it is not the number anyone quotes, so the UI shows all three.
+        p_in  = hm.get("price_1m_input_tokens")
+        p_out = hm.get("price_1m_output_tokens")
         price = hm.get("price_1m_blended_3_to_1")
         if price is None or price <= 0:
-            p_in  = hm.get("price_1m_input_tokens")
-            p_out = hm.get("price_1m_output_tokens")
             if p_in is not None and p_out is not None and p_in >= 0 and p_out >= 0:
                 price = (3 * p_out + 1 * p_in) / 4
             else:
@@ -108,6 +109,7 @@ def _parse_api_response(data: dict) -> list[list]:
             best[key] = {
                 "ctx": ctx_str, "quality": quality,
                 "price": price, "speed": speed, "latency": latency,
+                "price_in": p_in, "price_out": p_out,
             }
         else:
             entry = best[key]
@@ -117,9 +119,11 @@ def _parse_api_response(data: dict) -> list[list]:
             # where price came from host A and speed from host B — a SKU
             # that doesn't exist. We drop that branch entirely.
             if price < entry["price"]:
-                entry["price"]   = price
-                entry["speed"]   = speed
-                entry["latency"] = latency
+                entry["price"]     = price
+                entry["speed"]     = speed
+                entry["latency"]   = latency
+                entry["price_in"]  = p_in
+                entry["price_out"] = p_out
 
     rows = []
     for (model_name, provider), v in best.items():
@@ -131,6 +135,8 @@ def _parse_api_response(data: dict) -> list[list]:
             f"${v['price']}",
             str(v["speed"]),
             str(v["latency"]),
+            "" if v.get("price_in") is None else str(v["price_in"]),
+            "" if v.get("price_out") is None else str(v["price_out"]),
         ])
 
     return rows

@@ -49,19 +49,26 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
         price     = _parse_price(row[4])
         speed     = _parse_numeric(row[5])
         latency   = _parse_numeric(row[6])
+        # Input/output rates are optional: `price` is the 3:1 blend and stays the
+        # cost basis, but the blend is not the number anyone quotes, so the raw
+        # sides are carried through for display. Older rows have only 7 fields.
+        price_in  = _parse_price(row[7]) if len(row) > 7 else float("nan")
+        price_out = _parse_price(row[8]) if len(row) > 8 else float("nan")
 
         # Skip rows with no useful data
         if pd.isna(quality) or model == "":
             continue
 
         records.append({
-            "model":    model,
-            "provider": provider,
-            "context":  context,
-            "quality":  quality,
-            "price":    price,
-            "speed":    speed,
-            "latency":  latency,
+            "model":     model,
+            "provider":  provider,
+            "context":   context,
+            "quality":   quality,
+            "price":     price,
+            "speed":     speed,
+            "latency":   latency,
+            "price_in":  price_in,
+            "price_out": price_out,
         })
 
     df = pd.DataFrame(records)
@@ -74,8 +81,22 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
 
 def load_cached() -> pd.DataFrame:
     if CACHE_PATH.exists():
-        return pd.read_csv(CACHE_PATH)
+        return _with_price_sides(pd.read_csv(CACHE_PATH))
     raise FileNotFoundError("No cached data found. Run scrape first.")
+
+
+def _with_price_sides(df: pd.DataFrame) -> pd.DataFrame:
+    """Guarantee price_in / price_out exist.
+
+    A cache written before those columns existed — and every one of the archived
+    history snapshots — has only the blended `price`. Charts read these columns
+    unconditionally, so materialise them as NaN rather than making every caller
+    test for them; a missing rate renders as "—", never as a wrong number.
+    """
+    for col in ("price_in", "price_out"):
+        if col not in df.columns:
+            df[col] = float("nan")
+    return df
 
 
 def save_cache(df: pd.DataFrame):
@@ -102,7 +123,7 @@ def load_history() -> pd.DataFrame:
         frames.append(snap)
     if not frames:
         return pd.DataFrame()
-    return pd.concat(frames, ignore_index=True)
+    return _with_price_sides(pd.concat(frames, ignore_index=True))
 
 
 def get_models(raw_rows: list | None = None) -> pd.DataFrame:

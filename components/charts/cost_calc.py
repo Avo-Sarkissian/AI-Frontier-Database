@@ -100,6 +100,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         "Provider: %{customdata[1]}<br>"
         "Monthly cost: $%{x:,.2f}<br>"
         "Price: $%{customdata[2]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
+        "Rates: %{customdata[4]}<br>"
         "Intelligence: %{customdata[3]:.0f}<br>"
         "<extra></extra>"
     )
@@ -126,7 +127,8 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         x=plot_df["monthly_cost"],
         orientation="h",
         marker=dict(color=colors, opacity=opacities, line=dict(width=0)),
-        customdata=plot_df[["model", "provider", "price", "quality"]].values,
+        customdata=list(zip(plot_df["model"], plot_df["provider"], plot_df["price"],
+                            plot_df["quality"], _rate_pair(plot_df))),
         hovertemplate=hover,
         showlegend=False,
         text=plot_df["monthly_cost"].apply(
@@ -203,3 +205,17 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     )
 
     return fig
+
+
+def _rate_pair(df) -> list[str]:
+    """"$5.00 in · $25.00 out" per row, or "—" where the sides aren't known."""
+    import pandas as _pd
+
+    def _fmt(v):
+        return f"${v:,.2f}" if _pd.notna(v) and v > 0 else None
+
+    out = []
+    for pin, pout in zip(df.get("price_in", []), df.get("price_out", [])):
+        a, b = _fmt(pin), _fmt(pout)
+        out.append(f"{a} in  ·  {b} out" if a and b else "—")
+    return out
