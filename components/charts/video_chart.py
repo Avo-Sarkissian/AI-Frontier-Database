@@ -9,7 +9,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG, GRID, TICK, AXIS, FONT
+from components.charts.constants import (
+    BG, GRID, TICK, AXIS, FONT, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
+)
 from data.video_models import PROVIDER_COLORS, DEFAULT_COLOR
 
 
@@ -63,17 +65,24 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
         textfont=dict(color="rgba(255,255,255,0.55)", size=11, family=FONT),
     ))
 
+    _gutter = right_gutter(
+        f"${p:.3f}/sec  ·  {g:.0f}s gen  ·  {r}  ·  open"
+        for p, g, r in zip(plot_df["price_per_sec"], plot_df["gen_time_s"], plot_df["max_res"])
+    )
     # Right-side annotations
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         ow_tag = "  ·  open" if row["open_weights"] else ""
         fig.add_annotation(
-            x=max_q + 0.5,
+            x=1.01,
             y=short_name[i],
-            text=f"${row['price_per_sec']:.3f}/sec  ·  {row['gen_time_s']:.0f}s gen  ·  {row['max_res']}{ow_tag}",
+            text=fit_text(
+                f"${row['price_per_sec']:.3f}/sec  ·  {row['gen_time_s']:.0f}s gen"
+                f"  ·  {row['max_res']}{ow_tag}", _gutter
+            ),
             showarrow=False, xanchor="left",
             font=dict(size=10, family=FONT, color=color),
-            xref="x", yref="y",
+            xref="paper", yref="y",
         )
 
     height = max(380, len(plot_df) * 24 + 80)
@@ -93,7 +102,7 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(text="Quality Score (0–100)", font=dict(color=AXIS, size=12), standoff=12),
-            range=[40, max_q * 1.35],
+            range=[40, max_q * ANNOTATED_AXIS_HEADROOM],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
@@ -104,7 +113,7 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
             automargin=True,
         ),
         barmode="overlay",
-        margin=dict(l=20, r=280, t=52, b=36),
+        margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(
@@ -190,7 +199,7 @@ def build_video_scatter(df: pd.DataFrame) -> go.Figure:
             font=dict(color="#999999", size=11, family=FONT),
             x=1.01, y=1, xanchor="left",
         ),
-        margin=dict(l=20, r=160, t=52, b=36),
+        margin=dict(l=20, r=110, t=52, b=36),
         height=520,
         hovermode="closest",
         hoverlabel=dict(

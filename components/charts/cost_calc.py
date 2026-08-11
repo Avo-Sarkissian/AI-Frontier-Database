@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    right_gutter, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name, unique_labels,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
@@ -138,6 +139,9 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
 
+    _gutter = right_gutter(
+        f"{p}  {q:.0f}pt" for p, q in zip(plot_df["provider"], plot_df["quality"])
+    )
     # Provider label + intelligence score on right
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
@@ -147,7 +151,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             else "#888888"
         )
         fig.add_annotation(
-            x=plot_df["monthly_cost"].max() * 1.06,
+            x=1.01,
             y=short_names[i],
             text=(
                 f"<span style='color:{color}'>{row['provider']}</span>"
@@ -156,7 +160,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             showarrow=False,
             xanchor="left",
             font=dict(size=10, family=_FONT, color=color),
-            xref="x", yref="y",
+            xref="paper", yref="y",
         )
 
     height = max(500, top_n * 26)
@@ -186,7 +190,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             tickprefix="$",
             showgrid=True, showline=False, ticks="",
-            range=[0, plot_df["monthly_cost"].max() * 1.3],
+            range=[0, plot_df["monthly_cost"].max() * ANNOTATED_AXIS_HEADROOM],
         ),
         yaxis=dict(
             tickfont=dict(color="#999999", size=11, family=_FONT),
@@ -195,7 +199,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             autorange="reversed",  # cheapest at top
         ),
         barmode="overlay",
-        margin=dict(l=20, r=130, t=52, b=36),
+        margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(

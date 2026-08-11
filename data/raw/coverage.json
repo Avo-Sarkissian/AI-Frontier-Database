@@ -1,0 +1,22 @@
+{
+  "upstream_records": 428,
+  "kept": 148,
+  "skipped_no_score": [
+    "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)"
+  ],
+  "skipped_no_price": [
+    "Command A+",
+    "Devstral 2",
+    "Devstral Small 2",
+    "LFM2.5-8B-A1B",
+    "LFM2.5-VL-1.6B",
+    "Ling 3.0 Tiny",
+    "North Mini Code",
+    "Phi-4 Mini Instruct",
+    "Phi-4 Multimodal Instruct",
+    "Tiny Aya Global"
+  ]
+}

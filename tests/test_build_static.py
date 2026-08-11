@@ -77,3 +77,56 @@ def test_swap_raises_if_bundle_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(build_static, "DOCS", tmp_path)
     with pytest.raises(RuntimeError, match="pybundle.zip missing"):
         build_static.swap_bundle_csvs()
+
+
+# ── Coverage: what the scraper could not carry ───────────────────────────────
+
+def test_scraper_counts_what_it_discards():
+    """A model with no score or no price is dropped. Counting the drops is the
+    point: "148 tracked" silently meant "162 upstream minus 14"."""
+    from data.scraper import _parse_api_response, _last_coverage
+
+    payload = {"hostModels": [
+        {  # kept
+            "model": {"name": "Good Model", "intelligence_index": 50.0,
+                      "model_creators": {"name": "Anthropic"}},
+            "price_1m_blended_3_to_1": 10.0,
+            "price_1m_input_tokens": 5.0, "price_1m_output_tokens": 11.67,
+        },
+        {  # dropped: no intelligence score
+            "model": {"name": "Unscored Model", "intelligence_index": None,
+                      "model_creators": {"name": "Meta"}},
+            "price_1m_blended_3_to_1": 2.0,
+        },
+        {  # dropped: no price at all
+            "model": {"name": "Free Model", "intelligence_index": 30.0,
+                      "model_creators": {"name": "Mistral"}},
+        },
+    ]}
+    rows = _parse_api_response(payload)
+    assert len(rows) == 1
+    assert _last_coverage["kept"] == 1
+    assert _last_coverage["skipped_no_score"] == ["Unscored Model"]
+    assert _last_coverage["skipped_no_price"] == ["Free Model"]
+
+
+def test_coverage_reconciles_with_the_live_catalog():
+    """kept + dropped must account for every distinct upstream model, so the
+    disclosure cannot drift from what was actually discarded."""
+    import json
+    from pathlib import Path
+    from data.ingest import get_models
+
+    path = Path(__file__).resolve().parent.parent / "data" / "raw" / "coverage.json"
+    if not path.exists():
+        import pytest
+        pytest.skip("no coverage.json — repo has not scraped since it was added")
+    cov = json.loads(path.read_text())
+    assert cov["kept"] == len(get_models())
+    assert cov["kept"] > 0 and cov["upstream_records"] >= cov["kept"]
+
+
+def test_manifest_carries_the_coverage_block():
+    from build_static import _load_coverage
+    cov = _load_coverage()
+    assert set(cov) >= {"kept", "skipped_no_score", "skipped_no_price"}

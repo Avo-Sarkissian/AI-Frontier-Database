@@ -240,3 +240,96 @@ def test_cost_chart_gives_every_model_its_own_row():
 
     ys = list(build_cost_calc(get_models(), monthly_tokens_m=1.0).data[1].y)
     assert len(ys) == len(set(ys)), "duplicate categories in the cost chart"
+
+
+# ── Right gutters: annotations must not cost the bars their width ────────────
+
+def _annotated_charts():
+    from data.ingest import get_models
+    from data.local_models import get_local_df
+    from data.video_models import get_video_df
+    from components.charts.provider_leaderboard import build_provider_leaderboard
+    from components.charts.cost_calc import build_cost_calc
+    from components.charts.local_compat import build_local_compat
+    from components.charts.video_chart import build_video_rankings
+
+    df, loc, vid = get_models(), get_local_df(), get_video_df()
+    return {
+        "provider_leaderboard": build_provider_leaderboard(df),
+        "cost_calc": build_cost_calc(df),
+        "local_compat": build_local_compat(loc, "Q4"),
+        "video_rankings": build_video_rankings(vid),
+    }
+
+
+def test_right_gutters_stay_under_the_shared_cap():
+    """These four hard-coded 130-280px gutters; the leaderboard's bars got ~43%
+    of the width on desktop and far less on a phone."""
+    from components.charts.constants import MAX_RIGHT_GUTTER_PX
+    for name, fig in _annotated_charts().items():
+        assert fig.layout.margin.r <= MAX_RIGHT_GUTTER_PX, (
+            f"{name} reserves {fig.layout.margin.r}px on the right"
+        )
+
+
+def test_annotated_charts_do_not_also_reserve_axis_headroom():
+    """The gutter was doubled up with 30-55% of empty axis: bars were squeezed
+    twice. Annotations are anchored to the paper edge now, so the axis needs
+    almost none."""
+    for name, fig in _annotated_charts().items():
+        rng = fig.layout.xaxis.range
+        if rng is None:
+            continue
+        lo, hi = rng
+        bars = [t for t in fig.data if t.type == "bar" and t.x is not None]
+        widest = max((max(t.x) for t in bars if len(t.x)), default=0)
+        if widest <= 0:
+            continue
+        assert hi <= widest * 1.10, (
+            f"{name} leaves {hi / widest:.2f}x headroom past its longest bar"
+        )
+
+
+def test_annotations_are_anchored_to_the_paper_edge():
+    for name, fig in _annotated_charts().items():
+        refs = {a.xref for a in fig.layout.annotations if a.text}
+        assert refs <= {"paper"}, f"{name} still positions annotations in data space: {refs}"
+
+
+def test_video_gen_shares_the_provider_palette():
+    """Video Gen kept a private 13-colour list, so Google was blue there and
+    amber everywhere else."""
+    from data.video_models import PROVIDER_COLORS as VIDEO, DEFAULT_COLOR as VIDEO_DEFAULT
+    from data.video_models import get_video_df
+
+    catalog = get_video_df()
+    uncoloured = sorted({
+        p for p in catalog["provider"].dropna().unique()
+        if VIDEO.get(p, VIDEO_DEFAULT) == VIDEO_DEFAULT
+    })
+    assert not uncoloured, f"video providers with no colour: {uncoloured}"
+
+    for provider in catalog["provider"].dropna().unique():
+        if provider in PROVIDER_COLORS:
+            assert VIDEO[provider] == PROVIDER_COLORS[provider], (
+                f"{provider} reads differently on Video Gen"
+            )
+
+
+def test_annotations_fit_inside_their_gutter():
+    """Capping the gutter is only safe if the labels are trimmed to match --
+    otherwise the longest one runs off the canvas and reads as a broken render.
+    cost_calc is excluded: its annotation is span markup, so character length
+    is not visible width."""
+    from components.charts.constants import MAX_RIGHT_GUTTER_PX
+    for name, fig in _annotated_charts().items():
+        if name == "cost_calc":
+            continue
+        gutter = fig.layout.margin.r
+        for a in fig.layout.annotations:
+            if not a.text or "<span" in a.text:
+                continue
+            approx_px = len(a.text) * 10 * 0.55
+            assert approx_px <= gutter + 8, (
+                f"{name}: {a.text!r} needs ~{approx_px:.0f}px of a {gutter}px gutter"
+            )

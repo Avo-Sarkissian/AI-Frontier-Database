@@ -24,6 +24,19 @@ from components.charts.video_chart import build_video_rankings, build_video_scat
 
 from static_helpers import compute_diverse5, provider_options, model_options
 
+
+def _load_coverage() -> dict:
+    """What the scraper could not carry, so the stat tile can disclose it.
+    Empty on a checkout that has not scraped since coverage was added."""
+    path = Path(__file__).parent / "data" / "raw" / "coverage.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except (ValueError, OSError):
+        return {}
+
+
 ROOT = Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
 FIG  = DOCS / "figures"
@@ -69,6 +82,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
     _now = datetime.now(timezone.utc)
     manifest = {
         "model_count":      int(len(df)),
+        "coverage":         _load_coverage(),
         "provider_count":   int(df["provider"].nunique()),
         "floor_price":      f"${df['price'].min():.3f}",
         "peak_quality":     f"{df['quality'].max():.1f}",

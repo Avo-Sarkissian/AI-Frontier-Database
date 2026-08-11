@@ -7,23 +7,29 @@ Sources: public pricing pages, Artificial Analysis, EvalVid, community benchmark
 """
 import pandas as pd
 
-PROVIDER_COLORS: dict[str, str] = {
-    "Google":     "#60a5fa",
-    "OpenAI":     "#34d399",
-    "Runway":     "#f472b6",
-    "Kuaishou":   "#fb923c",
-    "Luma AI":    "#c084fc",
-    "MiniMax":    "#86efac",
-    "Pika":       "#facc15",
-    "Alibaba":    "#38bdf8",
-    "Zhipu AI":   "#818cf8",
-    "Genmo":      "#a3e635",
+from components.charts.constants import (
+    PROVIDER_COLORS as _SHARED_COLORS, DEFAULT_COLOR as _SHARED_DEFAULT,
+)
+
+# Labs that also ship LLMs must wear the same colour they wear everywhere else --
+# Google was #60a5fa here and amber on Overview, which is the inconsistency the
+# Run Local palette had. Video-only studios keep their own hues, since they have
+# no entry in the shared provider palette to inherit.
+_VIDEO_ONLY_COLORS: dict[str, str] = {
+    "Runway":       "#f472b6",
+    "Kuaishou":     "#fb923c",
+    "Luma AI":      "#c084fc",
+    "Pika":         "#facc15",
+    "Zhipu AI":     "#818cf8",
+    "Genmo":        "#a3e635",
     "Stability AI": "#a78bfa",
-    "ByteDance":  "#67e8f9",
-    "Lightricks": "#fca5a5",
+    "ByteDance":    "#67e8f9",
+    "Lightricks":   "#fca5a5",
 }
 
-DEFAULT_COLOR = "#6b7280"
+PROVIDER_COLORS: dict[str, str] = {**_VIDEO_ONLY_COLORS, **_SHARED_COLORS}
+
+DEFAULT_COLOR = _SHARED_DEFAULT
 
 _RAW: list[dict] = [
     # ── Google ────────────────────────────────────────────────────────────────

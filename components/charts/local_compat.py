@@ -8,7 +8,7 @@ Right-side annotations show estimated tok/s and VRAM required.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels
+from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM
 from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 
@@ -76,6 +76,10 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
         showlegend=False,
     ))
 
+    _gutter = right_gutter(
+        f"{s:.0f} tok/s  ·  {v:.1f} GB  ⚠ tight"
+        for s, v in zip(runnable["speed_tps"], runnable["vram_req_gb"])
+    )
     # Right-side annotations: speed + VRAM
     for i, row in runnable.iterrows():
         color = FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)
@@ -84,13 +88,13 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
         tight_tag = "  ⚠ tight" if row["fits"] == "tight" else ""
 
         fig.add_annotation(
-            x=max_q + 1,
+            x=1.01,
             y=row["short_name"],
-            text=f"{speed_str}  ·  {vram_str}{tight_tag}",
+            text=fit_text(f"{speed_str}  ·  {vram_str}{tight_tag}", _gutter, size_px=11),
             showarrow=False,
             xanchor="left",
             font=dict(size=11, family=_FONT, color=color),
-            xref="x", yref="y",
+            xref="paper", yref="y",
         )
 
     height = max(480, len(runnable) * 42 + 80)
@@ -111,7 +115,7 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
-            range=[0, max_q * 1.45],
+            range=[0, max_q * ANNOTATED_AXIS_HEADROOM],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
@@ -123,7 +127,7 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
         ),
         barmode="overlay",
         bargap=0.35,
-        margin=dict(l=20, r=220, t=52, b=36),
+        margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(

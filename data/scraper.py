@@ -15,11 +15,14 @@ Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
+import json
 import sys
 import threading
 import time
 
 import requests
+
+from pathlib import Path
 
 from data.ingest import load_from_raw, save_cache, load_cached
 
@@ -55,6 +58,10 @@ def _parse_api_response(data: dict) -> list[list]:
 
     # Aggregate per (model_name, creator_name)
     best: dict[tuple, dict] = {}
+    # Models the catalog cannot carry. Counting them is the point: "148 tracked"
+    # silently meant "162 upstream minus 14" until this existed, and a silent
+    # drop is how this project has been bitten before.
+    skipped: dict[str, set] = {"no_score": set(), "no_price": set()}
 
     for hm in host_models:
         model_obj = hm.get("model") or {}
@@ -62,6 +69,7 @@ def _parse_api_response(data: dict) -> list[list]:
         # Quality
         quality = model_obj.get("intelligence_index")
         if quality is None or quality <= 0:
+            skipped["no_score"].add(model_obj.get("name") or "")
             continue
 
         # Model name
@@ -95,8 +103,10 @@ def _parse_api_response(data: dict) -> list[list]:
             if p_in is not None and p_out is not None and p_in >= 0 and p_out >= 0:
                 price = (3 * p_out + 1 * p_in) / 4
             else:
+                skipped["no_price"].add(model_name)
                 continue
         if price <= 0:
+            skipped["no_price"].add(model_name)
             continue
 
         # Speed and latency
@@ -139,7 +149,29 @@ def _parse_api_response(data: dict) -> list[list]:
             "" if v.get("price_out") is None else str(v["price_out"]),
         ])
 
+    kept = {name for name, _ in best}
+    _last_coverage.clear()
+    _last_coverage.update({
+        "upstream_records": len(host_models),
+        "kept": len(kept),
+        "skipped_no_score": sorted(n for n in skipped["no_score"] if n and n not in kept),
+        "skipped_no_price": sorted(n for n in skipped["no_price"] if n and n not in kept),
+    })
     return rows
+
+
+# Populated by the last _parse_api_response call; written beside the cache so the
+# site can say what it is not showing.
+_last_coverage: dict = {}
+
+COVERAGE_PATH = Path(__file__).parent / "raw" / "coverage.json"
+
+
+def _save_coverage() -> None:
+    if not _last_coverage:
+        return
+    COVERAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    COVERAGE_PATH.write_text(json.dumps(_last_coverage, indent=2) + "\n")
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
@@ -169,7 +201,11 @@ def scrape_and_save() -> bool:
             return False
 
         save_cache(df)
-        print(f"[scraper] Updated cache with {len(df)} models")
+        _save_coverage()
+        n_skipped = (len(_last_coverage.get("skipped_no_score", []))
+                     + len(_last_coverage.get("skipped_no_price", [])))
+        print(f"[scraper] Updated cache with {len(df)} models "
+              f"({n_skipped} upstream models not carried)")
         return True
 
     except requests.RequestException as exc:

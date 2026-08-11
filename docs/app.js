@@ -73,6 +73,24 @@ const PROVIDER_COLORS = {
 };
 const DEFAULT_PROVIDER_COLOR = "#6b7280";
 
+
+// "148 models tracked" is only honest next to what upstream had that we cannot
+// carry. Written as text, never markup — the names come from the scraped feed.
+function renderCoverageNote(cov) {
+  const label = document.querySelector("#stat-model-count + .stat-label");
+  if (!label || !cov) return;
+  const noScore = (cov.skipped_no_score || []).length;
+  const noPrice = (cov.skipped_no_price || []).length;
+  const total = noScore + noPrice;
+  if (!total) { label.textContent = "Models tracked"; label.title = ""; return; }
+  label.textContent = `Models tracked  ·  ${total} not carried`;
+  const parts = [];
+  if (noScore) parts.push(`${noScore} with no intelligence score: ` + (cov.skipped_no_score || []).join(", "));
+  if (noPrice) parts.push(`${noPrice} with no published price: ` + (cov.skipped_no_price || []).join(", "));
+  label.title =
+    `${cov.kept} of ${(cov.kept || 0) + total} models upstream are shown.\n` + parts.join("\n");
+}
+
 function buildTabsAndPanels() {
   const tabsEl = document.getElementById("tabs");
   const panelsEl = document.getElementById("tab-panels");
@@ -169,6 +187,7 @@ async function loadManifest() {
   window.AF.version = m.version || "";
   window.AF.generatedIso = m.generated_iso || null;
   document.getElementById("stat-model-count").textContent = m.model_count;
+  renderCoverageNote(m.coverage);
   document.getElementById("stat-provider-count").textContent = m.provider_count;
   document.getElementById("stat-floor-price").textContent = m.floor_price;
   document.getElementById("stat-peak-quality").textContent = m.peak_quality;

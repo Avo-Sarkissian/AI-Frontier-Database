@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
@@ -92,17 +93,22 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
         name="avg quality",
     ))
 
+    _gutter = right_gutter(
+        f"{int(c)} models  ·  {n}" for c, n in zip(agg["model_count"], short_names)
+    )
     # Right-side annotations: model count + best model name
     for i, row in agg.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         fig.add_annotation(
-            x=max_q + 1,
+            x=1.01,
             y=row["provider"],
-            text=f"{int(row['model_count'])} models  ·  {short_names[i]}",
+            text=fit_text(
+                f"{int(row['model_count'])} models  ·  {short_names[i]}", _gutter
+            ),
             showarrow=False,
             xanchor="left",
             font=dict(size=10, family=_FONT, color=color),
-            xref="x", yref="y",
+            xref="paper", yref="y",
         )
 
     height = max(400, len(agg) * 30 + 80)
@@ -123,7 +129,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
-            range=[0, max_q * 1.55],
+            range=[0, max_q * ANNOTATED_AXIS_HEADROOM],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
@@ -134,7 +140,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
             automargin=True,
         ),
         barmode="overlay",
-        margin=dict(l=20, r=280, t=52, b=36),
+        margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,
         hovermode="closest",
         hoverlabel=dict(

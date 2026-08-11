@@ -439,3 +439,34 @@ def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider"):
     if (out["display_provider"] == "Other").any():
         ordered.append("Other")
     return out, ordered
+
+
+# Widest right gutter any chart may reserve for its row annotations. Four charts
+# used to hard-code 130–280px AND leave 30–55% axis headroom, so the bars were
+# squeezed twice and took ~43% of the width on desktop, far less on a phone.
+MAX_RIGHT_GUTTER_PX = 200
+# Annotations sit against the paper edge now, so the axis needs only a hair of
+# headroom rather than a gutter's worth.
+ANNOTATED_AXIS_HEADROOM = 1.02
+
+
+def right_gutter(texts, size_px: int = 10, pad_px: int = 20) -> int:
+    """Pixels to reserve for the longest right-side annotation.
+
+    Sized from the actual strings so a chart neither clips its labels nor keeps
+    a gutter it stopped needing; capped at MAX_RIGHT_GUTTER_PX so one very long
+    model name cannot take the plot back.
+    """
+    longest = max((len(str(t)) for t in texts), default=0)
+    return int(min(MAX_RIGHT_GUTTER_PX, longest * size_px * 0.55 + pad_px))
+
+
+def fit_text(text: str, gutter_px: int, size_px: int = 10, pad_px: int = 20) -> str:
+    """Truncate to what actually fits the gutter, with an ellipsis.
+
+    The cap means a long label would otherwise run off the canvas — clipped mid
+    word by the edge, which looks like a rendering fault rather than a choice.
+    """
+    text = str(text)
+    max_chars = max(8, int((gutter_px - pad_px) / (size_px * 0.55)))
+    return text if len(text) <= max_chars else text[: max_chars - 1] + "…"
