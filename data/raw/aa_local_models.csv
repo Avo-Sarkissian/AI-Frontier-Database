@@ -86,7 +86,6 @@ Ministral 3 3B,Mistral,3.0,3.0,256,7.07,Apache 2.0,vision,False
 Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.66,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
 Granite 4.1 8B,IBM,8.0,8.0,131,6.42,Apache 2.0,,False
 Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,5.74,MIT,,False
-Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,4.99,Jamba Open Model License Agreement,,True
 Granite 4.0 H Small,IBM,32.0,9.0,128,4.93,Apache 2.0,,True
 Qwen3 Omni 30B A3B Instruct,Alibaba,35.3,3.0,66,4.8,Apache 2.0,"vision,audio",True
 Phi-4,Microsoft,14.0,14.0,16,4.55,MIT,,False
