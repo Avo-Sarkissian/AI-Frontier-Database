@@ -16,6 +16,7 @@ Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,38.32,OpenMDW,reaso
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,38.04,Mit,"vision,reasoning",True
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,37.82,Unknown,reasoning,True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.7,Apache 2.0,"vision,reasoning",False
+Muse Glimmer (high),Meta,30.0,30.0,256,35.06,Apache 2.0,"vision,reasoning",False
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
 LongCat 2.0,LongCat,1600.0,48.0,1000,34.29,Mit,reasoning,True
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,34.26,Apache 2.0,"vision,reasoning",True
@@ -34,8 +35,10 @@ Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,28.18,Apache 2.0,vision
 Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,26.07,Apache 2.0,"vision,reasoning",True
 Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,25.67,Nvidia Nemotron Open Model License,reasoning,True
 Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.61,Apache 2.0,vision,True
+Ling 3.0 Tiny,InclusionAI,7.9,1.3,262,24.52,Mit,reasoning,True
 Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.32,Apache 2.0,vision,True
 gpt-oss-120b (high),OpenAI,117.0,5.1,131,24.13,Apache 2.0,reasoning,True
+Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,23.63,OpenMDW-1.1,reasoning,True
 Command A+,Cohere,218.0,25.0,192,22.77,Apache 2.0,"vision,reasoning",True
 Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,22.25,Apache 2.0,vision,False
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,22.16,Apache 2.0,"vision,audio,reasoning",False
