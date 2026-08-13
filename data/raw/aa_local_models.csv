@@ -1,5 +1,7 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
 Kimi K3 (max),Kimi,2800.0,104.0,1049,59.7,Kimi K3 License,"vision,reasoning",True
+Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,57.7,Qwen3.8-Max License,reasoning,True
+"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,53.2,Mit,reasoning,True
 GLM-5.2 (max),Z AI,753.0,40.0,1000,52.64,Mit,reasoning,True
 "DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,51.77,Mit,"vision,reasoning",True
 Kimi K3 (low),Kimi,2780.0,104.0,1049,48.25,Kimi K3,"vision,reasoning",True
@@ -16,7 +18,7 @@ Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,38.32,OpenMDW,reaso
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,38.04,Mit,"vision,reasoning",True
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,37.82,Unknown,reasoning,True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.7,Apache 2.0,"vision,reasoning",False
-Muse Glimmer (high),Meta,30.0,30.0,256,35.06,Apache 2.0,"vision,reasoning",False
+Muse Glimmer (high),Meta,30.0,30.0,131,35.06,Apache 2.0,"vision,reasoning",False
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
 LongCat 2.0,LongCat,1600.0,48.0,1000,34.29,Mit,reasoning,True
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,34.26,Apache 2.0,"vision,reasoning",True
