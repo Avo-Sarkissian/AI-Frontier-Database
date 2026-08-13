@@ -125,9 +125,16 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def build_video_scatter(df: pd.DataFrame) -> go.Figure:
-    """Price/sec vs quality scatter. Bubble size = speed (larger = faster)."""
+def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
+    """Price/sec vs quality scatter. Bubble size = speed (larger = faster).
+
+    ``full_df`` is the unfiltered video catalogue; the frontier is a claim about
+    the whole market, so filtering must be able to hide a frontier point but
+    never promote one the market already dominates.
+    """
     plot_df = df[(df["price_per_sec"] > 0) & (df["quality"] > 0)].copy()
+    ref_df = plot_df if full_df is None else \
+        full_df[(full_df["price_per_sec"] > 0) & (full_df["quality"] > 0)].copy()
 
     max_t = plot_df["gen_time_s"].replace(0, np.nan).max() or 1
     plot_df["size"] = plot_df["gen_time_s"].apply(
@@ -165,7 +172,7 @@ def build_video_scatter(df: pd.DataFrame) -> go.Figure:
         ))
 
     # Pareto frontier
-    _add_pareto(fig, plot_df)
+    _add_pareto(fig, plot_df, ref_df)
 
     fig.update_layout(
         paper_bgcolor=BG, plot_bgcolor=BG,
@@ -211,16 +218,24 @@ def build_video_scatter(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def _add_pareto(fig: go.Figure, df: pd.DataFrame):
-    pareto = []
-    for _, row in df.iterrows():
-        dominated = df[
-            (df["quality"] >= row["quality"]) &
-            (df["price_per_sec"] <= row["price_per_sec"]) &
-            ~((df["quality"] == row["quality"]) & (df["price_per_sec"] == row["price_per_sec"]))
+def _add_pareto(fig: go.Figure, df: pd.DataFrame, ref_df: pd.DataFrame | None = None):
+    """Draw the frontier of ``ref_df`` (the whole market), clipped to ``df``.
+
+    Testing dominance only within the plotted frame meant a two-provider filter
+    could put a model on the frontier that a model 2.5x cheaper at identical
+    quality already dominated, under a legend that says only "Pareto Frontier".
+    """
+    ref = df if ref_df is None or ref_df.empty else ref_df
+    frontier_models = []
+    for _, row in ref.iterrows():
+        dominated = ref[
+            (ref["quality"] >= row["quality"]) &
+            (ref["price_per_sec"] <= row["price_per_sec"]) &
+            ~((ref["quality"] == row["quality"]) & (ref["price_per_sec"] == row["price_per_sec"]))
         ]
         if dominated.empty:
-            pareto.append(row)
+            frontier_models.append(row["model"])
+    pareto = [row for _, row in df.iterrows() if row["model"] in set(frontier_models)]
     if not pareto:
         return
     pf = pd.DataFrame(pareto).sort_values("price_per_sec")

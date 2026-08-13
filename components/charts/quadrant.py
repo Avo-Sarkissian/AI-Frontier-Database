@@ -18,20 +18,37 @@ from components.charts.constants import (
 _ZONE = "rgba(255,255,255,0.02)"
 
 
-def build_quadrant(df: pd.DataFrame) -> go.Figure:
-    plot_df = df[
+def _plottable(df: pd.DataFrame) -> pd.DataFrame:
+    """The rows this chart draws: measured speed, scored, one row per family."""
+    sub = df[
         (df["speed"] > 0) &
         (df["quality"] > 0) &
         df["speed"].notna() &
         df["quality"].notna()
     ].copy()
-    plot_df = dedupe_to_best_variant(plot_df)
+    return dedupe_to_best_variant(sub)
+
+
+def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
+    """Speed vs Quality quadrant.
+
+    ``full_df`` is the unfiltered catalogue. "Fast · Smart" reads as an absolute
+    statement about a model, so the median crosshairs that decide which zone a
+    model lands in must come from the whole market. Taken from the filtered
+    frame, a provider filter moved the thresholds and flipped models between
+    zones — the same model, the same numbers, the opposite verdict — and a
+    quality-only filter moved the *speed* threshold.
+    """
+    plot_df = _plottable(df)
+    ref_df = plot_df if full_df is None else _plottable(full_df)
 
     if plot_df.empty:
         return go.Figure()
+    if ref_df.empty:
+        ref_df = plot_df
 
-    med_speed   = plot_df["speed"].median()
-    med_quality = plot_df["quality"].median()
+    med_speed   = ref_df["speed"].median()
+    med_quality = ref_df["quality"].median()
 
     # Bubble size encodes affordability (cheaper = bigger) on a fixed price
     # reference. Normalising against the plotted frame's own max meant a model
@@ -40,9 +57,10 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     plot_df["size"] = bubble_size(plot_df["price"], BUBBLE_PRICE_REF, invert=True).values
 
     # Correlation on log speed, matching the axis the reader is looking at.
+    # (Correlation describes what is plotted, so it stays on plot_df.)
     _corr_r = safe_corr(np.log10(plot_df["speed"]), plot_df["quality"])
     _tickvals, _ticktext = log_ticks(
-        plot_df["speed"].min(), plot_df["speed"].max(), fmt=lambda v: f"{v:g}"
+        ref_df["speed"].min(), ref_df["speed"].max(), fmt=lambda v: f"{v:g}"
     )
 
     fig = go.Figure()
@@ -50,9 +68,12 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     # Throughput spans ~9 to ~2200 tok/s but nearly every model sits under 400,
     # so on a linear axis two outliers stretched the scale and crushed the whole
     # catalogue into the leftmost fifth of the plot. Log spreads it out.
-    x_min = plot_df["speed"].min() / 1.3
-    x_max = plot_df["speed"].max() * 1.3
-    y_max = plot_df["quality"].max() * 1.15
+    # Axis bounds come from the full catalogue too, so a mark keeps the same
+    # screen position — and the zone rectangles keep the same extent — however
+    # the frame is filtered.
+    x_min = ref_df["speed"].min() / 1.3
+    x_max = ref_df["speed"].max() * 1.3
+    y_max = ref_df["quality"].max() * 1.15
     lx0, lx1 = math.log10(x_min), math.log10(x_max)
     lmed = math.log10(med_speed)
 
@@ -147,7 +168,7 @@ def build_quadrant(df: pd.DataFrame) -> go.Figure:
     # Label top-right quadrant outliers (Fast · Smart).
     # Use 75th-percentile speed as threshold so labels stay in the genuinely
     # fast region, and cap at 5 to avoid label pile-ups.
-    speed_p75 = plot_df["speed"].quantile(0.75)
+    speed_p75 = ref_df["speed"].quantile(0.75)
     candidates = plot_df[
         (plot_df["speed"] > speed_p75) & (plot_df["quality"] > med_quality)
     ].sort_values("quality", ascending=False)

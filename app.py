@@ -1087,13 +1087,16 @@ def update_overview(providers, min_quality, search, xaxis, _v):
             "Bubble size = affordability (larger = cheaper). "
             "Click any bubble for full details."
         )
-        return build_quadrant(filtered), desc
+        # `df` is the unfiltered catalogue: the median crosshairs that decide
+        # "Fast · Smart" and the frontier are market-wide claims, so they must
+        # not move when the user narrows the frame.
+        return build_quadrant(filtered, full_df=df), desc
     desc = _desc(
         "Each bubble is one model. X = price per 1M tokens (log scale), "
         "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
         "Dotted line = Pareto frontier. Click any bubble for full details."
     )
-    return build_pareto_scatter(filtered), desc
+    return build_pareto_scatter(filtered, full_df=df), desc
 
 
 @callback(
@@ -1235,18 +1238,21 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     Output("detail-panel",      "className"),
     Output("detail-panel-body", "children"),
     Output("detail-model-name", "data"),
-    Input("pareto-chart",   "clickData"),
-    Input("quadrant-chart", "clickData"),
-    Input("detail-close",   "n_clicks"),
+    # The Overview tab renders BOTH the price and speed views into `pareto-chart`
+    # (see update_overview), so there is no `quadrant-chart` component. Listening
+    # for one raised a runtime ReferenceError that suppress_callback_exceptions
+    # hid, killing this whole callback — clicking a bubble did nothing.
+    Input("pareto-chart", "clickData"),
+    Input("detail-close", "n_clicks"),
     prevent_initial_call=True,
 )
-def toggle_detail_panel(pareto_click, quadrant_click, _close):
+def toggle_detail_panel(pareto_click, _close):
     trigger = ctx.triggered_id
 
     if trigger == "detail-close":
         return "detail-panel", [], None
 
-    click = pareto_click if trigger == "pareto-chart" else quadrant_click
+    click = pareto_click
     if not click or not click.get("points"):
         return no_update, no_update, no_update
 
@@ -1419,7 +1425,8 @@ def auto_refresh_data(_, current_version):
     prevent_initial_call=True,
 )
 def update_image_charts(providers, tags):
-    img_df = get_image_df()
+    full_img_df = get_image_df()
+    img_df = full_img_df
     if providers:
         img_df = img_df[img_df["provider"].isin(providers)]
     if tags:
@@ -1431,7 +1438,9 @@ def update_image_charts(providers, tags):
     # No fallback — an empty result shows empty charts, which is honest.
     # Previously this silently reset to the full dataset, making filters appear
     # to work when they were actually ignored.
-    return build_image_faceted(img_df)
+    # Facet metrics are chosen against the whole arena, so a provider filter
+    # cannot swap a facet onto a retired 2025 ELO column.
+    return build_image_faceted(img_df, full_df=full_img_df)
 
 
 # ── Video Gen tab ─────────────────────────────────────────────────────────────
@@ -1443,7 +1452,8 @@ def update_image_charts(providers, tags):
     prevent_initial_call=True,
 )
 def update_video_charts(providers, tags):
-    vdf = get_video_df()
+    full_vdf = get_video_df()
+    vdf = full_vdf
     if providers:
         vdf = vdf[vdf["provider"].isin(providers)]
     if tags:
@@ -1453,7 +1463,11 @@ def update_video_charts(providers, tags):
             else:
                 vdf = vdf[vdf["tags"].apply(lambda t: tag in t)]
     paid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
-    return build_video_rankings(vdf), build_video_scatter(paid if not paid.empty else vdf)
+    full_paid = full_vdf[full_vdf["price_per_sec"] > 0] if not full_vdf.empty else full_vdf
+    return (
+        build_video_rankings(vdf),
+        build_video_scatter(paid if not paid.empty else vdf, full_df=full_paid),
+    )
 
 
 

@@ -113,7 +113,8 @@ def _score_fast_api(row, q_max, v_max, s_max):
     return q * 0.45 + v * 0.30 + s * 0.25
 
 
-def _pick_api_tier(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
+def _tier_pool(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
+    """Rows eligible for a tier, before ranking."""
     pool = df[(df["quality"] > 0) & (df["price"] > 0)].copy()
     if tier["max_price"] is not None:
         pool = pool[pool["price"] <= tier["max_price"]]
@@ -121,13 +122,30 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
         pool = pool[pool["quality"] >= tier["min_quality"]]
     if tier["min_speed"] > 0:
         pool = pool[pool["speed"] >= tier["min_speed"]]
+    return pool
+
+
+def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Rank a tier's candidates.
+
+    ``full_df`` is the catalogue before the provider filter. The composite Fast
+    score divides quality, value and speed by three *separate* maxima; taking
+    them from the provider-filtered pool changed the relative weighting, so a
+    model's score — and the rendered order — moved when the user ticked an
+    unrelated provider box. Ordering was not even preserved: pairs demonstrably
+    swapped rank between a single-provider and an all-provider selection.
+    """
+    pool = _tier_pool(df, tier)
     if pool.empty:
         return pool
+    ref = pool if full_df is None else _tier_pool(full_df, tier)
+    if ref.empty:
+        ref = pool
 
     if tier["sort"] == "composite_fast":
-        q_max = pool["quality"].max() or 1
-        v_max = (pool["quality"] / pool["price"].replace(0, float("nan"))).max() or 1
-        s_max = pool["speed"].replace(0, float("nan")).max() or 1
+        q_max = ref["quality"].max() or 1
+        v_max = (ref["quality"] / ref["price"].replace(0, float("nan"))).max() or 1
+        s_max = ref["speed"].replace(0, float("nan")).max() or 1
         pool["_score"] = pool.apply(
             lambda r: _score_fast_api(r, q_max, v_max, s_max), axis=1
         )
@@ -431,7 +449,7 @@ def select_stack(
         key = tier["key"]
 
         if mode == "api":
-            picks  = _pick_api_tier(api_pool, tier)
+            picks  = _pick_api_tier(api_pool, tier, full_df=df)
             source = "API"
         elif mode == "local":
             picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
@@ -441,14 +459,14 @@ def select_stack(
                 picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
                 source = "LOCAL"
             else:
-                picks  = _pick_api_tier(api_pool, tier)
+                picks  = _pick_api_tier(api_pool, tier, full_df=df)
                 source = "API"
         else:  # hybrid — Fast = local, Balanced + Reasoning = API
             if key == "fast":
                 picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
                 source = "LOCAL"
             else:
-                picks  = _pick_api_tier(api_pool, tier)
+                picks  = _pick_api_tier(api_pool, tier, full_df=df)
                 source = "API"
 
         tiers_out.append({

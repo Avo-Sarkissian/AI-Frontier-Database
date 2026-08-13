@@ -220,7 +220,10 @@ def _detail_html(row: pd.Series, provider: str) -> str:
 
 def update_overview(providers, min_quality, search, xaxis):
     f = _apply_filters(providers, min_quality, search or "")
-    fig = build_quadrant(f) if xaxis == "speed" else build_pareto_scatter(f)
+    # _DF is the unfiltered catalogue: medians, axis bounds and frontier
+    # membership are market-wide claims and must not move with the user's filter.
+    fig = (build_quadrant(f, full_df=_DF) if xaxis == "speed"
+           else build_pareto_scatter(f, full_df=_DF))
     return fig.to_json()
 
 
@@ -347,7 +350,8 @@ def quant_levels():
 
 def update_image(providers, tags):
     """Mirror app.py update_image_charts — returns image faceted figure JSON."""
-    d = get_image_df()
+    full = get_image_df()
+    d = full
     if providers:
         d = d[d["provider"].isin(list(providers))]
     if tags:
@@ -356,12 +360,15 @@ def update_image(providers, tags):
                 d = d[d["open_weights"] == True]
             else:
                 d = d[d["tags"].apply(lambda t: tag in t)]
-    return build_image_faceted(d).to_json()
+    # Which ELO column each facet reads is decided against the whole arena, so a
+    # provider filter cannot silently swap a facet onto a retired 2025 metric.
+    return build_image_faceted(d, full_df=full).to_json()
 
 
 def update_video(providers, tags):
     """Mirror app.py update_video_charts — returns {"rankings":.., "scatter":..}."""
-    d = get_video_df()
+    full = get_video_df()
+    d = full
     if providers:
         d = d[d["provider"].isin(list(providers))]
     if tags:
@@ -371,9 +378,12 @@ def update_video(providers, tags):
             else:
                 d = d[d["tags"].apply(lambda t: tag in t)]
     paid = d[d["price_per_sec"] > 0] if not d.empty else d
+    full_paid = full[full["price_per_sec"] > 0] if not full.empty else full
     return json.dumps({
         "rankings": json.loads(build_video_rankings(d).to_json()),
-        "scatter":  json.loads(build_video_scatter(paid if not paid.empty else d).to_json()),
+        "scatter":  json.loads(
+            build_video_scatter(paid if not paid.empty else d, full_df=full_paid).to_json()
+        ),
     })
 
 

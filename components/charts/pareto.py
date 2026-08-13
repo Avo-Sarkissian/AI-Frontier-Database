@@ -25,8 +25,17 @@ def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
     O(n log n) Pareto frontier.
     Sort by price ascending; keep a model only if its quality exceeds
     every cheaper model seen so far.
+
+    The secondary quality key is load-bearing, not cosmetic. A bare
+    ``sort_values("price")`` is an unstable quicksort, so when two models share a
+    price their row order decided which was seen first — and if the *worse* one
+    came first it was appended, putting a strictly dominated model on a line
+    labelled "Pareto Frontier". Sorting quality descending within a price tie
+    means only the best model at that price can ever clear ``max_q``.
     """
-    sub = df[(df["price"] > 0) & (df["quality"] > 0)].sort_values("price")
+    sub = df[(df["price"] > 0) & (df["quality"] > 0)].sort_values(
+        ["price", "quality"], ascending=[True, False], kind="stable"
+    )
     pareto, max_q = [], 0.0
     for _, row in sub.iterrows():
         if row["quality"] > max_q:
@@ -35,21 +44,34 @@ def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(pareto) if pareto else pd.DataFrame(columns=sub.columns)
 
 
+def _plottable(df: pd.DataFrame) -> pd.DataFrame:
+    """The rows this chart draws: priced, scored, one row per model family."""
+    sub = df[
+        (df["price"] > 0) &
+        (df["quality"] > 0) &
+        df["price"].notna() &
+        df["quality"].notna()
+    ].copy()
+    return dedupe_to_best_variant(sub)
+
+
 def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
     """Return the top-n providers by model count; rest become 'Other'."""
     counts = df["provider"].value_counts()
     return set(counts.head(n).index)
 
 
-def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
-    """Build the Cost vs Quality Pareto scatter figure."""
-    plot_df = df[
-        (df["price"] > 0) &
-        (df["quality"] > 0) &
-        df["price"].notna() &
-        df["quality"].notna()
-    ].copy()
-    plot_df = dedupe_to_best_variant(plot_df)
+def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
+    """Build the Cost vs Quality Pareto scatter figure.
+
+    ``full_df`` is the unfiltered catalogue. The frontier is a claim about the
+    *market* — "nothing beats this on price and quality" — so it must be derived
+    from every model, not from whatever survived the user's filter. Computing it
+    from the filtered frame let one click promote a model the market already
+    dominates onto a line labelled "Pareto Frontier".
+    """
+    plot_df = _plottable(df)
+    ref_df = plot_df if full_df is None else _plottable(full_df)
 
     plot_df["size"] = bubble_size(plot_df["speed"], BUBBLE_SPEED_REF).values
 
@@ -103,7 +125,12 @@ def build_pareto_scatter(df: pd.DataFrame) -> go.Figure:
         ))
 
     # --- Pareto frontier line ---
-    pareto_df = _pareto_frontier(plot_df)
+    # Membership is decided against the full catalogue, then intersected with
+    # what is on screen: a filter may HIDE a frontier point, never invent one.
+    frontier_models = set(_pareto_frontier(ref_df)["model"])
+    pareto_df = plot_df[plot_df["model"].isin(frontier_models)].sort_values(
+        ["price", "quality"], ascending=[True, False], kind="stable"
+    )
     if not pareto_df.empty:
         fig.add_trace(go.Scatter(
             x=pareto_df["price"],

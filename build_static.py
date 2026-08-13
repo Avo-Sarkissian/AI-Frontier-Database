@@ -101,9 +101,10 @@ def export_default_figures(out_dir: Path) -> list[str]:
     return written
 
 
-def copy_css():
-    (DOCS / "assets").mkdir(parents=True, exist_ok=True)
-    shutil.copy(ROOT / "assets" / "style.css", DOCS / "assets" / "style.css")
+def copy_css(docs: Path | None = None):
+    docs = DOCS if docs is None else docs
+    (docs / "assets").mkdir(parents=True, exist_ok=True)
+    shutil.copy(ROOT / "assets" / "style.css", docs / "assets" / "style.css")
 
 
 # Every visitor downloads pybundle.zip before the dashboard becomes interactive,
@@ -131,11 +132,13 @@ def _assert_lean_plotly(pkg_dir: Path) -> None:
         )
 
 
-def build_pybundle():
+def build_pybundle(docs: Path | None = None):
     """Build pybundle.zip: project Python + plotly/tenacity vendored from venv."""
     import importlib.util, site
 
-    bundle = DOCS / "pybundle.zip"
+    docs = DOCS if docs is None else docs
+    docs.mkdir(parents=True, exist_ok=True)
+    bundle = docs / "pybundle.zip"
     include = [
         "static_api.py", "static_helpers.py",
         "components/__init__.py", "components/stack_recommender.py",
@@ -214,9 +217,10 @@ def build_pybundle():
         )
 
 
-def swap_bundle_csvs():
+def swap_bundle_csvs(docs: Path | None = None):
     """Replace the 3 data CSVs inside docs/pybundle.zip without re-vendoring plotly."""
-    bundle = DOCS / "pybundle.zip"
+    docs = DOCS if docs is None else docs
+    bundle = docs / "pybundle.zip"
     if not bundle.exists():
         raise RuntimeError("pybundle.zip missing — run a full `python build_static.py` first.")
     tmp = bundle.with_suffix(".zip.tmp")
@@ -236,24 +240,41 @@ def swap_bundle_csvs():
     print("swapped CSVs into pybundle.zip")
 
 
-def rebuild_data_only():
+def rebuild_data_only(docs: Path | None = None):
     """Data-only refresh for the hourly bot: figures + manifest + CSV swap, no plotly re-vendor."""
-    export_default_figures(FIG)
-    copy_css()
-    swap_bundle_csvs()
-    print("Data-only rebuild complete →", DOCS)
+    docs = DOCS if docs is None else docs
+    export_default_figures(docs / "figures")
+    copy_css(docs)
+    swap_bundle_csvs(docs)
+    print("Data-only rebuild complete →", docs)
 
 
-def main():
-    export_default_figures(FIG)
-    copy_css()
-    (DOCS / ".nojekyll").write_text("")
-    build_pybundle()
-    print("Static build complete →", DOCS)
+def main(docs: Path | None = None):
+    docs = DOCS if docs is None else docs
+    export_default_figures(docs / "figures")
+    copy_css(docs)
+    (docs / ".nojekyll").write_text("")
+    build_pybundle(docs)
+    print("Static build complete →", docs)
+
+
+def _out_dir_from_argv(argv: list[str]) -> Path | None:
+    """`--out DIR` redirects the whole build away from the published docs/ tree.
+
+    Without it the only way to exercise a build was to overwrite the live site,
+    so running the test suite republished the dashboard.
+    """
+    if "--out" not in argv:
+        return None
+    i = argv.index("--out")
+    if i + 1 >= len(argv):
+        raise SystemExit("--out requires a directory argument")
+    return Path(argv[i + 1]).resolve()
 
 
 if __name__ == "__main__":
+    _out = _out_dir_from_argv(sys.argv)
     if "--data-only" in sys.argv:
-        rebuild_data_only()
+        rebuild_data_only(_out)
     else:
-        main()
+        main(_out)

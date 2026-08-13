@@ -52,20 +52,30 @@ def _price_label(value, short: bool = False) -> str:
     return f"${value:.0f}/1k" if short else f"${value:.1f}/1k"
 
 
-def build_image_faceted(df: pd.DataFrame) -> go.Figure:
+def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
     """
     3-column horizontal bar chart: one column per style category.
     Uses per-category ELO from live AA arena data when available.
     Falls back to tag-based filtering + global ELO if category columns missing.
+
+    ``full_df`` is the unfiltered image catalogue. Each facet picks the first
+    candidate column that carries data, and every category keeps a *retired*
+    2025 column as its fallback — so choosing from the filtered frame let a
+    single-provider filter silently switch a facet to a different metric, and
+    models scored only on the current column disappeared entirely.
     """
     if df.empty:
         # Reachable: most provider x tag filter combinations select nothing,
         # and this used to raise KeyError: 'elo' out of the fallback branch.
         return empty_figure("No image models match these filters")
 
+    ref_df = df if full_df is None or full_df.empty else full_df
+
     col_dfs = []
     for cat in _CATEGORIES:
-        elo_col = _pick_elo_column(df, cat["elo_cols"])
+        elo_col = _pick_elo_column(ref_df, cat["elo_cols"])
+        if elo_col and elo_col not in df.columns:
+            elo_col = None
         if elo_col:
             # Live data: rank by category-specific ELO
             cdf = df[df[elo_col].notna()].copy() \

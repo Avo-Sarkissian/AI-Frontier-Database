@@ -1,5 +1,5 @@
 # tests/test_build_static.py
-import json, subprocess, sys, re, zipfile
+import hashlib, json, subprocess, sys, re, zipfile
 from pathlib import Path
 from datetime import datetime
 
@@ -9,6 +9,14 @@ import build_static
 ROOT = Path(__file__).resolve().parent.parent
 
 DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv"]
+
+
+def _tree_digest(root: Path) -> dict[str, str]:
+    """sha256 per file, so a test can prove it did not touch the published site."""
+    return {
+        str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(root.rglob("*")) if p.is_file()
+    }
 
 
 def _ambient_plotly_is_lean() -> bool:
@@ -28,10 +36,27 @@ needs_lean_plotly = pytest.mark.skipif(
 )
 
 @needs_lean_plotly
+def test_build_writes_only_into_the_out_dir(tmp_path):
+    """Running the build must never touch the published site.
+
+    build_static hardcoded DOCS = ROOT/"docs", and these tests shelled out with
+    cwd=ROOT, so a plain `pytest` run rebuilt and dirtied docs/ — which, under
+    the repo's auto-push mandate, republished the live site as a side effect of
+    running tests.
+    """
+    before = _tree_digest(ROOT / "docs")
+    subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
+    assert (tmp_path / "figures" / "manifest.json").exists()
+    assert (tmp_path / "pybundle.zip").exists()
+    assert _tree_digest(ROOT / "docs") == before, "build mutated docs/ despite --out"
+
+
+@needs_lean_plotly
 def test_build_produces_figures_and_manifest(tmp_path):
-    # Build writes into docs/figures by default; assert key artifacts exist & parse.
-    subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
-    figdir = ROOT / "docs" / "figures"
+    subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
+    figdir = tmp_path / "figures"
     for fid in ["pareto", "treemap", "rankings", "radar", "cost_calc",
                 "local_scatter", "image_faceted", "video_rankings"]:
         p = figdir / f"{fid}.json"
@@ -43,24 +68,27 @@ def test_build_produces_figures_and_manifest(tmp_path):
     assert manifest["provider_options"] and manifest["diverse5"]
 
 @needs_lean_plotly
-def test_manifest_has_version_and_iso():
-    subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
-    manifest = json.loads((ROOT / "docs" / "figures" / "manifest.json").read_text())
+def test_manifest_has_version_and_iso(tmp_path):
+    subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
+    manifest = json.loads((tmp_path / "figures" / "manifest.json").read_text())
     assert re.fullmatch(r"\d{8}T\d{6}Z", manifest.get("version", "")), manifest.get("version")
     # generated_iso must parse as ISO-8601
     datetime.fromisoformat(manifest["generated_iso"])
 
 @needs_lean_plotly
-def test_data_only_swaps_csvs_and_preserves_plotly():
+def test_data_only_swaps_csvs_and_preserves_plotly(tmp_path):
     # Full build first so a bundle exists.
-    subprocess.run([sys.executable, "build_static.py"], cwd=ROOT, check=True)
-    bundle = ROOT / "docs" / "pybundle.zip"
+    subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
+    bundle = tmp_path / "pybundle.zip"
     with zipfile.ZipFile(bundle) as z:
         before = {i.filename: z.read(i.filename) for i in z.infolist()}
     sample_py = next(n for n in before if n.endswith(".py") and not n.startswith("data/raw/"))
 
     # Data-only rebuild.
-    subprocess.run([sys.executable, "build_static.py", "--data-only"], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, "build_static.py", "--data-only", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
     with zipfile.ZipFile(bundle) as z:
         after = set(z.namelist())
         # membership unchanged
