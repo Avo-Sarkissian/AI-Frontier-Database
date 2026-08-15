@@ -224,7 +224,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
             text=(
                 "Speed vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  bubble size ∝ affordability  ·  shape = provider family</span>"
+                "  ·  bubble size ∝ affordability (log)  ·  shape = provider family"
+                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

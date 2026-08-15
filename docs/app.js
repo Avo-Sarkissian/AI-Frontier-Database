@@ -196,6 +196,12 @@ function switchTab(id) {
   // were all live tab values this app once emitted into share URLs. The Dash
   // side has had _VALID_TABS since commit 82effa0; this side never got it.
   if (!VALID_TABS.includes(id)) id = VALID_TABS[0];
+  // Close the model detail panel. It was only ever cleared by its own close
+  // button, so it stayed open — and still armed to an LLM with a live "Add to
+  // Compare" — over the Video Gen and Image Gen tabs.
+  const panel = document.getElementById("detail-panel");
+  if (panel) panel.className = "detail-panel";
+  window.AF.detailModel = null;
   window.AF.state.tab = id;
   document.querySelectorAll(".tab").forEach(b =>
     b.classList.toggle("tab--selected", b.dataset.tab === id));
@@ -372,6 +378,7 @@ function bootPyodide() {
     if (msg.type === "ready") {
       window.AF.pyReady = true;
       setStatus("", false);
+      setExportPending(false);
       populateDynamicSelects()
         .then(rerenderActiveFilterCharts)
         .catch((e) => console.error("post-boot refresh failed:", e));
@@ -811,7 +818,10 @@ function renderTableRows(records) {
     const qual = r.quality != null ? r.quality.toFixed(1) : "—";
     const val  = r.value  != null && r.value > 0  ? r.value.toFixed(2) : "—";
     const price = r.price != null && r.price > 0   ? "$" + r.price.toFixed(4) : "—";
-    const speed = r.speed != null && r.speed > 0   ? Math.round(r.speed).toLocaleString() : "—";
+    // "en-US", not the visitor's locale: a bare toLocaleString renders 1560 as
+  // "1.560" in de-DE — a 1000x ambiguity in a column sitting next to $0.1580.
+  const speed = r.speed != null && r.speed > 0
+    ? Math.round(r.speed).toLocaleString("en-US") : "—";
     const lat   = r.latency != null && r.latency > 0 ? r.latency.toFixed(2) + "s" : "—";
     const ctx   = r.context != null ? escapeHtml(r.context) : "—";
 
@@ -838,8 +848,13 @@ function rerenderAfterFilterChange(which) {
 
 // ---- Re-render active tab's filter-driven charts ----
 async function rerenderActiveFilterCharts() {
-  if (!window.AF.pyReady) return;
+  // Read the controls BEFORE the guard. readGlobalFilters is what populates
+  // window.AF.state, and it sat one line below this return — so pre-boot the
+  // state said {providers: [], minQuality: 0} while the DOM said Anthropic /
+  // >= 40, and Share copied a filter-less link AND rewrote the address bar
+  // with it. Pyodide is CDN-loaded, so a cold cache widens that window.
   const [p, q, s] = readGlobalFilters();
+  if (!window.AF.pyReady) return;
   const tab = window.AF.state.tab;
   if (tab === "overview") {
     const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
@@ -914,6 +929,21 @@ function ensureQualityOption(sel, value) {
   sel.insertBefore(opt, after || null);
 }
 
+// ↓CSV and Share need Python. Say so instead of doing nothing: the export
+// button returned silently — no download, no message, no console line — and
+// Pyodide is CDN-loaded, so on a cold cache or a blocked jsDelivr that window
+// stays open indefinitely.
+function setExportPending(pending) {
+  const btn = document.getElementById("btn-export");
+  if (!btn) return;
+  btn.title = pending
+    ? "Preparing… the CSV needs the in-browser Python runtime, which is still loading."
+    : "Download the data on screen as CSV";
+  btn.textContent = pending ? "↓ CSV  ·  loading…" : "↓ CSV";
+  btn.disabled = !!pending;
+  btn.style.opacity = pending ? "0.5" : "";
+}
+
 // ---- Wire all global controls ----
 function wireGlobalControls() {
   // Each control names itself, so the Compare tab can tell a real filter change
@@ -929,7 +959,11 @@ function wireGlobalControls() {
 
   // CSV export — get filtered CSV text from Python, trigger download.
   document.getElementById("btn-export").onclick = async () => {
-    if (!window.AF.pyReady) return;
+    if (!window.AF.pyReady) {
+      // Returned silently: no download, no message, no console output.
+      setExportPending(true);
+      return;
+    }
     const [p, q, s] = readGlobalFilters();
     try {
       // Export what is on screen. This always sent the hosted-LLM catalogue
@@ -1052,7 +1086,22 @@ function updateOverviewCaption() {
 function wireTabControls() {
   // Overview X-axis
   document.querySelectorAll('input[name="overview-xaxis"]').forEach(r => {
-    r.onchange = () => { updateOverviewCaption(); rerenderActiveFilterCharts(); };
+    r.onchange = async () => {
+      // Pre-boot, rerenderActiveFilterCharts returns early — so the caption
+      // flipped to "Bubble size = affordability (larger = cheaper)" over a
+      // chart whose x-axis still read "Price (USD / 1M tokens)": an exactly
+      // inverted reading of the same picture. The Speed view has a pre-built
+      // figure (docs/figures/quadrant.json) that was never fetched; use it, and
+      // only then move the caption.
+      const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
+      if (!window.AF.pyReady) {
+        try {
+          await renderFigure("chart-pareto", x === "speed" ? "quadrant" : "pareto");
+        } catch (e) { console.error("pre-boot overview render failed:", e); }
+      }
+      updateOverviewCaption();
+      rerenderActiveFilterCharts();
+    };
   });
 
   // Rankings sort
@@ -1187,6 +1236,7 @@ async function init() {
   const chartLoads = TABS.flatMap(t => t.charts.map(c => renderFigure("chart-" + c, c)));
   await Promise.all(chartLoads);
   wireGlobalControls();
+  setExportPending(!window.AF.pyReady);
   wireTabControls();
   updateOverviewCaption();  // set caption for initial price x-axis
   wireDetailPanel();  // wires close/add-compare immediately; pareto click re-attached after each render

@@ -191,6 +191,13 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
                     if min_quality else
                     "  ·  cheapest models for your token budget"
                 )
+                # The entire cost model is `tokens * price`, and `price` is the
+                # 3:1 output-weighted blend — so every figure here assumes 75%
+                # of your tokens are generated. An input-heavy RAG workload
+                # costs far less than this chart says (Claude Opus 5 at 100M:
+                # $2000 charted, $500 all-input). The blend is a defensible
+                # default; not saying so is not.
+                + "  ·  assumes 75% output tokens (3:1 blend)"
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

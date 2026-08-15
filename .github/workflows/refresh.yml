@@ -44,7 +44,13 @@ jobs:
       - name: Change guard — stop if no data moved
         id: guard
         run: |
-          if git diff --quiet -- data/raw/ && [ -z "$(git ls-files --others --exclude-standard -- data/raw/)" ]; then
+          # scrape_status.json is EXCLUDED: it records a checked_at timestamp on
+          # every run, so including it would make the guard fire every hour even
+          # when no dataset moved — turning a guard that exists to prevent
+          # pointless commits into one that guarantees them. The status file is
+          # still committed alongside real changes (git add -- data/raw below).
+          if git diff --quiet -- data/raw/ ':(exclude)data/raw/scrape_status.json' \
+             && [ -z "$(git ls-files --others --exclude-standard -- data/raw/ | grep -v scrape_status.json)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No data change — skipping rebuild and commit."
           else

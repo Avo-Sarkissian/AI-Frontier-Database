@@ -163,6 +163,23 @@ def _preflight_environment() -> None:
     replacing every figure and the manifest before raising.
     """
     import importlib.util
+
+    # Say WHICH environment is building. `source ai-frontier/bin/activate` on
+    # this repo's path silently activates nothing — the path contains a space,
+    # the prepended bin/ does not exist — yet the script exits 0 and still sets
+    # the (ai-frontier) prompt, so you get the system interpreter believing you
+    # are in a venv. That is how a build once ran under plotly 6.0 and tripled
+    # the bundle. Printing the versions makes a wrong-but-lean environment
+    # visible instead of silent.
+    import plotly as _plotly
+    import pandas as _pandas
+    print(f"  building with {sys.executable}")
+    print(f"  python {sys.version.split()[0]}  ·  plotly {_plotly.__version__}"
+          f"  ·  pandas {_pandas.__version__}")
+    if sys.prefix == sys.base_prefix:
+        print("  NOTE: not running inside a virtualenv "
+              "(sys.prefix == sys.base_prefix)")
+
     spec = importlib.util.find_spec("plotly")
     if spec and spec.submodule_search_locations:
         _assert_lean_plotly(Path(list(spec.submodule_search_locations)[0]))
@@ -197,9 +214,19 @@ def build_pybundle(docs: Path | None = None):
     include = [
         "static_api.py", "static_helpers.py", "captions.py",
         "components/__init__.py", "components/stack_recommender.py",
-        "components/charts",                      # whole dir
+        # Explicit list, not the whole directory. Globbing shipped 1,275 lines of
+        # unreferenced builders to every visitor — including a context parser
+        # with no 'M' case that would have silently dropped every long-context
+        # model from any chart wired to it.
+        "components/charts/__init__.py", "components/charts/constants.py",
+        "components/charts/pareto.py", "components/charts/quadrant.py",
+        "components/charts/treemap.py", "components/charts/rankings.py",
+        "components/charts/radar.py", "components/charts/cost_calc.py",
+        "components/charts/provider_leaderboard.py", "components/charts/bump_chart.py",
+        "components/charts/local_scatter.py", "components/charts/local_compat.py",
+        "components/charts/image_scatter.py", "components/charts/video_chart.py",
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
-        "data/image_models.py", "data/video_models.py", "data/embedding_models.py",
+        "data/image_models.py", "data/video_models.py",
         "data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv",
     ]
 

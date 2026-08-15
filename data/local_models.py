@@ -75,11 +75,24 @@ QUANT_BYTES: dict[str, float] = {
 # this number is, and the hovers say what it assumes.
 _OVERHEAD = 1.18
 
-# Memory efficiency factor by hardware type
-# (fraction of theoretical peak bandwidth utilized during inference)
+# Memory efficiency factor by hardware type: the fraction of theoretical peak
+# bandwidth a real decode achieves.
+#
+# PROVENANCE — read this before trusting a tok/s figure. These are ESTIMATES
+# from published community benchmarks and vendor documentation, not numbers this
+# project measured. No run, machine or date is recorded for any of them, and an
+# audit specifically flagged apple=0.82 > nvidia=0.55 as counter-intuitive
+# (Apple's unified memory has lower peak bandwidth but a shorter path to it, so
+# a higher *fraction* is plausible — but plausible is not measured).
+#
+# Treat the ordering between hardware types as indicative and the absolute
+# tok/s as ±30%. If you have real measurements, replace these and record the
+# machine, model, quantisation and date here.
+#
 # apple:    0.82 = MLX Metal GPU kernels via Ollama ≥ 0.6 / mlx-lm
 # qualcomm: 0.55 = Adreno GPU via llama.cpp Vulkan backend on Windows ARM
 # intel:    0.50 = Arc GPU via SYCL/oneAPI backend in llama.cpp
+# nvidia / amd / cpu: no source recorded — unvalidated estimates
 _EFF: dict[str, float] = {
     "nvidia":   0.55,
     "amd":      0.50,
@@ -536,7 +549,13 @@ def calc_speed_tps(
 ) -> float:
     """
     Estimated tokens per second (memory-bandwidth-bound inference).
-    Uses active parameter count for MoE (only active experts are read per token).
+
+    Uses ACTIVE parameter count for MoE, on the assumption that only the routed
+    experts are read per token. That holds for the steady-state decode of a
+    resident model; it does NOT hold when the full weight set will not fit and
+    experts are paged, which is exactly the case the Run Local tab is about.
+    So MoE speed here is an upper bound, and the gap widens as a model
+    approaches the VRAM limit. Unvalidated — see the _EFF provenance note.
     """
     active_gb = active_b * QUANT_BYTES[quant] * _OVERHEAD
     if active_gb < 0.01:

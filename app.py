@@ -42,7 +42,7 @@ from components.charts.video_chart          import build_video_rankings, build_v
 from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, get_image_tags, PROVIDER_COLORS as IMG_PROVIDER_COLORS
 from data.video_models                      import get_video_df, get_video_providers, get_video_tags
-from components.charts.bump_chart          import build_bump_chart, build_value_leaders
+from components.charts.bump_chart          import build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df = get_models()
@@ -629,7 +629,10 @@ app.layout = html.Div([
                         "borderTop": "none",
                         "paddingTop": "10px",
                         "paddingBottom": "10px",
-                        "cursor": "pointer",
+                        # No cursor:pointer — sort_action is "none" and the
+                        # headers are inert, so the pointer invited a click that
+                        # does nothing. Sorting is done with the two dropdowns
+                        # above the table.
                     },
                     style_cell={
                         "backgroundColor": "#0e0e0e",
@@ -1416,8 +1419,12 @@ def toggle_global_filters(tab):
 def auto_refresh_data(_, current_version):
     prev_mtime = _cache_mtime
     _reload_if_stale()
-    data_changed = (_cache_mtime != prev_mtime)
-    new_version  = (current_version or 0) + (1 if data_changed else 0)
+    # Content-addressed, not a counter. _cache_mtime is a module global while
+    # data-version is per-session, and _reload_if_stale clears the "changed"
+    # flag as a side effect — so whichever session ticked first consumed the
+    # signal and the others got a fresh stat bar above stale charts. The mtime
+    # is the same value in every session, so they all converge.
+    new_version = _cache_mtime
     return (
         str(len(df)),
         str(df["provider"].nunique()),

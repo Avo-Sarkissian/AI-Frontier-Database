@@ -142,7 +142,7 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
         if not name:
             continue
         creator  = m.get("creator") or {}
-        provider = (creator.get("name") or "").strip()
+        provider = _canonical_image_provider((creator.get("name") or "").strip())
         price    = m.get("pricePer1kImages")   # float or None
         ow       = bool(m.get("openWeightsUrl"))
 
@@ -188,6 +188,26 @@ MAX_SHRINK_PCT = 20.0
 # Share of rows each critical column must actually carry. A rename degrades to a
 # constant rather than raising, so without this a schema change publishes a full
 # row count with an all-zero column — see data/scraper.py for the hosted case.
+# Artificial Analysis's image arena spells some labs two ways in the same feed
+# ("Bytedance" 6 models, "ByteDance Seed" 3), so they counted as two providers,
+# fragmented the leaderboard, and made get_image_providers() return 39 uniques
+# where the real count is 38. The palette already mapped both spellings to one
+# colour with an "(alt spelling)" comment — for colour only, never identity.
+# Collapsing at parse time makes it one provider everywhere.
+_PROVIDER_ALIASES = {
+    "bytedance seed":  "Bytedance",
+    "stability ai":    "Stability.ai",
+    "playground":      "Playground AI",
+    "leonardo ai":     "Leonardo.Ai",
+    "microsoft azure": "Microsoft AI",
+    "xai":             "SpaceXAI",
+}
+
+
+def _canonical_image_provider(name: str) -> str:
+    return _PROVIDER_ALIASES.get(name.strip().lower(), name.strip())
+
+
 _COLUMN_HEALTH = {"model": 0.95, "provider": 0.90, "elo": 0.90}
 
 

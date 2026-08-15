@@ -65,6 +65,8 @@ CAPTIONS: dict[str, str] = {
         "time-to-first-token (TTFT) in seconds."
     ),
     'local': (
+        "VRAM figures cover model WEIGHTS plus a fixed overhead — not the KV cache, "
+        "which grows with context, so a long-context run needs more than shown. "
         "Find open-weight models you can run on your own hardware. Select your GPU "
         "(or enter VRAM manually), choose a quantization level, and see which "
         "models fit — with estimated inference speed."

@@ -245,3 +245,108 @@ def test_every_caption_key_the_site_asks_for_exists():
     wanted = set(re.findall(r'"(\w+)"', block.group(1)))
     missing = wanted - set(CAPTIONS)
     assert not missing, f"docs/app.js asks for captions that do not exist: {missing}"
+
+
+# ── 5.5 — the six smaller drift rows ─────────────────────────────────────────
+
+def test_the_refresh_signal_is_content_addressed_not_a_counter():
+    """_cache_mtime is a module global while data-version is per-session, and
+    _reload_if_stale clears the "changed" flag as a side effect — so whichever
+    session ticked first consumed the signal and the others got a fresh stat bar
+    above stale charts."""
+    assert "new_version = _cache_mtime" in APP_PY, (
+        "the refresh signal is still an incrementing per-session counter"
+    )
+
+
+def test_the_table_headers_do_not_invite_a_click_that_does_nothing():
+    block = re.search(r"sort_action=\"none\".*?style_cell=", APP_PY, re.S)
+    assert block, "could not find the table component"
+    assert '"cursor": "pointer"' not in block.group(0), (
+        "inert headers still show a pointer cursor"
+    )
+
+
+def test_filter_state_is_read_before_the_pyodide_guard():
+    """window.AF.state is written only by readGlobalFilters, which sat one line
+    BELOW the `if (!pyReady) return;` guard — so pre-boot the state said no
+    filters while the DOM said Anthropic / >= 40, and Share copied a filter-less
+    link and rewrote the address bar with it."""
+    body = APP_JS.split("async function rerenderActiveFilterCharts")[1][:600]
+    read_at = body.index("readGlobalFilters()")
+    guard_at = body.index("if (!window.AF.pyReady) return;")
+    assert read_at < guard_at, "the filter state is still populated after the guard"
+
+
+def test_the_export_button_says_when_it_cannot_act_yet():
+    """↓CSV returned silently pre-boot: no download, no message, no console
+    line — and Pyodide is CDN-loaded, so a cold cache widens that window."""
+    assert "setExportPending" in APP_JS
+
+
+def test_the_detail_panel_closes_on_a_tab_switch():
+    """It was cleared only by its own close button, so it stayed open — still
+    armed to an LLM with a live "Add to Compare" — over the Video Gen tab."""
+    body = APP_JS.split("function switchTab")[1][:800]
+    assert "detail-panel" in body, "switchTab does not close the detail panel"
+
+
+def test_the_speed_column_does_not_use_the_visitors_locale():
+    """A bare toLocaleString renders 1560 as "1.560" in de-DE — a 1000x
+    ambiguity in a column next to $0.1580."""
+    assert ".toLocaleString()" not in APP_JS
+    assert 'toLocaleString("en-US")' in APP_JS
+
+
+def test_the_pre_boot_speed_view_uses_the_prebuilt_quadrant_figure():
+    """docs/figures/quadrant.json is built (29 KB) and was never fetched, so
+    switching to Speed before boot left the Price chart under a Speed caption —
+    an exactly inverted reading of the same picture."""
+    assert '"quadrant"' in APP_JS, "the pre-built quadrant figure is still unused"
+
+
+# ── 9.5 / 9.6 / 8.2 — the numbers a caption implies ──────────────────────────
+
+def test_the_overview_charts_state_how_many_rows_they_collapse():
+    """Prose alone left the cross-tab contradiction unexplained: the header tile
+    says 155, the treemap says OpenAI ships 25, and Overview draws 8 of them."""
+    import json as _json
+    from components.charts.pareto import build_pareto_scatter
+    from components.charts.quadrant import build_quadrant
+
+    for build in (lambda: build_pareto_scatter(DF, full_df=DF),
+                  lambda: build_quadrant(DF, full_df=DF)):
+        title = _json.loads(build().to_json())["layout"]["title"]["text"]
+        assert re.search(r"\d+ of \d+ rows", title), (
+            f"subtitle does not quantify the family collapse: {title!r}"
+        )
+
+
+def test_the_budget_chart_states_the_token_mix_it_assumes():
+    """The whole cost model is `tokens * price`, and price is the 3:1
+    output-weighted blend — so every figure assumes 75% generated tokens.
+    Claude Opus 5 at 100M charts $2000 where an all-input workload pays $500."""
+    import json as _json
+    from components.charts.cost_calc import build_cost_calc
+
+    title = _json.loads(build_cost_calc(DF).to_json())["layout"]["title"]["text"]
+    assert "75% output" in title, f"the Budget chart hides its assumption: {title!r}"
+
+
+def test_the_run_local_caption_says_what_the_vram_figure_covers():
+    caption = CAPTIONS["local"].lower()
+    assert "kv cache" in caption and "weights" in caption
+
+
+def test_image_providers_are_not_split_across_spellings():
+    """"Bytedance" (6) and "ByteDance Seed" (3) counted as two providers and
+    fragmented the leaderboard."""
+    from data.image_models import get_image_df
+
+    names = set(get_image_df()["provider"].dropna())
+    normalised = {}
+    for n in names:
+        key = re.sub(r"[^a-z0-9]", "", n.lower())
+        normalised.setdefault(key, []).append(n)
+    dupes = {k: v for k, v in normalised.items() if len(v) > 1}
+    assert not dupes, f"one provider under several spellings: {dupes}"

@@ -201,7 +201,8 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
             text=(
                 "Cost vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  bubble size = speed (tok/s)  ·  shape = provider family</span>"
+                "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
