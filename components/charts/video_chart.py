@@ -102,7 +102,14 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
         ),
         xaxis=dict(
             title=dict(text="Quality Score (0–100)", font=dict(color=AXIS, size=12), standoff=12),
-            range=[40, max_q * ANNOTATED_AXIS_HEADROOM],
+            # From 0, because bar length is the ONLY encoding here. The axis
+            # started at 40 under a title that says 0–100: with data spanning
+            # 58–93 that made SVD:Veo3 read as (58-40)/(93-40) = 0.34 of the
+            # leader when the truthful ratio is 58/93 = 0.62 — 1.8x overstated,
+            # in the default view of the tab, with no filtering required.
+            # A truncated baseline is legitimate for dots or lines; for bars it
+            # is a lie about proportion.
+            range=[0, max_q * ANNOTATED_AXIS_HEADROOM],
             gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",

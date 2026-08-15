@@ -513,8 +513,10 @@ app.layout = html.Div([
         dcc.Tab(label="Compare", value="compare",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Radar comparing up to 5 models across 5 dimensions — all normalized to 0–100% "
-                "relative to the best model in the full dataset. "
+                "Radar comparing up to 5 models across 5 dimensions, each scaled 0–100% between "
+                "the weakest and strongest model in the full catalogue — so a shape means the "
+                "same thing whatever the filter. Speed, price, context and latency are heavy-tailed, "
+                "so those four use a log scale: one step is a 10× change, not a fixed amount. "
                 "Affordability = inverted price (100% = cheapest). Latency = inverted TTFT (100% = fastest). "
                 "Raw values for each model are shown in the table below the chart."
             ),
@@ -532,7 +534,7 @@ app.layout = html.Div([
                           style={"color": "var(--text-3)", "paddingLeft": "8px"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="radar-chart", figure=build_radar(df, _DIVERSE5),
+                dcc.Graph(id="radar-chart", figure=build_radar(df, _DIVERSE5, full_df=df),
                           config=_GRAPH_CONFIG, style={"height": "560px"}),
             ])], className="chart-card"),
             html.Div(id="compare-raw-table", className="chart-card",
@@ -1164,7 +1166,7 @@ def update_compare(providers, min_quality, search, selected_models):
         capped = (selected_models or [])[:5]
 
     raw_table = _build_raw_table(filtered, capped)
-    return build_radar(filtered, capped), options, capped, raw_table
+    return build_radar(filtered, capped, full_df=df), options, capped, raw_table
 
 
 @callback(

@@ -49,10 +49,20 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
             cmin=0.0,
             cmax=QUALITY_INDEX_MAX,
             colorscale=[
-                # The old bottom stop (#1a1a2e) sat within 9 RGB units of the
-                # #111111 page, so the weakest provider was painted as the
-                # background.
-                [0.0,  "#243056"],
+                # Monotonically lightening, which a sequential ramp has to be.
+                #
+                # Two earlier fixes to this scale left it non-monotonic: the old
+                # bottom stop (#1a1a2e) sat within 9 RGB units of the #111111
+                # page, so it was replaced with #243056 — which is *lighter*
+                # than the #16213e stop above it. The ramp then darkened over
+                # its first 30% (60 consecutive negative luminance steps, global
+                # minimum at t=0.30), and 112 of 496 provider pairs rendered the
+                # higher-scoring provider darker. Reka AI 3.71 painted lighter
+                # than Inception 21.90.
+                #
+                # #101828 is dark enough to read as "lowest" but still 12 RGB
+                # units clear of the page, so the original complaint stays fixed.
+                [0.0,  "#101828"],
                 [0.3,  "#16213e"],
                 [0.55, "#0f3460"],
                 [0.75, "#1a5276"],

@@ -2,6 +2,7 @@
 Shared chart constants — imported by all chart modules.
 Single source of truth for colors and styling.
 """
+import math as _math
 import re as _re
 import pandas as _pd
 
@@ -243,6 +244,9 @@ FONT  = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 # Price at or above which a bubble is drawn at its minimum size on charts that
 # encode affordability. Fixed, for the same reason BUBBLE_SPEED_REF is.
 BUBBLE_PRICE_REF = 20.0
+# Bottom of the price bubble's log domain. The cheapest real model is $0.08;
+# 0.05 keeps it just inside the scale rather than pinned at the maximum.
+BUBBLE_PRICE_FLOOR = 0.05
 
 # Local models run an order of magnitude slower than hosted APIs, so they get
 # their own throughput reference.
@@ -268,7 +272,8 @@ RADAR_CONTEXT_K_MAX = 2000.0  # thousands of tokens
 # shows a per-provider legend hit the same three bugs. These exist so the fix
 # lives in one place rather than being re-derived per module.
 
-def bubble_size(values, ref: float, invert: bool = False) -> _pd.Series:
+def bubble_size(values, ref: float, invert: bool = False,
+                log: bool = False, floor: float | None = None) -> _pd.Series:
     """Marker diameters for a magnitude, on a FIXED reference scale.
 
     Normalising against the plotted frame's own max means the render paths —
@@ -278,15 +283,32 @@ def bubble_size(values, ref: float, invert: bool = False) -> _pd.Series:
     magnitude instead of diameter exaggerating it.
 
     invert=True encodes "smaller value = bigger bubble" (affordability).
+
+    ``log`` places the value on a log scale between ``floor`` and ``ref``, which
+    is required whenever the variable spans decades. Price does: it runs
+    $0.08-$40.00 with a $0.96 median, so on the linear scale 53 of 95 models sat
+    within 0.43 px of each other — a 12.5x price difference rendered as no
+    visible difference — while $20.00, $23.75 and $40.00 all drew at exactly the
+    7.00 px floor. Speed against a 900 ref is well spread linearly (8.76-26.00
+    px measured), so it stays linear and this is opt-in rather than the default.
     """
     span = BUBBLE_MAX_PX - BUBBLE_MIN_PX
+    lo = float(floor) if floor else None
+    if log and (lo is None or lo <= 0 or ref <= lo):
+        log = False           # a degenerate domain would divide by zero
 
     def _one(v):
         if _pd.isna(v) or v <= 0:
             return BUBBLE_MIN_PX
-        frac = min(float(v), ref) / ref
+        if log:
+            clamped = min(max(float(v), lo), float(ref))
+            frac = ((_math.log10(clamped) - _math.log10(lo))
+                    / (_math.log10(float(ref)) - _math.log10(lo)))
+        else:
+            frac = min(float(v), ref) / ref
         if invert:
             frac = 1.0 - frac
+        frac = min(1.0, max(0.0, frac))
         return BUBBLE_MIN_PX + (frac ** 0.5) * span
 
     return _pd.Series(values).apply(_one)

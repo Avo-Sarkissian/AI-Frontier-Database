@@ -260,7 +260,7 @@ def update_compare(providers, min_quality, search, selected_models, triggered):
     else:
         capped = (selected_models or [])[:5]
     return json.dumps({
-        "figure": json.loads(build_radar(f, capped).to_json()),
+        "figure": json.loads(build_radar(f, capped, full_df=_DF).to_json()),
         "options": options,
         "value": capped,
         "raw_table_html": _build_raw_table_html(f, capped),

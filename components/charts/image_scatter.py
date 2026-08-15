@@ -72,10 +72,12 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
     ref_df = df if full_df is None or full_df.empty else full_df
 
     col_dfs = []
+    col_cols = []   # the ELO column each facet ended up using, for the axis range
     for cat in _CATEGORIES:
         elo_col = _pick_elo_column(ref_df, cat["elo_cols"])
         if elo_col and elo_col not in df.columns:
             elo_col = None
+        col_cols.append(elo_col)
         if elo_col:
             # Live data: rank by category-specific ELO
             cdf = df[df[elo_col].notna()].copy() \
@@ -197,9 +199,32 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         xref = f"xaxis{i}" if i > 1 else "xaxis"
         yref = f"yaxis{i}" if i > 1 else "yaxis"
         cdf_i = col_dfs[i - 1]
-        elo_series = cdf_i["_elo_display"] if not cdf_i.empty else pd.Series([1000, 1300])
-        x_min = max(900, elo_series.min() - 30)
-        x_max = elo_series.max() + (elo_series.max() - x_min) * 0.32
+        # Bounds from the FULL arena, not the filtered facet.
+        #
+        # This was `x_min = max(900, elo.min() - 30)` against the filtered
+        # frame, and when a provider's best model scored under 900 the headroom
+        # term `(max - x_min) * 0.32` went negative, giving x_max < x_min — a
+        # decreasing Plotly range, written with no ordering guard. 17 of 39
+        # providers produced at least one inverted axis (38 broken axes in all):
+        # Stability.ai drew (900, 844) against bars from 513 to 858, so every
+        # bar fell below the floor of an axis running high-to-low.
+        #
+        # Deriving from the whole arena fixes the inversion and the deeper
+        # problem behind it: bar length now means the same thing under every
+        # filter, instead of being rescaled by whoever is on screen.
+        ref_series = (
+            pd.to_numeric(ref_df[col_cols[i - 1]], errors="coerce").dropna()
+            if col_cols[i - 1] and col_cols[i - 1] in ref_df.columns
+            else pd.Series(dtype=float)
+        )
+        if ref_series.empty:
+            ref_series = cdf_i["_elo_display"] if not cdf_i.empty else pd.Series([1000.0, 1300.0])
+        lo, hi = float(ref_series.min()), float(ref_series.max())
+        x_min = lo - 30
+        x_max = hi + (hi - x_min) * 0.32
+        # Belt and braces: an axis must never run backwards, whatever the data.
+        if not (x_max > x_min):
+            x_min, x_max = min(lo, hi) - 30, max(lo, hi) + 30
 
         fig.layout[xref].update(
             range=[x_min, x_max],

@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
-    dedupe_to_best_variant, BUBBLE_PRICE_REF, bubble_size, safe_corr,
+    dedupe_to_best_variant, BUBBLE_PRICE_REF, BUBBLE_PRICE_FLOOR, bubble_size, safe_corr,
     marker_outline, legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
 
@@ -54,7 +54,10 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
     # reference. Normalising against the plotted frame's own max meant a model
     # grew or shrank whenever the user narrowed a filter, even though its price
     # had not changed.
-    plot_df["size"] = bubble_size(plot_df["price"], BUBBLE_PRICE_REF, invert=True).values
+    # Log-scaled: price spans decades, so a linear mapping put 53 of 95 models
+    # within 0.43 px of each other while every model over $20 drew identically.
+    plot_df["size"] = bubble_size(plot_df["price"], BUBBLE_PRICE_REF, invert=True,
+                                  log=True, floor=BUBBLE_PRICE_FLOOR).values
 
     # Correlation on log speed, matching the axis the reader is looking at.
     # (Correlation describes what is plotted, so it stays on plot_df.)

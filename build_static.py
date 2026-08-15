@@ -67,7 +67,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "provider_leaderboard": build_provider_leaderboard(df),
         "rankings":             build_rankings(df, top_n=25, metric="intelligence"),
         "value_leaders":        build_value_leaders(df),
-        "radar":                build_radar(df, diverse5),
+        "radar":                build_radar(df, diverse5, full_df=df),
         "cost_calc":            build_cost_calc(df, monthly_tokens_m=1.0),
         "local_scatter":        build_local_scatter(local_df, vram_gb=32, quant="Q4"),
         "local_compat":         build_local_compat(local_df, quant="Q4"),
