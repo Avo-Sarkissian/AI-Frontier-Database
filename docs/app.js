@@ -223,6 +223,31 @@ async function loadManifest() {
       opt.value = p; opt.textContent = p; vidProvSel.appendChild(opt);
     });
   }
+  // Tag filters come from the manifest for the same reason the provider lists
+  // do: a hardcoded option outlives the data. The image "Fast" tag matched zero
+  // models for months and the UI blamed the user for it.
+  fillTagSelect("image-tag-filter", m.image_tags);
+  fillTagSelect("video-tag-filter", m.video_tags);
+}
+
+function fillTagSelect(selectId, tags) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  if (!Array.isArray(tags) || !tags.length) {
+    // The <select> ships empty, so a manifest without this key is not a
+    // no-op — it is a permanently blank control with nothing to say so.
+    // Loud in the console beats a filter that looks broken.
+    console.warn(`${selectId}: manifest carries no tag vocabulary; ` +
+                 `the control will be empty until build_static.py is re-run`);
+    return;
+  }
+  sel.innerHTML = "";
+  tags.forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t.value;
+    opt.textContent = t.label;
+    sel.appendChild(opt);
+  });
 }
 
 // ---- Pyodide boot ----
@@ -556,15 +581,34 @@ async function refreshTable() {
   } catch (e) { console.error("refreshTable failed:", e); }
 }
 
+// Send a blank box through as null and let Python apply the shared default
+// (data/local_models.DEFAULT_VRAM_GB). The old `Number(el.value || 32)` did not
+// itself swallow a typed 0 — `.value` is a string and "0" is truthy — but it
+// hardcoded a fallback that the Python behind it also hardcoded, *differently*:
+// 32 here, 8 in static_api. One cleared box, two answers to "which models fit?".
+// One default, in Python, is the fix; this function's only job is to say
+// "blank" without inventing a number.
+function numOrNull(id) {
+  const el = document.getElementById(id);
+  const raw = el ? el.value : "";
+  if (raw === "" || raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function refreshLocal() {
   if (!window.AF.pyReady) return;
-  const hw = window.AF.localHwMeta || { bandwidth_gbps: 1792, hw_type: "nvidia" };
-  const vram = Number(document.getElementById("local-vram").value || 32);
-  const gpus = Number(document.getElementById("local-num-gpus").value || 1);
+  // Same rule as the numeric boxes: send nothing and let Python own the
+  // fallback (DEFAULT_BANDWIDTH_GBPS / "nvidia"). A literal bandwidth figure
+  // here is a second copy of a constant that lives in data/local_models.py.
+  const hw = window.AF.localHwMeta || {};
+  const vram = numOrNull("local-vram");
+  const gpus = numOrNull("local-num-gpus");
   const quant = document.getElementById("local-quant").value || "Q4";
   const tags = multiVals("local-tags");
   try {
-    const out = await window.AF.callPy("update_local", vram, gpus, quant, hw.bandwidth_gbps, hw.hw_type, tags.length ? tags : null);
+    const out = await window.AF.callPy("update_local", vram, gpus, quant,
+      hw.bandwidth_gbps ?? null, hw.hw_type ?? null, tags.length ? tags : null);
     renderJsonFig("chart-local_scatter", out.scatter);
     renderJsonFig("chart-local_compat", out.compat);
   } catch (e) { console.error("refreshLocal failed:", e); }
@@ -595,8 +639,8 @@ async function refreshRecommend() {
   const mode = document.querySelector('input[name="recommend-mode"]:checked')?.value || "api";
   const providers = Array.from(document.querySelectorAll('input[name="recommend-providers"]:checked')).map(c => c.value);
   const gpu = document.getElementById("recommend-gpu-preset")?.value || "NVIDIA RTX 5090";
-  const vram = Number(document.getElementById("recommend-vram")?.value || 32);
-  const gpus = Number(document.getElementById("recommend-num-gpus")?.value || 1);
+  const vram = numOrNull("recommend-vram");
+  const gpus = numOrNull("recommend-num-gpus");
   const quant = document.getElementById("recommend-quant")?.value || "Q4";
   try {
     const out = await window.AF.callPy("update_recommend", providers, mode, gpu, vram, gpus, quant);
@@ -754,7 +798,14 @@ function applyUrlState() {
     if (qEl) qEl.value = u.get("q");
   }
   if (u.get("p")) {
-    const set = new Set(u.get("p").split(","));
+    // Resolve retired provider spellings before matching. A ?p=xAI link shared
+    // before Artificial Analysis renamed the provider selected no option at
+    // all, and an empty selection means "all providers" — so the link silently
+    // showed the whole catalogue instead of the one provider it named. The
+    // alias map rides the manifest so it stays derived from PROVIDER_ALIASES
+    // rather than hand-copied here.
+    const aliases = (window.AF.manifest && window.AF.manifest.provider_aliases) || {};
+    const set = new Set(u.get("p").split(",").map(p => aliases[p] || p));
     const pEl = document.getElementById("filter-provider");
     if (pEl) Array.from(pEl.options).forEach(o => { o.selected = set.has(o.value); });
   }

@@ -7,8 +7,8 @@ import pandas as pd
 
 from data.ingest import get_models
 from data.local_models import get_local_df
-from data.image_models import get_image_df, get_image_providers
-from data.video_models import get_video_df, get_video_providers
+from data.image_models import get_image_df, get_image_providers, get_image_tags
+from data.video_models import get_video_df, get_video_providers, get_video_tags
 from components.charts.pareto import build_pareto_scatter
 from components.charts.quadrant import build_quadrant
 from components.charts.treemap import build_treemap
@@ -22,6 +22,7 @@ from components.charts.local_compat import build_local_compat
 from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
 
+from components.charts.constants import PROVIDER_ALIASES
 from static_helpers import compute_diverse5, provider_options, model_options
 
 
@@ -93,6 +94,15 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "p90":              round(float(df["quality"].quantile(0.90)), 1),
         "image_providers":  get_image_providers(),
         "video_providers":  get_video_providers(),
+        # Tag options ship with the data so a control can never offer a tag the
+        # pipeline stopped emitting (see data/image_models.get_image_tags).
+        "image_tags":       get_image_tags(),
+        "video_tags":       get_video_tags(),
+        # Derived, not hand-copied: docs/app.js needs the retired->current
+        # provider spellings to resolve an old ?p= share link, and a second
+        # copy of this map in JS is exactly how palettes and labels drifted
+        # before. Shipping it keeps PROVIDER_ALIASES the only source.
+        "provider_aliases": dict(PROVIDER_ALIASES),
         "generated":        _now.strftime("%b %d  %H:%M"),
         "version":          _now.strftime("%Y%m%dT%H%M%SZ"),
         "generated_iso":    _now.isoformat(),

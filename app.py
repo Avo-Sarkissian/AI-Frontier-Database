@@ -21,8 +21,11 @@ from data.ingest import get_models, load_history
 from data.scraper import start_background_scraper
 from data.image_scraper import start_background_image_scraper
 from data.local_scraper import start_background_local_scraper
-from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
-from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
+from data.local_models import (
+    get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
+    DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+)
+from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
 from components.charts.pareto               import build_pareto_scatter
 from components.charts.quadrant             import build_quadrant
 from components.charts.treemap              import build_treemap
@@ -35,8 +38,8 @@ from components.charts.local_compat         import build_local_compat
 from components.charts.image_scatter        import build_image_faceted
 from components.charts.video_chart          import build_video_rankings, build_video_scatter
 from components.stack_recommender           import build_stack_cards
-from data.image_models                      import get_image_df, get_image_providers, PROVIDER_COLORS as IMG_PROVIDER_COLORS
-from data.video_models                      import get_video_df, get_video_providers
+from data.image_models                      import get_image_df, get_image_providers, get_image_tags, PROVIDER_COLORS as IMG_PROVIDER_COLORS
+from data.video_models                      import get_video_df, get_video_providers, get_video_tags
 from components.charts.bump_chart          import build_bump_chart, build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -85,6 +88,7 @@ def _reload_if_stale():
 
 from static_helpers import (
     apply_filters,
+    coerce_number as _coerce_number,
     compute_diverse5 as _compute_diverse5,
     ctx_to_k as _ctx_to_k,
     quality_label as _quality_label,
@@ -375,7 +379,10 @@ app.layout = html.Div([
                         {"label": "Anthropic",  "value": "Anthropic"},
                         {"label": "Google",     "value": "Google"},
                         {"label": "OpenAI",     "value": "OpenAI"},
-                        {"label": "xAI",        "value": "xAI"},
+                        # Artificial Analysis renamed xAI to SpaceXAI; the label
+                        # follows the data (every chart legend says SpaceXAI),
+                        # and canonical_provider still resolves old ?p=xAI links.
+                        {"label": "SpaceXAI",   "value": "SpaceXAI"},
                         {"label": "DeepSeek",   "value": "DeepSeek"},
                         {"label": "Mistral",    "value": "Mistral"},
                         {"label": "All",        "value": "__all__"},
@@ -787,13 +794,10 @@ app.layout = html.Div([
                 html.Span("TAGS", className="filter-label"),
                 dcc.Dropdown(
                     id="image-tag-filter",
-                    options=[
-                        {"label": "Photorealistic", "value": "photorealistic"},
-                        {"label": "Artistic",       "value": "artistic"},
-                        {"label": "Text & Type",    "value": "text"},
-                        {"label": "Fast",           "value": "fast"},
-                        {"label": "Open Weights",   "value": "open_weights"},
-                    ],
+                    # Built from the tags the pipeline actually emits — a
+                    # hardcoded list drifts from the data and silently matches
+                    # nothing (see data/image_models.get_image_tags).
+                    options=get_image_tags(),
                     multi=True,
                     placeholder="All types",
                     style={"minWidth": "240px"},
@@ -828,13 +832,7 @@ app.layout = html.Div([
                 html.Span("TAGS", className="filter-label"),
                 dcc.Dropdown(
                     id="video-tag-filter",
-                    options=[
-                        {"label": "Cinematic",    "value": "cinematic"},
-                        {"label": "Realistic",    "value": "realistic"},
-                        {"label": "Artistic",     "value": "artistic"},
-                        {"label": "Fast",         "value": "fast"},
-                        {"label": "Open Weights", "value": "open-weights"},
-                    ],
+                    options=get_video_tags(),
                     multi=True,
                     placeholder="All types",
                     style={"minWidth": "220px"},
@@ -902,7 +900,10 @@ def init_from_url(search: str):
     if tab not in _VALID_TABS:
         tab = "overview"
     raw_p     = params.get("p",   [""])[0]
-    providers = [x for x in raw_p.split(",") if x] if raw_p else []
+    # Canonicalise: a ?p=xAI link predates AA's rename, and an unresolved name
+    # matches no dropdown option — which reads as "no filter" and shows
+    # everything rather than the one provider the link named.
+    providers = [canonical_provider(x) for x in raw_p.split(",") if x] if raw_p else []
     try:
         quality = int(params.get("q", [0])[0])
     except (ValueError, TypeError):
@@ -1052,10 +1053,12 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     local_df = None
     if mode in ("hybrid", "hybrid2", "local"):
         gpu_meta       = GPU_BY_NAME.get(gpu_preset or "", {})
-        vram_gb        = float(vram_per_gpu or 32) * int(num_gpus or 1)
-        bandwidth_gbps = gpu_meta.get("bandwidth_gbps", 1792)
+        # 0 is a figure the user typed, not a blank box — see coerce_number.
+        gpu_count      = int(_coerce_number(num_gpus, DEFAULT_GPU_COUNT, minimum=1))
+        vram_gb        = _coerce_number(vram_per_gpu, DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
+        bandwidth_gbps = _coerce_number(gpu_meta.get("bandwidth_gbps"),
+                                        DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
         hw_type        = gpu_meta.get("hw_type", "nvidia")
-        gpu_count      = int(num_gpus or 1)
         eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
         local_df = get_local_df(
             quant=quant or "Q4",
@@ -1172,7 +1175,8 @@ def update_compare(providers, min_quality, search, selected_models):
 )
 def update_cost_calc(monthly_tokens_m, providers, min_quality, search):
     filtered = _apply_filters(providers, min_quality, search or "")
-    tokens   = float(monthly_tokens_m) if monthly_tokens_m else 1.0
+    # 0 tokens is a real query; a negative volume would invert the "cheapest" sort.
+    tokens   = _coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
     return build_cost_calc(filtered, monthly_tokens_m=tokens)
 
 
@@ -1214,10 +1218,13 @@ def update_local_hw(gpu_name: str):
     prevent_initial_call=True,
 )
 def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
-    vram_gb        = float(vram_per_gpu or 8) * int(num_gpus or 1)
-    bandwidth_gbps = (hw_meta or {}).get("bandwidth_gbps", 1792)
+    # Shared defaults: this used to assume 8GB while the public site assumed 32,
+    # so a cleared VRAM box answered "which models fit?" two different ways.
+    gpu_count      = int(_coerce_number(num_gpus, DEFAULT_GPU_COUNT, minimum=1))
+    vram_gb        = _coerce_number(vram_per_gpu, DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
+    bandwidth_gbps = _coerce_number((hw_meta or {}).get("bandwidth_gbps"),
+                                    DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
     hw_type        = (hw_meta or {}).get("hw_type", "nvidia")
-    gpu_count      = int(num_gpus or 1)
     eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
 
     local_df = get_local_df(

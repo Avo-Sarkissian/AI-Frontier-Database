@@ -22,7 +22,20 @@ def _spendable(df: pd.DataFrame, monthly_tokens_m: float, min_quality: float) ->
     if min_quality:
         out = out[out["quality"] >= float(min_quality)]
     out["monthly_cost"] = monthly_tokens_m * out["price"]
-    return out.sort_values("monthly_cost", ascending=True).reset_index(drop=True)
+    # Rank on (cost, unit price, name), not cost alone. At a volume of 0 every
+    # model costs $0.000, so a single-key sort is a no-op and "CHEAPEST MODEL
+    # SCORING N+" named whatever happened to sit at row 0 — Claude Opus 5 at
+    # $20/M instead of DeepSeek V4 Flash at $0.1575/M, a 127x error under a
+    # label that says cheapest. Unit price breaks the tie the way the user
+    # means it; the model name makes the order total, so a refresh that merely
+    # reorders the catalogue cannot reorder the answer. mergesort because
+    # pandas' default quicksort is unstable (the same defect once let the
+    # Pareto frontier admit dominated models on a price tie).
+    return (
+        out.sort_values(["monthly_cost", "price", "model"],
+                        ascending=True, kind="mergesort")
+           .reset_index(drop=True)
+    )
 
 
 def cheapest_above(df: pd.DataFrame, min_quality: float = 0.0,

@@ -19,6 +19,14 @@ from components.charts.constants import (
 
 _LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 
+# VRAM assumed when the user has not entered a figure. One constant, because the
+# two render paths used to disagree: a cleared box meant 32 GB on the public site
+# and 8 GB in Dash, so the same action produced two different answers to "which
+# models fit my hardware".
+DEFAULT_VRAM_GB = 32.0
+DEFAULT_GPU_COUNT = 1
+DEFAULT_BANDWIDTH_GBPS = 1792.0
+
 # ── Quantization ─────────────────────────────────────────────────────────────
 QUANT_LEVELS = ["FP16", "Q8", "Q5", "Q4", "Q3", "Q2"]
 
@@ -532,8 +540,13 @@ def _load_models_raw() -> list[dict]:
 
 def get_local_df(
     quant: str = "Q4",
-    vram_gb: float = 24.0,
-    bandwidth_gbps: float = 1008.0,
+    # The shared constants, not a fourth set of numbers. These defaults used to
+    # read 24 GB / 1008 GB/s, so a bare get_local_df() — the form the chart
+    # contract tests call — validated the charts against hardware the product
+    # never presents (47 fitting models at 72.3 tok/s median rather than 49 at
+    # 128.5), and a regression at the real default was invisible to them.
+    vram_gb: float = DEFAULT_VRAM_GB,
+    bandwidth_gbps: float = DEFAULT_BANDWIDTH_GBPS,
     hw_type: str = "nvidia",
     tags: list[str] | None = None,
 ) -> pd.DataFrame:

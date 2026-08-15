@@ -20,7 +20,7 @@ try:
 except ImportError:  # dash-free env (Pyodide): only the HTML-string renderer is used
     html = None
 
-from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
+from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
 from data.local_models import FAMILY_COLORS as _FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
@@ -213,7 +213,10 @@ def _chip(text: str, bg: str = "#1e2a1e") -> "html.Span":
 # ── Row renderers ──────────────────────────────────────────────────────────────
 
 def _api_row(row: pd.Series, is_top: bool = False) -> "html.Div":
-    provider  = str(row.get("provider", ""))
+    # Canonical at the render site too: the palette is keyed by the current
+    # spelling, so a row that reached here by any other path still gets its
+    # colour rather than the grey fallback.
+    provider  = canonical_provider(str(row.get("provider", "")))
     pcolor    = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
     price     = row["price"]
     speed     = row["speed"]
@@ -440,8 +443,22 @@ def select_stack(
     hybrid2: Fast=local, Balanced=local, Reasoning=API
     """
     api_pool = df.copy()
-    if providers:
-        api_pool = api_pool[api_pool["provider"].isin(providers)]
+    # Canonicalise once, here, for every mode — not just inside the filter
+    # branch. Filtering on the canonical name while the card still printed the
+    # raw one meant ticking "SpaceXAI" returned the right rows and then
+    # captioned them "xAI" in fallback grey, because PROVIDER_COLORS is keyed by
+    # the canonical spelling only. One spelling in, one spelling out.
+    api_pool["provider"] = api_pool["provider"].astype(str).map(canonical_provider)
+    # `is not None`, not truthiness: `[]` is a deliberate "I unchecked every
+    # provider" and must return nothing, while `None` means "no filter". Both are
+    # falsy, so `if providers:` sent an empty selection down the no-filter branch
+    # and recommended the very providers the user had just excluded.
+    if providers is not None:
+        # Resolve retired upstream spellings (xAI -> SpaceXAI) so a control
+        # labelled with the old name still matches. A raw .isin() meant the UI's
+        # own "xAI" checkbox selected zero rows.
+        wanted = {canonical_provider(str(p)) for p in providers}
+        api_pool = api_pool[api_pool["provider"].isin(wanted)]
 
     tiers_out = []
 
@@ -584,7 +601,8 @@ def _row_shell_html(name: str, quality: float, sub_label: str, sub_color: str,
 
 
 def _api_row_html(row: pd.Series, is_top: bool = False) -> str:
-    provider  = str(row.get("provider", ""))
+    # See _api_row — same rule, other rendering.
+    provider  = canonical_provider(str(row.get("provider", "")))
     pcolor    = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
     price     = row["price"]
     speed     = row["speed"]

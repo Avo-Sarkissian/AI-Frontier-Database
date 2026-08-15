@@ -172,13 +172,9 @@
     <select id="image-provider-filter" multiple style="min-width:200px;"></select>
     <div class="filter-sep"></div>
     <span class="filter-label">TAGS</span>
-    <select id="image-tag-filter" multiple style="min-width:200px;">
-      <option value="photorealistic">Photorealistic</option>
-      <option value="artistic">Artistic</option>
-      <option value="text">Text &amp; Type</option>
-      <option value="fast">Fast</option>
-      <option value="open_weights">Open Weights</option>
-    </select>
+    <!-- Options are filled from manifest.image_tags (see fillTagSelect in app.js)
+         so the control cannot offer a tag the pipeline no longer emits. -->
+    <select id="image-tag-filter" multiple style="min-width:200px;"></select>
   </div>
 
   <!-- Video Gen tab controls -->
@@ -187,13 +183,8 @@
     <select id="video-provider-filter" multiple style="min-width:200px;"></select>
     <div class="filter-sep"></div>
     <span class="filter-label">TAGS</span>
-    <select id="video-tag-filter" multiple style="min-width:200px;">
-      <option value="cinematic">Cinematic</option>
-      <option value="realistic">Realistic</option>
-      <option value="artistic">Artistic</option>
-      <option value="fast">Fast</option>
-      <option value="open-weights">Open Weights</option>
-    </select>
+    <!-- Filled from manifest.video_tags — see the image tag filter above. -->
+    <select id="video-tag-filter" multiple style="min-width:200px;"></select>
   </div>
 
   <!-- Agent Stack tab controls -->
@@ -225,7 +216,8 @@
       <input type="checkbox" name="recommend-providers" value="OpenAI" checked /> OpenAI
     </label>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
-      <input type="checkbox" name="recommend-providers" value="xAI" /> xAI
+      <!-- AA renamed xAI to SpaceXAI; canonical_provider still resolves old links. -->
+      <input type="checkbox" name="recommend-providers" value="SpaceXAI" /> SpaceXAI
     </label>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
       <input type="checkbox" name="recommend-providers" value="DeepSeek" /> DeepSeek

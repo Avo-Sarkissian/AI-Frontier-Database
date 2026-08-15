@@ -8,7 +8,10 @@ import json
 import pandas as pd
 
 from data.ingest import get_models
-from data.local_models import get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS
+from data.local_models import (
+    get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
+    DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+)
 from data.image_models import get_image_df
 from data.video_models import get_video_df
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
@@ -27,6 +30,7 @@ from components.charts.radar import build_radar
 from components.charts.cost_calc import build_cost_calc, cheapest_above
 from static_helpers import (
     apply_filters,
+    coerce_number,
     compute_diverse5,
     ctx_to_k,
     quality_label,
@@ -268,11 +272,10 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intel
     global MIN SCORE filter rather than replacing it, so the effective floor is
     whichever is higher — the same as any two filters intersecting."""
     f = _apply_filters(providers, min_quality, search or "")
-    tokens = float(monthly_tokens_m) if monthly_tokens_m else 1.0
-    try:
-        floor = float(min_intelligence or 0)
-    except (TypeError, ValueError):
-        floor = 0.0
+    # 0 is a volume the user typed; only a blank box means "not given". Negative
+    # input is clamped — the HTML min attribute is a hint, not a guard.
+    tokens = coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
+    floor = coerce_number(min_intelligence, default=0.0, minimum=0.0)
     fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor)
     return json.dumps({
         "figure": json.loads(fig.to_json()),
@@ -313,9 +316,9 @@ def model_detail(model_name, provider):
 
 def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags):
     """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}."""
-    vram_gb = float(vram_per_gpu or 8) * int(num_gpus or 1)
-    gpu_count = int(num_gpus or 1)
-    bw = bandwidth_gbps or 1792
+    gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
+    vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
+    bw = coerce_number(bandwidth_gbps, default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
     eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
     ldf = get_local_df(
         quant=quant or "Q4",
@@ -407,9 +410,9 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     local_df = None
     if show_hw:
         meta = GPU_BY_NAME.get(gpu_preset or "", {})
-        vram_gb = float(vram_per_gpu or 32) * int(num_gpus or 1)
-        gpu_count = int(num_gpus or 1)
-        bw = meta.get("bandwidth_gbps", 1792)
+        gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
+        vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
+        bw = coerce_number(meta.get("bandwidth_gbps"), default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
         eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
         local_df = get_local_df(
             quant=quant or "Q4",

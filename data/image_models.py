@@ -20,6 +20,7 @@ PROVIDER_COLORS: dict[str, str] = {
     "ByteDance Seed":               "#38bdf8",  # sky
     "Bytedance":                    "#38bdf8",  # sky (alt spelling)
     "xAI":                          "#a3e635",  # lime
+    "SpaceXAI":                     "#a3e635",  # lime (AA's current spelling)
     "Ideogram":                     "#f472b6",  # pink
     "Recraft":                      "#818cf8",  # indigo
     "Stability AI":                 "#c084fc",  # purple
@@ -175,6 +176,53 @@ def get_image_df() -> pd.DataFrame:
     df = pd.DataFrame(_RAW)
     df["tags_str"] = df["tags"].apply(", ".join)
     return df
+
+
+_TAG_LABELS = {
+    "general":        "General",
+    "photorealistic": "Photorealistic",
+    "artistic":       "Artistic",
+    "text":           "Text & Type",
+    "open_weights":   "Open Weights",
+}
+
+
+def tag_label(slug: str) -> str:
+    return _TAG_LABELS.get(slug, slug.replace("_", " ").replace("-", " ").title())
+
+
+def get_image_tags() -> list[dict]:
+    """Tag filter options, built from the tags the pipeline actually emits.
+
+    Hardcoding these let the control drift from the data: "Fast" was offered for
+    months against a vocabulary that can only produce general / photorealistic /
+    artistic / text / open_weights, so selecting it matched zero models and the
+    UI blamed the user with "No image models match these filters" — while
+    "General" (151 models) was not offered at all.
+
+    Sorted by label, not by frequency. photorealistic / text / artistic are
+    assigned by comparing each model to a live category median, so their counts
+    sit within a few of each other and move on every hourly refresh — a
+    frequency sort silently reshuffles the dropdown between page loads.
+
+    A tag carried by *every* model is dropped. 'general' is on all 151 rows, so
+    offering it is a filter that promises to narrow the view and cannot — the
+    mirror image of the dead 'fast' option this function exists to prevent.
+    Derived, not blacklisted: if a future refresh leaves some models untagged,
+    'general' becomes selective again and returns on its own.
+    """
+    from collections import Counter
+
+    df = get_image_df()
+    total = len(df)
+    counts = Counter(
+        t for tags in df["tags"] if isinstance(tags, list) for t in tags
+    )
+    return [
+        {"label": tag_label(t), "value": t}
+        for t in sorted(counts, key=lambda t: tag_label(t).lower())
+        if counts[t] < total
+    ]
 
 
 def get_image_providers() -> list[str]:

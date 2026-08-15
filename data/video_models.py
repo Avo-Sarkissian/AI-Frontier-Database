@@ -194,5 +194,30 @@ def get_video_df() -> pd.DataFrame:
     return df
 
 
+_TAG_LABELS = {
+    "open-weights": "Open Weights",
+    "high-res":     "High Res",
+}
+
+
+def get_video_tags() -> list[dict]:
+    """Tag filter options built from the curated dataset's own vocabulary, so a
+    control can never offer a tag no row carries. See data/image_models.py."""
+    from collections import Counter
+
+    def _label(t: str) -> str:
+        return _TAG_LABELS.get(t, t.replace("_", " ").replace("-", " ").title())
+
+    df = get_video_df()
+    total = len(df)
+    counts = Counter(
+        t for tags in df["tags"] if isinstance(tags, list) for t in tags
+    )
+    # Alphabetical by label, and universal tags dropped — see get_image_tags.
+    return [{"label": _label(t), "value": t}
+            for t in sorted(counts, key=lambda t: _label(t).lower())
+            if counts[t] < total]
+
+
 def get_video_providers() -> list[str]:
     return sorted({r["provider"] for r in _RAW})

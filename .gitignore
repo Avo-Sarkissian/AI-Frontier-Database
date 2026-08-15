@@ -16,6 +16,8 @@ build/
 
 # python venv
 ai-frontier/
+.venv/
+venv/
 
 # misc
 .DS_Store
