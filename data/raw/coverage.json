@@ -1,6 +1,6 @@
 {
-  "upstream_records": 456,
-  "kept": 156,
+  "upstream_records": 447,
+  "kept": 155,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
