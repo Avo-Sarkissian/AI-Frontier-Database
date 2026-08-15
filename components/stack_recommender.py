@@ -194,17 +194,37 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = 
 
 # ── Local picking ──────────────────────────────────────────────────────────────
 
-def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5) -> pd.DataFrame:
+def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
+                     full_local_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Rank the local candidates for a tier.
+
+    ``full_local_df`` is the catalogue before the TAG filter, used only for the
+    normalising maxima. The composite Fast score divides quality and speed by
+    two separate pool-dependent maxima, so taking them from the filtered pool
+    changes the relative weighting and does not preserve order — the same defect
+    _pick_api_tier had, where seven provider selections visibly reordered the
+    rendered top five.
+
+    The hardware filter deliberately stays in the reference: "fastest model that
+    fits your GPU" is a claim about your GPU, so the pool is the point.
+    """
     runnable = local_df[local_df["fits"].isin(["yes", "tight"])].copy()
     if runnable.empty:
         return runnable
+    ref_all = runnable if full_local_df is None else \
+        full_local_df[full_local_df["fits"].isin(["yes", "tight"])].copy()
+    if ref_all.empty:
+        ref_all = runnable
 
     if tier_key == "fast":
         # Fast but intelligent — enforce a real quality floor, then balance
         # speed and quality so tiny dumb models don't win on speed alone
-        runnable = runnable[runnable["quality"] >= 10]
-        s_max = runnable["speed_tps"].replace(0, float("nan")).max() or 1
-        q_max = runnable["quality"].max() or 1
+        runnable = runnable[runnable["quality"] >= 10].copy()
+        ref = ref_all[ref_all["quality"] >= 10]
+        if ref.empty:
+            ref = runnable
+        s_max = ref["speed_tps"].replace(0, float("nan")).max() or 1
+        q_max = ref["quality"].max() or 1
         runnable["_score"] = (
             runnable["quality"] / q_max * 0.50 +
             runnable["speed_tps"] / s_max * 0.50
@@ -212,8 +232,9 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5) -> pd.Da
         runnable = runnable.sort_values("_score", ascending=False)
     elif tier_key == "balanced":
         # Quality-weighted efficiency — quality matters more than VRAM footprint
-        runnable = runnable[runnable["quality"] >= 12]
-        q_max = runnable["quality"].max() or 1
+        runnable = runnable[runnable["quality"] >= 12].copy()
+        _ref_b = ref_all[ref_all["quality"] >= 12]
+        q_max = (_ref_b if not _ref_b.empty else runnable)["quality"].max() or 1
         # The VRAM term used to be a RAW RECIPROCAL in GB against a min-max
         # normalised quality term: measured spreads were 0.474 for quality and
         # 0.095 for VRAM, so the argmax was simply the argmax of quality — which
@@ -468,6 +489,7 @@ def select_stack(
     providers: list[str] | None = None,
     mode:      str = "api",
     local_df:  pd.DataFrame | None = None,
+    full_local_df: pd.DataFrame | None = None,
 ) -> dict:
     """
     Pure model-selection logic — returns plain data with no Dash objects.
@@ -523,18 +545,21 @@ def select_stack(
             picks  = _pick_api_tier(api_pool, tier, full_df=df)
             source = "API"
         elif mode == "local":
-            picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
+            picks  = _pick_local_tier(local_df, key, full_local_df=full_local_df) \
+                         if local_df is not None else pd.DataFrame()
             source = "LOCAL"
         elif mode == "hybrid2":  # Fast + Balanced = local, Reasoning = API
             if key in ("fast", "balanced"):
-                picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
+                picks  = _pick_local_tier(local_df, key, full_local_df=full_local_df) \
+                         if local_df is not None else pd.DataFrame()
                 source = "LOCAL"
             else:
                 picks  = _pick_api_tier(api_pool, tier, full_df=df)
                 source = "API"
         else:  # hybrid — Fast = local, Balanced + Reasoning = API
             if key == "fast":
-                picks  = _pick_local_tier(local_df, key) if local_df is not None else pd.DataFrame()
+                picks  = _pick_local_tier(local_df, key, full_local_df=full_local_df) \
+                         if local_df is not None else pd.DataFrame()
                 source = "LOCAL"
             else:
                 picks  = _pick_api_tier(api_pool, tier, full_df=df)
@@ -848,6 +873,7 @@ def build_stack_cards_html(
     providers: list[str] | None = None,
     mode:      str = "api",
     local_df:  pd.DataFrame | None = None,
+    full_local_df=None,
 ) -> str:
     """
     HTML-string renderer — Pyodide-safe, no Dash dependency.
@@ -857,7 +883,8 @@ def build_stack_cards_html(
     providers: filter cloud models to these providers (None = all)
     local_df:  output of get_local_df(); required for hybrid/local modes
     """
-    data = select_stack(df, providers=providers, mode=mode, local_df=local_df)
+    data = select_stack(df, providers=providers, mode=mode, local_df=local_df,
+                        full_local_df=full_local_df)
     cards_html = "".join(_tier_card_html(t) for t in data["tiers"])
     return _h("div", cards_html, style=_dict_to_style({
         "display": "flex",
@@ -874,6 +901,7 @@ def build_stack_cards(
     providers:    list[str] | None = None,
     mode:         str = "api",
     local_df:     pd.DataFrame | None = None,
+    full_local_df=None,
 ) -> "html.Div":
     """
     mode: "api" | "hybrid" | "hybrid2" | "local"
@@ -884,7 +912,8 @@ def build_stack_cards(
     if html is None:
         raise RuntimeError("dash is required for build_stack_cards; "
                            "use build_stack_cards_html in dash-free environments")
-    data = select_stack(df, providers=providers, mode=mode, local_df=local_df)
+    data = select_stack(df, providers=providers, mode=mode, local_df=local_df,
+                        full_local_df=full_local_df)
     cards = [_tier_card(tier_cfg, t["picks"], t["source"])
              for tier_cfg, t in zip(_API_TIERS, data["tiers"])]
     return html.Div(cards, style={

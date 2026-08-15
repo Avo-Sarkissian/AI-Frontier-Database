@@ -327,3 +327,34 @@ def test_the_status_path_is_overridable():
     finally:
         del os.environ["AI_FRONTIER_STATUS_PATH"]
         importlib.reload(scrape_status)
+
+
+def test_the_local_fast_score_does_not_move_with_a_tag_filter():
+    """Same defect as the API side: the composite divides quality and speed by
+    two separate pool-dependent maxima, so a filter that changes the pool
+    changes the relative weighting and does not preserve order."""
+    from components.stack_recommender import _pick_local_tier
+
+    full = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS)
+    ref = _pick_local_tier(full, "fast", full_local_df=full).set_index("name")["_score"]
+    moved = []
+    for tag in ("reasoning", "vision", "code", "audio"):
+        sub = get_local_df(quant="Q4", vram_gb=32,
+                           bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, tags=[tag])
+        if sub.empty:
+            continue
+        got = _pick_local_tier(sub, "fast", full_local_df=full)
+        for name, score in zip(got["name"], got["_score"]):
+            if name in ref.index and abs(ref[name] - score) > 1e-9:
+                moved.append((tag, name))
+    assert not moved, f"scores changed under a tag filter: {moved[:4]}"
+
+
+def test_the_video_tab_discloses_that_it_is_not_live():
+    """data/video_models.py is a hand-written 2025-era list under a global
+    "Updated N ago" badge, while the LLM tabs carry GPT-5.6 and Claude Opus 5.
+    The README disclosed it; nothing on the site did."""
+    from captions import CAPTIONS
+
+    caption = CAPTIONS["video"].lower()
+    assert "curated" in caption and "not live" in caption.replace("-", " ")

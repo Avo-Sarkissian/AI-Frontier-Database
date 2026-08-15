@@ -75,9 +75,11 @@ CAPTIONS: dict[str, str] = {
         "shows the best models for that style. Annotations show generation time."
     ),
     'video': (
-        "Compare video generation models on quality, speed, and cost. Quality "
-        "scores are human preference ratings (0–100). Price is USD per second of "
-        "generated video. Open-weights models can be self-hosted for free."
+        "Compare video generation models on quality, speed, and cost. CURATED DATASET, "
+        "NOT LIVE-SCRAPED: unlike every other tab, this list is maintained by hand and "
+        "its models are 2025-era, so the \"Updated N ago\" badge in the header does not "
+        "describe this tab. Quality scores are human preference ratings; price is per "
+        "second of generated video; open-weights models can be self-hosted for free."
     ),
     'overview_speed': (
         "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
