@@ -11,6 +11,7 @@ from data.ingest import get_models
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+    effective_bandwidth,
 )
 from data.image_models import get_image_df
 from data.video_models import get_video_df
@@ -326,7 +327,7 @@ def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags):
     gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
     vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
     bw = coerce_number(bandwidth_gbps, default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
-    eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
+    eff_bw = effective_bandwidth(bw, gpu_count)
     ldf = get_local_df(
         quant=quant or "Q4",
         vram_gb=vram_gb,
@@ -420,7 +421,7 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
         gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
         vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
         bw = coerce_number(meta.get("bandwidth_gbps"), default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
-        eff_bw = bw * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bw
+        eff_bw = effective_bandwidth(bw, gpu_count)
         local_df = get_local_df(
             quant=quant or "Q4",
             vram_gb=vram_gb,

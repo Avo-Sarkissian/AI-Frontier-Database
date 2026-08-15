@@ -66,10 +66,10 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
             "Intelligence: %{x:.0f}<br>"
-            "VRAM needed: %{customdata[2]:.1f} GB<br>"
+            "VRAM needed: %{customdata[2]:.1f} GB  ·  weights only<br>"
             "Speed: %{customdata[3]:.0f} tok/s<br>"
             "License: %{customdata[4]}<br>"
-            "Context: %{customdata[5]}k tokens<br>"
+            "Max context: %{customdata[5]}k tokens  ·  KV cache not included above<br>"
             "Tags: %{customdata[6]}<br>"
             "<extra></extra>"
         ),

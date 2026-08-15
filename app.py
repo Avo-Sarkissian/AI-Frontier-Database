@@ -24,6 +24,7 @@ from data.local_scraper import start_background_local_scraper
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+    effective_bandwidth,
 )
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
 from components.charts.pareto               import build_pareto_scatter
@@ -418,7 +419,7 @@ app.layout = html.Div([
                     },
                 ),
                 html.Div(className="filter-sep"),
-                html.Span("GPUs", className="filter-label"),
+                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth."),
                 dcc.Dropdown(
                     id="recommend-num-gpus",
                     options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
@@ -683,7 +684,7 @@ app.layout = html.Div([
                     },
                 ),
                 html.Div(className="filter-sep"),
-                html.Span("GPUs", className="filter-label"),
+                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth."),
                 dcc.Dropdown(
                     id="local-num-gpus",
                     options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
@@ -1028,7 +1029,7 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
         bandwidth_gbps = _coerce_number(gpu_meta.get("bandwidth_gbps"),
                                         DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
         hw_type        = gpu_meta.get("hw_type", "nvidia")
-        eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
+        eff_bw         = effective_bandwidth(bandwidth_gbps, gpu_count)
         local_df = get_local_df(
             quant=quant or "Q4",
             vram_gb=vram_gb,
@@ -1183,7 +1184,7 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     bandwidth_gbps = _coerce_number((hw_meta or {}).get("bandwidth_gbps"),
                                     DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
     hw_type        = (hw_meta or {}).get("hw_type", "nvidia")
-    eff_bw         = bandwidth_gbps * (1 + (gpu_count - 1) * 0.85) if gpu_count > 1 else bandwidth_gbps
+    eff_bw         = effective_bandwidth(bandwidth_gbps, gpu_count)
 
     local_df = get_local_df(
         quant=quant or "Q4",

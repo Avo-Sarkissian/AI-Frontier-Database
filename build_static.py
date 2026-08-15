@@ -23,6 +23,7 @@ from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
 
 from captions import CAPTIONS
+from data import scrape_status
 from components.charts.constants import PROVIDER_ALIASES
 from static_helpers import compute_diverse5, provider_options, model_options, quality_options
 
@@ -106,6 +107,13 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "provider_aliases": dict(PROVIDER_ALIASES),
         # One source for the prose too — the public site used to ship 1 of 14.
         "captions":         dict(CAPTIONS),
+        # Per-dataset scrape status. `generated_iso` below is the BUILD time and
+        # is kept only for cache-busting — the badge must report when the DATA
+        # was last fetched, per dataset, or one succeeding scraper resets the
+        # clock for all three. See data/scrape_status.py.
+        "datasets":         scrape_status.load(),
+        "data_fetched_iso": scrape_status.oldest_successful_fetch(),
+        "stale_datasets":   scrape_status.stale_datasets(),
         # MIN SCORE options, including the exact preset percentiles, so the
         # <select> can hold the value a preset sets instead of snapping it.
         "quality_options": quality_options(
@@ -129,6 +137,19 @@ def copy_css(docs: Path | None = None):
 # so its size is a user-facing latency budget, not an implementation detail.
 MAX_BUNDLE_MB = 6.0
 _MAX_VALIDATOR_FILES = 500
+
+
+def _preflight_environment() -> None:
+    """Everything that can make a build unpublishable, checked before any write.
+
+    Called at the top of main(). The plotly check used to run only inside
+    build_pybundle — the last step — so a bad interpreter got as far as
+    replacing every figure and the manifest before raising.
+    """
+    import importlib.util
+    spec = importlib.util.find_spec("plotly")
+    if spec and spec.submodule_search_locations:
+        _assert_lean_plotly(Path(list(spec.submodule_search_locations)[0]))
 
 
 def _assert_lean_plotly(pkg_dir: Path) -> None:
@@ -258,9 +279,46 @@ def swap_bundle_csvs(docs: Path | None = None):
     print("swapped CSVs into pybundle.zip")
 
 
-def rebuild_data_only(docs: Path | None = None):
-    """Data-only refresh for the hourly bot: figures + manifest + CSV swap, no plotly re-vendor."""
+def stale_bundle_modules(docs: Path | None = None) -> list[str]:
+    """Project .py members of pybundle.zip that differ from the working tree.
+
+    export_default_figures imports the chart builders from the TREE, while
+    swap_bundle_csvs passes every .py member through byte-for-byte — so a
+    data-only refresh publishes figures built from new code against a bundle
+    still running the old code. A chart fix pushed without a full build looks
+    right on load and visibly reverts the moment a visitor touches a filter.
+    """
     docs = DOCS if docs is None else docs
+    bundle = docs / "pybundle.zip"
+    if not bundle.exists():
+        return []
+    vendored = ("plotly/", "_plotly_utils/", "tenacity/")
+    stale = []
+    with zipfile.ZipFile(bundle) as z:
+        for name in z.namelist():
+            if not name.endswith(".py") or name.startswith(vendored):
+                continue
+            src = ROOT / name
+            if src.exists() and z.read(name) != src.read_bytes():
+                stale.append(name)
+    return stale
+
+
+def rebuild_data_only(docs: Path | None = None):
+    """Data-only refresh for the hourly bot: figures + manifest + CSV swap.
+
+    Escalates to a full build when the bundle's code has fallen behind the
+    tree, because shipping figures from new code beside old in-browser code is
+    a site that contradicts itself on first interaction.
+    """
+    docs = DOCS if docs is None else docs
+    stale = stale_bundle_modules(docs)
+    if stale:
+        print(f"pybundle.zip is behind the tree ({len(stale)} modules: "
+              f"{', '.join(stale[:4])}{'…' if len(stale) > 4 else ''})")
+        print("escalating to a full build so the browser runs the same code as the figures")
+        main(docs)
+        return
     export_default_figures(docs / "figures")
     copy_css(docs)
     swap_bundle_csvs(docs)
@@ -269,6 +327,13 @@ def rebuild_data_only(docs: Path | None = None):
 
 def main(docs: Path | None = None):
     docs = DOCS if docs is None else docs
+    # Validate first, write second. _assert_lean_plotly used to live inside
+    # build_pybundle, the LAST step, so a build under the wrong interpreter
+    # replaced all 13 figures and the CSS, bumped the manifest, and only then
+    # raised — leaving fresh figures and a fresh manifest against a stale
+    # bundle, which is exactly the half-state the manifest version tells every
+    # client to go and fetch.
+    _preflight_environment()
     export_default_figures(docs / "figures")
     copy_css(docs)
     (docs / ".nojekyll").write_text("")

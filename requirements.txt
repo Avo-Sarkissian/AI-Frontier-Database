@@ -1,6 +1,11 @@
 dash>=4.0.0
 plotly>=6.1
-pandas>=2.0.0
+# Pinned to the version Pyodide v0.27.7 ships (see docs/pyworker.js).
+# CI resolved to pandas 3.x while the browser ran 2.2.3, and the two
+# produced different value_counts tie order — so a pre-rendered figure
+# and its in-browser re-render disagreed on legend order. The ordering is
+# now total regardless, but pre-render and runtime should still match.
+pandas==2.2.3
 requests>=2.31.0
 numpy>=1.26.0
 gunicorn>=21.0.0

@@ -27,6 +27,26 @@ DEFAULT_VRAM_GB = 32.0
 DEFAULT_GPU_COUNT = 1
 DEFAULT_BANDWIDTH_GBPS = 1792.0
 
+
+def effective_bandwidth(bandwidth_gbps: float, gpu_count: int) -> float:
+    """Memory bandwidth for a single-stream decode across `gpu_count` cards.
+
+    Which is: the bandwidth of ONE card.
+
+    This used to be `bw * (1 + (n-1) * 0.85)`, copy-pasted verbatim into four
+    call sites with no comment, predicting 6.95x single-stream throughput on 8
+    GPUs. The contradiction needs no benchmark to see — the same four functions
+    pool VRAM as `vram_per_gpu * num_gpus`, which is a LAYER split, while the
+    bandwidth sum assumes TENSOR parallelism. Two mutually exclusive deployments,
+    three lines apart. Under a layer split each card holds different layers and
+    they run in sequence, so tokens per second is set by one card's bandwidth;
+    what the extra cards buy you is the ability to hold a bigger model at all.
+
+    Kept as a named function so the four sites cannot drift again, and so this
+    reasoning has somewhere to live.
+    """
+    return float(bandwidth_gbps)
+
 # ── Quantization ─────────────────────────────────────────────────────────────
 QUANT_LEVELS = ["FP16", "Q8", "Q5", "Q4", "Q3", "Q2"]
 
@@ -40,7 +60,19 @@ QUANT_BYTES: dict[str, float] = {
     "Q2":   0.250,
 }
 
-# KV-cache + activation overhead multiplier
+# Fixed activation + runtime overhead on top of the weights.
+#
+# NOT a KV-cache term, despite what this comment used to say. calc_vram_gb takes
+# (params_b, quant) and nothing else — there is no context parameter anywhere in
+# get_local_df — so vram_req_gb is params_b * bytes_per_weight * 1.18 for every
+# model at every context length, verified identical to the cent across all 14
+# distinct context_k values in the catalogue.
+#
+# The KV cache is real and grows linearly with context, so a long-context run
+# needs more than this figure says. Modelling it properly needs per-model
+# n_layers / n_kv_heads / head_dim, which the catalogue does not carry. Until it
+# does, the honest move is to stop implying otherwise: the label below says what
+# this number is, and the hovers say what it assumes.
 _OVERHEAD = 1.18
 
 # Memory efficiency factor by hardware type
@@ -489,7 +521,10 @@ GPU_BY_NAME: dict[str, dict] = {g["name"]: g for g in GPUS}
 
 # ── Calculation helpers ───────────────────────────────────────────────────────
 def calc_vram_gb(params_b: float, quant: str) -> float:
-    """VRAM required in GB for one copy of the model weights."""
+    """VRAM for the model WEIGHTS plus fixed overhead — excludes the KV cache.
+
+    Context length does not enter this calculation. See _OVERHEAD.
+    """
     return params_b * QUANT_BYTES[quant] * _OVERHEAD
 
 
@@ -581,6 +616,16 @@ def get_local_df(
             "tags_str":    ", ".join(m["tags"]) if m["tags"] else "general",
         })
     df = pd.DataFrame(rows)
+    if df.empty:
+        # A tag that matches nothing gave a column-less frame, so df["family"]
+        # raised KeyError('family') — and neither caller surfaced it: Dash kept
+        # the previous figures and the browser logged to console. Not reachable
+        # while the tag options are derived from the data, but 'code' is down to
+        # 3 of 97 rows, so it is one scrape away.
+        df = pd.DataFrame(columns=[
+            "name", "family", "params_b", "active_b", "context_k", "quality",
+            "license", "tags", "moe", "vram_req_gb", "speed_tps", "fits", "tags_str",
+        ])
     df["family_color"] = df["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR)
     return df
 

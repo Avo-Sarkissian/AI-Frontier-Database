@@ -101,6 +101,13 @@ def radar_reference(full_df: pd.DataFrame) -> dict:
 
 def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
                 full_df: pd.DataFrame | None = None) -> go.Figure:
+    # `[]` is a deliberate clear and must show the empty state; `None` is "no
+    # selection supplied", which is the genuine first render. Substituting the
+    # top 5 for both meant clearing the control charted five models while the
+    # raw-values table directly beneath went blank — the two disagreeing about
+    # what was being compared, with the <select> visibly empty.
+    if selected_models is not None and len(selected_models) == 0:
+        return empty_figure("Select up to 5 models to compare")
     if not selected_models:
         # Default: top-5 by quality
         selected_models = (

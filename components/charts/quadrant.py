@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    empty_figure,
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     dedupe_to_best_variant, BUBBLE_PRICE_REF, BUBBLE_PRICE_FLOOR, bubble_size, safe_corr,
@@ -43,7 +44,12 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
     ref_df = plot_df if full_df is None else _plottable(full_df)
 
     if plot_df.empty:
-        return go.Figure()
+        # NOT a bare go.Figure(): that serialises Plotly's LIGHT default template
+        # (paper_bgcolor 'white'), and docs/app.js hands layout straight to
+        # Plotly.react — so a bright white card landed in the middle of the dark
+        # dashboard, under a caption still saying "Click any bubble for details".
+        # Reachable from 24 of 32 providers at some MIN SCORE setting.
+        return empty_figure("No models match these filters")
     if ref_df.empty:
         ref_df = plot_df
 

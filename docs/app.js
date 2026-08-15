@@ -526,10 +526,32 @@ async function doRefresh() {
 function renderFreshness() {
   const el = document.getElementById("data-freshness");
   if (!el) return;
-  const iso = window.AF.generatedIso;
+  const m = window.AF.manifest || {};
+  // The DATA's age, not the build's. generatedIso is when the site was built,
+  // and the hourly job rebuilds whenever any one of three datasets moves — so
+  // on CI run 31558618824 two scrapers failed, only the image arena refreshed,
+  // and a 5h-stale catalogue published under a badge reading "just now".
+  const iso = m.data_fetched_iso || window.AF.generatedIso;
   if (!iso) { el.textContent = ""; el.title = ""; return; }
-  el.textContent = "Updated " + relativeTime(iso);
-  el.title = new Date(iso).toUTCString();
+
+  const stale = Array.isArray(m.stale_datasets) ? m.stale_datasets : [];
+  el.textContent = "Updated " + relativeTime(iso) + (stale.length ? "  ·  ⚠" : "");
+  el.style.color = stale.length ? "#fbbf24" : "";
+
+  const lines = [];
+  const ds = m.datasets || {};
+  const LABELS = { hosted: "Hosted LLMs", local: "Open-weight models", image: "Image arena" };
+  Object.keys(LABELS).forEach(k => {
+    const e = ds[k] || {};
+    const when = e.fetched_at ? new Date(e.fetched_at).toUTCString() : "never";
+    const flag = e.ok === false ? "  (last scrape FAILED)" : e.ok === null ? "  (unknown)" : "";
+    lines.push(`${LABELS[k]}: ${when}${flag}`);
+  });
+  if (stale.length) {
+    lines.unshift(`Stale or failing: ${stale.join(", ")}`, "");
+  }
+  lines.push("", "Badge shows the oldest successful fetch across all three.");
+  el.title = lines.join("\n");
 }
 
 // ---- Read current filter state ----

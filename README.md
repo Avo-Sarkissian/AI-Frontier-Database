@@ -97,9 +97,15 @@ Requires **Python 3.11+**.
 git clone https://github.com/Avo-Sarkissian/AI-Frontier-Database.git
 cd AI-Frontier-Database
 
-# Create and activate a virtual environment
-python -m venv ai-frontier
-source ai-frontier/bin/activate   # Windows: ai-frontier\Scripts\activate
+# Create and activate a virtual environment.
+# Use .venv, not a name containing spaces: this repo lives under a path with a
+# space in it, and a venv whose activate script embeds that path silently
+# prepends a directory that does not exist. The script still exits 0 and still
+# sets the (name) prompt, so you get the SYSTEM python believing you are in a
+# venv — which is how a build once ran under plotly 6.0 and tripled the bundle.
+python -m venv .venv
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
+python -c "import sys; print(sys.prefix)"   # must print .../AI Frontier/.venv
 
 # Install dependencies
 pip install -r requirements.txt

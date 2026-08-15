@@ -25,6 +25,7 @@ import requests
 from pathlib import Path
 
 from data.ingest import load_from_raw, save_cache, load_cached
+from data import scrape_status
 
 _HEADERS = {
     "User-Agent": (
@@ -291,7 +292,7 @@ def _shrink_violations(df) -> list[str]:
     return []
 
 
-def scrape_and_save() -> bool:
+def _scrape_and_save() -> bool:
     """
     Fetch fresh data from the AA API and update the cache.
     Returns True on success, False on failure (cache unchanged).
@@ -337,6 +338,20 @@ def scrape_and_save() -> bool:
     except Exception as exc:
         print(f"[scraper] Unexpected error: {exc}")
         return False
+
+
+def scrape_and_save() -> bool:
+    """Records the outcome so the freshness badge reports real fetch times."""
+    ok = _scrape_and_save()
+    rows = None
+    if ok:
+        try:
+            cached = load_cached()
+            rows = None if cached is None else len(cached)
+        except Exception:
+            rows = None
+    scrape_status.record("hosted", ok, rows)
+    return ok
 
 
 def _scraper_loop(interval_s: int = 3600):

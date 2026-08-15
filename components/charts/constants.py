@@ -452,7 +452,15 @@ def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider"):
     out = df.copy()
     out["_canon_provider"] = out[provider_col].apply(canonical_provider)
     counts = out["_canon_provider"].value_counts()
-    named = [p for p in counts.index if p in SPOTLIGHT_PROVIDERS][:MAX_LEGEND_PROVIDERS]
+    # Total order, not just value_counts' order. value_counts does not define
+    # how ties break, and after dedupe the top providers genuinely tie (OpenAI
+    # 8 / Google 8 / Mistral 8) — so pandas 3.x in CI and pandas 2.2.3 in the
+    # browser produced DIFFERENT legend orders from identical data. The
+    # pre-rendered figure and the in-browser re-render disagreed, and since the
+    # worker's `ready` message triggers a re-render with no user action, legend
+    # entries visibly swapped a few seconds after every page load.
+    candidates = sorted(counts.index, key=lambda p: (-int(counts[p]), str(p)))
+    named = [p for p in candidates if p in SPOTLIGHT_PROVIDERS][:MAX_LEGEND_PROVIDERS]
     named_set = set(named)
     out["display_provider"] = out["_canon_provider"].apply(
         lambda p: p if p in named_set else "Other"

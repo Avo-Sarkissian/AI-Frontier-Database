@@ -57,7 +57,7 @@ def build_local_scatter(
                 "Intelligence: %{y:.0f}<br>"
                 "Speed: %{customdata[1]:.0f} tok/s<br>"
                 "License: %{customdata[2]}<br>"
-                "Context: %{customdata[3]}k tokens<br>"
+                "Max context: %{customdata[3]}k tokens  ·  KV cache not in the VRAM figure<br>"
                 "Tags: %{customdata[4]}<br>"
                 "<extra></extra>"
             )

@@ -26,6 +26,12 @@ from data.local_models import FAMILY_COLORS as _FAMILY_COLORS, DEFAULT_FAMILY_CO
 _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 
 # ── API tier config ────────────────────────────────────────────────────────────
+# Time-to-first-token beyond this reads as "not fast" whatever else is true.
+# Used both as a hard tier filter and as the cap on the latency score term.
+FAST_MAX_LATENCY_S = 10.0
+_LATENCY_SCORE_CAP_S = 5.0
+
+
 _API_TIERS = [
     {
         "key":         "fast",
@@ -35,6 +41,9 @@ _API_TIERS = [
         "max_price":    3.0,
         "min_quality":  28.0,
         "min_speed":    30,
+        # A tier whose whole promise is "parallel sub-agents" cannot recommend
+        # a model that takes a minute to say its first word.
+        "max_latency":  FAST_MAX_LATENCY_S,
         "sort":        "composite_fast",
         "n":            5,
     },
@@ -106,11 +115,30 @@ _USE_CASES = {
 # ── API picking ────────────────────────────────────────────────────────────────
 
 def _score_fast_api(row, q_max, v_max, s_max):
+    """Score for the tier captioned "cheap, high-throughput, parallel calls".
+
+    Latency used to appear nowhere in this function — the whole Fast tier was
+    scored on quality, value and throughput — while the card rendered a TTFT
+    chip right beside the pick. On the default page state, with no interaction,
+    it recommended GPT-5.6 Luna (max) at 57.45s time-to-first-token, when the
+    same pool held GPT-5.6 Luna (low) at 1.63s: same provider, same $0.950/M,
+    slightly higher throughput, 35x faster to first token, ranked 6th because
+    quality carried 0.45 of the weight.
+
+    Latency now takes 0.20, out of throughput's share. Throughput matters once a
+    response is streaming; for a sub-agent fired in parallel, the wait before it
+    starts is the cost the user actually feels.
+    """
     q = row["quality"] / q_max if q_max else 0
     v = (row["quality"] / row["price"]) / v_max if (v_max and row["price"] > 0) else 0
     s = row["speed"] / s_max if s_max else 0
-    # Quality-first: even fast models need real intelligence
-    return q * 0.45 + v * 0.30 + s * 0.25
+    lat = row.get("latency", None)
+    if lat is None or not pd.notna(lat) or lat <= 0:
+        l = 0.5          # unmeasured: neither rewarded nor punished
+    else:
+        l = 1.0 - min(float(lat), _LATENCY_SCORE_CAP_S) / _LATENCY_SCORE_CAP_S
+    # Quality-first, but a "fast" model that keeps you waiting is not fast.
+    return q * 0.45 + v * 0.25 + s * 0.10 + l * 0.20
 
 
 def _tier_pool(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
@@ -122,6 +150,11 @@ def _tier_pool(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
         pool = pool[pool["quality"] >= tier["min_quality"]]
     if tier["min_speed"] > 0:
         pool = pool[pool["speed"] >= tier["min_speed"]]
+    if tier.get("max_latency"):
+        # Keep unmeasured rows — dropping them would silently narrow the pool to
+        # whichever models happen to have a TTFT figure this hour.
+        lat = pd.to_numeric(pool["latency"], errors="coerce")
+        pool = pool[lat.isna() | (lat <= tier["max_latency"])]
     return pool
 
 
@@ -181,9 +214,19 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5) -> pd.Da
         # Quality-weighted efficiency — quality matters more than VRAM footprint
         runnable = runnable[runnable["quality"] >= 12]
         q_max = runnable["quality"].max() or 1
+        # The VRAM term used to be a RAW RECIPROCAL in GB against a min-max
+        # normalised quality term: measured spreads were 0.474 for quality and
+        # 0.095 for VRAM, so the argmax was simply the argmax of quality — which
+        # is the Reasoning tier's own sort key. Balanced matched Reasoning on 90
+        # of 137 GPU presets, and all three tiers were identical on 27.
+        _v = runnable["vram_req_gb"].astype(float)
+        _v_lo, _v_hi = _v.min(), _v.max()
+        runnable["_vram_fit"] = (
+            (_v_hi - _v) / (_v_hi - _v_lo) if _v_hi > _v_lo else 1.0
+        )
         runnable["_score"] = (
             (runnable["quality"] / q_max) * 0.70 +
-            (1 / runnable["vram_req_gb"].replace(0, float("nan")).fillna(99)) * 0.30
+            runnable["_vram_fit"] * 0.30
         )
         runnable = runnable.sort_values("_score", ascending=False)
     else:  # reasoning
@@ -345,7 +388,7 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
         body   = html.Div([row_fn(row, is_top=(i == 0))
                            for i, (_, row) in enumerate(picks.iterrows())])
 
-    advice    = _TIER_ADVICE[tier["key"]]
+    advice    = tier.get("advice", _TIER_ADVICE[tier["key"]])
     use_cases = html.Div([
         html.Div("USE CASES", style={
             "fontSize": "9px", "letterSpacing": "0.1em", "color": "#555",
@@ -375,9 +418,18 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
 
     advisor = html.Div([
         html.Div(style={"height": "1px", "background": "rgba(255,255,255,0.05)", "margin": "14px 0 12px"}),
-        _advice_row("BEST FOR",  advice["best_for"],  "#5a8a5a"),
-        _advice_row("TRADEOFF",  advice["tradeoff"],  "#666"),
-        _advice_row("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
+        *([
+            _advice_row("BEST FOR",  advice["best_for"],  "#5a8a5a"),
+            _advice_row("TRADEOFF",  advice["tradeoff"],  "#666"),
+            _advice_row("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
+        ] if advice else [
+            _advice_row(
+                "NOTE",
+                f"Same model as {tier.get('duplicate_of') or 'another tier'} — the "
+                f"selected catalogue does not offer a distinct option at this tier.",
+                "#7a6a3a",
+            ),
+        ]),
     ])
 
     return html.Div([
@@ -461,9 +513,11 @@ def select_stack(
         api_pool = api_pool[api_pool["provider"].isin(wanted)]
 
     tiers_out = []
+    _taken: dict[str, str] = {}   # model name -> the tier that claimed it
 
     for tier in _API_TIERS:
         key = tier["key"]
+        duplicate_of = None
 
         if mode == "api":
             picks  = _pick_api_tier(api_pool, tier, full_df=df)
@@ -486,6 +540,27 @@ def select_stack(
                 picks  = _pick_api_tier(api_pool, tier, full_df=df)
                 source = "API"
 
+        # Don't hand the same model to two tiers. The point of the card is that
+        # these are three DIFFERENT recommendations; when they collapsed (11 of
+        # 32 single-provider selections in API mode, 27 of 137 GPU presets in
+        # local mode) the page asserted, of one model at one price, that it was
+        # simultaneously "not suitable for complex logic", "more expensive than
+        # Fast" and "slowest and most expensive".
+        name_col = "model" if "model" in picks.columns else "name"
+        if not picks.empty and name_col in picks.columns:
+            fresh = picks[~picks[name_col].isin(_taken)]
+            if not fresh.empty:
+                picks = fresh
+            else:
+                # Every candidate is already spoken for. Show the repeat rather
+                # than an empty card, but say so and drop the advice, which is
+                # written on the assumption the tiers differ.
+                duplicate_of = _taken.get(str(picks.iloc[0][name_col]))
+        if not picks.empty and name_col in picks.columns:
+            top = str(picks.iloc[0][name_col])
+            duplicate_of = duplicate_of or (_taken.get(top) if top in _taken else None)
+            _taken.setdefault(top, tier["label"])
+
         tiers_out.append({
             "name":      tier["label"],
             "key":       key,
@@ -494,7 +569,10 @@ def select_stack(
             "picks":     picks,
             "source":    source,
             "use_cases": _USE_CASES[key],
-            "advice":    _TIER_ADVICE[key],
+            # A repeat makes the tier-specific tradeoff/avoid_if lines false, so
+            # they are suppressed rather than printed about the wrong model.
+            "advice":    None if duplicate_of else _TIER_ADVICE[key],
+            "duplicate_of": duplicate_of,
         })
 
     return {"tiers": tiers_out}
@@ -728,12 +806,29 @@ def _tier_card_html(tier_data: dict) -> str:
     divider = _h("div", "", style=_dict_to_style({
         "height": "1px", "background": "rgba(255,255,255,0.05)", "margin": "14px 0 12px",
     }))
-    advisor = _h("div",
-        divider +
-        _advice_row_html("BEST FOR",  advice["best_for"],  "#5a8a5a") +
-        _advice_row_html("TRADEOFF",  advice["tradeoff"],  "#666") +
-        _advice_row_html("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
-    )
+    if advice:
+        advisor = _h("div",
+            divider +
+            _advice_row_html("BEST FOR",  advice["best_for"],  "#5a8a5a") +
+            _advice_row_html("TRADEOFF",  advice["tradeoff"],  "#666") +
+            _advice_row_html("AVOID IF",  advice["avoid_if"],  "#7a4a4a"),
+        )
+    else:
+        # The catalogue on screen cannot differentiate this tier, so the fixed
+        # advice would describe the wrong model — it once told the reader that
+        # one model at one price was both "not suitable for complex logic" and
+        # "slowest and most expensive", on the same page.
+        dup = _escape(str(tier_data.get("duplicate_of") or "another tier"))
+        advisor = _h("div",
+            divider +
+            _advice_row_html(
+                "NOTE",
+                f"Same model as {dup} — the selected catalogue does not offer a "
+                f"distinct option at this tier. Narrow or widen the provider "
+                f"filter to see alternatives.",
+                "#7a6a3a",
+            ),
+        )
 
     return _h("div",
         header + tagline_div + body + use_cases_div + advisor,

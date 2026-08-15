@@ -11,17 +11,26 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     BG, GRID, TICK, AXIS, FONT, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
+    empty_figure,
 )
 from data.video_models import PROVIDER_COLORS, DEFAULT_COLOR
 
 
 def build_video_rankings(df: pd.DataFrame) -> go.Figure:
     """Horizontal bar ranked by quality, annotated with price/sec and gen time."""
+    if df is None or df.empty:
+        # 36 of 65 provider x tag pairs select nothing (tags are AND-ed), and
+        # this used to render the full title and axis furniture over two bar
+        # traces with x=[] y=[] — empty scaffolding that reads as a broken page.
+        return empty_figure("No video models match these filters")
     plot_df = df.sort_values("quality", ascending=True).reset_index(drop=True)
 
     short_name = plot_df["model"].apply(lambda n: n[:34] + "…" if len(n) > 34 else n)
     colors = plot_df["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
-    max_q  = plot_df["quality"].max() or 1
+    # `or 1` does not save this: pandas returns NaN for an all-NaN column and
+    # NaN is truthy, so the NaN escaped into `range=[40, NaN * HEADROOM]`.
+    _max_q = plot_df["quality"].max()
+    max_q  = float(_max_q) if pd.notna(_max_q) and _max_q > 0 else 1.0
 
     fig = go.Figure()
 
@@ -139,7 +148,11 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
     the whole market, so filtering must be able to hide a frontier point but
     never promote one the market already dominates.
     """
+    if df is None or df.empty:
+        return empty_figure("No video models match these filters")
     plot_df = df[(df["price_per_sec"] > 0) & (df["quality"] > 0)].copy()
+    if plot_df.empty:
+        return empty_figure("No video models match these filters")
     ref_df = plot_df if full_df is None else \
         full_df[(full_df["price_per_sec"] > 0) & (full_df["quality"] > 0)].copy()
 

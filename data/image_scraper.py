@@ -31,6 +31,8 @@ from pathlib import Path
 import requests
 import pandas as pd
 
+from data import scrape_status
+
 _HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -181,7 +183,7 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
 
 # ── Public entry points ───────────────────────────────────────────────────────
 
-def scrape_and_save() -> bool:
+def _scrape_and_save() -> bool:
     """Fetch live data and write to cache CSV. Returns True on success."""
     try:
         resp = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
@@ -200,6 +202,24 @@ def scrape_and_save() -> bool:
     df.to_csv(_CACHE, index=False)
     print(f"[image_scraper] Saved {len(df)} image models")
     return True
+
+
+def scrape_and_save() -> bool:
+    """Records the outcome so the freshness badge reports real fetch times.
+
+    See data/scrape_status.py: the badge used to show the BUILD time, so one
+    succeeding scraper reset the clock for all three datasets.
+    """
+    ok = _scrape_and_save()
+    rows = None
+    if ok:
+        try:
+            cached = load_cached()
+            rows = None if cached is None else len(cached)
+        except Exception:
+            rows = None
+    scrape_status.record("image", ok, rows)
+    return ok
 
 
 def load_cached() -> pd.DataFrame | None:
