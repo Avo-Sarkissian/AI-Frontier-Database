@@ -20,7 +20,15 @@
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="assets/style.css" />
   <link rel="stylesheet" href="assets/shell.css" />
-  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+  <!-- Subresource Integrity: the browser refuses the file unless it hashes to
+       exactly the 4,653,932-byte bundle this site was built and tested against.
+       Without it, a CDN compromise silently rewrites the pricing charts that
+       visitors act on — the CSP only says WHERE a script may come from, never
+       WHICH script. Regenerate on any version bump:
+         curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"
+          integrity="sha384-8cEu0XVLh4s92OG4Ua4ZS75MN//b+0KqyCrhQqaXgHMVHnKC3DNVhwUyH5spa1J2"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <div class="header">

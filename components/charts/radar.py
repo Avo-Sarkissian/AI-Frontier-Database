@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, FONT as _FONT, empty_figure, QUALITY_INDEX_MAX, legend_below,
+    plot_text, context_k,
     RADAR_SPEED_MAX, RADAR_PRICE_MAX, RADAR_LATENCY_MAX, RADAR_CONTEXT_K_MAX,
 )
 
@@ -20,20 +21,10 @@ _PALETTE = [
 DIMS = ["Intelligence", "Speed", "Affordability", "Context", "Latency"]
 
 
-def _context_k(ctx_str: str) -> float:
-    """Convert '200k', '1m', '128k' etc. to numeric thousands."""
-    if not ctx_str or pd.isna(ctx_str):
-        return 0.0
-    s = str(ctx_str).lower().strip()
-    try:
-        if s.endswith("m"):
-            return float(s[:-1]) * 1000
-        elif s.endswith("k"):
-            return float(s[:-1])
-        else:
-            return float(s)
-    except ValueError:
-        return 0.0
+def _context_k(ctx_str) -> float:
+    """Delegates to the shared parser — see constants.context_k."""
+    value = context_k(ctx_str)
+    return 0.0 if value != value else value      # NaN -> 0 for the radius
 
 
 def _log_norm(value: float, lo: float, hi: float, invert: bool = False) -> float:
@@ -172,9 +163,11 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
             fill="toself",
             fillcolor=f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.18)",
             line=dict(color=color, width=1.5),
-            name=model_name[:28] + ("…" if len(model_name) > 28 else ""),
+            # Escaped: Plotly renders legend text as markup, and a poisoned
+            # model name produced a live <a> styled as a legend entry.
+            name=plot_text(model_name[:28] + ("…" if len(model_name) > 28 else "")),
             hovertemplate=(
-                f"<b>{model_name}</b><br>"
+                f"<b>{plot_text(model_name)}</b><br>"
                 f"Intelligence: {values_pct[0]}%<br>"
                 f"Speed: {values_pct[1]}%<br>"
                 f"Affordability: {values_pct[2]}%<br>"

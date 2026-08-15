@@ -1,6 +1,6 @@
 # AI Frontier
 
-> An interactive dashboard mapping the entire AI model landscape — comparing 300+ large language models on cost, speed, and intelligence in one place, updated hourly.
+> An interactive dashboard mapping the entire AI model landscape — comparing every hosted language model Artificial Analysis benchmarks — 155 of them across 31 providers today — on cost, speed, and intelligence in one place, updated hourly.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
 ![Dash](https://img.shields.io/badge/Dash-Plotly-informational?logo=plotly&logoColor=white)
@@ -27,14 +27,14 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 
 | Tab | Description |
 |---|---|
-| **Overview** | Bubble scatter of every model, togglable between Price and Speed on the x-axis (y = AA Intelligence Index either way). Dotted Pareto frontier highlights best value per dollar. Color and marker shape both encode provider for colorblind accessibility. |
+| **Overview** | Bubble scatter of every model, togglable between Price and Speed on the x-axis (y = AA Intelligence Index either way). Dotted Pareto frontier highlights best value per dollar. The nine largest providers each get a distinct colour AND marker shape — a redundant encoding that survives colour-vision deficiency; the remaining providers share a grey "Other" series. |
 | **Agent Stack** | Pick a workflow — API Only, Hybrid (fast local), Hybrid (fast + balanced local), or Local Only — plus a provider checklist, and get a three-tier model recommendation: Fast, Balanced, and Reasoning. Hybrid/Local modes add GPU, VRAM, and quantization controls. |
 | **Landscape** | Treemap of the AI industry: tile area = model count per provider, color intensity = average intelligence. Followed by a provider leaderboard. |
 | **Rankings** | Top 25 models by Intelligence, Value (score/$), or Speed, with tier-separator lines marking meaningful performance gaps — plus a "Value Leaders" chart ranking the top models by intelligence-per-dollar. |
 | **Compare** | Head-to-head radar chart across five dimensions: Intelligence, Speed, Affordability, Context Window, and Latency. Supports up to 5 models simultaneously, with a raw-value table below the chart. |
 | **Budget** | Enter a monthly token volume and see projected API cost per model, sorted cheapest-first. |
-| **Table** | Full sortable table of all 300+ models with every available metric. |
-| **Run Local** | Select a GPU, quantization level, and capability tags (code, reasoning, vision, multilingual) to see which open-weight models fit in VRAM, with estimated inference speed. |
+| **Table** | Full sortable table of every tracked model with every available metric. |
+| **Run Local** | Select a GPU, quantization level, and capability tags (code, reasoning, vision, audio) to see which open-weight models fit in VRAM, with estimated inference speed. |
 | **Image Gen** | ELO-based leaderboard of image generation models, filterable by provider and style tag, from the AA Image Arena. |
 | **Video Gen** | Ranked comparison of video generation models with pricing and quality data, filterable by provider and tag. |
 
@@ -70,7 +70,7 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Open-weight / local models | Artificial Analysis | GPU VRAM fit, parameter counts, quantization levels, scraped live hourly |
 | Video generation models | Curated dataset | Manually maintained pricing/quality data (`data/video_models.py`) — not live-scraped |
 
-The LLM dataset currently covers **300+ models** across **30+ providers** (exact counts fluctuate hourly and are always visible live in the dashboard's header stats). Three separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`) each pull their own Artificial Analysis endpoint on the same hourly cadence.
+The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Three separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`) each pull their own Artificial Analysis endpoint on the same hourly cadence.
 
 ---
 
@@ -79,7 +79,7 @@ The LLM dataset currently covers **300+ models** across **30+ providers** (exact
 An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the sole source of truth for the deployed site — browsers can't call the Artificial Analysis API directly (CORS), so a cron job (`23 * * * *`, plus manual `workflow_dispatch`) does it server-side:
 
 1. Runs all three scrapers, falling back to the last-known-good cache per source if a fetch fails.
-2. Sanity-checks row counts before proceeding.
+2. Sanity-checks row counts, per-column health, and per-column medians before proceeding — a rename that zeroes a column, or a units change that leaves the row count intact, both fail the build.
 3. Skips the rebuild entirely if nothing changed (git-diff change guard).
 4. Runs `python build_static.py --data-only` to swap the new CSVs into the static bundle without re-vendoring Plotly.
 5. Commits and pushes the refreshed `docs/` folder as `github-actions[bot]`, which GitHub Pages auto-deploys.

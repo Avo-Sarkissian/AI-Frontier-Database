@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 
 from components.charts.constants import (
     BG, GRID, TICK, AXIS, FONT, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
-    empty_figure,
+    empty_figure, plot_text,
 )
 from data.video_models import PROVIDER_COLORS, DEFAULT_COLOR
 
@@ -25,7 +25,8 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
         return empty_figure("No video models match these filters")
     plot_df = df.sort_values("quality", ascending=True).reset_index(drop=True)
 
-    short_name = plot_df["model"].apply(lambda n: n[:34] + "…" if len(n) > 34 else n)
+    short_name = plot_df["model"].apply(
+        lambda n: plot_text(n[:34] + "…" if len(n) > 34 else n))
     colors = plot_df["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
     # `or 1` does not save this: pandas returns NaN for an all-NaN column and
     # NaN is truthy, so the NaN escaped into `range=[40, NaN * HEADROOM]`.
@@ -49,7 +50,7 @@ def build_video_rankings(df: pd.DataFrame) -> go.Figure:
         orientation="h",
         marker=dict(color=colors, opacity=0.82, line=dict(width=0)),
         customdata=list(zip(
-            plot_df["model"], plot_df["provider"],
+            plot_df["model"].map(plot_text), plot_df["provider"].map(plot_text),
             plot_df["quality"], plot_df["price_per_sec"],
             plot_df["gen_time_s"], plot_df["max_res"],
             plot_df["max_duration_s"],
@@ -174,7 +175,7 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
             name=provider,
             marker=dict(color=color, size=pdf["size"], opacity=0.82, line=dict(width=0)),
             customdata=list(zip(
-                pdf["model"], pdf["provider"],
+                pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
                 pdf["quality"], pdf["price_per_sec"],
                 pdf["gen_time_s"], pdf["max_res"],
                 pdf["open_weights"].map({True: "Yes", False: "No"}),

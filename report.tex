@@ -31,11 +31,14 @@ The number of commercially available large language models has grown to
 the point where no single leaderboard covers all the dimensions that matter
 for practical use: price, throughput, latency, context window size, and
 benchmark performance. AI Frontier is an interactive dashboard that aggregates
-live data for 255+ models across 29 providers, refreshed every hour from the
-Artificial Analysis API, and makes the full competitive landscape navigable
-through eleven specialized views. The system runs entirely in Python using
-Plotly Dash, requires no JavaScript build step, and has been deployed at a
-public URL since March 2026. This report covers the data pipeline, composite
+live data for every hosted language model Artificial Analysis benchmarks —
+155 of them across 31 providers at the time of writing — refreshed every hour,
+and makes the full competitive landscape navigable through ten specialized
+views. Counts move hourly as models are added and delisted; the dashboard's
+header stats are authoritative. The system is written entirely in Python and
+requires no JavaScript build step: the same chart code runs server-side under
+Plotly Dash for local development and client-side under Pyodide (WebAssembly)
+on the deployed static site. This report covers the data pipeline, composite
 intelligence scoring methodology, visualization type selection, and the design
 decisions that shaped the final tool.
 \end{abstract}
@@ -88,25 +91,31 @@ size, and a composite intelligence score. The API is queried once per hour by
 a background thread that starts when the application launches.
 
 Each successful API response is written to a CSV cache and also saved as a
-timestamped snapshot in a history directory. Over 30 daily snapshots have
-accumulated; these power the Trends tab, which shows how model pricing has
-shifted over time.
+timestamped snapshot in a history directory. Over 90 daily snapshots have
+accumulated. No tab currently reads them: a price-over-time view was planned
+and is not built, and the snapshots additionally span a change in the price
+basis on 2026-05-06, so any such chart must not cross that boundary without
+restating the earlier values.
 
 A blended price per million tokens is computed from the raw input/output
 prices using a 3:1 output-to-input ratio, approximating real-world usage
-patterns. This collapses two numbers into one for display and sorting while
+patterns. This weighting is ours, not Artificial Analysis's: AA publishes the
+opposite blend (3 parts input to 1 part output), so prices here read roughly
+1.9x theirs. Output-weighting is the defensible basis for agentic and
+retrieval-augmented workloads, where generated tokens dominate spend. This collapses two numbers into one for display and sorting while
 keeping the full per-direction figures available in the detail table.
 
 \subsection{Local Model and Hardware Data}
 
-The second data source is a manually curated catalog of open-weight models
-and GPU hardware specifications. GPU memory bandwidth and VRAM capacity were
+The second data source pairs a live scrape of open-weight models with a
+hand-maintained catalog of GPU hardware specifications. GPU memory bandwidth and VRAM capacity were
 pulled from official product pages (NVIDIA, AMD, Apple, Intel). Model
 parameter counts and quantization support were taken from HuggingFace model
 cards \cite{huggingface}.
 
-This catalog is static rather than live — it gets updated when significant
-new hardware generations or model families are released. It backs the Run
+The GPU catalog is static — it gets updated when significant new hardware
+generations are released — while the open-weight model list is scraped hourly
+by data/local\_scraper.py on the same cadence as the hosted-model data. It backs the Run
 Local tab, which estimates whether a given model fits in a selected GPU's
 memory and how fast it would run.
 
@@ -143,18 +152,18 @@ within-score differences.
 
 \subsection{Tab Structure}
 
-The dashboard has eleven tabs, each targeting a specific question:
+The dashboard has ten tabs, each targeting a specific question:
 \textbf{Overview} (cost vs. quality for every model),
 \textbf{Agent Stack} (three-tier model recommendations for agentic workflows),
 \textbf{Landscape} (treemap of the industry by provider),
 \textbf{Rankings} (top 25 by intelligence, value, or speed),
 \textbf{Compare} (radar chart for up to five models),
 \textbf{Budget} (projected monthly API cost from a token volume),
-\textbf{Table} (full sortable list of all 255+ models),
+\textbf{Table} (full sortable list of every tracked model),
 \textbf{Run Local} (VRAM compatibility and speed estimation),
 \textbf{Image Gen} (ELO-ranked image generation leaderboard),
-\textbf{Video Gen} (ranked video generation comparison), and
-\textbf{Trends} (price-over-time from daily historical snapshots).
+and \textbf{Video Gen} (ranked video generation comparison, from a curated
+dataset rather than a live scrape).
 
 \subsection{Visualization Choices}
 
@@ -204,11 +213,11 @@ precise value comparison, but it communicates structural patterns that scatter
 plots miss. A ranked bar chart directly below it allows precise comparison of
 the same providers.
 
-\textbf{Trends: line chart over time.}
-The historical snapshot system makes this tab possible. Plotting API prices
-over time shows a market that moves fast: several major providers dropped
-prices significantly between February and April 2026. A static dataset would
-miss this entirely.
+\textbf{Deferred: price-over-time line chart.}
+The historical snapshot system was built to support this, and the market does
+move fast enough to justify it. It is not shipped: the snapshots span a change
+in the price basis on 2026-05-06, so a naive line would show a doubling that
+never happened. Publishing a misleading trend is worse than publishing none.
 
 \textbf{Run Local: VRAM compatibility calculator.}
 This tab addresses a question that no existing public tool answers directly:
@@ -225,7 +234,7 @@ quartering the memory footprint relative to the one above.
 
 \subsection{Design Principles}
 
-Three decisions carried through all eleven tabs.
+Three decisions carried through all ten tabs.
 
 \textbf{Data-ink ratio.}
 Gridlines, outer frames, and chart borders were removed wherever they add
@@ -235,8 +244,11 @@ white background with equivalent data density — the background recedes and
 the data elements stand out.
 
 \textbf{Colorblind accessibility.}
-Each provider gets both a color and a distinct marker shape, keeping these
-consistent across all eleven tabs. A user who learns the color scheme (or the
+The nine largest providers each get both a color and a distinct marker shape —
+a redundant encoding that survives color-vision deficiency — kept consistent
+across all ten tabs. The remaining providers share a neutral \enquote{Other}
+series, because a categorical palette cannot separate thirty-plus categories
+reliably for any viewer. A user who learns the color scheme (or the
 shapes) can navigate between tabs without re-reading a legend each time.
 
 \textbf{Appropriate scales.}
@@ -253,15 +265,18 @@ is in Python using Plotly's graph objects API; Dash handles HTTP routing,
 callback wiring, and component state.
 
 Choosing a single language for the full stack — data pipeline, computation,
-and UI — simplified deployment. There is no Node.js dependency, no separate
-API server, and no build process. The application is a single Python process
-that Render \cite{render} starts with \texttt{python app.py} and redeploys
-automatically on every push to the GitHub repository.
+and UI — simplified deployment. There is no Node.js dependency and no separate
+API server. The project deployed on Render \cite{render} as a single Python
+process until 2026-06-23, and now ships as a static site on GitHub Pages: the
+same Python chart code is executed in the browser by Pyodide (WebAssembly),
+and an hourly GitHub Actions job performs the scrape that browsers cannot
+(the Artificial Analysis API sends no CORS headers).
 
-The tradeoff is that some interactions requiring client-side speed in a React
-application need a server round-trip in Dash. In practice this was acceptable
-because the dataset is small (under 1 MB) and most callbacks return in under
-200 ms on the hosted instance.
+The tradeoff moved with the architecture. Under Dash, interactions that a
+React application would handle locally needed a server round-trip. Under
+Pyodide there is no round-trip, but the browser downloads a 4 MB Python bundle
+before the controls become live, so the site paints from pre-rendered figures
+first and upgrades to interactive once that load completes.
 
 \section{Contributions}
 

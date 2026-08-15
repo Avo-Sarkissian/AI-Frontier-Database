@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    plot_text,
     empty_figure,
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
@@ -141,7 +142,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
                 opacity=0.8,
                 line=marker_outline(),
             ),
-            customdata=list(zip(pdf["model"], pdf["provider"], pdf["price"], latency_str,
+            customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
+                                pdf["price"], latency_str,
                                 _rate_pair(pdf))),
             hovertemplate=hover,
         ))
@@ -206,7 +208,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
             x=label_df["speed"],
             y=label_df["quality"],
             mode="text",
-            text=label_df["model"].apply(lambda m: m[:20] + "…" if len(m) > 20 else m),
+            text=label_df["model"].apply(
+                    lambda m: plot_text(m[:20] + "…" if len(m) > 20 else m)),
             textposition=positions,
             textfont=dict(color="rgba(255,255,255,0.5)", size=10, family=_FONT),
             hoverinfo="skip",

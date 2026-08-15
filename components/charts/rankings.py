@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    plot_text,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     empty_figure, unique_labels,
@@ -107,7 +108,8 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             opacity=0.85,
             line=dict(width=0),
         ),
-        customdata=list(zip(ranked["model"], ranked["provider"], price_str, speed_str, latency_str)),
+        customdata=list(zip(ranked["model"].map(plot_text), ranked["provider"].map(plot_text),
+                            price_str, speed_str, latency_str)),
         hovertemplate=hover,
         showlegend=False,
         text=ranked["_metric"].apply(lambda q: f"{q:.0f}"),
@@ -132,7 +134,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             # Provider identity is the text itself; keeping it at the chart's
             # body grey rather than the provider hue puts this 10px label at
             # 9.9:1 instead of the 3:1 several palette entries sit at.
-            text=f"{row['provider']}{price_tag}",
+            text=f"{plot_text(row['provider'])}{price_tag}",
             showarrow=False,
             xanchor="left",
             font=dict(size=10, family=_FONT, color="#999999"),

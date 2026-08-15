@@ -19,13 +19,66 @@ _NAME_SUBS = [
 ]
 
 
+def context_k(value) -> float:
+    """Parse a context string to thousands of tokens: '128k' -> 128.0, '1m' -> 1000.0.
+
+    ONE parser, because there were two and they disagreed.
+    components/charts/context_chart.py had no 'M' case at all, so '1m' and '2m'
+    both became NaN — silently dropping 52 of 148 models, every one of them a
+    long-context model, from a chart whose entire subject is context length. Its
+    1M reference line could therefore never draw while its 1M tick was always
+    present. The radar's copy parsed 'm' correctly. A module that looks finished
+    and is wrong in exactly its own subject matter is a loaded gun.
+    """
+    if value is None:
+        return float("nan")
+    s = str(value).strip().lower().replace(",", "")
+    if not s or s in ("nan", "none", "--"):
+        return float("nan")
+    try:
+        if s.endswith("m"):
+            return float(s[:-1]) * 1000
+        if s.endswith("k"):
+            return float(s[:-1])
+        raw = float(s)
+    except ValueError:
+        return float("nan")
+    # A bare number is raw tokens unless it is already small enough to be K.
+    return round(raw / 1000, 1) if raw > 10000 else raw
+
+
+def plot_text(value) -> str:
+    """Escape a scraped string for Plotly's rendered-text sinks.
+
+    Every HTML sink in this app is escaped. The Plotly text path was escaped
+    nowhere — and Plotly's own renderer treats those strings as a small markup
+    dialect: its allowed-tag table includes `a` and `span`, and convertToTspans
+    builds a real SVG anchor. Rendered against the pinned bundle, a poisoned
+    model name produced four live links styled as first-party chart labels, in
+    the tick labels, the legend, an annotation and a treemap slice.
+
+    Not XSS — the href allowlist has no `javascript:` and the CSP forbids inline
+    script — but a clickable link inside a pricing chart is a phishing surface,
+    and `<span style=…>` lets scraped text restyle the chart. `%` is escaped too
+    so a name can never smuggle a `%{…}` hovertemplate directive.
+
+    The committed feed is clean today (0 cells with `<>&"'` across all three
+    CSVs). This is a choke point, not a reaction.
+    """
+    text = "" if value is None else str(value)
+    return (text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("%", "&#37;"))
+
+
 def clean_model_name(name: str, max_len: int = 32) -> str:
-    """Abbreviate verbose model name suffixes for display."""
+    """Abbreviate verbose model name suffixes for display, escaped for Plotly."""
     for pattern, repl in _NAME_SUBS:
         name = pattern.sub(repl, name)
     if len(name) > max_len:
         name = name[:max_len - 1] + '…'
-    return name
+    return plot_text(name)
 
 
 _BASE_MODEL_RE = _re.compile(r'\s*\([^)]*\)\s*$')

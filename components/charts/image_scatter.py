@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from components.charts.constants import BG, GRID, TICK, AXIS, FONT, empty_figure
+from components.charts.constants import BG, GRID, TICK, AXIS, FONT, empty_figure, plot_text
 from data.image_models import PROVIDER_COLORS, DEFAULT_COLOR
 
 # Artificial Analysis migrated its arena to a new category taxonomy, and the
@@ -114,7 +114,8 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         if cdf.empty:
             continue
 
-        short_name = cdf["model"].apply(lambda n: n[:22] + "…" if len(n) > 22 else n)
+        short_name = cdf["model"].apply(
+            lambda n: plot_text(n[:22] + "…" if len(n) > 22 else n))
         colors = cdf["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
         elo_vals = cdf["_elo_display"]
         max_elo = elo_vals.max() or 1
@@ -136,7 +137,7 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
             orientation="h",
             marker=dict(color=colors, opacity=0.82, line=dict(width=0)),
             customdata=list(zip(
-                cdf["model"], cdf["provider"],
+                cdf["model"].map(plot_text), cdf["provider"].map(plot_text),
                 elo_vals, price_display,
                 cdf["open_weights"].map({True: "Yes", False: "No"}),
             )),
@@ -313,7 +314,7 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             text=(
                 "All Models — Ranked by Quality"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  ELO from AA Image Arena blind comparisons  ·  119 models</span>"
+                f"  ·  ELO from AA Image Arena blind comparisons  ·  {len(ref_df)} models</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",

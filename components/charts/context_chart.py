@@ -14,26 +14,16 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    context_k,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
 
 
 def _parse_context_k(val) -> float:
-    """Parse context string to K tokens: '128K' → 128.0, '32768' → 32.0."""
-    s = str(val).upper().replace(",", "").strip()
-    if not s or s in ("NAN", "NONE", "--", ""):
-        return float("nan")
-    if "K" in s:
-        try:
-            return float(s.replace("K", ""))
-        except ValueError:
-            return float("nan")
-    try:
-        raw = float(s)
-        return round(raw / 1000, 1)   # raw tokens → K
-    except ValueError:
-        return float("nan")
+    """Delegates to the shared parser — see constants.context_k for why this
+    module must not keep its own."""
+    return context_k(val)
 
 
 def build_context_chart(df: pd.DataFrame) -> go.Figure:

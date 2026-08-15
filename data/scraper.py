@@ -183,12 +183,20 @@ def _parse_api_response(data: dict) -> list[list]:
         ])
 
     kept = {name for name, _ in best}
+    dropped_no_score = sorted(n for n in skipped["no_score"] if n and n not in kept)
+    dropped_no_price = sorted(n for n in skipped["no_price"] if n and n not in kept)
     _last_coverage.clear()
     _last_coverage.update({
-        "upstream_records": len(host_models),
+        # host x model ROWS, not models: the aggregation above collapses every
+        # host offering the same model. Published as "upstream_records" beside
+        # "kept", the 428 read as a model count and was the likely origin of the
+        # "300+ models" claim in the README. The honest denominator is the
+        # distinct-model figure below, which is what the site actually shows.
+        "upstream_host_model_rows": len(host_models),
+        "distinct_upstream_models": len(kept) + len(dropped_no_score) + len(dropped_no_price),
         "kept": len(kept),
-        "skipped_no_score": sorted(n for n in skipped["no_score"] if n and n not in kept),
-        "skipped_no_price": sorted(n for n in skipped["no_price"] if n and n not in kept),
+        "skipped_no_score": dropped_no_score,
+        "skipped_no_price": dropped_no_price,
     })
     return rows
 

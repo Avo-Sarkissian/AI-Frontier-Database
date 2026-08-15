@@ -290,3 +290,40 @@ def test_the_gpu_count_control_says_what_extra_cards_do():
         assert "pool VRAM" in (ROOT / rel).read_text(), (
             f"{rel} does not explain that extra GPUs pool VRAM without adding speed"
         )
+
+
+def test_running_the_suite_does_not_mark_the_live_data_stale():
+    """A test that drives a scraper through its failure path must not write
+    ok=false into the file the deployed badge reads. It did: a plain `pytest`
+    run marked all three datasets as failing, and the live site showed a
+    staleness warning because someone had run the tests."""
+    import os
+    import subprocess
+    import sys as _sys
+
+    path = ROOT / "data" / "raw" / "scrape_status.json"
+    if not path.exists():
+        pytest.skip("no status file yet")
+    before = path.read_text()
+    env = {**os.environ, "AI_FRONTIER_STATUS_PATH": "/dev/null"}
+    subprocess.run(
+        [_sys.executable, "-c",
+         "import data.scrape_status as s; s.record('hosted', False)"],
+        cwd=ROOT, capture_output=True, text=True, env=env,
+    )
+    assert path.read_text() == before, (
+        "a redirected scrape still wrote to the committed status file"
+    )
+
+
+def test_the_status_path_is_overridable():
+    import importlib
+    import os
+
+    os.environ["AI_FRONTIER_STATUS_PATH"] = "/tmp/ai-frontier-test-status.json"
+    try:
+        mod = importlib.reload(scrape_status)
+        assert str(mod.STATUS_PATH) == "/tmp/ai-frontier-test-status.json"
+    finally:
+        del os.environ["AI_FRONTIER_STATUS_PATH"]
+        importlib.reload(scrape_status)

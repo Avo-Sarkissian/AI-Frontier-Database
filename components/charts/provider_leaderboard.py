@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    plot_text,
     right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
@@ -40,16 +41,20 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
     agg["best_model"] = agg["provider"].map(best_names)
 
     agg = agg.sort_values("best_quality", ascending=True).reset_index(drop=True)
+    # Escaped label used for every RENDERED sink (tick labels, annotations);
+    # the raw name stays for palette lookups, which are keyed by it.
+    agg["_label"] = agg["provider"].map(plot_text)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in agg["provider"]]
-    short_names = agg["best_model"].apply(lambda m: m[:32] + "…" if len(m) > 32 else m)
+    short_names = agg["best_model"].apply(
+        lambda m: plot_text(m[:32] + "…" if len(m) > 32 else m))
 
     fig = go.Figure()
 
     # Ghost track — scale to actual data max, not a hardcoded 100
     max_q = agg["best_quality"].max()
     fig.add_trace(go.Bar(
-        y=agg["provider"],
+        y=agg["_label"],
         x=[max_q] * len(agg),
         orientation="h",
         marker=dict(color="rgba(255,255,255,0.02)", line=dict(width=0)),
@@ -59,7 +64,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
 
     # Best-quality bars
     fig.add_trace(go.Bar(
-        y=agg["provider"],
+        y=agg["_label"],
         x=agg["best_quality"],
         orientation="h",
         marker=dict(color=colors, opacity=0.80, line=dict(width=0)),
@@ -79,7 +84,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
 
     # Avg quality markers
     fig.add_trace(go.Scatter(
-        y=agg["provider"],
+        y=agg["_label"],
         x=agg["avg_quality"],
         mode="markers",
         marker=dict(

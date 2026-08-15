@@ -12,8 +12,18 @@ import pandas as pd
 
 _CACHE = Path(__file__).parent / "raw" / "aa_image_models.csv"
 
-# Provider color palette — covers all providers seen in live AA data
+# Provider color palette.
+#
+# The comment here used to claim it "covers all providers seen in live AA data".
+# It did not: 11 of 148 models fell through to grey, including MAI-Image-2.5
+# (top-5 by ELO) and both grok-imagine entries, while six keys matched nothing
+# at all. A palette that silently greys a top-5 model is worse than no palette,
+# so tests/test_encoding_calibration.py now asserts full coverage the way the
+# LLM palette already does.
 PROVIDER_COLORS: dict[str, str] = {
+    "Api Airforce":                 "#facc15",  # yellow
+    "Microsoft AI":                 "#818cf8",  # indigo — same family as Microsoft
+    "StepFun":                      "#e879f9",  # fuchsia
     "OpenAI":                       "#34d399",  # emerald
     "Google":                       "#60a5fa",  # blue
     "Black Forest Labs":             "#f97316",  # orange

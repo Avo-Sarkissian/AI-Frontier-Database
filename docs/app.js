@@ -1014,8 +1014,8 @@ function attachParetoClickHandler() {
 
 // ---- Overview caption text (mirrors app.py) ----
 const OVERVIEW_CAPTIONS = {
-  price: "Each bubble is one model. X = price per 1M tokens, blended 3:1 output:input (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier. Click any bubble for full details.",
-  speed: "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. Bubble size = affordability (larger = cheaper). Click any bubble for full details.",
+  price: "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers collapse to one point rather than five near-duplicates at the same price. X = price per 1M tokens, blended 3:1 output:input, our weighting not AA's (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier. Click any bubble for full details.",
+  speed: "Speed (tok/s) vs. AA Intelligence Index, one bubble per model family (best-scoring variant). Top-right = fast and smart. Bubble size = affordability (larger = cheaper, log-scaled). Click any bubble for full details.",
 };
 function updateOverviewCaption() {
   const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";

@@ -5,7 +5,7 @@ Tile area = number of models; tile color = average quality score.
 import pandas as pd
 import plotly.graph_objects as go
 
-from components.charts.constants import BG as _BG, FONT as _FONT, QUALITY_INDEX_MAX
+from components.charts.constants import BG as _BG, FONT as _FONT, QUALITY_INDEX_MAX, plot_text
 
 
 def build_treemap(df: pd.DataFrame) -> go.Figure:
@@ -33,10 +33,11 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
     )
 
     fig = go.Figure(go.Treemap(
-        labels=agg["provider"],
+        labels=agg["provider"].map(plot_text),
         parents=[""] * len(agg),
         values=agg["model_count"],
-        customdata=agg[["model_count", "avg_quality", "avg_price", "best_model"]].values,
+        customdata=agg.assign(best_model=agg["best_model"].map(plot_text))
+                     [["model_count", "avg_quality", "avg_price", "best_model"]].values,
         hovertemplate=hover,
         marker=dict(
             colors=agg["avg_quality"],

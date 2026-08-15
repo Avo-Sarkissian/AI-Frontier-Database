@@ -23,10 +23,19 @@ successful fetch, with a warning when any dataset is failing or stale.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-STATUS_PATH = Path(__file__).parent / "raw" / "scrape_status.json"
+# Overridable so a test can drive a scraper through its FAILURE path without
+# writing ok=false into the committed file the live badge reads. Without this,
+# `pytest` marked all three datasets as failing and the deployed site showed a
+# staleness warning because someone had run the tests — the same class of bug as
+# the suite republishing docs/.
+STATUS_PATH = Path(
+    os.environ.get("AI_FRONTIER_STATUS_PATH")
+    or Path(__file__).parent / "raw" / "scrape_status.json"
+)
 
 # Datasets the dashboard presents. A dataset missing from the file is treated as
 # unknown rather than fresh — absence of evidence is not evidence of freshness.

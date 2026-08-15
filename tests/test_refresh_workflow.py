@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -56,13 +57,17 @@ def test_failure_is_reported_after_publishing():
 
 
 @pytest.mark.parametrize("mod", ["data.scraper", "data.local_scraper", "data.image_scraper"])
-def test_scraper_exits_nonzero_when_upstream_fails(mod):
+def test_scraper_exits_nonzero_when_upstream_fails(mod, tmp_path):
     """The workflow records failures with `python -m data.scraper || failed=...`.
     That guard is dead code unless the module actually exits non-zero — which is
     how the image endpoint 400'd for 29 days behind a green run."""
+    # Redirect the scrape-status file: this test deliberately fails a scrape,
+    # and recording that into data/raw/scrape_status.json would make the live
+    # freshness badge warn because the suite had been run.
+    env = {**os.environ, "AI_FRONTIER_STATUS_PATH": str(tmp_path / "status.json")}
     proc = subprocess.run(
         [sys.executable, "-c", _FAIL_DRIVER.format(mod=mod)],
-        cwd=ROOT, capture_output=True, text=True,
+        cwd=ROOT, capture_output=True, text=True, env=env,
     )
     assert proc.returncode != 0, (
         f"{mod} exited 0 on a failed scrape, so refresh.yml's `||` guard never "

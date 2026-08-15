@@ -33,6 +33,7 @@ from static_helpers import (
     apply_filters,
     coerce_number,
     cap_compare_selection,
+    csv_safe,
     export_frame_for_tab,
     compute_diverse5,
     ctx_to_k,
@@ -304,7 +305,7 @@ def export_csv(providers, min_quality, search, tab=None):
     """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
     on screen, not always the hosted-LLM table."""
     frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search)
-    return frame.to_csv(index=False)
+    return csv_safe(frame).to_csv(index=False)
 
 
 def export_csv_filename(tab=None):

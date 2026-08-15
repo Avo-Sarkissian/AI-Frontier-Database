@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    plot_text,
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
     BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant,
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
@@ -119,7 +120,8 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
                 opacity=0.8,
                 line=marker_outline(),
             ),
-            customdata=list(zip(pdf["model"], pdf["provider"], speed_str, latency_str,
+            customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
+                                speed_str, latency_str,
                                 _rate_pair(pdf))),
             hovertemplate=hover,
         ))
@@ -157,7 +159,8 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
                 x=label_df["price"],
                 y=label_df["quality"],
                 mode="text",
-                text=label_df["model"].apply(lambda m: m[:22] + "…" if len(m) > 22 else m),
+                text=label_df["model"].apply(
+                    lambda m: plot_text(m[:22] + "…" if len(m) > 22 else m)),
                 textposition=spaced_pos,
                 textfont=dict(color="rgba(0,212,255,0.65)", size=10, family=FONT),
                 hoverinfo="skip",

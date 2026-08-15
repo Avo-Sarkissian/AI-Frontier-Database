@@ -8,6 +8,7 @@ IDs are always in the DOM regardless of active tab. This prevents Dash 4's
 """
 import os
 import re
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +18,7 @@ import dash
 from dash import ctx, dcc, html, dash_table, Input, Output, State, callback, clientside_callback, no_update
 import pandas as pd
 
-from data.ingest import get_models, load_history
+from data.ingest import get_models
 from data.scraper import start_background_scraper
 from data.image_scraper import start_background_image_scraper
 from data.local_scraper import start_background_local_scraper
@@ -44,17 +45,29 @@ from data.video_models                      import get_video_df, get_video_provi
 from components.charts.bump_chart          import build_bump_chart, build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
-df         = get_models()
-history_df = load_history()
+df = get_models()
+# load_history() used to run here and on every cache change — 90 CSVs,
+# 23,742 rows, ~7 MB — with no consumer anywhere in the app. The history
+# directory is still written by the scraper; nothing reads it yet.
 
 # Kick off background scrapers — run immediately, then every hour.
 # Guard: in Werkzeug debug-reload mode two Python processes exist — the
 # watchdog (WERKZEUG_RUN_MAIN not set) and the real worker child
 # (WERKZEUG_RUN_MAIN=true). Without this check both processes start a
 # scraper thread and race to write the cache on every file-save reload.
+#
+# Also skipped under pytest. Importing this module for a layout or callback
+# assertion used to fire three real network scrapes in a daemon thread, which
+# the short test process then killed mid-flight — and once each scraper started
+# recording its outcome, a plain `pytest` run wrote ok=false for all three into
+# data/raw/scrape_status.json, so the live freshness badge showed a warning
+# because someone had run the tests.
 _debug_mode       = os.getenv("DEBUG", "false").lower() == "true"
 _is_worker_child  = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
-if not _debug_mode or _is_worker_child:
+_under_pytest     = "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
+if _under_pytest:
+    pass
+elif not _debug_mode or _is_worker_child:
     start_background_scraper(interval_s=3600)
     start_background_image_scraper(interval_s=3600)
     start_background_local_scraper(interval_s=3600)
@@ -72,8 +85,8 @@ def _cache_ts() -> str:
 
 
 def _reload_if_stale():
-    """Re-read df/history_df if the cache file has changed on disk."""
-    global df, history_df, _cache_mtime
+    """Re-read df if the cache file has changed on disk."""
+    global df, _cache_mtime
     try:
         mtime = _CACHE_PATH.stat().st_mtime
         if mtime != _cache_mtime:
@@ -82,7 +95,6 @@ def _reload_if_stale():
                 # if two callbacks both saw the stale mtime simultaneously.
                 if mtime != _cache_mtime:
                     df           = get_models()
-                    history_df   = load_history()
                     _cache_mtime = mtime
     except Exception:
         pass
@@ -92,6 +104,7 @@ from static_helpers import (
     apply_filters,
     coerce_number as _coerce_number,
     cap_compare_selection as _cap_compare_selection,
+    csv_safe as _csv_safe,
     quality_options as _quality_options,
     export_frame_for_tab as _export_frame_for_tab_shared,
     TABS_WITHOUT_GLOBAL_FILTERS as _TABS_WITHOUT_GLOBAL_FILTERS,
@@ -1364,7 +1377,7 @@ def export_csv(n_clicks, tab, providers, min_quality, search):
     if not n_clicks:
         return no_update
     frame, name = _export_frame_for_tab(tab, providers, min_quality, search)
-    return dcc.send_data_frame(frame.to_csv, name, index=False)
+    return dcc.send_data_frame(_csv_safe(frame).to_csv, name, index=False)
 
 
 # ── Hide the global filter bar where it does nothing ──────────────────────────

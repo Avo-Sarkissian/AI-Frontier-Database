@@ -9,9 +9,10 @@ reads it directly, and build_static.py ships it in the manifest for the browser.
 
 CAPTIONS: dict[str, str] = {
     'overview_price': (
-        "Each bubble is one model. X = price per 1M tokens (log scale), Y = AA "
-        "Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto "
-        "frontier. Click any bubble for full details."
+"Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
+        "collapse to one point rather than five near-duplicates at the same price. X = price "
+        "per 1M tokens (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+        "Dotted line = Pareto frontier. Click any bubble for full details."
     ),
     'recommend': (
         "Build your Claude Code model stack. API Only = all cloud. Hybrid — Fast "
@@ -84,8 +85,9 @@ CAPTIONS: dict[str, str] = {
         "details."
     ),
     'overview_price_dyn': (
-        "Each bubble is one model. X = price per 1M tokens (log scale), Y = AA "
-        "Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto "
-        "frontier. Click any bubble for full details."
+"Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
+        "collapse to one point rather than five near-duplicates at the same price. X = price "
+        "per 1M tokens (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+        "Dotted line = Pareto frontier. Click any bubble for full details."
     ),
 }

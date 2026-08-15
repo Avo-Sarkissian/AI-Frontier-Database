@@ -151,7 +151,11 @@ def test_coverage_reconciles_with_the_live_catalog():
         pytest.skip("no coverage.json — repo has not scraped since it was added")
     cov = json.loads(path.read_text())
     assert cov["kept"] == len(get_models())
-    assert cov["kept"] > 0 and cov["upstream_records"] >= cov["kept"]
+    assert cov["kept"] > 0 and cov["upstream_host_model_rows"] >= cov["kept"]
+    # The denominator the UI quotes is DISTINCT models, not host rows.
+    assert cov["distinct_upstream_models"] >= cov["kept"]
+    assert cov["distinct_upstream_models"] == (
+        cov["kept"] + len(cov["skipped_no_score"]) + len(cov["skipped_no_price"]))
 
 
 def test_manifest_carries_the_coverage_block():

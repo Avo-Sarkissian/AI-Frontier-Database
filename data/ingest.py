@@ -100,13 +100,18 @@ def _with_price_sides(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_cache(df: pd.DataFrame):
+    from static_helpers import csv_safe
+
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_csv(CACHE_PATH, index=False)
+    # Sanitised on the way IN as well as on export: these files are committed
+    # hourly and opened by hand. See static_helpers.csv_safe.
+    safe = csv_safe(df)
+    safe.to_csv(CACHE_PATH, index=False)
     # Also save a timestamped snapshot for trend tracking
     HIST_DIR.mkdir(parents=True, exist_ok=True)
     snap_path = HIST_DIR / f"aa_models_{date.today().isoformat()}.csv"
     if not snap_path.exists():           # one snapshot per calendar day
-        snap = df.copy()
+        snap = safe.copy()
         snap["scraped_at"] = date.today().isoformat()
         snap.to_csv(snap_path, index=False)
 
