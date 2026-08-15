@@ -172,7 +172,7 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
             x=pdf["price_per_sec"],
             y=pdf["quality"],
             mode="markers",
-            name=provider,
+            name=plot_text(provider),
             marker=dict(color=color, size=pdf["size"], opacity=0.82, line=dict(width=0)),
             customdata=list(zip(
                 pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
@@ -280,7 +280,8 @@ def _add_pareto(fig: go.Figure, df: pd.DataFrame, ref_df: pd.DataFrame | None = 
         fig.add_trace(go.Scatter(
             x=ld["price_per_sec"], y=ld["quality"],
             mode="text",
-            text=ld["model"].apply(lambda m: m[:20] + "…" if len(m) > 20 else m),
+            text=ld["model"].apply(
+                lambda m: plot_text(m[:20] + "…" if len(m) > 20 else m)),
             textposition=pos,
             textfont=dict(color="rgba(0,212,255,0.65)", size=10, family=FONT),
             hoverinfo="skip", showlegend=False,

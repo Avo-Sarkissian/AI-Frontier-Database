@@ -14,6 +14,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import (
+    plot_text,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     bubble_size, legend_below, QUALITY_INDEX_MAX, LOCAL_SPEED_REF,
 )
@@ -52,7 +53,7 @@ def build_local_scatter(
 
             hover = (
                 "<b>%{customdata[0]}</b><br>"
-                f"Family: {family}<br>"
+                f"Family: {plot_text(family)}<br>"
                 "VRAM required: %{x:.1f} GB<br>"
                 "Intelligence: %{y:.0f}<br>"
                 "Speed: %{customdata[1]:.0f} tok/s<br>"
@@ -66,9 +67,9 @@ def build_local_scatter(
                 x=sub["vram_req_gb"],
                 y=sub["quality"],
                 mode="markers",
-                name=family,
+                name=plot_text(family),
                 showlegend=(fits_val == "yes"),   # one legend entry per family
-                legendgroup=family,
+                legendgroup=plot_text(family),
                 marker=dict(
                     color=color,
                     opacity=opacity,
@@ -80,7 +81,11 @@ def build_local_scatter(
                     symbol=["diamond" if m else "circle" for m in sub["moe"]],
                     line=dict(width=0.5, color="rgba(255,255,255,0.15)"),
                 ),
-                customdata=sub[["name", "speed_tps", "license", "context_k", "tags_str"]].values,
+                customdata=sub.assign(
+                    name=sub["name"].map(plot_text),
+                    license=sub["license"].map(plot_text),
+                    tags_str=sub["tags_str"].map(plot_text),
+                )[["name", "speed_tps", "license", "context_k", "tags_str"]].values,
                 hovertemplate=hover,
             ))
 

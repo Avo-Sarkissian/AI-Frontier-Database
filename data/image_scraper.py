@@ -32,6 +32,7 @@ import requests
 import pandas as pd
 
 from data import scrape_status
+from static_helpers import csv_safe
 
 _HEADERS = {
     "User-Agent": (
@@ -181,6 +182,43 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
     return df
 
 
+
+MAX_SHRINK_PCT = 20.0
+
+# Share of rows each critical column must actually carry. A rename degrades to a
+# constant rather than raising, so without this a schema change publishes a full
+# row count with an all-zero column — see data/scraper.py for the hosted case.
+_COLUMN_HEALTH = {"model": 0.95, "provider": 0.90, "elo": 0.90}
+
+
+def _column_violations(df) -> list[str]:
+    from data.scraper import column_health_violations
+    return column_health_violations(df, _COLUMN_HEALTH)
+
+
+def _shrink_violations(df) -> list[str]:
+    """Refuse a scrape that loses an implausible share of the existing cache.
+
+    data_guard.py enforces this in CI against committed files; this is the same
+    rule where the write actually happens, so the Dash-boot path cannot quietly
+    replace the cache with a fraction of it.
+    """
+    try:
+        existing = load_cached()
+    except Exception:
+        return []
+    if existing is None or existing.empty:
+        return []
+    before, now = len(existing), len(df)
+    if before == 0:
+        return []
+    drop = (before - now) / before * 100
+    if drop > MAX_SHRINK_PCT:
+        return [f"row count {before} -> {now}, a {drop:.0f}% drop "
+                f"(limit {MAX_SHRINK_PCT:.0f}%)"]
+    return []
+
+
 # ── Public entry points ───────────────────────────────────────────────────────
 
 def _scrape_and_save() -> bool:
@@ -198,8 +236,17 @@ def _scrape_and_save() -> bool:
         print("[image_scraper] No valid rows parsed")
         return False
 
+    violations = _shrink_violations(df) + _column_violations(df)
+    if violations:
+        for v in violations:
+            print(f"[image_scraper] {v}")
+        print("[image_scraper] Refusing to publish — cache left unchanged")
+        return False
+
     _CACHE.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(_CACHE, index=False)
+    # Sanitised like the hosted catalogue — these files are committed
+    # hourly and opened by hand. See static_helpers.csv_safe.
+    csv_safe(df).to_csv(_CACHE, index=False)
     print(f"[image_scraper] Saved {len(df)} image models")
     return True
 

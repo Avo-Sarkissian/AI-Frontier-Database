@@ -68,7 +68,10 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
         x=agg["best_quality"],
         orientation="h",
         marker=dict(color=colors, opacity=0.80, line=dict(width=0)),
-        customdata=agg[["best_model", "provider", "best_quality",
+        customdata=agg.assign(
+            best_model=agg["best_model"].map(plot_text),
+            provider=agg["_label"],
+        )[["best_model", "provider", "best_quality",
                          "avg_quality", "model_count", "min_price"]].values,
         hovertemplate=(
             "<b>%{customdata[1]}</b><br>"
@@ -106,7 +109,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         fig.add_annotation(
             x=1.01,
-            y=row["provider"],
+            y=row["_label"],
             text=fit_text(
                 f"{int(row['model_count'])} models  ·  {short_names[i]}", _gutter
             ),

@@ -12,7 +12,22 @@ from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK,
 from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 
 
-def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
+def _vram_note(vram_gb) -> str:
+    """"…fit 32 GB", not "…fit your hardware".
+
+    The old wording asserted a fact about the reader's machine while the figure
+    behind it could be a default the reader never chose: clear the VRAM box on
+    an 8 GB preset and the chart claimed 49 models fit, using a global 32 GB
+    constant that appeared nowhere on screen while the GPU dropdown still read
+    "NVIDIA RTX 5060". Naming the number makes the substitution visible.
+    """
+    try:
+        return f"in {float(vram_gb):.0f} GB"
+    except (TypeError, ValueError):
+        return "your hardware"
+
+
+def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
     """
     Horizontal bar chart of quality scores for models that fit the user's hardware.
     df is the output of data.local_models.get_local_df(), pre-filtered.
@@ -107,7 +122,7 @@ def build_local_compat(df: pd.DataFrame, quant: str) -> go.Figure:
             text=(
                 f"Runnable Models  "
                 f"<span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {len(runnable)} models fit your hardware  ·  ranked by intelligence</span>"
+                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)}  ·  ranked by intelligence</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

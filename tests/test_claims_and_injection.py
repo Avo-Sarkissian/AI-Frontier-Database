@@ -285,3 +285,52 @@ def test_every_remote_script_carries_an_integrity_hash():
         if src.startswith(("http://", "https://", "//")):
             assert "integrity=" in tag, f"remote script has no SRI: {src}"
             assert "crossorigin=" in tag, f"SRI without crossorigin is inert: {src}"
+
+
+# ── The builders the first escaping pass missed ──────────────────────────────
+
+def test_every_builder_including_the_local_and_video_ones_is_clean():
+    """The first pass covered the eight builders a poisoned LLM frame reaches.
+    local_scatter interpolated `family` into an f-string hovertemplate AND used
+    it as a trace name and legendgroup; video_scatter used the raw provider as a
+    trace name; the leaderboard anchored an annotation on the raw provider and
+    passed the raw best-model name through customdata."""
+    from data.local_models import get_local_df
+    from components.charts.local_scatter import build_local_scatter
+    from components.charts.local_compat import build_local_compat
+    from components.charts.video_chart import build_video_scatter
+    from components.charts.provider_leaderboard import build_provider_leaderboard
+
+    marker = "<b>PWN</b>"
+    local = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=1792).copy()
+    local.loc[local.index[0], "name"] = marker
+    local.loc[local.index[1], "family"] = marker
+    local.loc[local.index[2], "license"] = marker
+    video = get_video_df().copy()
+    video.loc[video.index[0], "model"] = marker
+    video.loc[video.index[1], "provider"] = marker
+    llm = _poisoned(DF)
+
+    cases = {
+        "local_scatter": lambda: build_local_scatter(local, vram_gb=32, quant="Q4"),
+        "local_compat":  lambda: build_local_compat(local, quant="Q4", vram_gb=32),
+        "video_scatter": lambda: build_video_scatter(video, full_df=video),
+        "leaderboard":   lambda: build_provider_leaderboard(llm),
+    }
+    leaking = [n for n, fn in cases.items() if marker in fn().to_json()]
+    assert not leaking, f"builders leaking raw markup: {leaking}"
+
+
+@pytest.mark.parametrize("payload", ["a\r\nb", "x\ty", "p\rq"])
+def test_csv_export_neutralises_embedded_record_separators(payload):
+    """A prefix does not help if the cell can end the record: an embedded \\r
+    starts a new row in some readers and the continuation line is unprefixed."""
+    frame = DF.head(2).copy()
+    frame.loc[frame.index[0], "model"] = payload
+    text = csv_safe(frame).to_csv(index=False)
+    assert text.count("\n") == len(frame) + 1, "a cell added a record boundary"
+
+
+def test_the_other_two_scrapers_sanitise_their_caches_too():
+    for rel in ("data/local_scraper.py", "data/image_scraper.py"):
+        assert "csv_safe" in (ROOT / rel).read_text(), f"{rel} writes raw text"

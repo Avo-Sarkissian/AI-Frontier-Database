@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from data.ingest import get_models
-from data.local_models import get_local_df
+from data.local_models import get_local_df, DEFAULT_VRAM_GB, DEFAULT_BANDWIDTH_GBPS
 from data.image_models import get_image_df, get_image_providers, get_image_tags
 from data.video_models import get_video_df, get_video_providers, get_video_tags
 from components.charts.pareto import build_pareto_scatter
@@ -58,7 +58,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
     out_dir.mkdir(parents=True, exist_ok=True)
     df = get_models()
     diverse5 = compute_diverse5(df)
-    local_df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=1792, hw_type="nvidia")
+    local_df = get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
+                            bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, hw_type="nvidia")
     img_df = get_image_df()
     vdf = get_video_df()
     vpaid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
@@ -71,8 +72,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "value_leaders":        build_value_leaders(df),
         "radar":                build_radar(df, diverse5, full_df=df),
         "cost_calc":            build_cost_calc(df, monthly_tokens_m=1.0),
-        "local_scatter":        build_local_scatter(local_df, vram_gb=32, quant="Q4"),
-        "local_compat":         build_local_compat(local_df, quant="Q4"),
+        "local_scatter":        build_local_scatter(local_df, vram_gb=DEFAULT_VRAM_GB, quant="Q4"),
+        "local_compat":         build_local_compat(local_df, quant="Q4", vram_gb=DEFAULT_VRAM_GB),
         "image_faceted":        build_image_faceted(img_df),
         "video_rankings":       build_video_rankings(vdf),
         "video_scatter":        build_video_scatter(vpaid if not vpaid.empty else vdf),
@@ -241,7 +242,14 @@ def build_pybundle(docs: Path | None = None):
                 )
             print(f"  NOTE: optional {pkg_name} not vendored")
 
-    with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as z:
+    # Build into a temp file and swap. Writing straight to the published path
+    # meant an interrupt anywhere in the ~1,665-member loop left a truncated zip
+    # at the URL every visitor fetches (pyworker.js then throws and the page
+    # reads "interactivity unavailable"), and the size budget was checked only
+    # AFTER the file was already in place — a rejected 4 MB bundle stayed
+    # published. swap_bundle_csvs below already demonstrates the right pattern.
+    staged = bundle.with_suffix(".zip.tmp")
+    with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as z:
         # Project files
         for rel in include:
             p = ROOT / rel
@@ -261,14 +269,16 @@ def build_pybundle(docs: Path | None = None):
                     arc = pkg_name / f.relative_to(pkg_dir)
                     z.write(f, str(arc))
 
-    size_mb = bundle.stat().st_size / 1e6
+    size_mb = staged.stat().st_size / 1e6
     print(f"pybundle.zip: {size_mb:.1f} MB")
     if size_mb > MAX_BUNDLE_MB:
+        staged.unlink(missing_ok=True)      # reject BEFORE publishing
         raise RuntimeError(
-            f"pybundle.zip is {size_mb:.1f}MB, over the {MAX_BUNDLE_MB}MB budget — "
+            f"pybundle.zip would be {size_mb:.1f}MB, over the {MAX_BUNDLE_MB}MB budget — "
             f"every visitor downloads this before the dashboard goes interactive. "
             f"Check what got vendored before publishing."
         )
+    staged.replace(bundle)
 
 
 def swap_bundle_csvs(docs: Path | None = None):

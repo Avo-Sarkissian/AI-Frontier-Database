@@ -409,7 +409,7 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
         body   = html.Div([row_fn(row, is_top=(i == 0))
                            for i, (_, row) in enumerate(picks.iterrows())])
 
-    advice    = tier.get("advice", _TIER_ADVICE[tier["key"]])
+    advice    = tier["advice"] if "advice" in tier else _TIER_ADVICE[tier["key"]]
     use_cases = html.Div([
         html.Div("USE CASES", style={
             "fontSize": "9px", "letterSpacing": "0.1em", "color": "#555",

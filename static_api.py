@@ -338,7 +338,7 @@ def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags):
     )
     return json.dumps({
         "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4").to_json()),
-        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4").to_json()),
+        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4", vram_gb=vram_gb).to_json()),
     })
 
 

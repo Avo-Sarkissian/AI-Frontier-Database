@@ -358,3 +358,89 @@ def test_the_video_tab_discloses_that_it_is_not_live():
 
     caption = CAPTIONS["video"].lower()
     assert "curated" in caption and "not live" in caption.replace("-", " ")
+
+
+def test_a_cleared_vram_box_says_which_capacity_it_used():
+    """The chart said "N models fit your hardware" — a claim about the reader's
+    machine — while the figure behind it could be a global default they never
+    chose. Clear the box on an 8 GB preset and it claimed 49 models fit."""
+    import re as _re
+    import static_api
+
+    blank = json.loads(static_api.update_local(None, None, "Q4", None, None, None))
+    title = _re.sub(r"<[^>]+>", "", blank["compat"]["layout"]["title"]["text"])
+    assert "your hardware" not in title, "the title still asserts a fact about the reader"
+    assert _re.search(r"\d+\s*GB", title), f"the title does not state the VRAM: {title!r}"
+
+    at8 = json.loads(static_api.update_local(8, 1, "Q4", 288, "nvidia", None))
+    t8 = _re.sub(r"<[^>]+>", "", at8["compat"]["layout"]["title"]["text"])
+    assert "8 GB" in t8 and t8 != title
+
+
+def test_an_explicit_clear_of_the_compare_control_stays_cleared():
+    """Returning the defaults on a deliberate clear charted five models while
+    the raw-values table beneath went blank."""
+    import static_api
+
+    cleared = json.loads(static_api.update_compare(None, 0, "", [], "radar-model-select"))
+    assert len(cleared["figure"]["data"]) == 0
+    assert cleared["raw_table_html"].strip() in ("<div></div>", "")
+    # …but an incidental re-render still shows the defaults.
+    rerender = json.loads(static_api.update_compare(None, 0, "", [], "tab-switch"))
+    assert len(rerender["figure"]["data"]) > 0
+
+
+def test_the_detail_panel_button_evicts_the_oldest_not_the_newest():
+    import app as dash_app
+
+    got, tab = dash_app.add_to_compare(1, "NEW", ["a", "b", "c", "d", "e"])
+    assert got == ["b", "c", "d", "e", "NEW"], got
+    assert tab == "compare"
+
+
+def test_the_static_compare_control_tracks_click_recency():
+    js = (ROOT / "docs" / "app.js").read_text()
+    code = re.sub(r"^\s*//.*$", "", js, flags=re.M)   # comments explain the bug
+    assert "compareOrder" in code, "the selection order is still document order"
+    assert "opts[opts.length - 1]" not in code, (
+        "the cap still deselects the bottom-most option rather than the oldest pick"
+    )
+
+
+@pytest.mark.parametrize("mod", ["data.local_scraper", "data.image_scraper"])
+def test_every_scraper_guards_its_own_write(mod):
+    """data_guard runs only in CI against committed files; the hosted scraper
+    gained a shrink guard where the write happens, and these two had none."""
+    import importlib
+
+    m = importlib.import_module(mod)
+    cached = m.load_cached()
+    if cached is None or cached.empty:
+        pytest.skip(f"{mod} has no cache")
+    assert m._shrink_violations(cached) == []
+    assert m._column_violations(cached) == []
+    half = cached.head(max(1, len(cached) // 2))
+    assert m._shrink_violations(half), f"{mod} accepts a 50% shrink"
+
+
+def test_the_bundle_is_written_atomically():
+    """Writing straight to the published path left a truncated zip at the URL
+    every visitor fetches if the ~1,665-member loop was interrupted, and the
+    size budget was checked only after the file was already in place."""
+    src = (ROOT / "build_static.py").read_text()
+    assert '.zip.tmp' in src
+    body = src[src.index("def build_pybundle"):]
+    staged_check = body.index("staged.stat().st_size")
+    publish = body.index("staged.replace(bundle)")
+    assert staged_check < publish, "the size budget is enforced after publishing"
+    assert not (ROOT / "docs" / "pybundle.zip.tmp").exists(), "a staged bundle was left behind"
+
+
+def test_the_badge_recomputes_staleness_in_the_browser():
+    """manifest.stale_datasets is a snapshot from build time, so on a page left
+    open — or a day the hourly job stops — the relative time aged honestly
+    while the warning never appeared."""
+    js = (ROOT / "docs" / "app.js").read_text()
+    body = js.split("function renderFreshness")[1].split("\nfunction ")[0]
+    assert "STALE_AFTER_HOURS" in body
+    assert "Date.now()" in body, "staleness is still only what the build recorded"

@@ -31,7 +31,8 @@ const TAB_CAPTIONS = {
 
 // window.AF.state contract: { providers: string[], minQuality: number, search: string, tab: string }
 const COMPARE_MAX = 5;   // mirrors static_helpers.COMPARE_MAX
-window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null, state: {
+window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null,
+  compareOrder: [], state: {
   providers: [], minQuality: 0, search: "", tab: "overview" } };
 
 const PLOT_CONFIG = { displaylogo: false, responsive: true,
@@ -534,12 +535,28 @@ function renderFreshness() {
   const iso = m.data_fetched_iso || window.AF.generatedIso;
   if (!iso) { el.textContent = ""; el.title = ""; return; }
 
-  const stale = Array.isArray(m.stale_datasets) ? m.stale_datasets : [];
+  // Recompute staleness in the BROWSER, not just at build time. The manifest's
+  // stale_datasets is a snapshot from the moment the site was built, so on a
+  // page left open — or a day when the hourly job stops running entirely — the
+  // relative time aged honestly while the warning never appeared. A dataset
+  // that has not refreshed in STALE_AFTER_HOURS is stale no matter what the
+  // build thought.
+  const STALE_AFTER_HOURS = 3;
+  const ds0 = m.datasets || {};
+  const stale = Array.from(new Set([
+    ...(Array.isArray(m.stale_datasets) ? m.stale_datasets : []),
+    ...Object.keys(ds0).filter(k => {
+      const e = ds0[k] || {};
+      if (e.ok === false || e.ok === null || !e.fetched_at) return true;
+      const age = (Date.now() - new Date(e.fetched_at).getTime()) / 3600000;
+      return !(age < STALE_AFTER_HOURS);
+    }),
+  ]));
   el.textContent = "Updated " + relativeTime(iso) + (stale.length ? "  ·  ⚠" : "");
   el.style.color = stale.length ? "#fbbf24" : "";
 
   const lines = [];
-  const ds = m.datasets || {};
+  const ds = ds0;
   const LABELS = { hosted: "Hosted LLMs", local: "Open-weight models", image: "Image arena" };
   Object.keys(LABELS).forEach(k => {
     const e = ds[k] || {};
@@ -578,13 +595,18 @@ async function refreshCompare(triggered) {
   if (!window.AF.pyReady) return;
   const [p, q, s] = readGlobalFilters();
   const sel = document.getElementById("radar-model-select");
-  let selected = Array.from(sel.selectedOptions).map(o => o.value);
+  const inDom = Array.from(sel.selectedOptions).map(o => o.value);
+  // Prefer the recency order the onchange handler maintains; fall back to
+  // document order for the paths that set .selected programmatically.
+  const tracked = (window.AF.compareOrder || []).filter(v => inDom.includes(v));
+  let selected = tracked.concat(inDom.filter(v => !tracked.includes(v)));
   if (selected.length > COMPARE_MAX) {
     // Shift-selecting 9 left 8 highlighted while 5 were charted, and the
     // <select> was never corrected — the control disagreed with the chart.
     selected = selected.slice(-COMPARE_MAX);
     Array.from(sel.options).forEach(o => { o.selected = selected.includes(o.value); });
   }
+  window.AF.compareOrder = selected;
   try {
     const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "");
     renderJsonFig("chart-radar", out.figure);
@@ -976,7 +998,10 @@ function wireDetailPanel() {
       // default to exactly 5 models, so on a fresh page load this button — the
       // detail panel's only call to action — was a silent no-op that still
       // switched tabs.
-      const keep = chosen.slice(-(COMPARE_MAX - 1)).concat([m]);
+      const ordered = (window.AF.compareOrder || []).filter(v => chosen.includes(v));
+      const base = ordered.length ? ordered : chosen;
+      const keep = base.slice(-(COMPARE_MAX - 1)).concat([m]);
+      window.AF.compareOrder = keep;
       Array.from(sel.options).forEach(o => { o.selected = keep.includes(o.value); });
     }
     // Switch to compare tab without triggering auto-rerender, then refresh with correct selection.
@@ -1039,12 +1064,18 @@ function wireTabControls() {
   const radarSel = document.getElementById("radar-model-select");
   if (radarSel) {
     radarSel.onchange = () => {
-      // Cap at 5
-      const opts = Array.from(radarSel.selectedOptions);
-      if (opts.length > 5) {
-        const last = opts[opts.length - 1];
-        last.selected = false;
-      }
+      // Track WHEN each model was picked, not where it sits in the list.
+      // selectedOptions is document order, so `opts[opts.length - 1]` was the
+      // bottom-most option, not the newest: picking a 6th model below the
+      // current five silently deselected the one just clicked (a no-op), and
+      // picking one above it made an unrelated model vanish instead.
+      const now = Array.from(radarSel.selectedOptions).map(o => o.value);
+      const previous = (window.AF.compareOrder || []).filter(v => now.includes(v));
+      const added = now.filter(v => !previous.includes(v));
+      let order = previous.concat(added);
+      if (order.length > COMPARE_MAX) order = order.slice(-COMPARE_MAX);
+      window.AF.compareOrder = order;
+      Array.from(radarSel.options).forEach(o => { o.selected = order.includes(o.value); });
       refreshCompare("radar-model-select");
     };
   }

@@ -104,6 +104,7 @@ from static_helpers import (
     apply_filters,
     coerce_number as _coerce_number,
     cap_compare_selection as _cap_compare_selection,
+    COMPARE_MAX,
     csv_safe as _csv_safe,
     quality_options as _quality_options,
     export_frame_for_tab as _export_frame_for_tab_shared,
@@ -734,9 +735,10 @@ app.layout = html.Div([
                 dcc.Graph(
                     id="local-scatter",
                     figure=build_local_scatter(
-                        get_local_df(quant="Q4", vram_gb=32,
-                                     bandwidth_gbps=1792, hw_type="nvidia"),
-                        vram_gb=32, quant="Q4",
+                        get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
+                                     bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                                     hw_type="nvidia"),
+                        vram_gb=DEFAULT_VRAM_GB, quant="Q4",
                     ),
                     config=_GRAPH_CONFIG, style={"height": "640px"},
                 ),
@@ -745,9 +747,10 @@ app.layout = html.Div([
                 dcc.Graph(
                     id="local-compat-chart",
                     figure=build_local_compat(
-                        get_local_df(quant="Q4", vram_gb=32,
-                                     bandwidth_gbps=1792, hw_type="nvidia"),
-                        quant="Q4",
+                        get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
+                                     bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                                     hw_type="nvidia"),
+                        quant="Q4", vram_gb=DEFAULT_VRAM_GB,
                     ),
                     config=_GRAPH_CONFIG_FIXED,
                 ),
@@ -1208,7 +1211,7 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
     )
     return (
         build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4"),
-        build_local_compat(local_df, quant=quant or "Q4"),
+        build_local_compat(local_df, quant=quant or "Q4", vram_gb=vram_gb),
     )
 
 
@@ -1322,12 +1325,18 @@ def toggle_detail_panel(pareto_click, _close):
     prevent_initial_call=True,
 )
 def add_to_compare(n_clicks, model_name, current_selection):
+    """Add the model the user is looking at, evicting the OLDEST pick.
+
+    `[:5]` kept the first five and threw away the one just clicked, so with a
+    full selection — which is the default state, since both renderings start
+    with exactly five — this button did nothing while still switching tabs.
+    """
     if not n_clicks or not model_name:
         return no_update, no_update
     current = list(current_selection or [])
-    if model_name not in current:
-        current = (current + [model_name])[:5]
-    return current, "compare"
+    if model_name in current:
+        return no_update, "compare"        # already there; just show it
+    return (current + [model_name])[-COMPARE_MAX:], "compare"
 
 
 # ── Table view ────────────────────────────────────────────────────────────────

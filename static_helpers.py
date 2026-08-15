@@ -94,13 +94,19 @@ def csv_safe(df):
     hourly. The feed is clean today (0 cells starting `= + - @ \\t \\r`); this is
     a choke point, not a reaction.
     """
+    def _clean(v):
+        if not isinstance(v, str):
+            return v
+        # Collapse embedded newlines and tabs first. A prefix does not help if
+        # the cell can end the record: a \r inside a quoted field still starts a
+        # new row in some readers, and the continuation line is then unprefixed.
+        v = v.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").replace("\t", " ")
+        return "'" + v if v[:1] in _FORMULA_LEAD else v
+
     out = df.copy()
     for col in out.columns:
-        if out[col].dtype != object:
-            continue
-        out[col] = out[col].map(
-            lambda v: "'" + v if isinstance(v, str) and v[:1] in _FORMULA_LEAD else v
-        )
+        if out[col].dtype == object:
+            out[col] = out[col].map(_clean)
     return out
 
 _QUALITY_LADDER = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]
@@ -188,6 +194,13 @@ def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[
         # A real filter change: keep whatever still qualifies, and only fall
         # back to the defaults when the filter has excluded everything.
         return kept[-COMPARE_MAX:] if kept else compute_diverse5(filtered_df)
+
+    if triggered == "radar-model-select" and not (selected_models or []):
+        # The user emptied the control themselves. Returning the defaults here
+        # charted five models while the raw-values table beneath went blank —
+        # the chart and the table disagreeing about what was being compared,
+        # with the <select> visibly empty. An explicit clear stays cleared.
+        return []
 
     if not kept:
         # No selection yet (first paint, or a re-render with nothing chosen).
