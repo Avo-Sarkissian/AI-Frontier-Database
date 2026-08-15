@@ -3,6 +3,9 @@
 % ── NeurIPS 2024 template ────────────────────────────────────────────────────
 % Compile on Overleaf: upload this file alongside neurips_2024.sty
 % (available in the NeurIPS 2024 LaTeX template package on neurips.cc)
+% natbib must be loaded BEFORE neurips_2024, which loads it itself in
+% author-year mode — incompatible with the numeric \thebibliography below.
+\usepackage[numbers]{natbib}
 \usepackage[final]{neurips_2024}
 
 \usepackage[utf8]{inputenc}
@@ -31,8 +34,8 @@ The number of commercially available large language models has grown to
 the point where no single leaderboard covers all the dimensions that matter
 for practical use: price, throughput, latency, context window size, and
 benchmark performance. AI Frontier is an interactive dashboard that aggregates
-live data for every hosted language model Artificial Analysis benchmarks —
-155 of them across 31 providers at the time of writing — refreshed every hour,
+live data for every hosted language model Artificial Analysis benchmarks ---
+155 of them across 31 providers at the time of writing --- refreshed every hour,
 and makes the full competitive landscape navigable through ten specialized
 views. Counts move hourly as models are added and delisted; the dashboard's
 header stats are authoritative. The system is written entirely in Python and
@@ -46,7 +49,7 @@ decisions that shaped the final tool.
 \section{Introduction}
 
 Selecting a large language model for a real application used to be
-straightforward — a handful of options existed and the best one for most tasks
+straightforward --- a handful of options existed and the best one for most tasks
 was obvious. That changed quickly. As of spring 2026, over 29 companies offer
 models through hosted APIs, each making different tradeoffs in price,
 capability, and latency. A model that scores 70 on reasoning benchmarks might
@@ -113,8 +116,8 @@ pulled from official product pages (NVIDIA, AMD, Apple, Intel). Model
 parameter counts and quantization support were taken from HuggingFace model
 cards \cite{huggingface}.
 
-The GPU catalog is static — it gets updated when significant new hardware
-generations are released — while the open-weight model list is scraped hourly
+The GPU catalog is static --- it gets updated when significant new hardware
+generations are released --- while the open-weight model list is scraped hourly
 by data/local\_scraper.py on the same cadence as the hosted-model data. It backs the Run
 Local tab, which estimates whether a given model fits in a selected GPU's
 memory and how fast it would run.
@@ -144,7 +147,7 @@ and local open-weight models be compared on the same scale.
 
 The main limitation of composite scores is that they smooth over real
 differences. Two models with the same score can have completely different
-strength profiles — one excellent at coding and weak at math, the other the
+strength profiles --- one excellent at coding and weak at math, the other the
 reverse. The Compare tab (radar chart) exists specifically to surface these
 within-score differences.
 
@@ -172,8 +175,8 @@ The main challenge with comparing 255 models simultaneously is that a ranked
 list hides tradeoffs. The bubble scatter encodes three variables at once:
 x-axis is log-scaled price, y-axis is quality score, and bubble size
 represents throughput. Log scale on price is necessary because model prices
-span roughly three orders of magnitude — from under \$0.01 to over \$15 per
-million tokens — and a linear axis compresses most of the data into one
+span roughly three orders of magnitude --- from under \$0.01 to over \$15 per
+million tokens --- and a linear axis compresses most of the data into one
 corner of the chart.
 
 A dotted Pareto frontier connects models that are undominated in the
@@ -190,7 +193,7 @@ separate mode or a legend that distinguishes only by hue.
 
 \textbf{Rankings: horizontal bars with tier separators.}
 For one-dimensional ranked comparisons, horizontal bar charts are clearer
-than scatter plots — the comparison axis is explicit and label legibility is
+than scatter plots --- the comparison axis is explicit and label legibility is
 better horizontally. Tier separator lines are drawn wherever the score gap
 between adjacent models exceeds a fixed threshold, marking meaningful
 performance breaks rather than implying uniform spacing across the full range.
@@ -207,7 +210,7 @@ profile without changing any underlying values.
 \textbf{Landscape: treemap.}
 A treemap where tile area encodes model count per provider and color
 intensity encodes average intelligence score gives a quick sense of industry
-structure — which providers have the most models, which cluster at the top,
+structure --- which providers have the most models, which cluster at the top,
 which are new entrants with a narrow catalog. The treemap is not suitable for
 precise value comparison, but it communicates structural patterns that scatter
 plots miss. A ranked bar chart directly below it allows precise comparison of
@@ -240,13 +243,13 @@ Three decisions carried through all ten tabs.
 Gridlines, outer frames, and chart borders were removed wherever they add
 visual weight without adding information \cite{tufte}. The dark background
 with high-contrast data elements reduces perceived clutter compared to a
-white background with equivalent data density — the background recedes and
+white background with equivalent data density --- the background recedes and
 the data elements stand out.
 
 \textbf{Colorblind accessibility.}
-The nine largest providers each get both a color and a distinct marker shape —
-a redundant encoding that survives color-vision deficiency — kept consistent
-across all ten tabs. The remaining providers share a neutral \enquote{Other}
+The nine largest providers each get both a color and a distinct marker shape ---
+a redundant encoding that survives color-vision deficiency --- kept consistent
+across all ten tabs. The remaining providers share a neutral ``Other''
 series, because a categorical palette cannot separate thirty-plus categories
 reliably for any viewer. A user who learns the color scheme (or the
 shapes) can navigate between tabs without re-reading a legend each time.
@@ -264,8 +267,8 @@ a live web interface without a JavaScript build step. All visualization logic
 is in Python using Plotly's graph objects API; Dash handles HTTP routing,
 callback wiring, and component state.
 
-Choosing a single language for the full stack — data pipeline, computation,
-and UI — simplified deployment. There is no Node.js dependency and no separate
+Choosing a single language for the full stack --- data pipeline, computation,
+and UI --- simplified deployment. There is no Node.js dependency and no separate
 API server. The project deployed on Render \cite{render} as a single Python
 process until 2026-06-23, and now ships as a static site on GitHub Pages: the
 same Python chart code is executed in the browser by Pyodide (WebAssembly),
@@ -285,7 +288,7 @@ data with multi-modal coverage. Static leaderboards go stale within days of a
 new model release. Most pricing tools don't include benchmark scores. AI
 Frontier scrapes both automatically, covers text, image, and video generation
 in a single dashboard, and includes local open-weight models alongside API
-services — a side-by-side comparison that does not exist elsewhere in a
+services --- a side-by-side comparison that does not exist elsewhere in a
 unified interface.
 
 The Agent Stack tab is a practical extension of the core data: given a
@@ -301,7 +304,7 @@ The dashboard has served live data continuously since March 2026.
 
 Several extensions are worth building. Per-category breakdown scores
 (reasoning, coding, math, knowledge separately) are collected by Artificial
-Analysis but not yet surfaced in the Compare tab — adding them would let users
+Analysis but not yet surfaced in the Compare tab --- adding them would let users
 make more targeted selections than a single composite number allows.
 
 The Budget tab currently estimates cost from a token count without accounting

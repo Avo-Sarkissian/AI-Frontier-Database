@@ -42,12 +42,10 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 
 ## Screenshots
 
-> **These images are illustrative and lag the live site.** They were captured
-> against an earlier catalogue — the header stats in them read counts and prices
-> that no longer hold, and some show models since delisted. The dashboard itself
-> is the source of truth: <https://avo-sarkissian.github.io/AI-Frontier-Database/>.
-> When regenerating, crop the header stat bar out so an hourly data refresh
-> cannot invalidate them again.
+> Captured from the built site by `scripts/capture_screenshots.py`, with the
+> header stat bar hidden — those counters change hourly, and an image containing
+> them is wrong within the hour. Regenerate after a UI change with:
+> `.venv/bin/python build_static.py && .venv/bin/python scripts/capture_screenshots.py`
 
 
 <table>
@@ -92,7 +90,20 @@ An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the s
 4. Runs `python build_static.py --data-only` to swap the new CSVs into the static bundle without re-vendoring Plotly.
 5. Commits and pushes the refreshed `docs/` folder as `github-actions[bot]`, which GitHub Pages auto-deploys.
 
-The live site auto-loads the latest published snapshot on open and shows an "Updated X ago" freshness badge with a manual refresh button.
+The live site auto-loads the latest published snapshot on open.
+
+**The freshness badge reports data age, not build age.** Each scraper records
+whether it actually fetched, when, and how many rows (`data/raw/scrape_status.json`),
+and the badge shows the **oldest** successful fetch across all three datasets —
+because a dashboard is only as fresh as its stalest panel. If any dataset is
+failing or older than three hours the badge turns amber and adds a ⚠; hover it
+for a per-dataset breakdown. Staleness is recomputed in the browser, so a page
+left open ages honestly even if the hourly job stops.
+
+That badge used to read the *build* timestamp. On one real CI run two of three
+scrapers failed, only the image arena refreshed, and a five-hour-stale catalogue
+published under "Updated just now" — with the failure step running *after* the
+push.
 
 ---
 
@@ -115,14 +126,38 @@ python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
 python -c "import sys; print(sys.prefix)"   # must print .../AI Frontier/.venv
 
-# Install dependencies
+# Install dependencies. requirements.txt is the human-edited file;
+# requirements.lock is what CI installs, with a sha256 for every artifact.
 pip install -r requirements.txt
 
 # Launch the dashboard
 python app.py
 ```
 
-Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run in the background every hour — no manual refresh needed.
+Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run in the background every hour — no manual refresh needed. (They are skipped under `pytest`, so the suite never touches the network or the committed cache.)
+
+### Tests
+
+```bash
+.venv/bin/python -m pytest -q        # 349 tests, ~30s
+```
+
+Run them from `.venv`, not the system Python: four full-build tests **silently
+skip** when the ambient plotly ships the pre-6.1 validator tree, so a green run
+outside the venv is not a green run.
+
+The suite is mostly regression tests for defects an audit found, and each one
+names the failure it prevents rather than the function it calls — the docstrings
+are the useful documentation of why the code is shaped the way it is. Broadly:
+
+| File | Guards |
+|---|---|
+| `test_data_semantics.py` | Price basis and attribution, context-window source, upstream renames, the row-loss guards |
+| `test_encoding_calibration.py` | Every constant that decides a bar length, bubble size, spoke radius or colour stop matches the range the data occupies |
+| `test_filter_semantics.py`, `test_controls_and_drift.py` | Controls do what they are labelled to do, and both renderings agree |
+| `test_pipeline_and_hardware.py` | Empty states, freshness, atomic publishing, the local-hardware model |
+| `test_claims_and_injection.py` | The product's claims about itself; scraped text reaching Plotly or a spreadsheet |
+| `test_pybundle_freshness.py` | The deployed bundle matches the repo — a fix that is not shipped fails here |
 
 ---
 
@@ -149,26 +184,45 @@ How it works: `build_static.py` pre-renders every chart's default state to JSON 
 ```
 app.py                     # Dash app entry point, tab routing, background scrapers
 components/
-  charts/                  # One module per visualization (pareto, radar, treemap, bump chart, …)
+  charts/                  # One module per visualization; constants.py holds the
+                           #   shared palette, escaping, and fixed-reference helpers
   stack_recommender.py     # Agent Stack tab recommendation logic
 data/
-  scraper.py                # Live LLM data — Artificial Analysis
-  image_scraper.py          # Live image-gen data — AA Image Arena
-  local_scraper.py          # Live open-weight/local model data — Artificial Analysis
-  ingest.py                  # Parses scraper output, manages CSV cache and daily history
+  scraper.py               # Live LLM data — Artificial Analysis
+  image_scraper.py         # Live image-gen data — AA Image Arena
+  local_scraper.py         # Live open-weight/local model data — Artificial Analysis
+  ingest.py                # Parses scraper output, manages CSV cache and daily history
+  scrape_status.py         # Per-dataset ok/fetched_at/rows — drives the freshness badge
   image_models.py, local_models.py, video_models.py   # Per-domain data access helpers
-  raw/                      # Live cache + daily timestamped snapshots
-utils/
-  model_lookup.py           # Shared model metadata helpers
-assets/
-  style.css                 # Global dark theme, typography
+  raw/                     # Live cache, coverage, scrape status + daily snapshots
+assets/style.css           # Global dark theme, typography (copied into docs/ by the build)
+captions.py                # Every chart caption, read by app.py AND shipped in the manifest
 static_helpers.py          # Pure dash-free helpers shared by app.py + the static build
-static_api.py               # Browser bridge — ports the Dash callbacks to JSON-returning functions (runs in Pyodide)
-build_static.py             # Pre-renders figures + bundles Python into docs/ for GitHub Pages
-docs/                        # The static GitHub Pages site (index.html, app.js, figures/, pybundle.zip)
-.github/workflows/refresh.yml   # Hourly bot: scrape → guard → data-only rebuild → commit + push
-tests/                       # pytest suite covering the static build, scrapers, and site wiring
+static_api.py              # Browser bridge — Dash callbacks as JSON-returning functions (Pyodide)
+build_static.py            # Pre-renders figures + bundles Python into docs/ for GitHub Pages
+data_guard.py              # Row-loss, cumulative-drain and per-column median checks
+docs/                      # The static GitHub Pages site (index.html, app.js, figures/, pybundle.zip)
+scripts/
+  capture_screenshots.py   # Regenerates the README screenshots from the built site
+  build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
+.github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
+tests/                     # 349 tests: data semantics, encoding calibration, control
+                           #   behaviour, pipeline integrity, injection surfaces
 ```
+
+### Two renderings, one source
+
+The Dash app and the static site run the **same** Python. Everything a chart
+needs — palettes, captions, filter vocabularies, numeric defaults, provider
+aliases — lives in one module and is either imported by both or shipped to the
+browser in `docs/figures/manifest.json`. That is not tidiness: the recurring
+defect in this codebase has been two copies of one fact drifting apart, so the
+rule is **derive, never synchronise**, and tests assert the two sides agree.
+
+The deployed site executes the Python **inside `docs/pybundle.zip`**, not the
+repo's `.py` files. The hourly bot only swaps data CSVs into that zip, so a code
+change needs a full `build_static.py` to reach visitors —
+`tests/test_pybundle_freshness.py` fails if the two ever diverge.
 
 ---
 
@@ -184,6 +238,9 @@ tests/                       # pytest suite covering the static build, scrapers,
 | [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
+| [pytest](https://docs.pytest.org/) | 349 regression tests, each named for the defect it prevents |
+| [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
+| [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 
 ---
 
@@ -191,11 +248,24 @@ tests/                       # pytest suite covering the static build, scrapers,
 
 ---
 
-## Compiled deliverables
+## Written report
 
-`report.tex` is the source of truth for the written report. The tracked
-`FinalReport_Sarkissian.pdf`, `FinalReport_Sarkissian.docx` and
-`Final Project-EECE 5642.pdf` were compiled from an earlier revision and still
-contain claims the source has since corrected (model and provider counts, an
-eleventh tab, a "Trends" view that was never built, and Render deployment).
-**Recompile `report.tex` before submitting or sharing any of them.**
+`report.tex` is the source; `FinalReport_Sarkissian.pdf` is built from it and is
+current. `neurips_2024.sty` is vendored beside it so the build needs nothing
+fetched by hand.
+
+```bash
+brew install tectonic       # one-time; fetches its own TeX packages
+./scripts/build_report.sh   # report.tex -> FinalReport_Sarkissian.pdf
+```
+
+This used to be a comment reading "compile on Overleaf", and the PDF drifted
+from its source: the text was corrected while the PDF beside it kept printing
+inflated model and provider counts, one tab too many, a "Trends" view that was
+never built, and a deployment model retired months earlier. A test now fails if
+the PDF is older than the `.tex`.
+
+**`FinalReport_Sarkissian.docx` and `Final Project-EECE 5642.pdf` are earlier,
+hand-authored deliverables and still carry those retired claims.** They are not
+generated from `report.tex`, so this build cannot correct them; they are kept
+only as history — use the PDF above.

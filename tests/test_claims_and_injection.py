@@ -42,8 +42,15 @@ def test_the_readme_does_not_claim_a_model_count_it_does_not_have():
     """"300+ large language models", three times, against 155. The claim
     outlived the 2026-07-24 upstream pruning (329 -> 154) by weeks, and the
     hero screenshot showing 324 is almost certainly where it came from."""
-    assert "300+" not in README, "README still claims 300+ models"
-    for m in re.findall(r"(\d{3,})\+?\s+(?:large language )?models", README):
+    # Only what the README asserts in its OWN voice. It also describes the
+    # retired claims still sitting in the legacy .docx, and quoting a wrong
+    # number in order to warn about it is not making the claim.
+    voice = "\n".join(
+        line for line in README.splitlines()
+        if not re.search(r"retired|earlier|used to|kept only as history", line, re.I)
+    )
+    assert "300+" not in voice, "README still claims 300+ models"
+    for m in re.findall(r"(\d{3,})\+?\s+(?:large language )?models", voice):
         assert int(m) <= len(DF) * 1.5, (
             f"README claims {m} models against a catalogue of {len(DF)}"
         )
@@ -351,9 +358,20 @@ def test_the_compiled_report_is_not_silently_stale():
         )
 
 
-def test_the_readme_does_not_present_stale_screenshots_as_current():
-    """The hero image reads 324 models / $0.010 floor / 59.9 peak — almost
-    certainly the origin of the "300+" claim the text used to make."""
+def test_the_readme_screenshots_are_reproducible():
+    """They went stale and stayed stale — the hero read 324 models / $0.010
+    floor / 59.9 peak, almost certainly the origin of the "300+" claim the text
+    then made. Regenerating had to be one command or it would not happen again,
+    and the capture must hide the hourly counters that invalidated them."""
     if "screenshots/" not in README:
         pytest.skip("no screenshots embedded")
-    assert "lag the live site" in README or "illustrative" in README
+    script = ROOT / "scripts" / "capture_screenshots.py"
+    assert script.exists(), "no script regenerates the screenshots"
+    body = script.read_text()
+    assert ".stat-bar" in body and "display: none" in body, (
+        "the capture does not hide the header stats, so a data refresh will "
+        "invalidate the images again"
+    )
+    assert "capture_screenshots.py" in README, (
+        "the README does not say how to regenerate them"
+    )

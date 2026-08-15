@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Defence in depth behind the escaping in static_api.py / stack_recommender.py
        / app.js: if a scraped model name ever reaches the DOM as markup again, this
-       stops it fetching or executing anything. Notes on the loosenings:
+       narrows what it could do. It does NOT "stop it executing anything" — that
+       claim was overstated. script-src allows two CDN hosts, and jsdelivr serves
+       arbitrary npm packages, so this CSP constrains the ORIGIN a script comes
+       from, never which script. The Plotly tag carries an SRI hash, which does
+       pin the file; pyworker.js importScripts() the Pyodide runtime and
+       importScripts cannot carry SRI, so that one is origin-trust only. Vendoring
+       Pyodide would close it — it is ~20 MB of wasm and stdlib into a repo whose
+       bloat is already a tracked concern, so it is a deliberate open item, not an
+       oversight. Notes on the loosenings:
          wasm-unsafe-eval — Pyodide compiles the CPython wasm module.
          cdn.jsdelivr.net — pyworker.js importScripts() the Pyodide runtime and it
                             fetches its wasm/stdlib from there (hence connect-src).

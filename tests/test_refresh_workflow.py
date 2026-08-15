@@ -25,8 +25,7 @@ def test_workflow_present_and_wired():
         "schedule:",
         "workflow_dispatch:",
         "contents: write",
-        "pip install -r requirements.txt",
-        'pip install "plotly==6.5.2"',
+        "pip install --require-hashes -r requirements.lock",
         "python -m data.scraper",
         "python -m data.local_scraper",
         "python -m data.image_scraper",
@@ -81,3 +80,26 @@ def test_row_loss_guard_replaces_the_bare_floor():
     assert "allow_shrink" in txt
     # the old inline absolute-only check is gone
     assert "refusing to publish'" not in txt
+
+
+def test_actions_are_pinned_to_commit_shas():
+    """This job holds contents:write on the branch GitHub Pages publishes, so
+    "whatever v4 points at today" is a write-access dependency on someone
+    else's mutable tag."""
+    import re as _re
+    for ref in _re.findall(r"uses:\s*(\S+)", WF.read_text()):
+        _repo, _, rev = ref.partition("@")
+        assert _re.fullmatch(r"[0-9a-f]{40}", rev), f"{ref} is not pinned to a SHA"
+
+
+def test_dependencies_are_installed_by_hash():
+    txt = WF.read_text()
+    assert "--require-hashes" in txt
+    assert 'pip install "plotly==' not in txt, (
+        "the ad-hoc plotly override is back — pin it in requirements.txt instead"
+    )
+    lock = ROOT / "requirements.lock"
+    assert lock.exists(), "no lockfile for the hash-pinned install"
+    body = lock.read_text()
+    assert "--hash=sha256:" in body
+    assert "# WARNING" not in body, "the lockfile has unpinned packages"

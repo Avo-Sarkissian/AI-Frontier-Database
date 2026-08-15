@@ -1,5 +1,9 @@
 dash>=4.0.0
-plotly>=6.1
+# Pinned exactly: plotly is VENDORED INTO pybundle.zip, so this version is
+# the runtime the browser executes, not just a build dependency. CI used to
+# override it with an ad-hoc `pip install plotly==6.5.2` after installing
+# this file — two sources for one number.
+plotly==6.5.2
 # Pinned to the version Pyodide v0.27.7 ships (see docs/pyworker.js).
 # CI resolved to pandas 3.x while the browser ran 2.2.3, and the two
 # produced different value_counts tie order — so a pre-rendered figure

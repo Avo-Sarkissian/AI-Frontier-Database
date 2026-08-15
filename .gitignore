@@ -37,3 +37,8 @@ qa-*.png
 # Python cache
 __pycache__/
 *.pyc
+
+# macOS/Finder duplicate artifacts of the 4MB bundle, created when the build
+# overwrites docs/pybundle.zip. Untracked junk, never part of the site.
+docs/pybundle [0-9]*.zip
+*.zip.tmp
