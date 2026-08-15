@@ -544,8 +544,10 @@ app.layout = html.Div([
         dcc.Tab(label="Budget", value="budget",
                 className="tab", selected_className="tab--selected", children=[
             _desc(
-                "Estimate monthly API cost. Price uses Artificial Analysis's blended rate "
-                "(assumes 3:1 output/input token ratio). Enter volume in millions — "
+                "Estimate monthly API cost. Price is our own blend of Artificial "
+                "Analysis's per-token rates, weighted 3 parts output to 1 part input "
+                "(AA's own published blend uses the opposite weighting, so their site "
+                "quotes a lower figure). Enter volume in millions — "
                 "1M tokens ≈ 750,000 words or ~1,500 pages. Chart sorts cheapest-first."
             ),
             html.Div([

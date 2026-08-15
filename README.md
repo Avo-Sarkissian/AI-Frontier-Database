@@ -62,10 +62,10 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Metric | Source | Notes |
 |---|---|---|
 | Intelligence | [Artificial Analysis](https://artificialanalysis.ai/) | Composite of reasoning, coding, math, and knowledge benchmarks |
-| Price | Artificial Analysis | USD per 1M tokens — blended 3:1 output/input ratio, cheapest available host |
+| Price | Derived from Artificial Analysis | USD per 1M tokens, cheapest available host. **Our blend, not AA's**: 3 parts output to 1 part input. AA publishes the opposite weighting (3 parts input to 1 part output), so a price here reads roughly 1.9× theirs. Output-weighted is the honest basis for agentic and RAG workloads, where output dominates spend; the per-token `price_in` / `price_out` are shown beside it everywhere so you can compute either. |
 | Speed | Artificial Analysis | Median tokens/second from the same host as the price |
 | Latency | Artificial Analysis | Median time-to-first-token (TTFT) in seconds |
-| Context Window | Artificial Analysis | Maximum supported input length |
+| Context Window | Artificial Analysis | Maximum input length **the model supports**, not what a given host serves — a host may cap it lower. Unlike price and speed this is not a cheapest-host figure. |
 | Image ELO | AA Image Arena | Human-preference ranking, scraped live hourly |
 | Open-weight / local models | Artificial Analysis | GPU VRAM fit, parameter counts, quantization levels, scraped live hourly |
 | Video generation models | Curated dataset | Manually maintained pricing/quality data (`data/video_models.py`) — not live-scraped |

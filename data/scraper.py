@@ -83,28 +83,60 @@ def _parse_api_response(data: dict) -> list[list]:
             creators.get("name") if isinstance(creators, dict) else ""
         ) or ""
 
-        # Context window
+        # Context window — the MODEL's, not the host's.
+        #
+        # `hm` is one host's offering of the model, and a host may serve it with
+        # a smaller window than the model supports. Preferring the host record
+        # meant the emitted figure was whichever host AA happened to list first
+        # (verified: it matched the first host 79/79 times and the cheapest host
+        # only 62/79), so Nemotron 3.5 Lightning published 29k against a real
+        # 1,000,000 — 34.5x understated — and this catalogue disagreed with
+        # data/local_scraper.py, which already reads the canonical value, on 40
+        # of 91 shared models.
+        #
+        # Unlike price/speed/latency there is no cheapest-host convention to
+        # honour here: the dedup below never updates ctx, so a host-derived
+        # window was not "the cheapest host's window", just an arbitrary one.
         ctx_tokens = (
-            hm.get("context_window_tokens")
-            or model_obj.get("context_window_tokens")
+            model_obj.get("context_window_tokens")
+            or hm.get("context_window_tokens")
             or 0
         )
-        ctx_str = hm.get("context_window_formatted") or (
-            f"{ctx_tokens // 1000}k" if ctx_tokens >= 1000 else str(ctx_tokens)
-        )
+        # Format from the value actually used. Taking the host's preformatted
+        # string would reintroduce the mismatch in the label while the number
+        # underneath said something else. Millions keep the "1m" form the UI
+        # has always shown (static_helpers.ctx_to_k parses both).
+        if ctx_tokens >= 1_000_000:
+            m = ctx_tokens / 1_000_000
+            ctx_str = f"{m:.0f}m" if abs(m - round(m)) < 0.05 else f"{m:.1f}m"
+        elif ctx_tokens >= 1000:
+            ctx_str = f"{ctx_tokens // 1000}k"
+        else:
+            ctx_str = str(ctx_tokens)
 
-        # Price — blended 3:1 output:input ratio, per 1M tokens. Input and output
-        # are kept alongside it: the blend is the right basis for cost estimates,
-        # but it is not the number anyone quotes, so the UI shows all three.
+        # Price — OUR blend, computed here: 3 parts output to 1 part input, per
+        # 1M tokens. Input and output are kept alongside it, because the blend
+        # is the right basis for cost estimates but is not the number anyone
+        # quotes, so the UI shows all three.
+        #
+        # This used to read `price_1m_blended_3_to_1` first and treat the
+        # arithmetic as a fallback. That key is absent from all 443 live
+        # records, so every row took the fallback anyway — the read was dead
+        # code that made this look like an upstream figure. It is not:
+        # Artificial Analysis publishes `price_1m_blended_0_3_1`, which is
+        # (3*in + out)/4 — the OPPOSITE weighting, a median 1.91x lower.
+        #
+        # We keep the output-weighted basis deliberately. Output-only would
+        # overstate cost for input-heavy agentic/RAG workloads, re-rank Value
+        # toward models with cheap output and expensive input, and break
+        # continuity with 90 blended-only history snapshots. But nothing may
+        # credit AA for it — see the labels in app.py, docs/app.js and README.md.
         p_in  = hm.get("price_1m_input_tokens")
         p_out = hm.get("price_1m_output_tokens")
-        price = hm.get("price_1m_blended_3_to_1")
-        if price is None or price <= 0:
-            if p_in is not None and p_out is not None and p_in >= 0 and p_out >= 0:
-                price = (3 * p_out + 1 * p_in) / 4
-            else:
-                skipped["no_price"].add(model_name)
-                continue
+        if p_in is None or p_out is None or p_in < 0 or p_out < 0:
+            skipped["no_price"].add(model_name)
+            continue
+        price = (3 * p_out + 1 * p_in) / 4
         if price <= 0:
             skipped["no_price"].add(model_name)
             continue
@@ -176,6 +208,89 @@ def _save_coverage() -> None:
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
+# Columns that must carry real values for the site to be honest, and the share
+# of rows that must be populated. Only three upstream keys currently fail loudly
+# when renamed (the two price keys and intelligence_index, because a row missing
+# either is dropped outright). Everything else was read as `.get(x) or 0`, so a
+# rename degraded silently to a constant: renaming `timescaleData` published 148
+# rows with speed and latency zero for every one of them, `model_creators`
+# published 148 blank providers, and the context keys published '0' everywhere.
+#
+# The site then looked ~90% healthy — pareto, treemap, leaderboard and the cost
+# calculator all render fine without speed — while the Overview speed-quadrant
+# drew an empty panel and the Speed ranking said "No models match these
+# filters", blaming the user for an upstream schema change.
+#
+# Thresholds are deliberately loose: they catch a column that has *collapsed*,
+# not one with a few genuine gaps. Speed and latency are absent for a handful of
+# real models, so 0.80 leaves room without letting a wholesale zeroing through.
+_COLUMN_HEALTH = {
+    "provider": 0.95,
+    "quality":  0.95,
+    "price":    0.95,
+    "speed":    0.80,
+    "latency":  0.80,
+    "context":  0.90,
+}
+
+
+def column_health_violations(df, thresholds: dict | None = None) -> list[str]:
+    """Columns whose populated share has collapsed — empty list means healthy.
+
+    "Populated" means present, non-null, and not the zero/blank value the
+    `or <default>` idiom degrades to. A missing column is itself a violation:
+    that is the rename case.
+    """
+    import pandas as pd
+
+    out: list[str] = []
+    for col, floor in (thresholds or _COLUMN_HEALTH).items():
+        if col not in df.columns:
+            out.append(f"column '{col}' is missing entirely — upstream schema changed")
+            continue
+        series = df[col]
+        if pd.api.types.is_numeric_dtype(series):
+            live = series.notna() & (series != 0)
+        else:
+            text = series.astype(str).str.strip()
+            live = series.notna() & (text != "") & (text != "0") & (text.str.lower() != "nan")
+        share = float(live.mean()) if len(series) else 0.0
+        if share < floor:
+            out.append(
+                f"column '{col}' is only {share:.0%} populated (floor {floor:.0%}) — "
+                f"upstream key renamed or dropped"
+            )
+    return out
+
+
+MAX_SHRINK_PCT = 20.0
+
+
+def _shrink_violations(df) -> list[str]:
+    """Refuse a scrape that loses an implausible share of the existing cache.
+
+    data_guard.py already does this, but it runs only from the refresh workflow
+    and compares *committed* CSVs. app.py starts this scraper on every Dash boot
+    and data/ingest.py freezes a history snapshot, so that path overwrote the
+    cache — and the day's history file — with no guard of any kind. This is the
+    same rule enforced where the write actually happens.
+    """
+    try:
+        existing = load_cached()
+    except Exception:
+        return []
+    if existing is None or existing.empty:
+        return []
+    before, now = len(existing), len(df)
+    if before == 0:
+        return []
+    drop = (before - now) / before * 100
+    if drop > MAX_SHRINK_PCT:
+        return [f"row count {before} -> {now}, a {drop:.0f}% drop "
+                f"(limit {MAX_SHRINK_PCT:.0f}%)"]
+    return []
+
+
 def scrape_and_save() -> bool:
     """
     Fetch fresh data from the AA API and update the cache.
@@ -198,6 +313,14 @@ def scrape_and_save() -> bool:
         df = load_from_raw(rows)
         if df.empty:
             print("[scraper] Parsed DataFrame is empty — skipping cache update")
+            return False
+
+        violations = column_health_violations(df)
+        violations += _shrink_violations(df)
+        if violations:
+            for v in violations:
+                print(f"[scraper] {v}")
+            print("[scraper] Refusing to publish — cache left unchanged")
             return False
 
         save_cache(df)

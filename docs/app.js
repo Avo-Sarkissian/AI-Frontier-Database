@@ -669,7 +669,7 @@ function renderTableRows(records) {
       <th style="${hStyleLeft}">Provider</th>
       <th style="${hStyle}">Intelligence</th>
       <th style="${hStyle}">Value (score/$)</th>
-      <th style="${hStyle}" title="Artificial Analysis blended price: 3 parts output to 1 part input">Price ($/M tok, 3:1)</th>
+      <th style="${hStyle}" title="Our blend, computed from Artificial Analysis's per-token prices: 3 parts output to 1 part input, cheapest available host. Artificial Analysis publishes the opposite weighting; this basis is ours, so their site will quote a lower number.">Price ($/M tok, 3:1)</th>
       <th style="${hStyle}">Speed (tok/s)</th>
       <th style="${hStyle}">Latency (s)</th>
       <th style="${hStyle}">Context</th>
