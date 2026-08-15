@@ -42,6 +42,14 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 
 ## Screenshots
 
+> **These images are illustrative and lag the live site.** They were captured
+> against an earlier catalogue — the header stats in them read counts and prices
+> that no longer hold, and some show models since delisted. The dashboard itself
+> is the source of truth: <https://avo-sarkissian.github.io/AI-Frontier-Database/>.
+> When regenerating, crop the header stat bar out so an hourly data refresh
+> cannot invalidate them again.
+
+
 <table>
 <tr>
 <td width="50%"><img src="screenshots/agent-stack.png" alt="Agent Stack tab — three-tier model recommendations"></td>
@@ -180,3 +188,14 @@ tests/                       # pytest suite covering the static build, scrapers,
 ---
 
 *Data Visualization — EECE 5642, Northeastern University, Spring 2026*
+
+---
+
+## Compiled deliverables
+
+`report.tex` is the source of truth for the written report. The tracked
+`FinalReport_Sarkissian.pdf`, `FinalReport_Sarkissian.docx` and
+`Final Project-EECE 5642.pdf` were compiled from an earlier revision and still
+contain claims the source has since corrected (model and provider counts, an
+eleventh tab, a "Trends" view that was never built, and Render deployment).
+**Recompile `report.tex` before submitting or sharing any of them.**

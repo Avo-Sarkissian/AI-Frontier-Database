@@ -334,3 +334,26 @@ def test_csv_export_neutralises_embedded_record_separators(payload):
 def test_the_other_two_scrapers_sanitise_their_caches_too():
     for rel in ("data/local_scraper.py", "data/image_scraper.py"):
         assert "csv_safe" in (ROOT / rel).read_text(), f"{rel} writes raw text"
+
+
+def test_the_compiled_report_is_not_silently_stale():
+    """report.tex was corrected in place; the tracked PDF/DOCX beside it were
+    compiled from the older revision and still print the retired claims. No
+    LaTeX toolchain is available here, so the honest guard is to require the
+    staleness be documented rather than to pretend it is fixed."""
+    pdf = ROOT / "FinalReport_Sarkissian.pdf"
+    tex = ROOT / "report.tex"
+    if not (pdf.exists() and tex.exists()):
+        pytest.skip("no compiled report in this checkout")
+    if pdf.stat().st_mtime < tex.stat().st_mtime:
+        assert "Recompile `report.tex`" in README, (
+            "the compiled report is older than its source and nothing says so"
+        )
+
+
+def test_the_readme_does_not_present_stale_screenshots_as_current():
+    """The hero image reads 324 models / $0.010 floor / 59.9 peak — almost
+    certainly the origin of the "300+" claim the text used to make."""
+    if "screenshots/" not in README:
+        pytest.skip("no screenshots embedded")
+    assert "lag the live site" in README or "illustrative" in README

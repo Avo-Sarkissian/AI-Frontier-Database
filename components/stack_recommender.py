@@ -537,7 +537,13 @@ def select_stack(
     tiers_out = []
     _taken: dict[str, str] = {}   # model name -> the tier that claimed it
 
-    for tier in _API_TIERS:
+    # Claim order, not display order. Tiers are shown Fast -> Balanced ->
+    # Reasoning, but if Fast and Balanced pick first they can take the very model
+    # Reasoning exists to name — leaving the max-quality card rendering the
+    # SECOND-best model in the catalogue. Reasoning claims first; the cards are
+    # re-sorted back into display order afterwards.
+    _CLAIM_ORDER = {"reasoning": 0, "balanced": 1, "fast": 2}
+    for tier in sorted(_API_TIERS, key=lambda t: _CLAIM_ORDER.get(t["key"], 9)):
         key = tier["key"]
         duplicate_of = None
 
@@ -600,6 +606,8 @@ def select_stack(
             "duplicate_of": duplicate_of,
         })
 
+    display_order = [t["key"] for t in _API_TIERS]
+    tiers_out.sort(key=lambda t: display_order.index(t["key"]))
     return {"tiers": tiers_out}
 
 

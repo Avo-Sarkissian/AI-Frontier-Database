@@ -216,13 +216,18 @@ def test_the_three_tiers_do_not_silently_recommend_one_model():
         tiers = select_stack(DF, [provider], "api")["tiers"]
         tops = [(t["key"], str(t["picks"].iloc[0]["model"]), t.get("duplicate_of"))
                 for t in tiers if t["picks"] is not None and not t["picks"].empty]
-        # A tier that repeats an EARLIER tier's pick must say so. The first
-        # claimant is not the repeat and keeps its own advice.
-        seen = set()
-        for key, name, dup in tops:
-            if name in seen and not dup:
-                silent.append((provider, key, name))
-            seen.add(name)
+        # Exactly one tier may hold a given model without a note — the one that
+        # claimed it. Claim order is Reasoning first (so the max-quality tier
+        # never renders the second-best model), which is NOT display order, so
+        # the un-noted tier can appear anywhere in the list.
+        from collections import Counter
+        counts = Counter(name for _, name, _ in tops)
+        for name, n in counts.items():
+            if n < 2:
+                continue
+            unnoted = [key for key, nm, dup in tops if nm == name and not dup]
+            if len(unnoted) != 1:
+                silent.append((provider, name, unnoted))
     assert not silent, f"repeated picks with no note and full advice: {silent[:5]}"
 
 
@@ -444,3 +449,18 @@ def test_the_badge_recomputes_staleness_in_the_browser():
     body = js.split("function renderFreshness")[1].split("\nfunction ")[0]
     assert "STALE_AFTER_HOURS" in body
     assert "Date.now()" in body, "staleness is still only what the build recorded"
+
+
+def test_the_reasoning_tier_gets_the_highest_quality_model():
+    """Tiers claim in Reasoning -> Balanced -> Fast order even though they are
+    displayed Fast -> Balanced -> Reasoning. Claiming in display order let Fast
+    or Balanced take the very model Reasoning exists to name, leaving the
+    max-quality card rendering the SECOND-best model in the catalogue."""
+    best = DF.nlargest(1, "quality").iloc[0]["model"]
+    tiers = select_stack(DF, None, "api")["tiers"]
+    assert [t["key"] for t in tiers] == ["fast", "balanced", "reasoning"], "display order changed"
+    reasoning = next(t for t in tiers if t["key"] == "reasoning")["picks"]
+    assert not reasoning.empty and reasoning.iloc[0]["model"] == best, (
+        f"Reasoning recommends {reasoning.iloc[0]['model']!r}, not the catalogue's "
+        f"best model {best!r}"
+    )
