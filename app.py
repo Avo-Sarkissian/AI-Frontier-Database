@@ -86,9 +86,14 @@ def _reload_if_stale():
     except Exception:
         pass
 
+from captions import CAPTIONS
 from static_helpers import (
     apply_filters,
     coerce_number as _coerce_number,
+    cap_compare_selection as _cap_compare_selection,
+    quality_options as _quality_options,
+    export_frame_for_tab as _export_frame_for_tab_shared,
+    TABS_WITHOUT_GLOBAL_FILTERS as _TABS_WITHOUT_GLOBAL_FILTERS,
     compute_diverse5 as _compute_diverse5,
     ctx_to_k as _ctx_to_k,
     quality_label as _quality_label,
@@ -125,6 +130,10 @@ def _stat(value: str, label: str, accent: bool = False) -> html.Div:
 
 def _apply_filters(providers, min_quality, search: str = "") -> pd.DataFrame:
     return apply_filters(df, providers, min_quality, search)
+
+
+def _export_frame_for_tab(tab, providers, min_quality, search):
+    return _export_frame_for_tab_shared(tab, df, providers, min_quality, search)
 
 
 def _desc(text: str) -> html.Div:
@@ -284,8 +293,9 @@ app.layout = html.Div([
         html.Span("MIN SCORE", className="filter-label"),
         dcc.Dropdown(
             id="filter-quality",
-            options=[{"label": f"≥ {v}", "value": v}
-                     for v in [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]],
+            # Includes the exact preset percentiles — writing 42.1 into a
+            # round-ladder dropdown left the control visually blank.
+            options=_quality_options(_P75, _P90),
             value=0,
             clearable=False,
             style={"width": "96px"},
@@ -303,10 +313,10 @@ app.layout = html.Div([
         html.Button("↓ CSV", id="btn-export", className="export-btn",
                     title="Download filtered data as CSV"),
         html.Div(style={"flex": "1"}),   # spacer
-        html.Button("All",      id="preset-all",    className="preset-btn"),
+        html.Button("Reset filters", id="preset-all", className="preset-btn"),
         html.Button("Top 25%",  id="preset-strong", className="preset-btn"),
         html.Button("Top 10%",  id="preset-elite",  className="preset-btn"),
-    ], className="filters"),
+    ], className="filters", id="global-filters"),
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
     dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
@@ -329,11 +339,7 @@ app.layout = html.Div([
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            html.Div(id="overview-desc", children=[_desc(
-                "Each bubble is one model. X = price per 1M tokens (log scale), "
-                "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-                "Dotted line = Pareto frontier. Click any bubble for full details."
-            )]),
+            html.Div(id="overview-desc", children=[_desc(CAPTIONS["overview_price"])]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
@@ -344,14 +350,7 @@ app.layout = html.Div([
         # Agent Stack ──────────────────────────────────────────────────────────
         dcc.Tab(label="Agent Stack", value="recommend",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Build your Claude Code model stack. "
-                "API Only = all cloud. "
-                "Hybrid — Fast local = free local for sub-tasks, API for Balanced + Reasoning. "
-                "Hybrid — Fast + Balanced local = local for both workhorse tiers, API only for the top orchestrator. "
-                "Local Only = fully offline. "
-                "Fast = high-volume sub-tasks. Balanced = coding and writing. Reasoning = planning and delegation."
-            ),
+            _desc(CAPTIONS["recommend"]),
             # Row 1: workflow mode
             html.Div([
                 html.Span("WORKFLOW", className="filter-label"),
@@ -444,18 +443,12 @@ app.layout = html.Div([
         # Landscape ────────────────────────────────────────────────────────────
         dcc.Tab(label="Landscape", value="landscape",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "AI ecosystem by provider. Tile area = number of models in the dataset. "
-                "Color intensity = average intelligence score."
-            ),
+            _desc(CAPTIONS["landscape_treemap"]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="treemap-chart", figure=build_treemap(df),
                           config=_GRAPH_CONFIG, style={"height": "600px"}),
             ])], className="chart-card"),
-            _desc(
-                "Provider leaderboard: bar length = best model's intelligence. "
-                "Tick mark = provider average. Right labels show model count and top model."
-            ),
+            _desc(CAPTIONS["landscape_leaderboard"]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="provider-leaderboard-chart",
                           figure=build_provider_leaderboard(df),
@@ -482,23 +475,14 @@ app.layout = html.Div([
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            _desc(
-                "Intelligence = AA Intelligence Index (composite benchmark). "
-                "Value = Intelligence ÷ Price (higher = more score per dollar). "
-                "Speed = throughput in tokens/second. "
-                "Models within ±2 points of each other are effectively tied — small deltas are within measurement variance."
-            ),
+            _desc(CAPTIONS["rankings_intelligence"]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
             ])], className="chart-card"),
 
             # ── Value Leaders ─────────────────────────────────────────────────
-            _desc(
-                "Top 15 models ranked by intelligence per dollar (quality score ÷ price per 1M tokens). "
-                "Quality floor of 20 so ultra-cheap but weak models don't pollute the list. "
-                "Bar length = value score. Labels show raw quality and price."
-            ),
+            _desc(CAPTIONS["rankings_value"]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(
                     id="value-leaders-chart",
@@ -512,14 +496,7 @@ app.layout = html.Div([
         # Compare ──────────────────────────────────────────────────────────────
         dcc.Tab(label="Compare", value="compare",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Radar comparing up to 5 models across 5 dimensions, each scaled 0–100% between "
-                "the weakest and strongest model in the full catalogue — so a shape means the "
-                "same thing whatever the filter. Speed, price, context and latency are heavy-tailed, "
-                "so those four use a log scale: one step is a 10× change, not a fixed amount. "
-                "Affordability = inverted price (100% = cheapest). Latency = inverted TTFT (100% = fastest). "
-                "Raw values for each model are shown in the table below the chart."
-            ),
+            _desc(CAPTIONS["compare"]),
             html.Div([
                 html.Span("SELECT MODELS", className="filter-label"),
                 dcc.Dropdown(
@@ -545,13 +522,7 @@ app.layout = html.Div([
         # Budget ───────────────────────────────────────────────────────────────
         dcc.Tab(label="Budget", value="budget",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Estimate monthly API cost. Price is our own blend of Artificial "
-                "Analysis's per-token rates, weighted 3 parts output to 1 part input "
-                "(AA's own published blend uses the opposite weighting, so their site "
-                "quotes a lower figure). Enter volume in millions — "
-                "1M tokens ≈ 750,000 words or ~1,500 pages. Chart sorts cheapest-first."
-            ),
+            _desc(CAPTIONS["budget"]),
             html.Div([
                 html.Span("MONTHLY TOKENS", className="filter-label"),
                 dcc.Input(
@@ -579,11 +550,7 @@ app.layout = html.Div([
         # Table ────────────────────────────────────────────────────────────────
         dcc.Tab(label="Table", value="table",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Full sortable model table. Score = AA Intelligence Index (composite benchmark, higher = better). "
-                "Value = Score ÷ Price (quality per dollar). Price = blended $/M tokens (3:1 output/input). "
-                "Latency = time-to-first-token (TTFT) in seconds."
-            ),
+            _desc(CAPTIONS["table"]),
             html.Div([
                 html.Span("SORT BY", className="filter-label"),
                 dcc.Dropdown(
@@ -692,11 +659,7 @@ app.layout = html.Div([
         # Run Local ────────────────────────────────────────────────────────────
         dcc.Tab(label="Run Local", value="local",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Find open-weight models you can run on your own hardware. "
-                "Select your GPU (or enter VRAM manually), choose a quantization level, "
-                "and see which models fit — with estimated inference speed."
-            ),
+            _desc(CAPTIONS["local"]),
             html.Div([
                 html.Span("GPU", className="filter-label"),
                 dcc.Dropdown(
@@ -780,11 +743,7 @@ app.layout = html.Div([
         # Image Gen ────────────────────────────────────────────────────────────
         dcc.Tab(label="Image Gen", value="image",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Compare image generation models by quality and style. "
-                "ELO scores from Artificial Analysis Image Arena — blind human comparisons. "
-                "Each column shows the best models for that style. Annotations show generation time."
-            ),
+            _desc(CAPTIONS["image"]),
             html.Div([
                 html.Span("PROVIDERS", className="filter-label"),
                 dcc.Dropdown(
@@ -817,12 +776,7 @@ app.layout = html.Div([
         # Video Gen ────────────────────────────────────────────────────────────
         dcc.Tab(label="Video Gen", value="video",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(
-                "Compare video generation models on quality, speed, and cost. "
-                "Quality scores are human preference ratings (0–100). "
-                "Price is USD per second of generated video. "
-                "Open-weights models can be self-hosted for free."
-            ),
+            _desc(CAPTIONS["video"]),
             html.Div([
                 html.Span("PROVIDERS", className="filter-label"),
                 dcc.Dropdown(
@@ -909,7 +863,10 @@ def init_from_url(search: str):
     # everything rather than the one provider the link named.
     providers = [canonical_provider(x) for x in raw_p.split(",") if x] if raw_p else []
     try:
-        quality = int(params.get("q", [0])[0])
+        # float, not int: the presets emit 42.1 / 52.7, so int() raised, the
+        # error was swallowed, and the filter silently became 0 — a shared
+        # "Top 25%" link opened as no filter at all.
+        quality = float(params.get("q", [0])[0])
     except (ValueError, TypeError):
         quality = 0
     return tab, providers, quality
@@ -1010,13 +967,21 @@ clientside_callback(
     prevent_initial_call=True,
 )
 def apply_preset(*_):
+    """Quality presets touch quality. Only "Reset filters" touches the rest.
+
+    All three used to return `[]` into filter-provider. The buttons are labelled
+    purely in quality terms and sit in the same bar as the PROVIDER dropdown, so
+    PROVIDER=Anthropic + "Top 10%" quietly became "top 10% of everything" — a
+    different question from the one asked. They also disagreed with each other:
+    "All" cleared SEARCH, the other two did not.
+    """
     trigger = ctx.triggered_id
     if trigger == "preset-all":
-        return 0, [], ""
+        return 0, [], ""                      # relabelled "Reset filters"
     if trigger == "preset-strong":
-        return _P75, [], no_update
+        return _P75, no_update, no_update
     if trigger == "preset-elite":
-        return _P90, [], no_update
+        return _P90, no_update, no_update
     return no_update, no_update, no_update
 
 
@@ -1089,20 +1054,12 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
 def update_overview(providers, min_quality, search, xaxis, _v):
     filtered = _apply_filters(providers, min_quality, search or "")
     if xaxis == "speed":
-        desc = _desc(
-            "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
-            "Bubble size = affordability (larger = cheaper). "
-            "Click any bubble for full details."
-        )
+        desc = _desc(CAPTIONS["overview_speed"])
         # `df` is the unfiltered catalogue: the median crosshairs that decide
         # "Fast · Smart" and the frontier are market-wide claims, so they must
         # not move when the user narrows the frame.
         return build_quadrant(filtered, full_df=df), desc
-    desc = _desc(
-        "Each bubble is one model. X = price per 1M tokens (log scale), "
-        "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-        "Dotted line = Pareto frontier. Click any bubble for full details."
-    )
+    desc = _desc(CAPTIONS["overview_price_dyn"])
     return build_pareto_scatter(filtered, full_df=df), desc
 
 
@@ -1160,10 +1117,7 @@ def update_compare(providers, min_quality, search, selected_models):
     options   = _model_options(filtered)
     triggered = ctx.triggered_id
 
-    if triggered in ("filter-provider", "filter-quality", "model-search"):
-        capped = _compute_diverse5(filtered)
-    else:
-        capped = (selected_models or [])[:5]
+    capped = _cap_compare_selection(selected_models, filtered, triggered)
 
     raw_table = _build_raw_table(filtered, capped)
     return build_radar(filtered, capped, full_df=df), options, capped, raw_table
@@ -1391,16 +1345,38 @@ def update_table(providers, min_quality, search, sort_col, sort_dir):
 @callback(
     Output("download-csv",   "data"),
     Input("btn-export",      "n_clicks"),
+    State("tabs",            "value"),
     State("filter-provider", "value"),
     State("filter-quality",  "value"),
     State("model-search",    "value"),
     prevent_initial_call=True,
 )
-def export_csv(n_clicks, providers, min_quality, search):
+def export_csv(n_clicks, tab, providers, min_quality, search):
+    """Export what is on screen, not always the hosted-LLM table.
+
+    The global filter bar sits outside dcc.Tabs and four tabs consume none of
+    it, but ↓CSV always exported the LLM catalogue through those filters. From
+    Image Gen, `export_csv(['Anthropic'], 50, '')` returned the LLM header and
+    seven text models — a file describing a different dataset from the one the
+    user was looking at.
+    """
     if not n_clicks:
         return no_update
-    filtered = _apply_filters(providers, min_quality, search or "")
-    return dcc.send_data_frame(filtered.to_csv, "ai_frontier_export.csv", index=False)
+    frame, name = _export_frame_for_tab(tab, providers, min_quality, search)
+    return dcc.send_data_frame(frame.to_csv, name, index=False)
+
+
+# ── Hide the global filter bar where it does nothing ──────────────────────────
+@callback(
+    Output("global-filters", "style"),
+    Input("tabs", "value"),
+)
+def toggle_global_filters(tab):
+    """Agent Stack, Run Local, Image Gen and Video Gen read none of PROVIDER /
+    MIN SCORE / SEARCH. Leaving the bar visible and live on those tabs meant it
+    displayed "Anthropic / >= 45" over a chart plotting 72 models from a dozen
+    other providers."""
+    return {"display": "none"} if tab in _TABS_WITHOUT_GLOBAL_FILTERS else {}
 
 
 # ── Auto data refresh — drives ALL stat bar values and data-version ───────────

@@ -140,7 +140,9 @@ def test_the_radar_caption_does_not_promise_a_linear_scale():
     radar_src = (root / "components" / "charts" / "radar.py").read_text()
     assert "normalized 0–100 across all models</span>" not in radar_src
     assert "log scale" in radar_src, "the caption does not disclose the log axes"
-    assert "log scale" in (root / "app.py").read_text()
+    assert "log scale" in (root / "captions.py").read_text(), (
+        "the Compare tab caption does not disclose the log axes"
+    )
 
 
 # ── 3.2 — image facet axes ───────────────────────────────────────────────────

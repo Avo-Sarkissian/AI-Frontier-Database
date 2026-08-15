@@ -74,6 +74,100 @@ def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
     return filtered
 
 
+COMPARE_MAX = 5
+
+_QUALITY_LADDER = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+
+
+def quality_options(p75: float | None = None, p90: float | None = None) -> list[dict]:
+    """MIN SCORE options, including the exact percentiles the presets set.
+
+    One value had four incompatible representations. The presets wrote 42.1 and
+    52.7 into a dropdown whose options were a round ladder, so:
+      - Dash's control went visually blank (no matching option),
+      - the static site snapped 52.7 down to 50, making "Top 10%" return 15.5%
+        of the catalogue under a label that is a precise numeric claim,
+      - `?q=42.1` hit `int("42.1")`, raised, was swallowed, and became 0 — the
+        filter silently dropped, so a shared "Top 25%" link showed 11 models as
+        the top quartile when only 8 qualified.
+
+    Carrying the percentiles as real options makes the control able to hold what
+    the buttons set, and labels them so the number is not a mystery.
+    """
+    entries = {float(v): f"≥ {v:g}" for v in _QUALITY_LADDER}
+    for value, note in ((p75, "top 25%"), (p90, "top 10%")):
+        if value is not None and float(value) > 0:
+            entries[float(value)] = f"≥ {float(value):g}  ·  {note}"
+    return [{"label": entries[v], "value": v} for v in sorted(entries)]
+
+# Tabs that read none of PROVIDER / MIN SCORE / SEARCH. The global filter bar is
+# rendered outside the tab container in both renderings, so it stayed visible
+# and live over content it did not touch: on ?tab=image&p=Anthropic&q=45 the bar
+# read "Anthropic · ≥ 45" above a chart plotting 72 models from a dozen other
+# providers.
+TABS_WITHOUT_GLOBAL_FILTERS = ("recommend", "local", "image", "video")
+
+# What ↓CSV should hand you on each tab. Exporting the hosted-LLM catalogue from
+# the Image Gen tab produced a file with the LLM header and seven text models —
+# a different dataset from the one on screen.
+_TAB_EXPORTS = {
+    "local": ("ai_frontier_local_models.csv", "local"),
+    "image": ("ai_frontier_image_models.csv", "image"),
+    "video": ("ai_frontier_video_models.csv", "video"),
+}
+
+
+def export_frame_for_tab(tab, full_df, providers, min_quality, search):
+    """(DataFrame, filename) for the dataset the given tab is showing.
+
+    The three non-LLM tabs export their own catalogue unfiltered, because the
+    global filters they would otherwise be filtered by are hidden there.
+    """
+    name, kind = _TAB_EXPORTS.get(tab or "", ("ai_frontier_export.csv", "llm"))
+    if kind == "local":
+        from data.local_models import get_local_df
+        return get_local_df(), name
+    if kind == "image":
+        from data.image_models import get_image_df
+        return get_image_df(), name
+    if kind == "video":
+        from data.video_models import get_video_df
+        return get_video_df(), name
+    return apply_filters(full_df, providers, min_quality, search or ""), name
+
+
+def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[str]:
+    """The Compare tab's selection, pruned to what still fits — never discarded.
+
+    Two bugs, one cause: the selection was *replaced* with the diverse-5
+    defaults rather than filtered.
+
+    (a) Any global filter change reset it, even for models that still passed.
+        A curated three-model comparison vanished on one click of "Top 25%"
+        while every one of the three still cleared the new floor, and clearing
+        the filter did not bring them back.
+    (b) On the static site every tab switch routed through the same path, so
+        going to Table and back replaced the selection too. Dash has no `tabs`
+        input on this callback and never did it — pure drift, which is why
+        `triggered` must distinguish a real filter change from a re-render.
+
+    The cap evicts the OLDEST pick, not the newest: `[:5]` threw away the model
+    the user had just clicked, which reads as the click doing nothing.
+    """
+    available = set(filtered_df["model"]) if filtered_df is not None and len(filtered_df) else set()
+    kept = [m for m in (selected_models or []) if m in available]
+
+    if triggered in ("filter-provider", "filter-quality", "model-search"):
+        # A real filter change: keep whatever still qualifies, and only fall
+        # back to the defaults when the filter has excluded everything.
+        return kept[-COMPARE_MAX:] if kept else compute_diverse5(filtered_df)
+
+    if not kept:
+        # No selection yet (first paint, or a re-render with nothing chosen).
+        return compute_diverse5(filtered_df)
+    return kept[-COMPARE_MAX:]
+
+
 def compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
     """Pick 5 diverse models spanning quality, value, speed, and budget tiers."""
     valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)].copy()

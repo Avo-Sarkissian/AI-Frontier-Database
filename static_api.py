@@ -31,6 +31,8 @@ from components.charts.cost_calc import build_cost_calc, cheapest_above
 from static_helpers import (
     apply_filters,
     coerce_number,
+    cap_compare_selection,
+    export_frame_for_tab,
     compute_diverse5,
     ctx_to_k,
     quality_label,
@@ -255,10 +257,7 @@ def update_value_leaders(providers, min_quality, search):
 def update_compare(providers, min_quality, search, selected_models, triggered):
     f = _apply_filters(providers, min_quality, search or "")
     options = model_options(f)
-    if triggered in ("filter-provider", "filter-quality", "model-search"):
-        capped = compute_diverse5(f)
-    else:
-        capped = (selected_models or [])[:5]
+    capped = cap_compare_selection(selected_models, f, triggered)
     return json.dumps({
         "figure": json.loads(build_radar(f, capped, full_df=_DF).to_json()),
         "options": options,
@@ -300,8 +299,16 @@ def update_table(providers, min_quality, search, sort_col, sort_dir):
     return json.dumps(f[cols].to_dict("records"))
 
 
-def export_csv(providers, min_quality, search):
-    return _apply_filters(providers, min_quality, search or "").to_csv(index=False)
+def export_csv(providers, min_quality, search, tab=None):
+    """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
+    on screen, not always the hosted-LLM table."""
+    frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search)
+    return frame.to_csv(index=False)
+
+
+def export_csv_filename(tab=None):
+    _frame, name = export_frame_for_tab(tab, _DF.head(0), None, 0, "")
+    return name
 
 
 def model_detail(model_name, provider):

@@ -52,7 +52,7 @@ def test_price_is_not_attributed_to_artificial_analysis():
     lower — and no output-weighted blend at all."""
     surfaces = {
         "docs/app.js": 'title="Artificial Analysis blended price',
-        "app.py": "Price uses Artificial Analysis's blended rate",
+        "captions.py": "Price uses Artificial Analysis's blended rate",
         "README.md": "| Price | Artificial Analysis |",
     }
     for rel, claim in surfaces.items():
@@ -65,7 +65,9 @@ def test_price_is_not_attributed_to_artificial_analysis():
 def test_the_price_label_says_whose_blend_it_is():
     """Removing the false claim is not enough — a bare '3:1' still reads as
     upstream. Each surface must say the weighting is ours."""
-    for rel in ("docs/app.js", "app.py", "README.md"):
+    # captions.py is now the single source for the Budget tab's prose, and it
+    # rides the manifest to the browser — so checking it covers both renderings.
+    for rel in ("docs/app.js", "captions.py", "README.md"):
         text = (ROOT / rel).read_text().lower()
         assert "our blend" in text or "our own blend" in text or "not aa's" in text, (
             f"{rel} does not disclose that the 3:1 blend is ours"

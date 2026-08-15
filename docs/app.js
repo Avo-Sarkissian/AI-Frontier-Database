@@ -12,7 +12,25 @@ const TABS = [
   { id: "video",     label: "Video Gen",   charts: ["video_rankings", "video_scatter"] },
 ];
 
+// Which manifest.captions keys each panel shows, in order. The prose itself
+// lives in captions.py and rides the manifest — this side used to render
+// exactly one of the fourteen captions app.py renders, so nine tabs of the
+// DEPLOYED site explained nothing at all.
+const TAB_CAPTIONS = {
+  overview:  ["overview_price"],
+  recommend: ["recommend"],
+  landscape: ["landscape_treemap", "landscape_leaderboard"],
+  rankings:  ["rankings_intelligence", "rankings_value"],
+  compare:   ["compare"],
+  budget:    ["budget"],
+  table:     ["table"],
+  local:     ["local"],
+  image:     ["image"],
+  video:     ["video"],
+};
+
 // window.AF.state contract: { providers: string[], minQuality: number, search: string, tab: string }
+const COMPARE_MAX = 5;   // mirrors static_helpers.COMPARE_MAX
 window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null, state: {
   providers: [], minQuality: 0, search: "", tab: "overview" } };
 
@@ -129,8 +147,20 @@ function buildTabsAndPanels() {
   });
 }
 
+// Tabs that read none of PROVIDER / MIN SCORE / SEARCH — mirrors
+// static_helpers.TABS_WITHOUT_GLOBAL_FILTERS.
+const TABS_WITHOUT_GLOBAL_FILTERS = ["recommend", "local", "image", "video"];
+
 // Show/hide per-tab control rows
 function showTabControls(id) {
+  // The global filter bar lives outside #tab-panels, so nothing hid it on the
+  // four tabs that ignore it: ?tab=image&p=Anthropic&q=45 showed
+  // "Anthropic · ≥ 45" over a chart plotting 72 models from a dozen providers.
+  const globalFilters = document.querySelector(".filters");
+  if (globalFilters) {
+    globalFilters.style.display =
+      TABS_WITHOUT_GLOBAL_FILTERS.includes(id) ? "none" : "";
+  }
   // Hide all tab control rows first
   document.querySelectorAll('[id^="tab-controls-"]').forEach(el => {
     el.style.display = "none";
@@ -156,7 +186,15 @@ function showTabControls(id) {
   }
 }
 
+const VALID_TABS = TABS.map(t => t.id);
+
 function switchTab(id) {
+  // An unknown id used to hide EVERY panel — `display = t.id === id` matches
+  // nothing — leaving the header, stat bar and filter row above a blank page
+  // with no error. Not hypothetical: `insights`, `performance` and `embeddings`
+  // were all live tab values this app once emitted into share URLs. The Dash
+  // side has had _VALID_TABS since commit 82effa0; this side never got it.
+  if (!VALID_TABS.includes(id)) id = VALID_TABS[0];
   window.AF.state.tab = id;
   document.querySelectorAll(".tab").forEach(b =>
     b.classList.toggle("tab--selected", b.dataset.tab === id));
@@ -226,8 +264,47 @@ async function loadManifest() {
   // Tag filters come from the manifest for the same reason the provider lists
   // do: a hardcoded option outlives the data. The image "Fast" tag matched zero
   // models for months and the UI blamed the user for it.
+  // MIN SCORE options ride the manifest so the <select> can hold the exact
+  // percentile a preset sets. Snapping 52.7 down to 50 made "Top 10%" return
+  // 15.5% of the catalogue under a label that is a precise numeric claim.
+  const qSel = document.getElementById("filter-quality");
+  if (qSel && Array.isArray(m.quality_options) && m.quality_options.length) {
+    const current = qSel.value;
+    qSel.replaceChildren(...m.quality_options.map(o => {
+      const opt = document.createElement("option");
+      opt.value = String(o.value); opt.textContent = o.label;
+      return opt;
+    }));
+    if (current) qSel.value = current;
+  }
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
+  renderCaptions(m.captions);
+}
+
+// Captions are written as text, never markup — they come from the manifest.
+function renderCaptions(captions) {
+  if (!captions) return;
+  Object.entries(TAB_CAPTIONS).forEach(([tab, keys]) => {
+    const panel = document.getElementById("panel-" + tab);
+    if (!panel) return;
+    keys.slice().reverse().forEach((key, revIdx) => {
+      const text = captions[key];
+      if (!text) return;
+      // Overview already owns #overview-desc, which swaps with the x-axis radio.
+      if (key === "overview_price" && document.getElementById("overview-desc")) return;
+      const existing = panel.querySelector(`[data-caption="${key}"]`);
+      const el = existing || document.createElement("div");
+      el.className = "chart-caption";
+      el.dataset.caption = key;
+      el.textContent = text;
+      if (!existing) {
+        const cards = panel.querySelectorAll(".chart-card");
+        const anchor = cards[keys.length - 1 - revIdx];
+        panel.insertBefore(el, anchor || panel.firstChild);
+      }
+    });
+  });
 }
 
 function fillTagSelect(selectId, tags) {
@@ -479,7 +556,13 @@ async function refreshCompare(triggered) {
   if (!window.AF.pyReady) return;
   const [p, q, s] = readGlobalFilters();
   const sel = document.getElementById("radar-model-select");
-  const selected = Array.from(sel.selectedOptions).map(o => o.value);
+  let selected = Array.from(sel.selectedOptions).map(o => o.value);
+  if (selected.length > COMPARE_MAX) {
+    // Shift-selecting 9 left 8 highlighted while 5 were charted, and the
+    // <select> was never corrected — the control disagreed with the chart.
+    selected = selected.slice(-COMPARE_MAX);
+    Array.from(sel.options).forEach(o => { o.selected = selected.includes(o.value); });
+  }
   try {
     const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "");
     renderJsonFig("chart-radar", out.figure);
@@ -702,6 +785,13 @@ function renderTableRows(records) {
   tbody.innerHTML = rows.join("");
 }
 
+// Called by the three global filter controls so the Compare tab can tell a
+// real filter change from an incidental re-render.
+function rerenderAfterFilterChange(which) {
+  window.AF._compareTrigger = which || "filter-provider";
+  return rerenderActiveFilterCharts();
+}
+
 // ---- Re-render active tab's filter-driven charts ----
 async function rerenderActiveFilterCharts() {
   if (!window.AF.pyReady) return;
@@ -726,7 +816,13 @@ async function rerenderActiveFilterCharts() {
       // Do NOT re-render it here; it keeps the pre-loaded figures/value_leaders.json figure.
     } catch (e) { console.error("rankings render failed:", e); }
   } else if (tab === "compare") {
-    await refreshCompare("filter-provider");
+    // "tab-switch", not "filter-provider": this path runs on every tab change,
+    // and passing a filter trigger made Python discard the user's picks and
+    // substitute the diverse-5 defaults. Go to Table and back and a curated
+    // comparison was gone. Dash has no tabs input on this callback and never
+    // did this — the static site drifted.
+    await refreshCompare(window.AF._compareTrigger || "tab-switch");
+    window.AF._compareTrigger = null;
   } else if (tab === "budget") {
     await refreshBudget();
   } else if (tab === "table") {
@@ -743,35 +839,64 @@ async function rerenderActiveFilterCharts() {
 }
 
 // ---- Preset helper ----
-function setPreset(minQ, providers) {
+// `providers === null` means "leave the provider selection alone".
+// "Top 25%" and "Top 10%" are labelled purely in quality terms and sit in the
+// same bar as the PROVIDER dropdown, so clearing it made them answer a
+// different question than the one asked: PROVIDER=Anthropic + Top 10% silently
+// became "top 10% of everything".
+function setPreset(minQ, providers, clearSearch) {
   const sel = document.getElementById("filter-quality");
-  const opts = Array.from(sel.options).map(o => Number(o.value));
-  const snapped = opts.reduce((best, v) => (Math.abs(v - minQ) < Math.abs(best - minQ) ? v : best), opts[0]);
-  sel.value = String(snapped);
-  const pSel = document.getElementById("filter-provider");
-  Array.from(pSel.options).forEach(o => { o.selected = providers.includes(o.value); });
-  rerenderActiveFilterCharts();
+  ensureQualityOption(sel, minQ);
+  sel.value = String(minQ);
+  if (providers !== null) {
+    const pSel = document.getElementById("filter-provider");
+    Array.from(pSel.options).forEach(o => { o.selected = providers.includes(o.value); });
+  }
+  if (clearSearch) document.getElementById("model-search").value = "";
+  rerenderAfterFilterChange("filter-quality");
+}
+
+// A <select> silently refuses a value it has no option for: assigning 42.1
+// left selectedIndex -1 and value "", which Number() read as 0 — the filter
+// dropped with nothing to say so. Insert the option instead of snapping.
+function ensureQualityOption(sel, value) {
+  if (!sel || !Number.isFinite(Number(value))) return;
+  const v = Number(value);
+  if (Array.from(sel.options).some(o => Number(o.value) === v)) return;
+  const opt = document.createElement("option");
+  opt.value = String(v);
+  opt.textContent = `\u2265 ${v}`;
+  const after = Array.from(sel.options).find(o => Number(o.value) > v);
+  sel.insertBefore(opt, after || null);
 }
 
 // ---- Wire all global controls ----
 function wireGlobalControls() {
-  const trigger = debounce(rerenderActiveFilterCharts, 200);
-  document.getElementById("filter-provider").onchange = trigger;
-  document.getElementById("filter-quality").onchange = trigger;
-  document.getElementById("model-search").oninput = trigger;
-  document.getElementById("preset-all").onclick = () => setPreset(0, []);
-  document.getElementById("preset-strong").onclick = () => setPreset(window.AF.manifest.p75, []);
-  document.getElementById("preset-elite").onclick = () => setPreset(window.AF.manifest.p90, []);
+  // Each control names itself, so the Compare tab can tell a real filter change
+  // from an incidental re-render and stop discarding the user's picks.
+  const onFilter = id => debounce(() => rerenderAfterFilterChange(id), 200);
+  document.getElementById("filter-provider").onchange = onFilter("filter-provider");
+  document.getElementById("filter-quality").onchange = onFilter("filter-quality");
+  document.getElementById("model-search").oninput = onFilter("model-search");
+  // "Reset filters" clears everything; the two quality presets touch quality only.
+  document.getElementById("preset-all").onclick = () => setPreset(0, [], true);
+  document.getElementById("preset-strong").onclick = () => setPreset(window.AF.manifest.p75, null, false);
+  document.getElementById("preset-elite").onclick = () => setPreset(window.AF.manifest.p90, null, false);
 
   // CSV export — get filtered CSV text from Python, trigger download.
   document.getElementById("btn-export").onclick = async () => {
     if (!window.AF.pyReady) return;
     const [p, q, s] = readGlobalFilters();
     try {
-      const csv = await window.AF.callPyRaw("export_csv", p, q, s);
+      // Export what is on screen. This always sent the hosted-LLM catalogue
+      // through the global filters, so ↓CSV on Image Gen handed back the LLM
+      // header and seven text models — a different dataset from the chart.
+      const tab = window.AF.state.tab;
+      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab);
+      const name = await window.AF.callPyRaw("export_csv_filename", tab);
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "ai_frontier_export.csv"; a.click();
+      a.href = URL.createObjectURL(blob); a.download = name || "ai_frontier_export.csv"; a.click();
     } catch (e) { console.error("export_csv failed:", e); }
   };
 
@@ -795,7 +920,11 @@ function applyUrlState() {
   const u = new URLSearchParams(location.search);
   if (u.get("q")) {
     const qEl = document.getElementById("filter-quality");
-    if (qEl) qEl.value = u.get("q");
+    const q = Number(u.get("q"));
+    if (qEl && Number.isFinite(q)) {
+      ensureQualityOption(qEl, q);   // ?q=42.1 used to select nothing at all
+      qEl.value = String(q);
+    }
   }
   if (u.get("p")) {
     // Resolve retired provider spellings before matching. A ?p=xAI link shared
@@ -809,7 +938,7 @@ function applyUrlState() {
     const pEl = document.getElementById("filter-provider");
     if (pEl) Array.from(pEl.options).forEach(o => { o.selected = set.has(o.value); });
   }
-  if (u.get("tab")) switchTab(u.get("tab"));
+  if (u.get("tab")) switchTab(u.get("tab"));   // switchTab validates
 }
 
 // ---- Detail panel — Plotly click on pareto → model_detail HTML ----
@@ -820,8 +949,13 @@ function wireDetailPanel() {
     const m = window.AF.detailModel; if (!m) return;
     const sel = document.getElementById("radar-model-select");
     const chosen = Array.from(sel.selectedOptions).map(o => o.value);
-    if (!chosen.includes(m) && chosen.length < 5) {
-      Array.from(sel.options).forEach(o => { if (o.value === m) o.selected = true; });
+    if (!chosen.includes(m)) {
+      // Evict the oldest pick rather than refusing the new one. Both renderings
+      // default to exactly 5 models, so on a fresh page load this button — the
+      // detail panel's only call to action — was a silent no-op that still
+      // switched tabs.
+      const keep = chosen.slice(-(COMPARE_MAX - 1)).concat([m]);
+      Array.from(sel.options).forEach(o => { o.selected = keep.includes(o.value); });
     }
     // Switch to compare tab without triggering auto-rerender, then refresh with correct selection.
     window.AF.state.tab = "compare";

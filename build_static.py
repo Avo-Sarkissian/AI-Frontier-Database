@@ -22,8 +22,9 @@ from components.charts.local_compat import build_local_compat
 from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
 
+from captions import CAPTIONS
 from components.charts.constants import PROVIDER_ALIASES
-from static_helpers import compute_diverse5, provider_options, model_options
+from static_helpers import compute_diverse5, provider_options, model_options, quality_options
 
 
 def _load_coverage() -> dict:
@@ -103,6 +104,13 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # copy of this map in JS is exactly how palettes and labels drifted
         # before. Shipping it keeps PROVIDER_ALIASES the only source.
         "provider_aliases": dict(PROVIDER_ALIASES),
+        # One source for the prose too — the public site used to ship 1 of 14.
+        "captions":         dict(CAPTIONS),
+        # MIN SCORE options, including the exact preset percentiles, so the
+        # <select> can hold the value a preset sets instead of snapping it.
+        "quality_options": quality_options(
+            round(float(df["quality"].quantile(0.75)), 1),
+            round(float(df["quality"].quantile(0.90)), 1)),
         "generated":        _now.strftime("%b %d  %H:%M"),
         "version":          _now.strftime("%Y%m%dT%H%M%SZ"),
         "generated_iso":    _now.isoformat(),
@@ -150,7 +158,7 @@ def build_pybundle(docs: Path | None = None):
     docs.mkdir(parents=True, exist_ok=True)
     bundle = docs / "pybundle.zip"
     include = [
-        "static_api.py", "static_helpers.py",
+        "static_api.py", "static_helpers.py", "captions.py",
         "components/__init__.py", "components/stack_recommender.py",
         "components/charts",                      # whole dir
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
