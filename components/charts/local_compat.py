@@ -40,7 +40,16 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
             "Try lowering the quantization (e.g. Q4 → Q3) or adding more GPUs."
         )
 
-    runnable = runnable.sort_values("quality", ascending=True).reset_index(drop=True)
+    # Unscored models sort to the TOP of an ascending chart, which would read as
+    # "worst". They are not worst — they are unmeasured, and the two must not
+    # look alike. Split them out, rank the scored ones, then re-append the
+    # unscored group above the ranking with an outline-only bar that makes no
+    # length claim at all.
+    pending = runnable[runnable.get("pending", False) & runnable["quality"].isna()] \
+        if "pending" in runnable.columns else runnable.iloc[0:0]
+    scored = runnable.drop(index=pending.index)
+    scored = scored.sort_values("quality", ascending=True)
+    runnable = pd.concat([scored, pending]).reset_index(drop=True)
 
     # Truncate long names, then force them distinct: several Nemotron variants
     # share a 34-character prefix, and two models on one category means Plotly
@@ -51,11 +60,16 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
 
     colors  = runnable["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR).tolist()
     opacity = [0.85 if f == "yes" else 0.50 for f in runnable["fits"]]
+    is_pending = (
+        runnable["pending"].fillna(False).tolist()
+        if "pending" in runnable.columns else [False] * len(runnable)
+    )
 
     fig = go.Figure()
 
     # Background track (full-width ghost bar for visual alignment)
-    max_q = runnable["quality"].max() or 1
+    _mq = runnable["quality"].max()
+    max_q = float(_mq) if pd.notna(_mq) and _mq > 0 else 1.0
     fig.add_trace(go.Bar(
         y=runnable["short_name"],
         x=[max_q] * len(runnable),
@@ -64,6 +78,22 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
         hoverinfo="skip",
         showlegend=False,
     ))
+
+    # Unscored models: a full-width OUTLINE, no fill. An outline reads as "this
+    # row exists and fits your hardware" without encoding a magnitude, which is
+    # the honest rendering of a number nobody has measured. A zero-length bar
+    # would have said "scored zero"; a filled one would have invented a score.
+    if any(is_pending):
+        fig.add_trace(go.Bar(
+            y=[n for n, p in zip(runnable["short_name"], is_pending) if p],
+            x=[max_q for p in is_pending if p],
+            orientation="h",
+            marker=dict(color="rgba(0,0,0,0)",
+                        line=dict(color="rgba(255,255,255,0.28)", width=1)),
+            hovertemplate="<b>%{y}</b><br>Not yet scored by Artificial Analysis"
+                          "<extra></extra>",
+            showlegend=False,
+        ))
 
     # Quality bars
     fig.add_trace(go.Bar(
@@ -122,7 +152,11 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
             text=(
                 f"Runnable Models  "
                 f"<span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)}  ·  ranked by intelligence</span>"
+                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)}"
+                f"  ·  ranked by intelligence"
+                + (f"  ·  {int(sum(is_pending))} not yet scored (outlined)"
+                   if any(is_pending) else "")
+                + "</span>"
             ),
             font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

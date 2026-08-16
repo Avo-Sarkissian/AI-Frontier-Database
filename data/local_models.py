@@ -13,6 +13,7 @@ Speed formula: memory_bandwidth_gbps / model_gb × efficiency
 from pathlib import Path
 import pandas as pd
 
+from data.pending_models import merge_pending
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider,
 )
@@ -603,6 +604,7 @@ def get_local_df(
     bandwidth_gbps: float = DEFAULT_BANDWIDTH_GBPS,
     hw_type: str = "nvidia",
     tags: list[str] | None = None,
+    include_pending: bool = True,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of all models enriched with hardware-specific columns.
@@ -612,7 +614,11 @@ def get_local_df(
         speed_tps     - estimated tokens/second on the given hardware
         fits          - "yes" | "tight" (< 1 GB headroom) | "no"
     """
-    models = _load_models_raw()
+    # Curated open-weight releases AA has not benchmarked yet are folded in
+    # here, carrying quality=None. See data/pending_models.py for what an entry
+    # may claim and why quality must never be invented.
+    models = merge_pending(_load_models_raw()) if include_pending else \
+        [{**m, "pending": False} for m in _load_models_raw()]
     rows = []
     for m in models:
         if tags:
@@ -644,6 +650,7 @@ def get_local_df(
         df = pd.DataFrame(columns=[
             "name", "family", "params_b", "active_b", "context_k", "quality",
             "license", "tags", "moe", "vram_req_gb", "speed_tps", "fits", "tags_str",
+            "pending",
         ])
     df["family_color"] = df["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR)
     return df

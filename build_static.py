@@ -227,6 +227,7 @@ def build_pybundle(docs: Path | None = None):
         "components/charts/image_scatter.py", "components/charts/video_chart.py",
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
+        "data/pending_models.py", "data/scrape_status.py",
         "data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv",
     ]
 

@@ -65,6 +65,10 @@ CAPTIONS: dict[str, str] = {
         "time-to-first-token (TTFT) in seconds."
     ),
     'local': (
+        "Model specs come from Artificial Analysis, plus a short curated list of "
+        "notable open-weight releases AA has not benchmarked yet — those are drawn "
+        "with an outlined bar and no score, never a guessed one, and are excluded "
+        "from the Agent Stack recommendations. "
         "VRAM figures cover model WEIGHTS plus a fixed overhead — not the KV cache, "
         "which grows with context, so a long-context run needs more than shown. "
         "Find open-weight models you can run on your own hardware. Select your GPU "

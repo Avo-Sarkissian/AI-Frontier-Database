@@ -111,3 +111,55 @@ def test_the_bundled_data_csvs_match_the_repo():
                 if z.read(rel) != (ROOT / rel).read_bytes():
                     stale.append(rel)
     assert not stale, f"bundled data CSVs differ from the repo: {stale}"
+
+
+@pytest.mark.skipif(not BUNDLE.exists(), reason="no pybundle.zip in this checkout")
+def test_every_first_party_import_inside_the_bundle_is_also_bundled():
+    """A bundled module importing an unbundled one is a site that boots to
+    "interactivity unavailable" — and nothing else catches it, because the test
+    suite imports from the repo where the file obviously exists.
+
+    This happened: narrowing build_pybundle's include list from the whole
+    components/charts directory to an explicit list was right (it had been
+    shipping 1,275 lines of dead code), but an explicit list goes stale the
+    moment a new first-party import appears. data/pending_models.py was added,
+    imported by data/local_models.py, and left out — Pyodide then failed to
+    boot at all.
+    """
+    import ast
+
+    with zipfile.ZipFile(BUNDLE) as z:
+        bundled = set(z.namelist())
+        members = _bundled_python_members()
+
+        missing = {}
+        for name in members:
+            tree = ast.parse(z.read(name))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    mod = node.module
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        mod = alias.name
+                        _check(mod, bundled, missing, name)
+                    continue
+                else:
+                    continue
+                _check(mod, bundled, missing, name)
+
+    assert not missing, (
+        "bundled modules import first-party modules that are NOT in the bundle — "
+        f"the browser will fail to boot: {missing}"
+    )
+
+
+_FIRST_PARTY_ROOTS = ("data", "components", "static_api", "static_helpers", "captions")
+
+
+def _check(module: str, bundled: set, missing: dict, importer: str) -> None:
+    root = module.split(".")[0]
+    if root not in _FIRST_PARTY_ROOTS:
+        return
+    candidates = {module.replace(".", "/") + ".py", module.replace(".", "/") + "/__init__.py"}
+    if not (candidates & bundled):
+        missing.setdefault(importer, []).append(module)

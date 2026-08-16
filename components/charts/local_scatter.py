@@ -37,6 +37,18 @@ def build_local_scatter(
     if df.empty:
         return _empty("No models found.")
 
+    # This chart's Y axis IS the quality score, so a model nobody has scored
+    # cannot be placed on it. Dropping it silently would be the same lie in the
+    # other direction, so the count is surfaced in the subtitle and the model is
+    # still listed — with an outlined bar — in the compatibility chart below.
+    _pending_n = 0
+    if "pending" in df.columns:
+        _mask = df["pending"].fillna(False) & df["quality"].isna()
+        _pending_n = int(_mask.sum())
+        df = df[~_mask]
+    if df.empty:
+        return _empty("No scored models found.")
+
     fig = go.Figure()
 
     # Draw each family as its own trace so the legend is grouped by family
@@ -130,7 +142,10 @@ def build_local_scatter(
             text=(
                 "VRAM Requirement vs Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  {quant} quantization  ·  left of line = runnable  ·  bubble = speed</span>"
+                f"  ·  {quant} quantization  ·  left of line = runnable  ·  bubble = speed"
+                + (f"  ·  {_pending_n} newer model{'s' if _pending_n != 1 else ''} "
+                   f"not yet scored — see the ranking below" if _pending_n else "")
+                + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",
