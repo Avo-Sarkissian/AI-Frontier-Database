@@ -36,7 +36,7 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | **Table** | Full sortable table of every tracked model with every available metric. |
 | **Run Local** | Select a GPU, quantization level, and capability tags (code, reasoning, vision, audio) to see which open-weight models fit in VRAM, with estimated inference speed. |
 | **Image Gen** | ELO-based leaderboard of image generation models, filterable by provider and style tag, from the AA Image Arena. |
-| **Video Gen** | Ranked comparison of video generation models with pricing and quality data, filterable by provider and tag. |
+| **Video Gen** | Arena-Elo leaderboard of video generation models with per-minute pricing, from the AA Video Arena. Text-to-video and image-to-video are separate Elo pools with separate prices, so MODE switches between them. |
 
 ---
 
@@ -74,9 +74,10 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Context Window | Artificial Analysis | Maximum input length **the model supports**, not what a given host serves — a host may cap it lower. Unlike price and speed this is not a cheapest-host figure. |
 | Image ELO | AA Image Arena | Human-preference ranking, scraped live hourly |
 | Open-weight / local models | Artificial Analysis | GPU VRAM fit, parameter counts, quantization levels, scraped live hourly |
-| Video generation models | Curated dataset | Manually maintained pricing/quality data (`data/video_models.py`) — not live-scraped |
+| Video Elo | AA Video Arena | Human-preference ranking across two generation arenas, scraped live hourly |
+| Video generation time | AA Video Arena | End-to-end median over 14 trailing days — published by AA for only a handful of endpoints, and left blank rather than estimated for the rest |
 
-The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Three separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`) each pull their own Artificial Analysis endpoint on the same hourly cadence.
+The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Four separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`, `data/video_scraper.py`) each pull their own Artificial Analysis source on the same hourly cadence. The image and video ones read a rendered page rather than an API — AA key-gated the image arena endpoint and never published a video one — so `data/rsc.py` holds the Next.js payload parsing they share.
 
 ---
 
@@ -84,7 +85,7 @@ The LLM dataset currently covers **155 models** across **31 providers**. Counts 
 
 An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the sole source of truth for the deployed site — browsers can't call the Artificial Analysis API directly (CORS), so a cron job (`23 * * * *`, plus manual `workflow_dispatch`) does it server-side:
 
-1. Runs all three scrapers, falling back to the last-known-good cache per source if a fetch fails.
+1. Runs all four scrapers, falling back to the last-known-good cache per source if a fetch fails.
 2. Sanity-checks row counts, per-column health, and per-column medians before proceeding — a rename that zeroes a column, or a units change that leaves the row count intact, both fail the build.
 3. Skips the rebuild entirely if nothing changed (git-diff change guard).
 4. Runs `python build_static.py --data-only` to swap the new CSVs into the static bundle without re-vendoring Plotly.
@@ -94,7 +95,7 @@ The live site auto-loads the latest published snapshot on open.
 
 **The freshness badge reports data age, not build age.** Each scraper records
 whether it actually fetched, when, and how many rows (`data/raw/scrape_status.json`),
-and the badge shows the **oldest** successful fetch across all three datasets —
+and the badge shows the **oldest** successful fetch across all four datasets —
 because a dashboard is only as fresh as its stalest panel. If any dataset is
 failing or older than three hours the badge turns amber and adds a ⚠; hover it
 for a per-dataset breakdown. Staleness is recomputed in the browser, so a page
@@ -139,7 +140,7 @@ Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run
 ### Tests
 
 ```bash
-.venv/bin/python -m pytest -q        # 349 tests, ~30s
+.venv/bin/python -m pytest -q        # 367 tests, ~30s
 ```
 
 Run them from `.venv`, not the system Python: four full-build tests **silently
@@ -191,6 +192,8 @@ data/
   scraper.py               # Live LLM data — Artificial Analysis
   image_scraper.py         # Live image-gen data — AA Image Arena
   local_scraper.py         # Live open-weight/local model data — Artificial Analysis
+  video_scraper.py         # Live video-gen data — AA Video Arena (both generation arenas)
+  rsc.py                   # Next.js RSC payload parsing shared by the image + video scrapers
   ingest.py                # Parses scraper output, manages CSV cache and daily history
   scrape_status.py         # Per-dataset ok/fetched_at/rows — drives the freshness badge
   image_models.py, local_models.py, video_models.py   # Per-domain data access helpers
@@ -206,7 +209,7 @@ scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
   build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
 .github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
-tests/                     # 349 tests: data semantics, encoding calibration, control
+tests/                     # 367 tests: data semantics, encoding calibration, control
                            #   behaviour, pipeline integrity, injection surfaces
 ```
 
@@ -238,7 +241,7 @@ change needs a full `build_static.py` to reach visitors —
 | [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
-| [pytest](https://docs.pytest.org/) | 349 regression tests, each named for the defect it prevents |
+| [pytest](https://docs.pytest.org/) | 367 regression tests, each named for the defect it prevents |
 | [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
 | [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 

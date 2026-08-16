@@ -317,7 +317,7 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
             marker=dict(color=DEFAULT_COLOR, size=11, opacity=0.85),
-            name=f"+{len(hidden)} more (hover to name)",
+            name=f"+{len(hidden)} more studios",
             hoverinfo="skip", showlegend=True,
         ))
 
