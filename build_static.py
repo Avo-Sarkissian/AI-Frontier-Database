@@ -8,7 +8,9 @@ import pandas as pd
 from data.ingest import get_models
 from data.local_models import get_local_df, DEFAULT_VRAM_GB, DEFAULT_BANDWIDTH_GBPS
 from data.image_models import get_image_df, get_image_providers, get_image_tags
-from data.video_models import get_video_df, get_video_providers, get_video_tags
+from data.video_models import (
+    get_video_df, get_video_providers, get_video_tags, VIDEO_MODES,
+)
 from components.charts.pareto import build_pareto_scatter
 from components.charts.quadrant import build_quadrant
 from components.charts.treemap import build_treemap
@@ -48,6 +50,7 @@ DATA_CSVS = [
     "data/raw/aa_models.csv",
     "data/raw/aa_local_models.csv",
     "data/raw/aa_image_models.csv",
+    "data/raw/aa_video_models.csv",
 ]
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
@@ -62,7 +65,6 @@ def export_default_figures(out_dir: Path) -> list[str]:
                             bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, hw_type="nvidia")
     img_df = get_image_df()
     vdf = get_video_df()
-    vpaid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
     figures = {
         "pareto":               build_pareto_scatter(df),
         "quadrant":             build_quadrant(df),
@@ -75,8 +77,13 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "local_scatter":        build_local_scatter(local_df, vram_gb=DEFAULT_VRAM_GB, quant="Q4"),
         "local_compat":         build_local_compat(local_df, quant="Q4", vram_gb=DEFAULT_VRAM_GB),
         "image_faceted":        build_image_faceted(img_df),
-        "video_rankings":       build_video_rankings(vdf),
-        "video_scatter":        build_video_scatter(vpaid if not vpaid.empty else vdf),
+        # full_df on both, matching static_api.update_video. Without it the
+        # pre-rendered default figure anchored its axis and its frontier on a
+        # different reference set than the in-browser re-render, and the
+        # worker's ready message re-renders with no user action — so the chart
+        # visibly changed a few seconds after every page load.
+        "video_rankings":       build_video_rankings(vdf, full_df=vdf),
+        "video_scatter":        build_video_scatter(vdf, full_df=vdf),
     }
     written = []
     for fid, fig in figures.items():
@@ -101,6 +108,9 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # pipeline stopped emitting (see data/image_models.get_image_tags).
         "image_tags":       get_image_tags(),
         "video_tags":       get_video_tags(),
+        # The video arenas are separate Elo pools with separate prices, so the
+        # mode control is data, not a hand-written pair of <option>s.
+        "video_modes":      list(VIDEO_MODES),
         # Derived, not hand-copied: docs/app.js needs the retired->current
         # provider spellings to resolve an old ?p= share link, and a second
         # copy of this map in JS is exactly how palettes and labels drifted
@@ -229,6 +239,7 @@ def build_pybundle(docs: Path | None = None):
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
         "data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv",
+        "data/raw/aa_video_models.csv",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity

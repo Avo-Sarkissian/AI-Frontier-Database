@@ -39,7 +39,7 @@ STATUS_PATH = Path(
 
 # Datasets the dashboard presents. A dataset missing from the file is treated as
 # unknown rather than fresh — absence of evidence is not evidence of freshness.
-DATASETS = ("hosted", "local", "image")
+DATASETS = ("hosted", "local", "image", "video")
 
 
 def _read() -> dict:

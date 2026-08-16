@@ -46,6 +46,7 @@ jobs:
           python -m data.scraper       || failed="$failed hosted"
           python -m data.local_scraper || failed="$failed local"
           python -m data.image_scraper || failed="$failed image"
+          python -m data.video_scraper || failed="$failed video"
           echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
           if [ -n "$failed" ]; then
             echo "::error title=Scrape failed::no fresh data for:$failed (served cache instead)"

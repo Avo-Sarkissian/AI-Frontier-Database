@@ -164,8 +164,13 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search):
         from data.image_models import get_image_df
         return get_image_df(), name
     if kind == "video":
-        from data.video_models import get_video_df
-        return get_video_df(), name
+        # The RAW catalogue, not the projected view: both arenas, both prices,
+        # every per-category Elo, and the superseded builds the tab hides behind
+        # is_current. The export is where someone checks the dashboard's work,
+        # so it must carry more than the screen does, not less.
+        from data.video_models import get_video_df, load_raw
+        raw = load_raw()
+        return (get_video_df() if raw is None or raw.empty else raw), name
     return apply_filters(full_df, providers, min_quality, search or ""), name
 
 

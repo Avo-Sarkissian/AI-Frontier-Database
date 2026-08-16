@@ -30,6 +30,7 @@ DATA_CSVS = [
     "data/raw/aa_models.csv",
     "data/raw/aa_local_models.csv",
     "data/raw/aa_image_models.csv",
+    "data/raw/aa_video_models.csv",
 ]
 
 DEFAULT_MAX_DROP_PCT = 20.0
@@ -52,6 +53,11 @@ _WATCHED_COLUMNS = {
     "data/raw/aa_models.csv":       ["price", "quality", "speed", "latency"],
     "data/raw/aa_local_models.csv": ["params_b", "quality"],
     "data/raw/aa_image_models.csv": ["elo", "price_per_1k"],
+    # The video catalogue changed units once already — the hand-written dataset
+    # it replaced priced per SECOND, this one per MINUTE, a 60x shift. Watching
+    # both arenas' Elo and the primary price is what would catch that happening
+    # again, or an arena's records being read into the wrong column.
+    "data/raw/aa_video_models.csv": ["elo_t2v", "elo_i2v", "price_per_min_t2v"],
 }
 
 

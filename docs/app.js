@@ -286,6 +286,16 @@ async function loadManifest() {
   }
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
+  // Video arenas come from the manifest for the same reason the tags do: a
+  // hardcoded <option> outlives the data behind it.
+  const vidModeSel = document.getElementById("video-mode-filter");
+  if (vidModeSel && Array.isArray(m.video_modes) && m.video_modes.length) {
+    vidModeSel.replaceChildren(...m.video_modes.map(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.label;
+      return opt;
+    }));
+  }
   renderCaptions(m.captions);
 }
 
@@ -564,7 +574,7 @@ function renderFreshness() {
 
   const lines = [];
   const ds = ds0;
-  const LABELS = { hosted: "Hosted LLMs", local: "Open-weight models", image: "Image arena" };
+  const LABELS = { hosted: "Hosted LLMs", local: "Open-weight models", image: "Image arena", video: "Video arena" };
   Object.keys(LABELS).forEach(k => {
     const e = ds[k] || {};
     const when = e.fetched_at ? new Date(e.fetched_at).toUTCString() : "never";
@@ -574,7 +584,7 @@ function renderFreshness() {
   if (stale.length) {
     lines.unshift(`Stale or failing: ${stale.join(", ")}`, "");
   }
-  lines.push("", "Badge shows the oldest successful fetch across all three.");
+  lines.push("", "Badge shows the oldest successful fetch across all four.");
   el.title = lines.join("\n");
 }
 
@@ -761,8 +771,10 @@ async function refreshVideo() {
   if (!window.AF.pyReady) return;
   const providers = multiVals("video-provider-filter");
   const tags = multiVals("video-tag-filter");
+  const modeSel = document.getElementById("video-mode-filter");
+  const mode = modeSel && modeSel.value ? modeSel.value : null;
   try {
-    const out = await window.AF.callPy("update_video", providers.length ? providers : null, tags.length ? tags : null);
+    const out = await window.AF.callPy("update_video", providers.length ? providers : null, tags.length ? tags : null, mode);
     renderJsonFig("chart-video_rankings", out.rankings);
     renderJsonFig("chart-video_scatter", out.scatter);
   } catch (e) { console.error("refreshVideo failed:", e); }
@@ -1185,8 +1197,10 @@ function wireTabControls() {
   if (imgTags) imgTags.onchange = () => refreshImage();
 
   // Video Gen filters
+  const vidMode = document.getElementById("video-mode-filter");
   const vidProvider = document.getElementById("video-provider-filter");
   const vidTags = document.getElementById("video-tag-filter");
+  if (vidMode) vidMode.onchange = () => refreshVideo();
   if (vidProvider) vidProvider.onchange = () => refreshVideo();
   if (vidTags) vidTags.onchange = () => refreshVideo();
 

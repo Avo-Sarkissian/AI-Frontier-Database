@@ -138,7 +138,7 @@ def test_the_global_filter_bar_is_hidden_where_it_does_nothing(tab):
 
 @pytest.mark.parametrize("tab,expect_col", [
     ("image", "elo"),
-    ("video", "quality"),
+    ("video", "elo_t2v"),
     ("local", "params_b"),
 ])
 def test_csv_export_returns_the_dataset_on_screen(tab, expect_col):

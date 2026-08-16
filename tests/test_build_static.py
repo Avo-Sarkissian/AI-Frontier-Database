@@ -8,7 +8,8 @@ import build_static
 
 ROOT = Path(__file__).resolve().parent.parent
 
-DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv"]
+DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv",
+             "data/raw/aa_image_models.csv", "data/raw/aa_video_models.csv"]
 
 
 def _tree_digest(root: Path) -> dict[str, str]:

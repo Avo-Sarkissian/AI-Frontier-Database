@@ -267,7 +267,8 @@ def test_the_committed_cache_is_written_through_the_sanitiser():
 
 def test_the_live_data_is_currently_clean():
     """Latent, not live — worth knowing if that ever changes."""
-    for rel in ("data/raw/aa_models.csv", "data/raw/aa_image_models.csv"):
+    for rel in ("data/raw/aa_models.csv", "data/raw/aa_image_models.csv",
+            "data/raw/aa_video_models.csv"):
         path = ROOT / rel
         if not path.exists():
             continue
@@ -339,7 +340,8 @@ def test_csv_export_neutralises_embedded_record_separators(payload):
 
 
 def test_the_other_two_scrapers_sanitise_their_caches_too():
-    for rel in ("data/local_scraper.py", "data/image_scraper.py"):
+    for rel in ("data/local_scraper.py", "data/image_scraper.py",
+                "data/video_scraper.py"):
         assert "csv_safe" in (ROOT / rel).read_text(), f"{rel} writes raw text"
 
 

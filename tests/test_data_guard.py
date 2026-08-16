@@ -64,4 +64,5 @@ def test_defaults_cover_every_scraped_csv():
         "data/raw/aa_models.csv",
         "data/raw/aa_local_models.csv",
         "data/raw/aa_image_models.csv",
+        "data/raw/aa_video_models.csv",
     }

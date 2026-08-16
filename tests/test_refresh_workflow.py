@@ -29,6 +29,7 @@ def test_workflow_present_and_wired():
         "python -m data.scraper",
         "python -m data.local_scraper",
         "python -m data.image_scraper",
+        "python -m data.video_scraper",
         "git diff --quiet -- data/raw/",
         "git ls-files --others --exclude-standard -- data/raw/",
         "build_static.py --data-only",
@@ -55,7 +56,8 @@ def test_failure_is_reported_after_publishing():
     assert txt.index("git push") < txt.index("Report scrape failures")
 
 
-@pytest.mark.parametrize("mod", ["data.scraper", "data.local_scraper", "data.image_scraper"])
+@pytest.mark.parametrize("mod", ["data.scraper", "data.local_scraper", "data.image_scraper",
+     "data.video_scraper"])
 def test_scraper_exits_nonzero_when_upstream_fails(mod, tmp_path):
     """The workflow records failures with `python -m data.scraper || failed=...`.
     That guard is dead code unless the module actually exits non-zero — which is

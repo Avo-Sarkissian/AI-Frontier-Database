@@ -14,7 +14,9 @@ from data.local_models import (
     effective_bandwidth,
 )
 from data.image_models import get_image_df
-from data.video_models import get_video_df
+from data.video_models import (
+    get_video_df, filter_video_df, VIDEO_MODES, DEFAULT_MODE,
+)
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
 from components.charts.local_scatter import build_local_scatter
 from components.charts.local_compat import build_local_compat
@@ -377,26 +379,29 @@ def update_image(providers, tags):
     return build_image_faceted(d, full_df=full).to_json()
 
 
-def update_video(providers, tags):
-    """Mirror app.py update_video_charts — returns {"rankings":.., "scatter":..}."""
-    full = get_video_df()
-    d = full
-    if providers:
-        d = d[d["provider"].isin(list(providers))]
-    if tags:
-        for tag in tags:
-            if tag == "open-weights":
-                d = d[d["open_weights"] == True]
-            else:
-                d = d[d["tags"].apply(lambda t: tag in t)]
-    paid = d[d["price_per_sec"] > 0] if not d.empty else d
-    full_paid = full[full["price_per_sec"] > 0] if not full.empty else full
+def update_video(providers=None, tags=None, mode=None):
+    """Mirror app.py update_video_charts — returns {"rankings":.., "scatter":..}.
+
+    ``mode`` is last and optional so the two-argument call sites that predate the
+    text-to-video / image-to-video split keep working.
+    """
+    mode = mode or DEFAULT_MODE
+    full = get_video_df(mode)
+    d = filter_video_df(full, providers, tags)
+    # Both charts anchor on the unfiltered arena: the ranked axis so distances
+    # do not rescale under a filter, the frontier so filtering can hide a point
+    # but never promote one the market already dominates.
     return json.dumps({
-        "rankings": json.loads(build_video_rankings(d).to_json()),
+        "rankings": json.loads(
+            build_video_rankings(d, full_df=full, mode=mode).to_json()),
         "scatter":  json.loads(
-            build_video_scatter(paid if not paid.empty else d, full_df=full_paid).to_json()
-        ),
+            build_video_scatter(d, full_df=full, mode=mode).to_json()),
     })
+
+
+def video_modes():
+    """Return JSON list of {label, value} for the video mode control."""
+    return json.dumps(list(VIDEO_MODES))
 
 
 def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):

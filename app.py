@@ -22,6 +22,7 @@ from data.ingest import get_models
 from data.scraper import start_background_scraper
 from data.image_scraper import start_background_image_scraper
 from data.local_scraper import start_background_local_scraper
+from data.video_scraper import start_background_video_scraper
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
@@ -41,7 +42,10 @@ from components.charts.image_scatter        import build_image_faceted
 from components.charts.video_chart          import build_video_rankings, build_video_scatter
 from components.stack_recommender           import build_stack_cards
 from data.image_models                      import get_image_df, get_image_providers, get_image_tags, PROVIDER_COLORS as IMG_PROVIDER_COLORS
-from data.video_models                      import get_video_df, get_video_providers, get_video_tags
+from data.video_models                      import (
+    get_video_df, get_video_providers, get_video_tags, filter_video_df,
+    VIDEO_MODES, DEFAULT_MODE,
+)
 from components.charts.bump_chart          import build_value_leaders
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -71,6 +75,7 @@ elif not _debug_mode or _is_worker_child:
     start_background_scraper(interval_s=3600)
     start_background_image_scraper(interval_s=3600)
     start_background_local_scraper(interval_s=3600)
+    start_background_video_scraper(interval_s=3600)
 
 _CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
 _data_lock   = threading.Lock()
@@ -118,6 +123,11 @@ from static_helpers import (
 
 
 _DIVERSE5    = _compute_diverse5(df)
+
+# Read once for the layout's first paint. Both video figures and the callback
+# use the same frame, so the pre-rendered chart and the first interaction agree
+# on the axis anchor and the frontier's reference set.
+_VIDEO_DEFAULT_DF = get_video_df(DEFAULT_MODE)
 
 
 # Percentile thresholds for preset filters (recomputed on each restart)
@@ -798,6 +808,15 @@ app.layout = html.Div([
                 className="tab", selected_className="tab--selected", children=[
             _desc(CAPTIONS["video"]),
             html.Div([
+                html.Span("MODE", className="filter-label"),
+                dcc.Dropdown(
+                    id="video-mode-filter",
+                    options=VIDEO_MODES,
+                    value=DEFAULT_MODE,
+                    clearable=False,
+                    style={"minWidth": "180px"},
+                ),
+                html.Div(className="filter-sep"),
                 html.Span("PROVIDERS", className="filter-label"),
                 dcc.Dropdown(
                     id="video-provider-filter",
@@ -818,14 +837,16 @@ app.layout = html.Div([
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="video-rankings-chart",
-                          figure=build_video_rankings(get_video_df()),
+                          # full_df matches what the callback passes, so the
+                          # axis does not shift on the first interaction.
+                          figure=build_video_rankings(_VIDEO_DEFAULT_DF,
+                                                      full_df=_VIDEO_DEFAULT_DF),
                           config=_GRAPH_CONFIG, style={"minHeight": "400px"}),
             ])], className="chart-card"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="video-scatter-chart",
-                          figure=build_video_scatter(
-                              get_video_df()[get_video_df()["price_per_sec"] > 0]
-                          ),
+                          figure=build_video_scatter(_VIDEO_DEFAULT_DF,
+                                                     full_df=_VIDEO_DEFAULT_DF),
                           config=_GRAPH_CONFIG, style={"height": "520px"}),
             ])], className="chart-card"),
         ]),
@@ -1464,26 +1485,19 @@ def update_image_charts(providers, tags):
 @callback(
     Output("video-rankings-chart", "figure"),
     Output("video-scatter-chart",  "figure"),
+    Input("video-mode-filter",     "value"),
     Input("video-provider-filter", "value"),
     Input("video-tag-filter",      "value"),
     prevent_initial_call=True,
 )
-def update_video_charts(providers, tags):
-    full_vdf = get_video_df()
-    vdf = full_vdf
-    if providers:
-        vdf = vdf[vdf["provider"].isin(providers)]
-    if tags:
-        for tag in tags:
-            if tag == "open-weights":
-                vdf = vdf[vdf["open_weights"] == True]
-            else:
-                vdf = vdf[vdf["tags"].apply(lambda t: tag in t)]
-    paid = vdf[vdf["price_per_sec"] > 0] if not vdf.empty else vdf
-    full_paid = full_vdf[full_vdf["price_per_sec"] > 0] if not full_vdf.empty else full_vdf
+def update_video_charts(mode, providers, tags):
+    # filter_video_df is shared with static_api.update_video so the Dash tab and
+    # the published site cannot drift apart on what a tag means.
+    full_vdf = get_video_df(mode)
+    vdf = filter_video_df(full_vdf, providers, tags)
     return (
-        build_video_rankings(vdf),
-        build_video_scatter(paid if not paid.empty else vdf, full_df=full_paid),
+        build_video_rankings(vdf, full_df=full_vdf, mode=mode),
+        build_video_scatter(vdf, full_df=full_vdf, mode=mode),
     )
 
 

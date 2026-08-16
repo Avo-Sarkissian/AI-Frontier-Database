@@ -81,11 +81,15 @@ CAPTIONS: dict[str, str] = {
         "shows the best models for that style. Annotations show generation time."
     ),
     'video': (
-        "Compare video generation models on quality, speed, and cost. CURATED DATASET, "
-        "NOT LIVE-SCRAPED: unlike every other tab, this list is maintained by hand and "
-        "its models are 2025-era, so the \"Updated N ago\" badge in the header does not "
-        "describe this tab. Quality scores are human preference ratings; price is per "
-        "second of generated video; open-weights models can be self-hosted for free."
+        "Compare video generation models on quality and cost, scraped hourly from the "
+        "Artificial Analysis Video Arena. Elo comes from blind pairwise human votes, so "
+        "it ranks models against each other and has no meaningful zero — read position, "
+        "not distance from the axis. Text-to-video and image-to-video are separate "
+        "arenas with separate prices, so MODE switches between them rather than blending "
+        "them. Price is per minute of video at each provider's default settings; "
+        "generation time is measured end-to-end and AA currently publishes it for only a "
+        "handful of models. The ranked view shows current models; superseded preview "
+        "builds stay in the ↓CSV export."
     ),
     'overview_speed': (
         "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "

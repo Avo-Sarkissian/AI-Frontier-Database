@@ -112,8 +112,26 @@ def test_the_badge_reports_the_oldest_dataset_not_the_newest():
         "hosted": {"ok": True, "fetched_at": "2026-08-15T01:00:00+00:00"},
         "local":  {"ok": True, "fetched_at": "2026-08-14T06:00:00+00:00"},
         "image":  {"ok": True, "fetched_at": "2026-08-15T12:00:00+00:00"},
+        "video":  {"ok": True, "fetched_at": "2026-08-15T09:00:00+00:00"},
     }
     assert scrape_status.oldest_successful_fetch(status) == "2026-08-14T06:00:00+00:00"
+
+
+def test_the_badge_goes_quiet_rather_than_guessing_for_an_unscraped_dataset():
+    """oldest_successful_fetch returns a stamp only when EVERY dataset has one.
+
+    Adding a fourth dataset to DATASETS before its scraper has ever succeeded
+    would otherwise let the badge report the oldest of the three that did — a
+    freshness claim covering a panel nobody fetched. It returns None instead,
+    and docs/app.js falls back to a visibly different state.
+    """
+    partial = {
+        "hosted": {"ok": True, "fetched_at": "2026-08-15T01:00:00+00:00"},
+        "local":  {"ok": True, "fetched_at": "2026-08-14T06:00:00+00:00"},
+        "image":  {"ok": True, "fetched_at": "2026-08-15T12:00:00+00:00"},
+        "video":  {"ok": None},
+    }
+    assert scrape_status.oldest_successful_fetch(partial) is None
 
 
 def test_a_failed_scrape_is_reported_as_stale():
@@ -355,14 +373,54 @@ def test_the_local_fast_score_does_not_move_with_a_tag_filter():
     assert not moved, f"scores changed under a tag filter: {moved[:4]}"
 
 
-def test_the_video_tab_discloses_that_it_is_not_live():
-    """data/video_models.py is a hand-written 2025-era list under a global
-    "Updated N ago" badge, while the LLM tabs carry GPT-5.6 and Claude Opus 5.
-    The README disclosed it; nothing on the site did."""
+def test_the_video_tab_no_longer_claims_to_be_curated():
+    """This test used to REQUIRE the words "curated" and "not live-scraped".
+
+    That was right while data/video_models.py was a hand-written 2025-era list
+    sitting under a global "Updated N ago" badge — the README disclosed it and
+    nothing on the site did. data/video_scraper.py removed the condition, so the
+    disclaimer became the false claim, and a test demanding it would have kept
+    the lie on the page while staying green. It is inverted, not deleted: the
+    caption still has to say where the numbers come from and what they mean.
+    """
     from captions import CAPTIONS
 
     caption = CAPTIONS["video"].lower()
-    assert "curated" in caption and "not live" in caption.replace("-", " ")
+    assert "curated" not in caption and "not live" not in caption.replace("-", " "), (
+        "the video caption still calls the dataset curated, but it is scraped"
+    )
+    assert "artificial analysis" in caption, "caption does not name its source"
+    assert "elo" in caption, "caption does not say what the quality number is"
+    assert "per minute" in caption, "caption does not state the pricing unit"
+    # The tab shows one arena at a time and hides superseded builds. Both are
+    # narrowings, and a narrowing the reader is not told about is the defect
+    # this whole file exists to catch.
+    assert "arena" in caption and "mode" in caption, (
+        "caption does not disclose that the two arenas are shown separately"
+    )
+
+
+def test_the_video_catalogue_has_not_silently_frozen():
+    """A scraper that keeps returning last year's snapshot looks healthy.
+
+    data/scrape_status.py can only report that a FETCH succeeded; it cannot see
+    that the bytes coming back stopped moving. The failure this guards is the
+    one the tab just came out of — a catalogue whose newest model was five
+    months old under an hourly freshness badge — and it is invisible to every
+    other check in the suite.
+    """
+    from datetime import date
+    from data.video_models import load_raw
+
+    raw = load_raw()
+    assert raw is not None and not raw.empty, "no committed video catalogue"
+    newest = max(str(d) for d in raw["release_date"].dropna())
+    age_days = (date.today() - date.fromisoformat(newest[:10])).days
+    assert age_days <= 270, (
+        f"newest video model was released {newest} ({age_days} days ago) — the "
+        f"arena publishes releases far more often than that, so the scrape has "
+        f"probably frozen"
+    )
 
 
 def test_a_cleared_vram_box_says_which_capacity_it_used():
@@ -412,7 +470,8 @@ def test_the_static_compare_control_tracks_click_recency():
     )
 
 
-@pytest.mark.parametrize("mod", ["data.local_scraper", "data.image_scraper"])
+@pytest.mark.parametrize("mod", ["data.local_scraper", "data.image_scraper",
+                                 "data.video_scraper"])
 def test_every_scraper_guards_its_own_write(mod):
     """data_guard runs only in CI against committed files; the hosted scraper
     gained a shrink guard where the write happens, and these two had none."""

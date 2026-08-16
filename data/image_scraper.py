@@ -21,7 +21,6 @@ Saves to data/raw/aa_image_models.csv. Returns False on any failure.
 Run standalone:  python -m data.image_scraper
 """
 
-import json
 import re
 import sys
 import threading
@@ -32,6 +31,7 @@ import requests
 import pandas as pd
 
 from data import scrape_status
+from data.rsc import find_array, payload_from_html
 from static_helpers import csv_safe
 
 _HEADERS = {
@@ -49,10 +49,10 @@ _TIMEOUT  = 45          # the page is ~2 MB of HTML
 _CACHE    = Path(__file__).parent / "raw" / "aa_image_models.csv"
 
 # Next.js streams its RSC payload as a series of self.__next_f.push([1,"…"])
-# calls, each carrying a JS string literal. Concatenating those literals yields
-# the flight payload that holds the model records.
-_RSC_CHUNK_RE = re.compile(r'self\.__next_f\.push\(\[1,\s*("(?:[^"\\]|\\.)*")\]\)')
-_MODELS_KEY = '"textToImage":'
+# calls; data/rsc.py concatenates those literals and bracket-matches the array
+# out of the result. Shared with data/video_scraper.py, whose page is built the
+# same way.
+_MODELS_KEY = "textToImage"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -63,54 +63,12 @@ def _col(label: str) -> str:
     return f"elo_{s}"
 
 
-def _slice_json_array(text: str, start: int) -> str:
-    """Return the complete JSON array beginning at ``start``.
-
-    The payload is one long flight string, so we cannot json.loads the tail —
-    bracket-match to find where the array ends, skipping brackets inside
-    strings.
-    """
-    depth = 0
-    in_str = False
-    escaped = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_str:
-            if escaped:
-                escaped = False
-            elif ch == "\\":
-                escaped = True
-            elif ch == '"':
-                in_str = False
-        elif ch == '"':
-            in_str = True
-        elif ch == "[":
-            depth += 1
-        elif ch == "]":
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-    raise ValueError("unterminated JSON array in RSC payload")
-
-
 def _extract_models(html: str) -> list[dict]:
     """Pull the textToImage model records out of the page's RSC payload."""
-    chunks = _RSC_CHUNK_RE.findall(html)
-    if not chunks:
-        raise ValueError("no RSC payload found — page structure changed")
-    payload = "".join(json.loads(c) for c in chunks)
-
-    # The key also appears as a UI label ("textToImage":"Text to Image"), so
-    # take the first occurrence whose value is actually an array.
-    at = payload.find(_MODELS_KEY)
-    while at != -1:
-        cursor = at + len(_MODELS_KEY)
-        while cursor < len(payload) and payload[cursor].isspace():
-            cursor += 1
-        if cursor < len(payload) and payload[cursor] == "[":
-            return json.loads(_slice_json_array(payload, cursor))
-        at = payload.find(_MODELS_KEY, at + 1)
-    raise ValueError(f"no array found for {_MODELS_KEY} in RSC payload")
+    models = find_array(payload_from_html(html), _MODELS_KEY)
+    if models is None:
+        raise ValueError(f"no array found for {_MODELS_KEY} in RSC payload")
+    return models
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────

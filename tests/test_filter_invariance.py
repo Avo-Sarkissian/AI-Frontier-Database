@@ -128,12 +128,34 @@ def test_image_elo_columns_are_chosen_from_the_full_frame():
 
 # ── Video Gen frontier ────────────────────────────────────────────────────────
 
-def test_video_frontier_membership_does_not_grow_under_a_filter():
-    vdf = get_video_df()
-    paid = vdf[vdf["price_per_sec"] > 0]
-    full = _frontier_points(build_video_scatter(paid, full_df=paid))
-    sub = paid[paid["provider"].isin(["Runway", "OpenAI"])]
-    narrowed = _frontier_points(build_video_scatter(sub, full_df=paid))
+def _frontier_providers(fig, vdf, n=2):
+    """Providers that own a point on the market frontier, taken from the data.
+
+    This used to filter on the literal strings "Runway"/"OpenAI". Every OpenAI
+    video model is now a superseded Sora build, so that selection would go
+    empty — and an empty `narrowed` makes `narrowed <= full` trivially true
+    while testing nothing at all. Selecting providers that are ON the frontier
+    guarantees the comparison actually has something to compare, which is the
+    only way this test can catch a filtered frame promoting a dominated model.
+    """
+    xs = {round(float(x), 6) for x, _ in _frontier_points(fig)}
+    owners = vdf[vdf["price_per_min"].round(6).isin(xs)]["provider"]
+    ordered = list(dict.fromkeys(owners.tolist()))
+    return ordered[:n]
+
+
+@pytest.mark.parametrize("mode", ["t2v", "i2v"])
+def test_video_frontier_membership_does_not_grow_under_a_filter(mode):
+    vdf = get_video_df(mode)
+    paid = vdf[vdf["price_per_min"] > 0]
+    full_fig = build_video_scatter(paid, full_df=paid, mode=mode)
+    full = _frontier_points(full_fig)
+    assert full, f"no frontier drawn for {mode} at all"
+    picked = _frontier_providers(full_fig, paid)
+    sub = paid[paid["provider"].isin(picked)]
+    assert not sub.empty, f"filter selected nothing for {picked} — test is vacuous"
+    narrowed = _frontier_points(build_video_scatter(sub, full_df=paid, mode=mode))
+    assert narrowed, f"{picked} own frontier points but none survived the filter"
     assert narrowed <= full, f"filter invented frontier points: {narrowed - full}"
 
 
@@ -164,9 +186,31 @@ def test_fast_tier_score_is_invariant_under_provider_selection():
 # app.py (Dash) both pass it. These tests go through the real entry points.
 
 def _fig_from(json_str):
+    """Rebuild a figure from a static_api payload, with its arrays decoded.
+
+    fig.to_json() packs numeric arrays as {"dtype": "f8", "bdata": "<base64>"},
+    and NOTHING on the read side puts them back — neither go.Figure(dict) nor
+    plotly.io.from_json (checked against plotly 6.5.2). So `tr.x` came back as
+    that dict, every comparison below iterated its KEYS, and `_frontier_points`
+    returned {("dtype","dtype"), ("bdata","bdata")} for any figure whatsoever.
+    Two such sets are always equal and always subsets of each other, so the
+    static-API invariance tests passed without once looking at a coordinate.
+
+    The browser decodes this correctly; only the test read path was blind.
+    """
+    import base64
     import json as _json
+    import numpy as np
     import plotly.graph_objects as go
-    return go.Figure(_json.loads(json_str))
+
+    spec = _json.loads(json_str)
+    for trace in spec.get("data", []):
+        for key, val in list(trace.items()):
+            if isinstance(val, dict) and "bdata" in val and "dtype" in val:
+                trace[key] = np.frombuffer(
+                    base64.b64decode(val["bdata"]), dtype=np.dtype(val["dtype"])
+                ).tolist()
+    return go.Figure(spec)
 
 
 @pytest.mark.parametrize("providers", [["OpenAI", "Anthropic"], ["Meta"]])
@@ -223,10 +267,17 @@ def test_static_api_image_facets_keep_their_metric_under_a_provider_filter(monke
 def test_static_api_video_frontier_does_not_grow_under_a_filter():
     import static_api
 
-    full = _frontier_points(_fig_from(json_scatter(static_api.update_video(None, None))))
+    from data.video_models import get_video_df
+
+    vdf = get_video_df()
+    full_fig = _fig_from(json_scatter(static_api.update_video(None, None)))
+    full = _frontier_points(full_fig)
+    assert full, "no frontier drawn through the static API at all"
+    picked = _frontier_providers(full_fig, vdf)
     narrowed = _frontier_points(
-        _fig_from(json_scatter(static_api.update_video(["Runway", "OpenAI"], None)))
+        _fig_from(json_scatter(static_api.update_video(picked, None)))
     )
+    assert narrowed, f"{picked} own frontier points but none survived the filter"
     assert narrowed <= full
 
 

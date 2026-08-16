@@ -293,13 +293,43 @@ def test_bubble_sizes_stay_within_their_declared_bounds():
 
 # ── 3.5 — video bar baseline ─────────────────────────────────────────────────
 
-def test_the_video_bar_axis_starts_where_its_title_says():
+def test_the_video_ranking_never_encodes_length_on_a_truncated_axis():
     """Bar length was the sole encoding on an axis starting at 40 under a
-    '0–100' title, overstating the gap by 1.8x in the default view."""
-    fig = json.loads(build_video_rankings(get_video_df()).to_json())
-    rng = fig["layout"]["xaxis"]["range"]
-    title = fig["layout"]["xaxis"]["title"]["text"]
-    assert rng[0] == 0, (
-        f"axis titled {title!r} starts at {rng[0]}, so bar length misstates the "
-        f"proportion between models"
+    '0-100' title, overstating the gap by 1.8x in the default view.
+
+    The original fix pinned the baseline to zero, which is correct for a ratio
+    scale. The metric is now arena Elo — Bradley-Terry log-odds rescaled for
+    readability — which has no meaningful zero, and drawn from zero its live
+    940-1330 spread renders every model between 71% and 100% of the axis: 78
+    indistinguishable bars.
+
+    So the rule is restated rather than relaxed, and it still forbids the
+    original defect. A truncated baseline is legal only where nothing encodes
+    magnitude by length; if bars ever come back, the zero baseline comes back
+    with them.
+    """
+    fig = build_video_rankings(get_video_df())
+    layout = json.loads(fig.to_json())["layout"]
+    rng = layout["xaxis"]["range"]
+    title = layout["xaxis"]["title"]["text"]
+
+    if [t for t in fig.data if t.type == "bar"]:
+        assert rng[0] == 0, (
+            f"axis titled {title!r} starts at {rng[0]} under a bar trace, so bar "
+            f"length misstates the proportion between models"
+        )
+        return
+
+    # Position encoding: the axis must simply hold every point it draws, and say
+    # what it is plotting rather than implying a bounded 0-100 score.
+    # Read off the figure, not its JSON: to_json() base64-packs numeric arrays
+    # into {"dtype","bdata"}, so iterating the serialised form yields nothing
+    # and every assertion below would pass while inspecting no data at all.
+    plotted = [float(v) for t in fig.data for v in (t.x if t.x is not None else [])]
+    assert plotted, "ranked view drew no points"
+    assert rng[0] <= min(plotted) and rng[1] >= max(plotted), (
+        f"axis {rng} clips points spanning {min(plotted)}-{max(plotted)}"
+    )
+    assert "elo" in title.lower(), (
+        f"axis titled {title!r} does not name the Elo scale it plots"
     )

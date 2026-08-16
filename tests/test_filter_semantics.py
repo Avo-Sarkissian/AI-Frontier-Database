@@ -122,8 +122,10 @@ def _image_tag_matches(tag: str) -> int:
 
 def _video_tag_matches(tag: str) -> int:
     d = get_video_df()
-    if tag == "open-weights":
-        return int((d["open_weights"] == True).sum())  # noqa: E712
+    # Capability tags are columns, not derived category standings.
+    if tag in ("open-weights", "audio"):
+        col = "open_weights" if tag == "open-weights" else "audio"
+        return int((d[col] == True).sum())  # noqa: E712
     return int(d["tags"].apply(lambda t: tag in t).sum())
 
 

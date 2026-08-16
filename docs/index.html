@@ -195,6 +195,12 @@
 
   <!-- Video Gen tab controls -->
   <div id="tab-controls-video" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">MODE</span>
+    <!-- Filled from manifest.video_modes. Text-to-video and image-to-video are
+         separate Elo pools with separate prices, so this switches arenas rather
+         than filtering one. -->
+    <select id="video-mode-filter" style="min-width:150px;"></select>
+    <div class="filter-sep"></div>
     <span class="filter-label">PROVIDER</span>
     <select id="video-provider-filter" multiple style="min-width:200px;"></select>
     <div class="filter-sep"></div>
