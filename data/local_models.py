@@ -51,6 +51,41 @@ def effective_bandwidth(bandwidth_gbps: float, gpu_count: int) -> float:
 # ── Quantization ─────────────────────────────────────────────────────────────
 QUANT_LEVELS = ["FP16", "Q8", "Q5", "Q4", "Q3", "Q2"]
 
+# Levels where the weight loss is severe enough to change answers, not just
+# rounding.
+#
+# WHY THIS EXISTS. Quantisation is the one control on this tab that moves two
+# columns and not the third: dropping to Q2 divides vram_req_gb by eight and
+# multiplies speed_tps by eight, while `quality` — an Artificial Analysis
+# benchmark run at the model's native precision — does not move at all, because
+# nothing in get_local_df touches it. The page therefore rendered aggressive
+# quantisation as free, and a reader optimising on what was displayed would pick
+# Q2 every time.
+#
+# The missing term is real but it is NOT ours to invent. Degradation is
+# model-specific, AA publishes no quantised scores, and a generic penalty curve
+# applied to a scraped benchmark would propagate a guessed number into the value
+# rankings and the Agent Stack recommender — the hand-set-constant pattern this
+# codebase keeps paying for, and exactly what data/pending_models.py refuses to
+# do with an unbenchmarked model.
+#
+# So the cost is disclosed rather than modelled: the option says so at the point
+# of choice, and captions.py says what the score does and does not reflect.
+QUANT_LOSSY = ("Q3", "Q2")
+
+
+def quant_options() -> list[dict]:
+    """Quantization choices as {label, value}, for both render paths.
+
+    One source, because app.py and docs/app.js built this control separately and
+    a warning that lives in only one of them is a warning the deployed site does
+    not carry.
+    """
+    return [
+        {"label": f"{q} (lossy)" if q in QUANT_LOSSY else q, "value": q}
+        for q in QUANT_LEVELS
+    ]
+
 # Bytes per parameter at each quantization level
 QUANT_BYTES: dict[str, float] = {
     "FP16": 2.000,

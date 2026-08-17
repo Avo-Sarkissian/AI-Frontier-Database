@@ -10,6 +10,7 @@ import pandas as pd
 from data.ingest import get_models
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
+    quant_options as local_quant_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
     effective_bandwidth,
 )
@@ -357,9 +358,14 @@ def gpu_options():
     return json.dumps(get_gpu_options())
 
 
-def quant_levels():
-    """Return JSON list of quantization level strings."""
-    return json.dumps(list(QUANT_LEVELS))
+def quant_options():
+    """Return JSON list of {label, value} for the quantization control.
+
+    Labels, not bare strings: Q3/Q2 carry a "(lossy)" marker, and the marker has
+    to reach the published site — see data/local_models.QUANT_LOSSY for why the
+    cost is disclosed here rather than subtracted from the score.
+    """
+    return json.dumps(local_quant_options())
 
 
 def update_image(providers, tags):

@@ -424,7 +424,7 @@ function bootPyodide() {
 async function populateDynamicSelects() {
   try {
     const gpuOptions = await window.AF.callPy("gpu_options");
-    const quantLevels = await window.AF.callPy("quant_levels");
+    const quantLevels = await window.AF.callPy("quant_options");
     const DEFAULT_GPU = "NVIDIA RTX 5090";
     const DEFAULT_QUANT = "Q4";
 
@@ -456,8 +456,8 @@ async function populateDynamicSelects() {
       localQuant.innerHTML = "";
       quantLevels.forEach(q => {
         const opt = document.createElement("option");
-        opt.value = q; opt.textContent = q;
-        if (q === DEFAULT_QUANT) opt.selected = true;
+        opt.value = q.value; opt.textContent = q.label;
+        if (q.value === DEFAULT_QUANT) opt.selected = true;
         localQuant.appendChild(opt);
       });
     }

@@ -22,7 +22,7 @@ from data.image_models import get_image_df
 from data.video_models import get_video_df
 from data.local_models import (
     get_local_df, effective_bandwidth, calc_vram_gb,
-    DEFAULT_BANDWIDTH_GBPS,
+    DEFAULT_BANDWIDTH_GBPS, QUANT_LEVELS,
 )
 from components.charts.constants import BG, spotlight_split
 from components.charts.quadrant import build_quadrant
@@ -371,6 +371,49 @@ def test_the_local_fast_score_does_not_move_with_a_tag_filter():
             if name in ref.index and abs(ref[name] - score) > 1e-9:
                 moved.append((tag, name))
     assert not moved, f"scores changed under a tag filter: {moved[:4]}"
+
+
+def test_quantising_changes_vram_and_speed_but_never_the_score():
+    """The premise behind the disclosure below — pinned so it stays true.
+
+    `quality` is an AA benchmark run at native precision and get_local_df never
+    touches it, so the quant control moves two columns and not the third. That
+    is defensible (the degradation is model-specific and AA publishes no
+    quantised scores, so inventing one would push a guess into the value
+    rankings and the recommender) but ONLY while the page says so. If a future
+    change ever does model the loss, this test fails and the caption must be
+    rewritten with it.
+    """
+    fp16 = get_local_df(quant="FP16", vram_gb=1e6, bandwidth_gbps=1792).set_index("name")
+    q2   = get_local_df(quant="Q2",   vram_gb=1e6, bandwidth_gbps=1792).set_index("name")
+    shared = fp16.index.intersection(q2.index)
+    assert len(shared) > 20, "not enough overlap to compare"
+
+    assert (q2.loc[shared, "vram_req_gb"] < fp16.loc[shared, "vram_req_gb"]).all()
+    assert (q2.loc[shared, "speed_tps"] >= fp16.loc[shared, "speed_tps"]).all()
+    unchanged = fp16.loc[shared, "quality"].fillna(-1) == q2.loc[shared, "quality"].fillna(-1)
+    assert unchanged.all(), "quality now moves with quant — update CAPTIONS['local']"
+
+
+def test_the_local_tab_discloses_what_quantising_actually_costs():
+    """Q2 renders as an eightfold VRAM saving and an eightfold speedup at an
+    identical score, so the control makes aggressive quantisation look free.
+    The missing term is disclosed in two places, because a warning in only one
+    render path is a warning the deployed site may not carry."""
+    from captions import CAPTIONS
+    from data.local_models import QUANT_LOSSY, quant_options
+
+    caption = CAPTIONS["local"].lower()
+    assert "native precision" in caption, "caption does not say what the score measures"
+    assert "lossy" in caption, "caption does not tie the warning to the control's labels"
+
+    marked = {o["value"] for o in quant_options() if "lossy" in o["label"].lower()}
+    assert marked == set(QUANT_LOSSY), (
+        f"the control marks {marked}, QUANT_LOSSY says {set(QUANT_LOSSY)}"
+    )
+    # Every level must still round-trip as a value the calculators accept.
+    for opt in quant_options():
+        assert opt["value"] in QUANT_LEVELS, f"{opt} is not a real quant level"
 
 
 def test_the_video_tab_no_longer_claims_to_be_curated():

@@ -24,7 +24,7 @@ from data.image_scraper import start_background_image_scraper
 from data.local_scraper import start_background_local_scraper
 from data.video_scraper import start_background_video_scraper
 from data.local_models import (
-    get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
+    get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS, quant_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
     effective_bandwidth,
 )
@@ -454,9 +454,9 @@ app.layout = html.Div([
                 html.Span("QUANT", className="filter-label"),
                 dcc.Dropdown(
                     id="recommend-quant",
-                    options=[{"label": q, "value": q} for q in QUANT_LEVELS],
+                    options=quant_options(),
                     value="Q4", clearable=False,
-                    style={"width": "88px"},
+                    style={"width": "132px"},
                 ),
             ], id="recommend-hw-row", className="filters",
                style={"paddingTop": "0", "display": "none"}),
@@ -722,9 +722,9 @@ app.layout = html.Div([
                 html.Span("QUANT", className="filter-label"),
                 dcc.Dropdown(
                     id="local-quant",
-                    options=[{"label": q, "value": q} for q in QUANT_LEVELS],
+                    options=quant_options(),
                     value="Q4", clearable=False,
-                    style={"width": "88px"},
+                    style={"width": "132px"},
                 ),
                 html.Div(className="filter-sep"),
                 html.Span("TAGS", className="filter-label"),
