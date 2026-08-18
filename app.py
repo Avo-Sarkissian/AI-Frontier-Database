@@ -113,6 +113,7 @@ from static_helpers import (
     csv_safe as _csv_safe,
     quality_options as _quality_options,
     export_frame_for_tab as _export_frame_for_tab_shared,
+    ranking_frame,
     TABS_WITHOUT_GLOBAL_FILTERS as _TABS_WITHOUT_GLOBAL_FILTERS,
     compute_diverse5 as _compute_diverse5,
     ctx_to_k as _ctx_to_k,
@@ -502,7 +503,8 @@ app.layout = html.Div([
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             _desc(CAPTIONS["rankings_intelligence"]),
             html.Div([dcc.Loading(**_LOADING, children=[
-                dcc.Graph(id="rankings-chart", figure=build_rankings(df, top_n=25),
+                dcc.Graph(id="rankings-chart",
+                          figure=build_rankings(ranking_frame(df), top_n=25),
                           config=_GRAPH_CONFIG, style={"height": "750px"}),
             ])], className="chart-card"),
 
@@ -1126,7 +1128,9 @@ def update_treemap(providers, min_quality, search, _v):
     prevent_initial_call=True,
 )
 def update_rankings(providers, min_quality, search, sort_by, _v):
-    filtered = _apply_filters(providers, min_quality, search or "")
+    # Ranked on intelligence, so the open-weight models no host sells belong
+    # here even though they cannot appear on any price or speed axis.
+    filtered = apply_filters(ranking_frame(df), providers, min_quality, search or "")
     return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
 

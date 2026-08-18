@@ -27,7 +27,10 @@ from components.charts.video_chart import build_video_rankings, build_video_scat
 from captions import CAPTIONS
 from data import scrape_status
 from components.charts.constants import PROVIDER_ALIASES
-from static_helpers import compute_diverse5, provider_options, model_options, quality_options
+from static_helpers import (
+    compute_diverse5, provider_options, model_options, quality_options,
+    ranking_frame,
+)
 
 
 def _load_coverage() -> dict:
@@ -70,7 +73,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "quadrant":             build_quadrant(df),
         "treemap":              build_treemap(df),
         "provider_leaderboard": build_provider_leaderboard(df),
-        "rankings":             build_rankings(df, top_n=25, metric="intelligence"),
+        "rankings":             build_rankings(ranking_frame(df), top_n=25, metric="intelligence"),
         "value_leaders":        build_value_leaders(df),
         "radar":                build_radar(df, diverse5, full_df=df),
         "cost_calc":            build_cost_calc(df, monthly_tokens_m=1.0),

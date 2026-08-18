@@ -54,6 +54,15 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         return empty_figure()
 
     ranked = valid.sort_values("_metric", ascending=False).head(top_n).copy()
+    # Intelligence is a property of the model, so this view carries open-weight
+    # models no API host sells. Value and Speed cannot: their `> 0` filters above
+    # drop rows whose price and speed are NaN, which is exactly what those rows
+    # are. Counting them in the subtitle keeps the inclusion visible rather than
+    # letting an unbuyable model sit silently among buyable ones.
+    _n_self_host = int(ranked.get("self_host", pd.Series(dtype=bool)).eq(True).sum())
+    _self_host_note = (
+        f"  ·  {_n_self_host} self-host only (no API price)" if _n_self_host else ""
+    )
     # Reverse for bottom-up bar display
     ranked = ranked.iloc[::-1].reset_index(drop=True)
 
@@ -124,10 +133,16 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     # chart shipped with only the two tier tags.
     annotations = []
     for i, row in ranked.iterrows():
-        price_tag = (
-            f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
-            if pd.notna(row["price"]) and row["price"] > 0 else ""
-        )
+        # An open-weight model no host sells has no price to print. Saying so
+        # matters more than the blank does: without it a reader takes a row on a
+        # leaderboard of purchasable models as purchasable. See
+        # data.local_models.unhosted_ranking_rows.
+        if row.get("self_host"):
+            price_tag = "  <span style='color:#555'>self-host</span>"
+        elif pd.notna(row["price"]) and row["price"] > 0:
+            price_tag = f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
+        else:
+            price_tag = ""
         annotations.append(dict(
             x=max_metric * 1.06,
             y=short_names[i],
@@ -181,7 +196,8 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             text=(
                 f"Top {top_n} Models by {title_metric}"
                 f"  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  {x_label}  ·  dashed lines = tier boundaries (8% gap)</span>"
+                f"  ·  {x_label}{_self_host_note}"
+                f"  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

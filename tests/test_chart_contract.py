@@ -189,10 +189,33 @@ def test_safe_corr_computes_a_real_correlation():
 
 def test_spotlight_palette_is_not_silently_widened():
     """MAX_LEGEND_PROVIDERS tracks the validated set; widening it puts
-    unvalidated colour pairs on screen. Nine is the most brand-faithful colours
-    the #111111 surface will separate — a tenth made the set infeasible."""
-    assert len(SPOTLIGHT_PROVIDERS) == 9
+    unvalidated colour pairs on screen.
+
+    NINE CHROMATIC is the ceiling — that is what the #111111 surface will
+    separate once brand hues are pinned, and it is why this test exists. The
+    count moved to ten on 2026-08-18 for SpaceXAI, which is white: achromatic,
+    so it occupies a region of the space no hue competes for and left the set's
+    worst pair exactly where it was (ΔE 24.7, Alibaba/Mistral, before and
+    after).
+
+    So the guard now checks the thing that actually matters rather than a
+    number. Counting alone would have let a tenth *hue* through on the same
+    edit; this fails unless every entry past the ninth is achromatic, and
+    tests/test_pareto_chart.py independently holds every pair to the ΔE floor.
+    """
     assert all(p in PROVIDER_COLORS for p in SPOTLIGHT_PROVIDERS)
+
+    def _chroma(hex_colour):
+        r, g, b = (int(hex_colour.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+        return max(r, g, b) - min(r, g, b)
+
+    chromatic = [p for p in SPOTLIGHT_PROVIDERS
+                 if _chroma(PROVIDER_COLORS[p]) > 12]
+    assert len(chromatic) <= 9, (
+        f"{len(chromatic)} chromatic spotlight hues ({chromatic}) — nine is the "
+        f"most this surface separates. Re-run the palette validator before "
+        f"adding another, or make the newcomer achromatic."
+    )
 
 
 def test_user_specified_brand_colours_are_honoured():

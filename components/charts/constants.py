@@ -134,14 +134,35 @@ def canonical_provider(name: str) -> str:
 # by eye — see the palette note below for the measured separations.
 #
 # The CVD figure sits in the 6–8 floor band, which is only legal alongside
-# secondary encoding — that is what PROVIDER_SHAPES below is for. Do not add a
-# tenth spotlight provider without re-running the validator: at ten the set is
-# infeasible once brand hues are pinned.
+# secondary encoding — that is what PROVIDER_SHAPES below is for.
+#
+# THE TENTH ENTRY IS AN ACHROMATIC EXCEPTION, NOT A RELAXED RULE.
+# This block used to say a tenth provider made the set infeasible, and for a
+# tenth *hue* it still does — nine is all the #111111 surface will separate once
+# brand colours are pinned. SpaceXAI is white, which is not a hue: it sits in a
+# region of L*a*b* nothing else occupies, so it costs the set nothing. Measured
+# on 2026-08-18, adding it:
+#
+#   min ΔE across the nine    24.7  (Alibaba / Mistral)
+#   min ΔE across the ten     24.7  (Alibaba / Mistral — unchanged)
+#   SpaceXAI nearest neighbour 43.8  (Mistral)
+#   contrast on #111111       18.9:1 — the highest in the set
+#   deutan / protan / tritan  SpaceXAI's nearest is 34.1 / 39.7 / 56.4, while
+#                             the worst existing pairs (13.5 / 19.9 / 5.9) are
+#                             untouched
+#
+# It earned the seat on the data too: 5 models on Overview, tied with Meta, and
+# Grok 4.6 at 60.92 is the 6th strongest model in the catalogue. Bucketing that
+# into grey "Other" was the inconsistency.
+#
+# An eleventh CHROMATIC provider remains infeasible. Do not add one without
+# re-running the validator; tests/test_pareto_chart.py checks every pair against
+# the ΔE floor and tests/test_chart_contract.py refuses a new chromatic entry.
 #
 #   node scripts/validate_palette.js "<hexes>" --mode dark --surface "#111111" --pairs all
 SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
     "Anthropic", "Meta", "OpenAI", "Alibaba", "Google",
-    "NVIDIA", "Amazon", "Mistral", "DeepSeek",
+    "NVIDIA", "Amazon", "Mistral", "DeepSeek", "SpaceXAI",
 )
 
 PROVIDER_COLORS: dict[str, str] = {

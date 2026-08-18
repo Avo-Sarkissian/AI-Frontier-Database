@@ -566,3 +566,56 @@ def test_the_reasoning_tier_gets_the_highest_quality_model():
         f"Reasoning recommends {reasoning.iloc[0]['model']!r}, not the catalogue's "
         f"best model {best!r}"
     )
+
+
+# ── Rankings: intelligence is a property of the model, not of its listing ────
+
+def test_the_intelligence_ranking_includes_models_no_host_sells():
+    """The hosted catalogue is built from host x model rows, so an open-weight
+    model nobody sells has no row at all. That is right for price and speed —
+    there is nothing to plot — and wrong for a leaderboard ranked on
+    intelligence, which is a property of the model. Qwen3.8 27B scored 52.0 and
+    was 24th in the catalogue while being invisible on the page."""
+    from static_helpers import ranking_frame
+
+    hosted = get_models()
+    merged = ranking_frame(hosted)
+    assert len(merged) > len(hosted), "ranking frame added nothing"
+    assert merged["self_host"].sum() > 0
+    # Nothing is lost or duplicated in the merge.
+    assert set(hosted["model"]) <= set(merged["model"])
+    assert not merged["model"].duplicated().any(), "merge duplicated a model"
+
+
+@pytest.mark.parametrize("metric", ["value", "speed"])
+def test_priceless_models_never_reach_a_price_or_speed_ranking(metric):
+    """They carry NaN, not zero, precisely so the existing `> 0` filters drop
+    them. Zero would have put them at the origin of a value axis as infinitely
+    good deals — the 'no published price is not free' defect image_scatter.py
+    already documents, this time on the headline leaderboard."""
+    from static_helpers import ranking_frame
+    from components.charts.rankings import build_rankings
+
+    merged = ranking_frame(get_models())
+    fig = build_rankings(merged, top_n=25, metric=metric)
+    assert "self-host" not in (fig.layout.title.text or ""), (
+        f"{metric} ranking counted self-host models"
+    )
+    for ann in fig.layout.annotations:
+        assert "self-host" not in (ann.text or ""), (
+            f"{metric} ranking listed a model with no {metric}"
+        )
+
+
+def test_the_intelligence_ranking_says_which_rows_cannot_be_bought():
+    """A row on a leaderboard of purchasable models reads as purchasable."""
+    from static_helpers import ranking_frame
+    from components.charts.rankings import build_rankings
+
+    fig = build_rankings(ranking_frame(get_models()), top_n=25, metric="intelligence")
+    tagged = [a.text for a in fig.layout.annotations if "self-host" in (a.text or "")]
+    if not tagged:
+        pytest.skip("no self-host model is currently inside the top 25")
+    assert "self-host only (no API price)" in fig.layout.title.text, (
+        "subtitle does not disclose the self-host rows it is showing"
+    )

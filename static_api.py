@@ -249,7 +249,8 @@ def update_provider_leaderboard(providers, min_quality, search):
 
 
 def update_rankings(providers, min_quality, search, sort_by):
-    f = _apply_filters(providers, min_quality, search or "")
+    from static_helpers import ranking_frame
+    f = apply_filters(ranking_frame(_DF), providers, min_quality, search or "")
     return build_rankings(f, top_n=min(25, len(f)), metric=sort_by or "intelligence").to_json()
 
 

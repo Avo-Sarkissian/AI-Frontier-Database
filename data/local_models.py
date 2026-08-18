@@ -729,3 +729,54 @@ def get_gpu_options() -> list[dict]:
         for cat, items in groups.items()
         for item in items
     ]
+
+
+def unhosted_ranking_rows(exclude_names=None) -> pd.DataFrame:
+    """Open-weight models AA has scored that no API host sells, in the HOSTED
+    catalogue's schema so they can join an intelligence ranking.
+
+    WHY THIS EXISTS
+    ---------------
+    data/scraper.py builds the hosted catalogue from host x model rows, so a
+    model nobody sells has no row and cannot appear on any tab driven by that
+    frame. For the price and speed views that is correct — there is no price to
+    plot and no host to measure. For a leaderboard captioned "top 25 by
+    intelligence" it is not: intelligence is a property of the model, and
+    Qwen3.8 27B scoring 52.0 is 24th in the catalogue whether or not anyone
+    rents it out.
+
+    Price, speed and latency come back as NaN rather than zero, deliberately.
+    Every downstream metric filters on ``> 0``, and NaN fails that comparison,
+    so these rows are admitted to the intelligence ranking and excluded from
+    Value and Speed without a single call site needing to know they exist. Zero
+    would have placed them at the origin of a value axis as infinitely good
+    deals — the "no published price is not the same as free" defect that
+    components/charts/image_scatter.py already documents.
+
+    ``self_host`` marks them so the renderer can say what they are.
+    """
+    df = get_local_df(include_pending=False)
+    if df.empty:
+        return pd.DataFrame()
+    exclude = {str(n) for n in (exclude_names or ())}
+    rows = df[~df["name"].isin(exclude) & df["quality"].notna()]
+    if rows.empty:
+        return pd.DataFrame()
+
+    def _ctx(k):
+        try: k = int(k)
+        except (TypeError, ValueError): return ""
+        return f"{k / 1000:g}m" if k >= 1000 else f"{k}k"
+
+    return pd.DataFrame({
+        "model":     rows["name"].astype(str),
+        "provider":  rows["family"].astype(str),
+        "context":   rows["context_k"].map(_ctx),
+        "quality":   pd.to_numeric(rows["quality"], errors="coerce"),
+        "price":     float("nan"),
+        "speed":     float("nan"),
+        "latency":   float("nan"),
+        "price_in":  float("nan"),
+        "price_out": float("nan"),
+        "self_host": True,
+    }).reset_index(drop=True)

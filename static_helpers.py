@@ -278,3 +278,33 @@ def model_options(dataframe: pd.DataFrame) -> list:
     top = dataframe[dataframe["quality"] > 0].sort_values("quality", ascending=False)
     return [{"label": f"{r['model']} ({r['provider']})", "value": r["model"]}
             for _, r in top.iterrows()]
+
+
+def ranking_frame(df):
+    """The hosted catalogue plus the open-weight models nobody sells.
+
+    One definition, called by app.py, static_api.py and build_static.py, because
+    a leaderboard that differs between the Dash app and the published site is
+    the drift this module exists to prevent.
+
+    Only the RANKINGS view uses this. Overview, Landscape and the rest stay on
+    the hosted frame: their axes are price and speed, and these rows have
+    neither. See data.local_models.unhosted_ranking_rows for why that is a
+    property of the data rather than a gap in it.
+    """
+    import pandas as pd
+
+    try:
+        from data.local_models import unhosted_ranking_rows
+        extra = unhosted_ranking_rows(set(df["model"].astype(str)))
+    except Exception:
+        return df                      # a ranking is better than an exception
+    if extra is None or extra.empty:
+        return df
+    merged = pd.concat([df, extra], ignore_index=True)
+    if "self_host" in merged.columns:
+        # .eq(True) rather than .fillna(False).astype(bool): concat leaves the
+        # hosted rows NaN in an object column, and fillna+astype on that emits a
+        # pandas downcasting FutureWarning. NaN.eq(True) is already False.
+        merged["self_host"] = merged["self_host"].eq(True)
+    return merged
