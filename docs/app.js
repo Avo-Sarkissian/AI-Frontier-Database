@@ -284,6 +284,16 @@ async function loadManifest() {
     }));
     if (current) qSel.value = current;
   }
+  const effSel = document.getElementById("filter-effort");
+  if (effSel && Array.isArray(m.effort_options) && m.effort_options.length) {
+    const current = effSel.value;
+    effSel.replaceChildren(...m.effort_options.map(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.label;
+      return opt;
+    }));
+    if (current) effSel.value = current;
+  }
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
   // Video arenas come from the manifest for the same reason the tags do: a
@@ -597,8 +607,11 @@ function readGlobalFilters() {
   const providers = Array.from(document.getElementById("filter-provider").selectedOptions).map(o => o.value);
   const minQuality = Number(document.getElementById("filter-quality").value);
   const search = document.getElementById("model-search").value;
-  Object.assign(window.AF.state, { providers, minQuality, search });
-  return [providers, minQuality, search];
+  // "" means every variant, which is the default and the state the dashboard
+  // has always shown. Anything else selects one row per model at that tier.
+  const effort = document.getElementById("filter-effort")?.value || "";
+  Object.assign(window.AF.state, { providers, minQuality, search, effort });
+  return [providers, minQuality, search, effort];
 }
 
 async function renderJsonFig(divId, figObj) { Plotly.react(divId, figObj.data, figObj.layout, PLOT_CONFIG); }
@@ -614,7 +627,7 @@ function multiVals(id) {
 
 async function refreshCompare(triggered) {
   if (!window.AF.pyReady) return;
-  const [p, q, s] = readGlobalFilters();
+  const [p, q, s, e] = readGlobalFilters();
   const sel = document.getElementById("radar-model-select");
   const inDom = Array.from(sel.selectedOptions).map(o => o.value);
   // Prefer the recency order the onchange handler maintains; fall back to
@@ -629,7 +642,7 @@ async function refreshCompare(triggered) {
   }
   window.AF.compareOrder = selected;
   try {
-    const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "");
+    const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "", e);
     renderJsonFig("chart-radar", out.figure);
     document.getElementById("compare-raw-table").innerHTML = out.raw_table_html;
     // Sync select options/value only when not triggered by the select itself
@@ -708,11 +721,11 @@ function renderBudgetAnswer(best, floor) {
 
 async function refreshBudget() {
   if (!window.AF.pyReady) return;
-  const [p, q, s] = readGlobalFilters();
+  const [p, q, s, e] = readGlobalFilters();
   const tok = Number(document.getElementById("budget-tokens")?.value || 1);
   const floor = Number(document.getElementById("budget-min-intelligence")?.value || 0);
   try {
-    const out = await window.AF.callPy("update_cost_calc", tok, p, q, s, floor);
+    const out = await window.AF.callPy("update_cost_calc", tok, p, q, s, floor, e);
     renderJsonFig("chart-cost_calc", out.figure);
     renderBudgetAnswer(out.best, out.floor);
   } catch (e) { console.error("budget render failed:", e); }
@@ -720,11 +733,11 @@ async function refreshBudget() {
 
 async function refreshTable() {
   if (!window.AF.pyReady) return;
-  const [p, q, s] = readGlobalFilters();
+  const [p, q, s, e] = readGlobalFilters();
   const col = document.getElementById("table-sort-col").value;
   const dir = document.getElementById("table-sort-dir").value;
   try {
-    const rows = await window.AF.callPy("update_table", p, q, s, col, dir);
+    const rows = await window.AF.callPy("update_table", p, q, s, col, dir, e);
     renderTableRows(rows);
   } catch (e) { console.error("refreshTable failed:", e); }
 }
@@ -869,24 +882,24 @@ async function rerenderActiveFilterCharts() {
   // state said {providers: [], minQuality: 0} while the DOM said Anthropic /
   // >= 40, and Share copied a filter-less link AND rewrote the address bar
   // with it. Pyodide is CDN-loaded, so a cold cache widens that window.
-  const [p, q, s] = readGlobalFilters();
+  const [p, q, s, e] = readGlobalFilters();
   if (!window.AF.pyReady) return;
   const tab = window.AF.state.tab;
   if (tab === "overview") {
     const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
     try {
-      await renderJsonFig("chart-pareto", await window.AF.callPy("update_overview", p, q, s, x));
+      await renderJsonFig("chart-pareto", await window.AF.callPy("update_overview", p, q, s, x, e));
       attachParetoClickHandler();
     } catch (e) { console.error("overview render failed:", e); }
   } else if (tab === "landscape") {
     try {
-      renderJsonFig("chart-treemap", await window.AF.callPy("update_treemap", p, q, s));
-      renderJsonFig("chart-provider_leaderboard", await window.AF.callPy("update_provider_leaderboard", p, q, s));
+      renderJsonFig("chart-treemap", await window.AF.callPy("update_treemap", p, q, s, e));
+      renderJsonFig("chart-provider_leaderboard", await window.AF.callPy("update_provider_leaderboard", p, q, s, e));
     } catch (e) { console.error("landscape render failed:", e); }
   } else if (tab === "rankings") {
     const sort = document.querySelector('input[name="rankings-sort"]:checked')?.value || "intelligence";
     try {
-      renderJsonFig("chart-rankings", await window.AF.callPy("update_rankings", p, q, s, sort));
+      renderJsonFig("chart-rankings", await window.AF.callPy("update_rankings", p, q, s, sort, e));
       // Value Leaders is built once on the full dataset (matches Dash app — no callback).
       // Do NOT re-render it here; it keeps the pre-loaded figures/value_leaders.json figure.
     } catch (e) { console.error("rankings render failed:", e); }
@@ -967,6 +980,8 @@ function wireGlobalControls() {
   const onFilter = id => debounce(() => rerenderAfterFilterChange(id), 200);
   document.getElementById("filter-provider").onchange = onFilter("filter-provider");
   document.getElementById("filter-quality").onchange = onFilter("filter-quality");
+  const effEl = document.getElementById("filter-effort");
+  if (effEl) effEl.onchange = onFilter("filter-effort");
   document.getElementById("model-search").oninput = onFilter("model-search");
   // "Reset filters" clears everything; the two quality presets touch quality only.
   document.getElementById("preset-all").onclick = () => setPreset(0, [], true);
@@ -980,7 +995,7 @@ function wireGlobalControls() {
       setExportPending(true);
       return;
     }
-    const [p, q, s] = readGlobalFilters();
+    const [p, q, s, e] = readGlobalFilters();
     try {
       // Export what is on screen. This always sent the hosted-LLM catalogue
       // through the global filters, so ↓CSV on Image Gen handed back the LLM

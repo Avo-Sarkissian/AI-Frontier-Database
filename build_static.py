@@ -29,7 +29,7 @@ from data import scrape_status
 from components.charts.constants import PROVIDER_ALIASES
 from static_helpers import (
     compute_diverse5, provider_options, model_options, quality_options,
-    ranking_frame,
+    ranking_frame, effort_options,
 )
 
 
@@ -130,6 +130,10 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "stale_datasets":   scrape_status.stale_datasets(),
         # MIN SCORE options, including the exact preset percentiles, so the
         # <select> can hold the value a preset sets instead of snapping it.
+        # Reasoning effort: AA publishes the same model at several efforts and
+        # the spread reaches 18.5 points, so which tier represents a model is a
+        # user choice rather than a fixed one.
+        "effort_options":  effort_options(),
         "quality_options": quality_options(
             round(float(df["quality"].quantile(0.75)), 1),
             round(float(df["quality"].quantile(0.90)), 1)),

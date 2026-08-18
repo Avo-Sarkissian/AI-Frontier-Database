@@ -112,7 +112,7 @@ def test_budget_min_intelligence_is_wired():
     assert 'id="budget-min-intelligence-value"' in HTML
     assert 'id="budget-answer"' in HTML
     # the floor is passed as the 5th argument of update_cost_calc
-    assert 'callPy("update_cost_calc", tok, p, q, s, floor)' in APP
+    assert 'callPy("update_cost_calc", tok, p, q, s, floor' in APP
     assert "function refreshBudget(" in APP
 
 

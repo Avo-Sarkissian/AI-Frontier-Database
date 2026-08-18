@@ -48,8 +48,8 @@ from static_helpers import (
 _DF = get_models()
 
 
-def _apply_filters(providers, min_quality, search=""):
-    return apply_filters(_DF, providers, min_quality, search)
+def _apply_filters(providers, min_quality, search="", effort=None):
+    return apply_filters(_DF, providers, min_quality, search, effort)
 
 
 # ── HTML-string mirrors of app.py's dash-component builders ──────────────────
@@ -229,8 +229,8 @@ def _detail_html(row: pd.Series, provider: str) -> str:
 
 # ── Ported callbacks ──────────────────────────────────────────────────────────
 
-def update_overview(providers, min_quality, search, xaxis):
-    f = _apply_filters(providers, min_quality, search or "")
+def update_overview(providers, min_quality, search, xaxis, effort=None):
+    f = _apply_filters(providers, min_quality, search or "", effort)
     # _DF is the unfiltered catalogue: medians, axis bounds and frontier
     # membership are market-wide claims and must not move with the user's filter.
     fig = (build_quadrant(f, full_df=_DF) if xaxis == "speed"
@@ -238,30 +238,30 @@ def update_overview(providers, min_quality, search, xaxis):
     return fig.to_json()
 
 
-def update_treemap(providers, min_quality, search):
-    return build_treemap(_apply_filters(providers, min_quality, search or "")).to_json()
+def update_treemap(providers, min_quality, search, effort=None):
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort)).to_json()
 
 
-def update_provider_leaderboard(providers, min_quality, search):
+def update_provider_leaderboard(providers, min_quality, search, effort=None):
     return build_provider_leaderboard(
-        _apply_filters(providers, min_quality, search or "")
+        _apply_filters(providers, min_quality, search or "", effort)
     ).to_json()
 
 
-def update_rankings(providers, min_quality, search, sort_by):
+def update_rankings(providers, min_quality, search, sort_by, effort=None):
     from static_helpers import ranking_frame
-    f = apply_filters(ranking_frame(_DF), providers, min_quality, search or "")
+    f = apply_filters(ranking_frame(_DF), providers, min_quality, search or "", effort)
     return build_rankings(f, top_n=min(25, len(f)), metric=sort_by or "intelligence").to_json()
 
 
-def update_value_leaders(providers, min_quality, search):
+def update_value_leaders(providers, min_quality, search, effort=None):
     return build_value_leaders(
-        _apply_filters(providers, min_quality, search or "")
+        _apply_filters(providers, min_quality, search or "", effort)
     ).to_json()
 
 
-def update_compare(providers, min_quality, search, selected_models, triggered):
-    f = _apply_filters(providers, min_quality, search or "")
+def update_compare(providers, min_quality, search, selected_models, triggered, effort=None):
+    f = _apply_filters(providers, min_quality, search or "", effort)
     options = model_options(f)
     capped = cap_compare_selection(selected_models, f, triggered)
     return json.dumps({
@@ -272,11 +272,11 @@ def update_compare(providers, min_quality, search, selected_models, triggered):
     })
 
 
-def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0):
+def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0, effort=None):
     """`min_intelligence` is the Budget tab's own floor. It composes with the
     global MIN SCORE filter rather than replacing it, so the effective floor is
     whichever is higher — the same as any two filters intersecting."""
-    f = _apply_filters(providers, min_quality, search or "")
+    f = _apply_filters(providers, min_quality, search or "", effort)
     # 0 is a volume the user typed; only a blank box means "not given". Negative
     # input is clamped — the HTML min attribute is a hint, not a guard.
     tokens = coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
@@ -289,8 +289,8 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intel
     })
 
 
-def update_table(providers, min_quality, search, sort_col, sort_dir):
-    f = _apply_filters(providers, min_quality, search or "").copy()
+def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None):
+    f = _apply_filters(providers, min_quality, search or "", effort).copy()
     f["value"] = f.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
@@ -444,3 +444,9 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
 
     cards = build_stack_cards_html(_DF, providers, mode=mode, local_df=local_df)
     return json.dumps({"cards_html": cards, "show_providers": show_providers, "show_hw": show_hw})
+
+
+def effort_options():
+    """Return JSON list of {label, value} for the EFFORT control."""
+    from static_helpers import effort_options as _opts
+    return json.dumps(_opts())

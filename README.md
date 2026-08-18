@@ -140,7 +140,7 @@ Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run
 ### Tests
 
 ```bash
-.venv/bin/python -m pytest -q        # 375 tests, ~30s
+.venv/bin/python -m pytest -q        # 380 tests, ~30s
 ```
 
 Run them from `.venv`, not the system Python: four full-build tests **silently
@@ -209,7 +209,7 @@ scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
   build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
 .github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
-tests/                     # 375 tests: data semantics, encoding calibration, control
+tests/                     # 380 tests: data semantics, encoding calibration, control
                            #   behaviour, pipeline integrity, injection surfaces
 ```
 
@@ -241,7 +241,7 @@ change needs a full `build_static.py` to reach visitors —
 | [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
-| [pytest](https://docs.pytest.org/) | 375 regression tests, each named for the defect it prevents |
+| [pytest](https://docs.pytest.org/) | 380 regression tests, each named for the defect it prevents |
 | [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
 | [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 

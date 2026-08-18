@@ -114,6 +114,7 @@ from static_helpers import (
     quality_options as _quality_options,
     export_frame_for_tab as _export_frame_for_tab_shared,
     ranking_frame,
+    effort_options as _effort_options,
     TABS_WITHOUT_GLOBAL_FILTERS as _TABS_WITHOUT_GLOBAL_FILTERS,
     compute_diverse5 as _compute_diverse5,
     ctx_to_k as _ctx_to_k,
@@ -154,8 +155,9 @@ def _stat(value: str, label: str, accent: bool = False) -> html.Div:
     ], className="stat")
 
 
-def _apply_filters(providers, min_quality, search: str = "") -> pd.DataFrame:
-    return apply_filters(df, providers, min_quality, search)
+def _apply_filters(providers, min_quality, search: str = "",
+                   effort: str | None = None) -> pd.DataFrame:
+    return apply_filters(df, providers, min_quality, search, effort)
 
 
 def _export_frame_for_tab(tab, providers, min_quality, search):
@@ -325,6 +327,15 @@ app.layout = html.Div([
             value=0,
             clearable=False,
             style={"width": "96px"},
+        ),
+        html.Div(className="filter-sep"),
+        html.Span("EFFORT", className="filter-label"),
+        dcc.Dropdown(
+            id="filter-effort",
+            options=_effort_options(),
+            value="",
+            clearable=False,
+            style={"width": "150px"},
         ),
         html.Div(className="filter-sep"),
         html.Span("SEARCH", className="filter-label"),
@@ -890,12 +901,13 @@ _VALID_TABS = {
     Output("tabs",            "value"),
     Output("filter-provider", "value"),
     Output("filter-quality",  "value"),
+    Output("filter-effort",   "value"),
     Input("url", "search"),
     prevent_initial_call=False,
 )
 def init_from_url(search: str):
     if not search:
-        return "overview", [], 0
+        return "overview", [], 0, ""
     params    = parse_qs(search.lstrip("?"))
     tab       = params.get("tab", ["overview"])[0]
     if tab not in _VALID_TABS:
@@ -912,17 +924,24 @@ def init_from_url(search: str):
         quality = float(params.get("q", [0])[0])
     except (ValueError, TypeError):
         quality = 0
-    return tab, providers, quality
+    # Unknown efforts fall back to "all variants" rather than raising: this is a
+    # URL, so the value is user input, and select_effort ignores anything it does
+    # not recognise anyway.
+    effort = params.get("e", [""])[0]
+    if effort not in {o["value"] for o in _effort_options()}:
+        effort = ""
+    return tab, providers, quality, effort
 
 
 # ── URL: write state on change ────────────────────────────────────────────────
 clientside_callback(
     """
-    function(tab, providers, quality) {
+    function(tab, providers, quality, effort) {
         var params = new URLSearchParams();
         if (tab)                           params.set('tab', tab);
         if (providers && providers.length) params.set('p', providers.join(','));
         if (quality > 0)                   params.set('q', quality);
+        if (effort)                        params.set('e', effort);
         var qs = params.toString();
         history.replaceState(null, '', qs ? '?' + qs : window.location.pathname);
         return window.location.href;
@@ -932,6 +951,7 @@ clientside_callback(
     Input("tabs",            "value"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     prevent_initial_call=True,
 )
 
@@ -1089,13 +1109,14 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     Output("overview-desc", "children"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     Input("overview-xaxis",  "value"),
     Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_overview(providers, min_quality, search, xaxis, _v):
-    filtered = _apply_filters(providers, min_quality, search or "")
+def update_overview(providers, min_quality, effort, search, xaxis, _v):
+    filtered = _apply_filters(providers, min_quality, search or "", effort)
     if xaxis == "speed":
         desc = _desc(CAPTIONS["overview_speed"])
         # `df` is the unfiltered catalogue: the median crosshairs that decide
@@ -1110,27 +1131,29 @@ def update_overview(providers, min_quality, search, xaxis, _v):
     Output("treemap-chart", "figure"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_treemap(providers, min_quality, search, _v):
-    return build_treemap(_apply_filters(providers, min_quality, search or ""))
+def update_treemap(providers, min_quality, effort, search, _v):
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort))
 
 
 @callback(
     Output("rankings-chart", "figure"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     Input("rankings-sort",   "value"),
     Input("data-version",    "data"),
     prevent_initial_call=True,
 )
-def update_rankings(providers, min_quality, search, sort_by, _v):
+def update_rankings(providers, min_quality, effort, search, sort_by, _v):
     # Ranked on intelligence, so the open-weight models no host sells belong
     # here even though they cannot appear on any price or speed axis.
-    filtered = apply_filters(ranking_frame(df), providers, min_quality, search or "")
+    filtered = apply_filters(ranking_frame(df), providers, min_quality, search or "", effort)
     return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
 
@@ -1139,11 +1162,12 @@ def update_rankings(providers, min_quality, search, sort_by, _v):
     Output("provider-leaderboard-chart", "figure"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     prevent_initial_call=True,
 )
-def update_provider_leaderboard(providers, min_quality, search):
-    return build_provider_leaderboard(_apply_filters(providers, min_quality, search or ""))
+def update_provider_leaderboard(providers, min_quality, effort, search):
+    return build_provider_leaderboard(_apply_filters(providers, min_quality, search or "", effort))
 
 
 @callback(
@@ -1153,12 +1177,13 @@ def update_provider_leaderboard(providers, min_quality, search):
     Output("compare-raw-table",  "children"),
     Input("filter-provider",     "value"),
     Input("filter-quality",      "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",        "value"),
     Input("radar-model-select",  "value"),
     prevent_initial_call=True,
 )
-def update_compare(providers, min_quality, search, selected_models):
-    filtered  = _apply_filters(providers, min_quality, search or "")
+def update_compare(providers, min_quality, effort, search, selected_models):
+    filtered  = _apply_filters(providers, min_quality, search or "", effort)
     options   = _model_options(filtered)
     triggered = ctx.triggered_id
 
@@ -1173,11 +1198,12 @@ def update_compare(providers, min_quality, search, selected_models):
     Input("budget-tokens",   "value"),
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     prevent_initial_call=True,
 )
-def update_cost_calc(monthly_tokens_m, providers, min_quality, search):
-    filtered = _apply_filters(providers, min_quality, search or "")
+def update_cost_calc(monthly_tokens_m, providers, min_quality, effort, search):
+    filtered = _apply_filters(providers, min_quality, search or "", effort)
     # 0 tokens is a real query; a negative volume would invert the "cheapest" sort.
     tokens   = _coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
     return build_cost_calc(filtered, monthly_tokens_m=tokens)
@@ -1372,12 +1398,13 @@ def add_to_compare(n_clicks, model_name, current_selection):
     Output("model-table", "data"),
     Input("filter-provider",  "value"),
     Input("filter-quality",   "value"),
+    Input("filter-effort",   "value"),
     Input("model-search",     "value"),
     Input("table-sort-col",   "value"),
     Input("table-sort-dir",   "value"),
 )
-def update_table(providers, min_quality, search, sort_col, sort_dir):
-    filtered = _apply_filters(providers, min_quality, search or "").copy()
+def update_table(providers, min_quality, effort, search, sort_col, sort_dir):
+    filtered = _apply_filters(providers, min_quality, search or "", effort).copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )

@@ -194,7 +194,7 @@ def test_a_fractional_q_param_is_not_silently_dropped():
     import app as dash_app
 
     p75 = round(float(DF["quality"].quantile(0.75)), 1)
-    _tab, _providers, quality = dash_app.init_from_url(f"?q={p75}")
+    _tab, _providers, quality, _effort = dash_app.init_from_url(f"?q={p75}")
     assert quality == pytest.approx(p75), (
         f"?q={p75} parsed as {quality}; the filter was silently dropped"
     )
@@ -395,3 +395,19 @@ def test_the_quant_values_the_browser_sends_are_real_quant_levels():
             f"{opt['value']!r} is offered by the control but is not a "
             f"quantisation calc_vram_gb can price"
         )
+
+
+def test_the_effort_setting_survives_a_shared_link():
+    """The other global filters ride the URL, so a link that says "compare these
+    at medium effort" has to carry that too — otherwise the recipient opens a
+    different comparison from the one that was sent."""
+    import app as dash_app
+
+    _tab, _p, _q, effort = dash_app.init_from_url("?e=medium")
+    assert effort == "medium"
+    # A value the control cannot produce must fall back, not propagate: this is
+    # a URL, so it is user input.
+    _tab, _p, _q, bogus = dash_app.init_from_url("?e=turbo")
+    assert bogus == "", "an unknown ?e= value was passed through to the selector"
+    js = (ROOT / "docs" / "app.js").read_text()
+    assert 'getElementById("filter-effort")' in js, "the static site never reads the control"

@@ -91,6 +91,113 @@ def base_model_name(name: str) -> str:
     return stripped or name
 
 
+# ── Reasoning effort ──────────────────────────────────────────────────────────
+# Artificial Analysis benchmarks the same model at several reasoning efforts and
+# publishes each as its own row, so "how smart is this model" has no single
+# answer. The spread is not a rounding detail: GPT-5.6 Luna runs 33.9 to 52.3
+# across its five tiers — 18.5 points, wider than the gap between the best model
+# in the catalogue and the 40th — and Claude Opus 5 runs 52.5 to 63.0. Price per
+# token is IDENTICAL across a model's tiers (measured: 0 of 24 base models vary),
+# so effort changes what you get rather than the rate you pay.
+#
+# Untreated, that let one family occupy five of the top 25 leaderboard slots and
+# made any cross-provider comparison a question of which tier each lab happened
+# to publish.
+#
+# Ordered strongest to weakest. The label is what the control shows.
+EFFORT_LEVELS: tuple[tuple[str, str], ...] = (
+    ("max",     "Max"),
+    ("xhigh",   "Extra high"),
+    ("high",    "High"),
+    ("medium",  "Medium"),
+    ("low",     "Low"),
+    ("minimal", "Minimal"),
+)
+
+_EFFORT_RANK = {slug: i for i, (slug, _) in enumerate(EFFORT_LEVELS)}
+
+# Matches a trailing effort clause in either shape AA uses: a bare "(high)" and
+# a qualified "(Adaptive Reasoning, Max Effort)". Anchored to the end so a
+# parenthetical that is not an effort — "(Reasoning)", "(Non-reasoning)",
+# "(Vision)", a snapshot date — does not match and the row keeps its single
+# variant.
+_EFFORT_RE = _re.compile(
+    r"\((?:[^()]*?,\s*)?(max|xhigh|high|medium|low|minimal)(?:\s+effort)?\)\s*$",
+    _re.I,
+)
+
+
+def effort_of(name: str) -> str | None:
+    """The reasoning effort a model name declares, or None if it declares one
+    configuration only."""
+    m = _EFFORT_RE.search(str(name))
+    return m.group(1).lower() if m else None
+
+
+def select_effort(df: _pd.DataFrame, effort: str | None = None) -> _pd.DataFrame:
+    """One row per model, choosing WHICH variant represents it.
+
+    This SELECTS, it does not filter. Two thirds of the catalogue publishes a
+    single configuration, so filtering to rows literally labelled "medium" would
+    drop 155 models to 9 and empty most of the dashboard. Instead every model is
+    always represented; ``effort`` only decides which of its tiers speaks for it.
+
+    ``effort=None`` (or an unknown value) keeps the previous behaviour exactly —
+    the highest-quality variant — which is what dedupe_to_best_variant did and
+    what Overview has always shown.
+
+    A model that does not publish the requested tier falls back to its nearest
+    published one, preferring the stronger side of the gap, because a model
+    absent from a comparison reads as "cannot do this" rather than "was not
+    benchmarked at this setting".
+    """
+    if df.empty or "model" not in df.columns:
+        return df
+    working = df.copy()
+    working["_base_model"] = working["model"].apply(base_model_name)
+
+    want = _EFFORT_RANK.get(str(effort).lower()) if effort else None
+    if want is None:
+        return (
+            working.sort_values("quality", ascending=False)
+            .drop_duplicates("_base_model", keep="first")
+            .drop(columns="_base_model")
+        )
+
+    # Distance from the requested tier. An unlabelled row is ranked LAST rather
+    # than treated as a match: within a model that also publishes labelled
+    # tiers, "(Non-reasoning)" is a different configuration, not an answer to
+    # "max effort". Scoring it 0 made it win every request — Grok 4.3 answered
+    # "max" with its 25.0 non-reasoning row while a 36.9 medium row sat beside
+    # it, so raising the effort setting LOWERED the score.
+    #
+    # The sentinel still leaves the common case right: when a model publishes
+    # nothing but an unlabelled row, every candidate ties at _UNLABELLED and
+    # quality decides, which is the previous behaviour exactly.
+    #
+    # Ties break toward the stronger tier, then toward quality, so the choice is
+    # deterministic across pandas versions — see spotlight_split for what a
+    # non-total order costs here.
+    _UNLABELLED = len(EFFORT_LEVELS) + 1
+
+    def _distance(name: str) -> tuple[int, int]:
+        rank = _EFFORT_RANK.get(effort_of(name) or "", None)
+        if rank is None:
+            return (_UNLABELLED, 0)
+        return (abs(rank - want), 0 if rank <= want else 1)
+
+    dist = working["model"].apply(_distance)
+    working["_eff_gap"] = [d[0] for d in dist]
+    working["_eff_side"] = [d[1] for d in dist]
+    return (
+        working.sort_values(
+            ["_eff_gap", "_eff_side", "quality"], ascending=[True, True, False]
+        )
+        .drop_duplicates("_base_model", keep="first")
+        .drop(columns=["_base_model", "_eff_gap", "_eff_side"])
+    )
+
+
 def dedupe_to_best_variant(df: _pd.DataFrame) -> _pd.DataFrame:
     """Collapse same-family variants (reasoning-effort tiers, dated snapshots,
     …) to a single row — the highest-quality variant per family.
@@ -101,16 +208,12 @@ def dedupe_to_best_variant(df: _pd.DataFrame) -> _pd.DataFrame:
     every row lets a single family dominate a landscape chart with near-
     duplicate points at the same price. Keeping only the peak variant makes
     the "best this model can do" comparison fair across providers.
+
+    Kept as a named function because pareto and quadrant both call it and it
+    names the intent at those call sites; the behaviour is select_effort's
+    default, so there is only one implementation to keep correct.
     """
-    if df.empty:
-        return df
-    working = df.copy()
-    working["_base_model"] = working["model"].apply(base_model_name)
-    return (
-        working.sort_values("quality", ascending=False)
-        .drop_duplicates("_base_model", keep="first")
-        .drop(columns="_base_model")
-    )
+    return select_effort(df, None)
 
 
 # Providers occasionally get renamed upstream by Artificial Analysis. Map the

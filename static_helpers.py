@@ -39,7 +39,8 @@ def coerce_number(value, default: float, minimum: float | None = None) -> float:
     return out if minimum is None else max(float(minimum), out)
 
 
-def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
+def apply_filters(df, providers, min_quality, search: str = "",
+                  effort: str | None = None) -> pd.DataFrame:
     """Global PROVIDER / MIN SCORE / SEARCH filter, shared by both renderings.
 
     `providers` is falsy-means-all here, and that is deliberate — this backs a
@@ -53,8 +54,16 @@ def apply_filters(df, providers, min_quality, search: str = "") -> pd.DataFrame:
     spelling still selects: an `?p=xAI` link shared before Artificial Analysis
     renamed the provider matched zero rows and silently rendered the entire
     catalogue.
+
+    `effort` selects WHICH reasoning-effort variant represents each model; it
+    does not filter rows out. Default None keeps every variant, which is what
+    every caller saw before the control existed, so an untouched dashboard shows
+    exactly what it always did. See components.charts.constants.select_effort.
     """
     filtered = df.copy()
+    if effort:
+        from components.charts.constants import select_effort
+        filtered = select_effort(filtered, None if effort == "best" else effort)
     if providers:
         wanted = {canonical_provider(str(p)) for p in providers}
         filtered = filtered[
@@ -308,3 +317,20 @@ def ranking_frame(df):
         # pandas downcasting FutureWarning. NaN.eq(True) is already False.
         merged["self_host"] = merged["self_host"].eq(True)
     return merged
+
+
+def effort_options() -> list[dict]:
+    """Options for the EFFORT control, shipped in the manifest.
+
+    "All variants" is first and is the default, so the dashboard an untouched
+    visitor sees is the one it has always been — the Table in particular
+    promises "every tracked model" and must not quietly collapse. Choosing
+    anything else selects one row per model.
+    """
+    from components.charts.constants import EFFORT_LEVELS
+
+    return (
+        [{"label": "All variants", "value": ""},
+         {"label": "Best available", "value": "best"}]
+        + [{"label": label, "value": slug} for slug, label in EFFORT_LEVELS]
+    )

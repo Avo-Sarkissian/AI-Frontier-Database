@@ -22,7 +22,7 @@ import pytest
 from data.ingest import get_models
 from data.image_models import get_image_df, get_image_tags
 from data.video_models import get_video_df, get_video_tags
-from components.charts.constants import PROVIDER_ALIASES
+from components.charts.constants import PROVIDER_ALIASES, base_model_name
 from components.stack_recommender import select_stack
 from static_helpers import apply_filters
 
@@ -390,7 +390,7 @@ def test_the_dash_url_handler_canonicalises_before_selecting():
     import app as dash_app
 
     for retired, current in PROVIDER_ALIASES.items():
-        _tab, providers, _q = dash_app.init_from_url(f"?p={retired}")
+        _tab, providers, _q, _effort = dash_app.init_from_url(f"?p={retired}")
         assert providers == [current], (
             f"init_from_url left ?p={retired} unresolved; the dropdown has no such "
             f"option, so the filter reads as empty and shows every model"
@@ -434,3 +434,70 @@ def test_the_recommender_treats_an_empty_selection_as_none():
     """Checkboxes are the opposite idiom: every box unticked is a choice."""
     assert _picked(select_stack(DF, [], "api")) == []
     assert _picked(select_stack(DF, None, "api")) != []
+
+
+# ── Reasoning effort: a selector, not a filter ───────────────────────────────
+
+def test_choosing_an_effort_never_removes_a_model():
+    """Two thirds of the catalogue publishes one configuration, so a strict
+    filter on "medium" would drop 155 models to 9 and empty the dashboard. The
+    control selects WHICH variant represents a model; every model stays."""
+    from components.charts.constants import EFFORT_LEVELS, select_effort
+
+    base_models = {base_model_name(m) for m in DF["model"]}
+    for slug, _label in EFFORT_LEVELS:
+        out = select_effort(DF, slug)
+        assert {base_model_name(m) for m in out["model"]} == base_models, (
+            f"effort={slug} lost or invented a model"
+        )
+        assert not out["model"].map(base_model_name).duplicated().any(), (
+            f"effort={slug} returned two rows for one model"
+        )
+
+
+def test_the_effort_setting_actually_moves_the_score():
+    """The whole reason for the control: AA benchmarks one model at several
+    efforts and the spread reaches 18.5 points, so a leaderboard that ignores it
+    is comparing whichever tier each lab happened to publish."""
+    from components.charts.constants import select_effort
+
+    def _by_base(effort):
+        out = select_effort(DF, effort)
+        return out.set_index(out["model"].map(base_model_name))
+
+    strong, weak = _by_base("max"), _by_base("low")
+    shared = strong.index.intersection(weak.index)
+    moved = (strong.loc[shared, "quality"] > weak.loc[shared, "quality"]).sum()
+    assert moved >= 8, (
+        f"only {moved} models scored lower at low effort than at max — the "
+        f"selector is not picking different variants"
+    )
+    assert (strong.loc[shared, "quality"] >= weak.loc[shared, "quality"]).all(), (
+        "a model scored HIGHER at low effort than at max"
+    )
+
+
+def test_the_default_leaves_the_catalogue_exactly_as_it_was():
+    """"All variants" is the default because the Table promises every tracked
+    model. An untouched dashboard must show what it always did."""
+    from static_helpers import apply_filters, effort_options
+
+    assert effort_options()[0]["value"] == "", "the default option is not 'all variants'"
+    assert len(apply_filters(DF, None, 0, "", None)) == len(DF)
+    assert len(apply_filters(DF, None, 0, "", "")) == len(DF)
+    # And 'best' reproduces what dedupe_to_best_variant has always returned.
+    from components.charts.constants import dedupe_to_best_variant
+    assert (len(apply_filters(DF, None, 0, "", "best"))
+            == len(dedupe_to_best_variant(DF)))
+
+
+def test_an_effort_clause_is_not_confused_with_any_other_parenthetical():
+    """'(Reasoning)' and '(Non-reasoning)' are capability labels, not efforts.
+    Reading them as efforts would silently collapse two distinct models."""
+    from components.charts.constants import effort_of
+
+    assert effort_of("Claude Opus 5 (Adaptive Reasoning, Max Effort)") == "max"
+    assert effort_of("Gemini 3.7 Flash (high)") == "high"
+    assert effort_of("Nemotron 3 Ultra 550B A55B (Reasoning)") is None
+    assert effort_of("Qwen3.6 27B (Non-reasoning)") is None
+    assert effort_of("Llama 4 Scout") is None
