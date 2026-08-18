@@ -87,8 +87,8 @@ K2-V2 (high),MBZUAI Institute of Foundation Models,70.0,70.0,512,14.24,Apache 2.
 Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,13.75,Apache 2.0,,True
 DiffusionGemma 26B A4B,Google,25.2,3.8,256,13.47,Apache 2.0,"vision,reasoning",True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.2,Apache 2.0,"vision,audio",False
-K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,12.4,Apache 2.0,reasoning,False
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.4,NVIDIA Open Model License Agreement,reasoning,False
+K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,12.4,Apache 2.0,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.35,Apache 2.0,vision,True
 Tri-21B-Think,Trillion Labs,21.0,21.0,32,12.34,Apache 2.0,reasoning,False
 Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.18,Apache 2.0,"vision,audio,reasoning",True
@@ -171,8 +171,8 @@ DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning),Nous Research,8.0,8.0,128,1.
 Granite 4.0 1B,IBM,1.6,1.6,128,1.63,Apache 2.0,,False
 Molmo2-8B,Allen Institute for AI,8.66,8.66,37,1.59,Apache 2.0,vision,False
 LFM2 8B A1B,Liquid AI,8.34,1.5,33,1.34,lfm 1.0,,True
-Granite 4.0 350M,IBM,0.35,0.35,33,1.0,Apache 2.0,,False
-Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
-Granite 4.0 H 350M,IBM,0.34,0.34,33,1.0,Apache 2.0,,False
-Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,1.0,Apache 2.0,,False
 LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,1.0,lfm 1.0,vision,False
+Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,1.0,Apache 2.0,,False
+Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
+Granite 4.0 350M,IBM,0.35,0.35,33,1.0,Apache 2.0,,False
+Granite 4.0 H 350M,IBM,0.34,0.34,33,1.0,Apache 2.0,,False
