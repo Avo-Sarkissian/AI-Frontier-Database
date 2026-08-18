@@ -73,11 +73,11 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Latency | Artificial Analysis | Median time-to-first-token (TTFT) in seconds |
 | Context Window | Artificial Analysis | Maximum input length **the model supports**, not what a given host serves — a host may cap it lower. Unlike price and speed this is not a cheapest-host figure. |
 | Image ELO | AA Image Arena | Human-preference ranking, scraped live hourly |
-| Open-weight / local models | Artificial Analysis | GPU VRAM fit, parameter counts, quantization levels, scraped live hourly |
+| Open-weight / local models | AA model leaderboard | Parameter counts, context, licence and Intelligence Index, scraped live hourly. Read from the leaderboard rather than the hosted-models API on purpose: that API is keyed on host x model, so it only knows about open-weight models someone also sells API access to — 77 of 177 were invisible, including every model nobody hosts precisely because you would run it yourself. |
 | Video Elo | AA Video Arena | Human-preference ranking across two generation arenas, scraped live hourly |
 | Video generation time | AA Video Arena | End-to-end median over 14 trailing days — published by AA for only a handful of endpoints, and left blank rather than estimated for the rest |
 
-The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Four separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`, `data/video_scraper.py`) each pull their own Artificial Analysis source on the same hourly cadence. The image and video ones read a rendered page rather than an API — AA key-gated the image arena endpoint and never published a video one — so `data/rsc.py` holds the Next.js payload parsing they share.
+The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Four separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`, `data/video_scraper.py`) each pull their own Artificial Analysis source on the same hourly cadence. Three of the four read a rendered page rather than an API — AA key-gated the image arena endpoint, never published a video one, and its models API returns host x model rows that omit unhosted open-weight models — so `data/rsc.py` holds the Next.js payload parsing they share. Only `data/scraper.py` still uses the JSON API, because the hosted catalogue genuinely wants per-host pricing.
 
 ---
 
@@ -140,7 +140,7 @@ Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run
 ### Tests
 
 ```bash
-.venv/bin/python -m pytest -q        # 367 tests, ~30s
+.venv/bin/python -m pytest -q        # 369 tests, ~30s
 ```
 
 Run them from `.venv`, not the system Python: four full-build tests **silently
@@ -191,7 +191,7 @@ components/
 data/
   scraper.py               # Live LLM data — Artificial Analysis
   image_scraper.py         # Live image-gen data — AA Image Arena
-  local_scraper.py         # Live open-weight/local model data — Artificial Analysis
+  local_scraper.py         # Live open-weight model data — AA model leaderboard
   video_scraper.py         # Live video-gen data — AA Video Arena (both generation arenas)
   rsc.py                   # Next.js RSC payload parsing shared by the image + video scrapers
   ingest.py                # Parses scraper output, manages CSV cache and daily history
@@ -209,7 +209,7 @@ scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
   build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
 .github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
-tests/                     # 367 tests: data semantics, encoding calibration, control
+tests/                     # 369 tests: data semantics, encoding calibration, control
                            #   behaviour, pipeline integrity, injection surfaces
 ```
 
@@ -241,7 +241,7 @@ change needs a full `build_static.py` to reach visitors —
 | [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
-| [pytest](https://docs.pytest.org/) | 367 regression tests, each named for the defect it prevents |
+| [pytest](https://docs.pytest.org/) | 369 regression tests, each named for the defect it prevents |
 | [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
 | [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 

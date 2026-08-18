@@ -11,10 +11,13 @@ published, the badge read "just now", and the catalogue behind it was 5h12m
 stale while the local one was 19h18m stale. The "report failures" step is
 deliberately last, so the run went red *after* the lie was pushed.
 
-Worse structurally: data/scraper.py and data/local_scraper.py hit the
-byte-identical URL, so those two always fail together — while the image scraper
-(a different URL, a churning ELO arena) changes almost every hour. The one
-dataset that reliably resets the clock is the one least coupled to the others.
+That was made worse by a coupling since removed: data/scraper.py and
+data/local_scraper.py used to hit the byte-identical URL, so those two always
+failed together while the image scraper (a different URL, a churning ELO arena)
+changed almost every hour — the one dataset that reliably reset the clock was
+the one least coupled to the others. All four scrapers now read different
+sources and fail independently, but the badge still reports per dataset, because
+independence makes a shared build timestamp less honest, not more.
 
 Each scraper now records whether it actually fetched, when, and how many rows.
 build_static folds the file into the manifest and the badge reports the OLDEST
