@@ -350,3 +350,48 @@ def test_image_providers_are_not_split_across_spellings():
         normalised.setdefault(key, []).append(n)
     dupes = {k: v for k, v in normalised.items() if len(v) > 1}
     assert not dupes, f"one provider under several spellings: {dupes}"
+
+
+def test_every_quant_select_is_filled_through_the_one_helper():
+    """A {label, value} option assigned whole becomes "[object Object]".
+
+    quant_levels became quant_options so Q3/Q2 could be marked lossy. docs/app.js
+    had TWO copies of the population loop; only local-quant was updated, so
+    recommend-quant shipped <option value="[object Object]">. Agent Stack sent
+    that string as the quantisation, calc_vram_gb raised
+    KeyError('[object Object]') inside Pyodide, and every workflow with a local
+    tier silently kept showing the previous API cards — while the radio and the
+    hardware row both moved, so the control looked like it had worked.
+
+    Nothing in the suite touched it: the Python was correct at every layer and
+    the defect lived entirely in the browser. This greps the shipped JS instead.
+    """
+    js = (ROOT / "docs" / "app.js").read_text()
+
+    # Every quant <select> in the shell must be filled by the shared helper.
+    shell = (ROOT / "docs" / "index.html").read_text()
+    quant_selects = re.findall(r'<select id="([a-z-]*quant[a-z-]*)"', shell)
+    assert quant_selects, "no quant selects found in docs/index.html"
+    for sel in quant_selects:
+        assert f'fillQuantSelect("{sel}"' in js, (
+            f"#{sel} is not populated by fillQuantSelect — a second copy of the "
+            f"loop is exactly how recommend-quant shipped [object Object]"
+        )
+
+    # And nothing may assign a whole option object to .value.
+    assert not re.search(r'opt\.value\s*=\s*q\s*;', js), (
+        "an option loop still assigns the raw item to .value; with {label, value} "
+        "options that serialises to the string '[object Object]'"
+    )
+
+
+def test_the_quant_values_the_browser_sends_are_real_quant_levels():
+    """The end of the contract the test above guards: whatever the select can
+    emit has to be a key calc_vram_gb accepts."""
+    from data.local_models import QUANT_BYTES, quant_options
+
+    for opt in quant_options():
+        assert opt["value"] in QUANT_BYTES, (
+            f"{opt['value']!r} is offered by the control but is not a "
+            f"quantisation calc_vram_gb can price"
+        )

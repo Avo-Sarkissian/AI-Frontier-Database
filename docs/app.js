@@ -324,6 +324,19 @@ function renderCaptions(captions) {
   });
 }
 
+function fillQuantSelect(selectId, options, defaultValue) {
+  const sel = document.getElementById(selectId);
+  if (!sel || !Array.isArray(options)) return;
+  sel.replaceChildren(...options.map(o => {
+    const opt = document.createElement("option");
+    // o is {label, value}: the label carries the "(lossy)" marker for Q3/Q2,
+    // the value is what the Python side keys QUANT_BYTES by.
+    opt.value = o.value; opt.textContent = o.label;
+    if (o.value === defaultValue) opt.selected = true;
+    return opt;
+  }));
+}
+
 function fillTagSelect(selectId, tags) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
@@ -450,28 +463,19 @@ async function populateDynamicSelects() {
         recGpu.appendChild(opt);
       });
     }
-    // local-quant
-    const localQuant = document.getElementById("local-quant");
-    if (localQuant) {
-      localQuant.innerHTML = "";
-      quantLevels.forEach(q => {
-        const opt = document.createElement("option");
-        opt.value = q.value; opt.textContent = q.label;
-        if (q.value === DEFAULT_QUANT) opt.selected = true;
-        localQuant.appendChild(opt);
-      });
-    }
-    // recommend-quant
-    const recQuant = document.getElementById("recommend-quant");
-    if (recQuant) {
-      recQuant.innerHTML = "";
-      quantLevels.forEach(q => {
-        const opt = document.createElement("option");
-        opt.value = q; opt.textContent = q;
-        if (q === DEFAULT_QUANT) opt.selected = true;
-        recQuant.appendChild(opt);
-      });
-    }
+    // Both quant selects, filled by ONE function.
+    //
+    // They were two copies of the same loop. When quant_levels became
+    // quant_options and started returning {label, value} so Q3/Q2 could be
+    // marked lossy, only the local-quant copy was updated — recommend-quant
+    // kept assigning the whole object, so its <option value> serialised to the
+    // string "[object Object]". Agent Stack then sent that as the quantisation
+    // to update_recommend, calc_vram_gb raised KeyError('[object Object]'), and
+    // every workflow with a local tier silently kept the previous API cards
+    // while the radio and the hardware row both moved. One function now, so a
+    // third select cannot drift.
+    fillQuantSelect("local-quant", quantLevels, DEFAULT_QUANT);
+    fillQuantSelect("recommend-quant", quantLevels, DEFAULT_QUANT);
 
     // Set default local HW meta for RTX 5090
     try {
