@@ -154,6 +154,17 @@ _FAMILY_ALIASES: dict[str, str] = {
 
 # Labs that only ever appear in the open-weight catalog, so they have no provider
 # entry to inherit. Kept distinct from each other and from the spotlight palette.
+# Labs that only ever appear in the open-weight catalog, so they have no provider
+# entry to inherit.
+#
+# The block below the original six arrived with the move to the leaderboard
+# source: it carries the 77 open-weight models no API host sells, and most of
+# those come from labs the hosted catalogue never mentions. Hues were assigned by
+# farthest-point search in CIE L*a*b* against every colour that can appear beside
+# them on this tab, each >= 3.0:1 contrast on the #111111 surface. Separation
+# degrades down the list — 44 families is well past what colour alone can carry,
+# which is why the compat chart labels every bar and the scatter leans on
+# position rather than hue.
 _LOCAL_ONLY_COLORS: dict[str, str] = {
     "TII":         "#7048e8",
     "01.AI":       "#d9480f",
@@ -161,6 +172,20 @@ _LOCAL_ONLY_COLORS: dict[str, str] = {
     "HuggingFace": "#fab005",
     "SOLAR":       "#ff6b6b",
     "Liquid AI":   "#38bdf8",
+    # ── unhosted open-weight labs, added 2026-08-17 ──
+    "AI9Stars":                              "#f97316",
+    "MBZUAI Institute of Foundation Models": "#f472b6",
+    "Motif Technologies":                    "#fdba74",
+    "Nanbeige":                              "#a3e635",
+    "Naver":                                 "#60a5fa",
+    "OpenBMB":                               "#34d399",
+    "Prime Intellect":                       "#f0abfc",
+    "SK Telecom":                            "#c084fc",
+    "Sarvam":                                "#fb7185",
+    "ServiceNow":                            "#22d3ee",
+    "Swiss AI Initiative":                   "#a5b4fc",
+    "TII UAE":                               "#facc15",
+    "Trillion Labs":                         "#cbd5e1",
 }
 
 FAMILY_COLORS: dict[str, str] = {

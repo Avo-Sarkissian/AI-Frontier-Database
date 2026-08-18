@@ -54,19 +54,25 @@ from __future__ import annotations
 #   source     - a URL a reader can check the numbers against
 #   announced  - ISO date the weights were published
 PENDING_MODELS: list[dict] = [
-    {
-        "name":      "Qwen3.8 27B",
-        "family":    "Alibaba",
-        "params_b":  28.0,
-        "active_b":  28.0,          # dense, hybrid attention — not MoE
-        "context_k": 262,           # native; the release notes 1M with extension
-        "quality":   None,          # AA has not benchmarked it
-        "license":   "Apache 2.0",
-        "tags":      ["vision", "reasoning"],
-        "moe":       False,
-        "source":    "https://huggingface.co/Qwen/Qwen3.8-27B",
-        "announced": "2026-08-13",
-    },
+    # Empty, and that is the healthy state.
+    #
+    # Qwen3.8 27B lived here from 2026-08-16. It was the entry this module was
+    # written for, and removing it is the lifecycle working: AA scored it
+    # (Intelligence Index 52.0) and the real record now wins.
+    #
+    # Worth recording WHY it outlived its usefulness by several days. The
+    # self-expiry check compares a curated name against the scraped catalogue,
+    # and that catalogue was built from AA's host-models endpoint, which only
+    # carries models some provider sells API access to. Nobody hosts a 27B model
+    # you are meant to run yourself, so the scrape could not see the score no
+    # matter how often it ran, and the overlay would have claimed "not yet
+    # benchmarked" indefinitely. data/local_scraper.py now reads the leaderboard
+    # instead, which carries unhosted models, so the expiry check can actually
+    # fire.
+    #
+    # Add an entry here only for a model AA has not benchmarked AT ALL. If a
+    # model seems to be missing, check the leaderboard first — the answer is now
+    # usually that the scrape is behind, not that the model is unscored.
 ]
 
 

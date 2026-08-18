@@ -79,14 +79,24 @@ def slice_json_array(text: str, start: int) -> str:
     raise ValueError("unterminated JSON array in RSC payload")
 
 
-def find_array(payload: str, key: str) -> list | None:
-    """The first array-valued occurrence of ``"<key>":`` in ``payload``.
+def find_array(payload: str, key: str, where=None) -> list | None:
+    """The first array-valued occurrence of ``"<key>":`` that ``where`` accepts.
 
-    Every key we want also appears as a UI label somewhere on the page —
-    ``"textToImage":"Text to Image"``, ``"textToVideo":"Text to Video"`` — so
-    the first hit is routinely a string, not the records. Occurrences whose
-    value is not an array are skipped rather than raising, and ``None`` means no
-    array-valued occurrence exists at all.
+    Two different hazards make "just take the first hit" wrong:
+
+    * The key is routinely also a UI label — ``"textToImage":"Text to Image"``,
+      ``"textToVideo":"Text to Video"`` — so the first occurrence is often a
+      string rather than the records. Non-array values are skipped.
+    * The same key can carry two DIFFERENT arrays. On /leaderboards/models
+      ``"models"`` appears twice, both 609 long: first the lightweight picker
+      index (6 fields — name, slug, creator, releaseDate, isReasoning,
+      deprecated), then the metrics records (94 fields). Taking the first gave a
+      full-length array with every metric missing, which is the silent-degradation
+      shape this project keeps paying for — a healthy row count with empty columns.
+
+    ``where`` receives the decoded array and returns True if it is the one
+    wanted; pass it whenever a page might carry more than one array under the
+    key. ``None`` means no matching occurrence exists.
     """
     needle = f'"{key}":'
     at = payload.find(needle)
@@ -95,6 +105,11 @@ def find_array(payload: str, key: str) -> list | None:
         while cursor < len(payload) and payload[cursor].isspace():
             cursor += 1
         if cursor < len(payload) and payload[cursor] == "[":
-            return json.loads(slice_json_array(payload, cursor))
+            try:
+                arr = json.loads(slice_json_array(payload, cursor))
+            except ValueError:
+                arr = None
+            if isinstance(arr, list) and (where is None or where(arr)):
+                return arr
         at = payload.find(needle, at + 1)
     return None
