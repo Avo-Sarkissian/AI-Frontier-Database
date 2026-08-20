@@ -172,6 +172,7 @@ _LOCAL_ONLY_COLORS: dict[str, str] = {
     "HuggingFace": "#fab005",
     "SOLAR":       "#ff6b6b",
     "Liquid AI":   "#38bdf8",
+    "Ornith AI":   "#f0abfc",
     # ── unhosted open-weight labs, added 2026-08-17 ──
     "AI9Stars":                              "#f97316",
     "MBZUAI Institute of Foundation Models": "#f472b6",

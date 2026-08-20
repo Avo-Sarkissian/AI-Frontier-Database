@@ -54,25 +54,49 @@ from __future__ import annotations
 #   source     - a URL a reader can check the numbers against
 #   announced  - ISO date the weights were published
 PENDING_MODELS: list[dict] = [
-    # Empty, and that is the healthy state.
+    # Ornith-1.5, released 2026-08-19 under MIT. Artificial Analysis has not
+    # benchmarked the family: "ornith" appears zero times across all 610 models
+    # on its leaderboard, /models/ornith-1-5 is a 404, and there is no sitemap
+    # entry. So it cannot reach the Run Local tab through the scrape, and the
+    # 9B is exactly what that tab exists to surface — a dense reasoning model
+    # with a quantised mobile build.
     #
-    # Qwen3.8 27B lived here from 2026-08-16. It was the entry this module was
-    # written for, and removing it is the lifecycle working: AA scored it
-    # (Intelligence Index 52.0) and the real record now wins.
+    # The lab's headline numbers (86.1 Terminal-Bench 2.1, 56.0 DeepSWE) are
+    # VENDOR-REPORTED, from its own runs. `quality` stays None regardless: a
+    # self-reported score is not the AA Intelligence Index and putting one in
+    # this column would let it rank against numbers it was never measured
+    # against. That is the whole point of this file.
     #
-    # Worth recording WHY it outlived its usefulness by several days. The
-    # self-expiry check compares a curated name against the scraped catalogue,
-    # and that catalogue was built from AA's host-models endpoint, which only
-    # carries models some provider sells API access to. Nobody hosts a 27B model
-    # you are meant to run yourself, so the scrape could not see the score no
-    # matter how often it ran, and the overlay would have claimed "not yet
-    # benchmarked" indefinitely. data/local_scraper.py now reads the leaderboard
-    # instead, which carries unhosted models, so the expiry check can actually
-    # fire.
-    #
-    # Add an entry here only for a model AA has not benchmarked AT ALL. If a
-    # model seems to be missing, check the leaderboard first — the answer is now
-    # usually that the scrape is behind, not that the model is unscored.
+    # The blog coverage also describes a 397B MoE flagship. It is NOT here: the
+    # only "397B" traceable to a primary source was Qwen3.5-397B sitting in
+    # Ornith's own benchmark comparison table, so the sibling may be a
+    # conflation. An unverified entry is the invention this module refuses.
+    {
+        "name":      "Ornith-1.5 9B",
+        "family":    "Ornith AI",
+        "params_b":  9.0,
+        "active_b":  9.0,           # dense
+        "context_k": 262,           # native; the card notes ~1M via YaRN
+        "quality":   None,          # AA has not benchmarked it
+        "license":   "MIT",
+        "tags":      ["reasoning", "code"],
+        "moe":       False,
+        "source":    "https://huggingface.co/ornith-ai/Ornith-1.5-9B",
+        "announced": "2026-08-19",
+    },
+    {
+        "name":      "Ornith-1.5 35B A3B",
+        "family":    "Ornith AI",
+        "params_b":  36.0,          # card states "36B params"
+        "active_b":  3.0,           # "activates only ~3B parameters per token"
+        "context_k": 262,
+        "quality":   None,
+        "license":   "MIT",
+        "tags":      ["vision", "reasoning", "code"],
+        "moe":       True,
+        "source":    "https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B",
+        "announced": "2026-08-19",
+    },
 ]
 
 

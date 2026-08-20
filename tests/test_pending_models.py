@@ -55,14 +55,32 @@ def test_every_entry_is_checkable(entry):
 
 def test_a_scored_model_wins_over_its_curated_entry():
     """The moment AA publishes a score the real record must take over, or the
-    catalogue carries two competing claims about one model."""
-    scraped = [{"name": "Qwen3.8 27B (Reasoning)", "quality": 41.0, "params_b": 28.0,
-                "active_b": 28.0, "context_k": 262, "license": "Apache 2.0",
-                "tags": [], "moe": False, "family": "Alibaba"}]
+    catalogue carries two competing claims about one model.
+
+    Written against whatever is in PENDING_MODELS rather than a hardcoded name:
+    it used to name Qwen3.8 27B and broke the moment that entry expired, which
+    is the one event this test exists to prove works.
+    """
+    if not PENDING_MODELS:
+        pytest.skip("no curated entries to suppress")
+    entry = PENDING_MODELS[0]
+    # An effort suffix, so this also proves _norm's loose matching is in play.
+    scraped = [{"name": f"{entry['name']} (Reasoning)", "quality": 41.0,
+                "params_b": entry["params_b"], "active_b": entry["active_b"],
+                "context_k": entry["context_k"], "license": entry["license"],
+                "tags": [], "moe": entry["moe"], "family": entry["family"]}]
     merged = merge_pending(scraped)
-    assert len(merged) == 1, "the curated duplicate was not suppressed"
-    assert merged[0]["quality"] == 41.0
-    assert merged[0]["pending"] is False
+
+    assert len(merged) == len(PENDING_MODELS), (
+        "the curated duplicate was not suppressed: expected the scraped row "
+        f"plus the {len(PENDING_MODELS) - 1} other curated entries"
+    )
+    scored = [m for m in merged if m["name"] == scraped[0]["name"]]
+    assert len(scored) == 1 and scored[0]["quality"] == 41.0
+    assert scored[0]["pending"] is False
+    assert entry["name"] not in {m["name"] for m in merged}, (
+        "the curated row survived alongside the scored one"
+    )
 
 
 def test_matching_ignores_effort_suffixes_and_punctuation():
