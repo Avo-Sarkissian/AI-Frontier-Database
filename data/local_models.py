@@ -181,9 +181,7 @@ _LOCAL_ONLY_COLORS: dict[str, str] = {
     "OpenBMB":                               "#34d399",
     "Prime Intellect":                       "#f0abfc",
     "SK Telecom":                            "#c084fc",
-    "Sarvam":                                "#fb7185",
     "ServiceNow":                            "#22d3ee",
-    "Swiss AI Initiative":                   "#a5b4fc",
     "TII UAE":                               "#facc15",
     "Trillion Labs":                         "#cbd5e1",
 }

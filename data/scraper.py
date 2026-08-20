@@ -1,15 +1,28 @@
 """
-Scrapes live model data from the Artificial Analysis API and updates the local CSV cache.
+Scrapes live model data from the Artificial Analysis leaderboard into the CSV cache.
 
-Strategy:
-  1. Call https://artificialanalysis.ai/api/data/website/host-models/performance?prompt_length=1000
-     This returns a JSON blob with 800+ host-model records containing intelligence_index,
-     price, speed, latency, context window, and provider info.
-  2. Map the JSON fields to the schema expected by load_from_raw / the CSV cache.
-     provider = the AI lab that created the model (Google, Anthropic, OpenAI, …),
-     not the hosting platform. When a model is available through multiple API hosts,
-     we keep the cheapest price and fastest speed.
-  3. Fall back to the existing cache silently on any failure.
+Source: https://artificialanalysis.ai/leaderboards/models
+
+THE API IS GONE.
+This read /api/data/website/host-models/performance until 2026-08-20, when it
+started answering 404. The hourly refresh had been failing every run since,
+serving a frozen cache under a badge that (correctly) reported the hosted
+dataset as stale. That endpoint is the third AA JSON API this project has
+outlived: the image arena went key-gated, video never had one, and the
+open-weight catalogue moved off this same URL three days earlier. All four
+scrapers now read rendered pages through data/rsc.py.
+
+WHAT CHANGED IN THE NUMBERS, HONESTLY.
+The old endpoint returned host x model rows, so this module aggregated across
+hosts and kept the cheapest one's whole record. The leaderboard publishes one
+row per model, so there is no cheapest-host choice left to make: the price and
+speed here are the figures AA puts on the model itself. That is a real change of
+meaning, not a like-for-like swap, and it is why the catalogue grew from 155 to
+~183 — models nobody sells through a tracked host now appear too.
+
+The 3:1 output-weighted blend below is unchanged and remains OURS, not AA's.
+
+Falls back to the existing cache on any failure.
 
 Run standalone:  python -m data.scraper
 Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
@@ -22,6 +35,8 @@ import time
 
 import requests
 
+from data.rsc import find_array, payload_from_html
+
 from pathlib import Path
 
 from data.ingest import load_from_raw, save_cache, load_cached
@@ -33,83 +48,76 @@ _HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/123.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json",
-    "Referer": "https://artificialanalysis.ai/models",
+    "Accept": "text/html,application/xhtml+xml",
+    "Referer": "https://artificialanalysis.ai/",
 }
 
-_API_URL = (
-    "https://artificialanalysis.ai/api/data/website/host-models/performance"
-    "?prompt_length=1000"
-)
+_PAGE_URL = "https://artificialanalysis.ai/leaderboards/models"
 _TIMEOUT = 45   # seconds — response can be ~20 MB
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
-def _parse_api_response(data: dict) -> list[list]:
+def _real(v):
+    """RSC encodes JS `undefined` as the literal string "$undefined"."""
+    return v is not None and v != "$undefined"
+
+
+def _extract_models(html: str) -> list[dict]:
+    """The leaderboard's metrics records.
+
+    "models" appears TWICE in this payload: the lightweight picker index first
+    (6 fields), then the metrics records (94). Selecting on a metrics-only field
+    takes the right one — without the predicate the scrape publishes a full row
+    count with every metric column empty.
     """
-    Convert the hostModels list from the AA API into raw_rows format:
-      [model, context, provider, quality, price, speed, latency]
+    models = find_array(
+        payload_from_html(html), "models",
+        where=lambda a: bool(a) and isinstance(a[0], dict) and "intelligenceIndex" in a[0],
+    )
+    if models is None:
+        raise ValueError("no metrics array found for 'models' in RSC payload")
+    return models
+
+
+def _parse_api_response(models: list[dict]) -> list[list]:
+    """
+    Convert leaderboard records into raw_rows format:
+      [model, context, provider, quality, price, speed, latency, price_in, price_out]
 
     provider = the AI lab / model creator (e.g. Google, Anthropic, OpenAI).
-    When the same model is hosted by multiple API providers, we aggregate to
-    keep the cheapest price and fastest speed across all of them.
     """
-    host_models = data.get("hostModels", [])
-
-    # Aggregate per (model_name, creator_name)
-    best: dict[tuple, dict] = {}
+    rows = []
     # Models the catalog cannot carry. Counting them is the point: "148 tracked"
     # silently meant "162 upstream minus 14" until this existed, and a silent
     # drop is how this project has been bitten before.
     skipped: dict[str, set] = {"no_score": set(), "no_price": set()}
+    kept: set = set()
 
-    for hm in host_models:
-        model_obj = hm.get("model") or {}
-
-        # Quality
-        quality = model_obj.get("intelligence_index")
-        if quality is None or quality <= 0:
-            skipped["no_score"].add(model_obj.get("name") or "")
+    for m in models:
+        if m.get("deprecated"):
             continue
-
-        # Model name
-        model_name = model_obj.get("name") or hm.get("model_label") or ""
+        model_name = (m.get("name") or "").strip()
         if not model_name:
             continue
 
-        # Provider = AI lab that created the model
-        creators = model_obj.get("model_creators") or {}
-        provider = (
-            creators.get("name") if isinstance(creators, dict) else ""
-        ) or ""
+        quality = m.get("intelligenceIndex")
+        if not _real(quality) or quality <= 0:
+            skipped["no_score"].add(model_name)
+            continue
 
-        # Context window — the MODEL's, not the host's.
-        #
-        # `hm` is one host's offering of the model, and a host may serve it with
-        # a smaller window than the model supports. Preferring the host record
-        # meant the emitted figure was whichever host AA happened to list first
-        # (verified: it matched the first host 79/79 times and the cheapest host
-        # only 62/79), so Nemotron 3.5 Lightning published 29k against a real
-        # 1,000,000 — 34.5x understated — and this catalogue disagreed with
-        # data/local_scraper.py, which already reads the canonical value, on 40
-        # of 91 shared models.
-        #
-        # Unlike price/speed/latency there is no cheapest-host convention to
-        # honour here: the dedup below never updates ctx, so a host-derived
-        # window was not "the cheapest host's window", just an arbitrary one.
-        ctx_tokens = (
-            model_obj.get("context_window_tokens")
-            or hm.get("context_window_tokens")
-            or 0
-        )
-        # Format from the value actually used. Taking the host's preformatted
-        # string would reintroduce the mismatch in the label while the number
-        # underneath said something else. Millions keep the "1m" form the UI
-        # has always shown (static_helpers.ctx_to_k parses both).
+        provider = (m.get("modelCreatorName") or "").strip()
+
+        # Context window — the MODEL's own, which is what this field has always
+        # meant here; the old endpoint offered a host-specific one too and
+        # preferring it published Nemotron 3.5 Lightning at 29k against a real
+        # 1,000,000. The leaderboard only publishes the model's, so that whole
+        # class of mismatch is gone.
+        ctx_tokens = m.get("contextWindowTokens") if _real(m.get("contextWindowTokens")) else 0
+        ctx_tokens = int(ctx_tokens or 0)
         if ctx_tokens >= 1_000_000:
-            m = ctx_tokens / 1_000_000
-            ctx_str = f"{m:.0f}m" if abs(m - round(m)) < 0.05 else f"{m:.1f}m"
+            mm = ctx_tokens / 1_000_000
+            ctx_str = f"{mm:.0f}m" if abs(mm - round(mm)) < 0.05 else f"{mm:.1f}m"
         elif ctx_tokens >= 1000:
             ctx_str = f"{ctx_tokens // 1000}k"
         else:
@@ -120,21 +128,16 @@ def _parse_api_response(data: dict) -> list[list]:
         # is the right basis for cost estimates but is not the number anyone
         # quotes, so the UI shows all three.
         #
-        # This used to read `price_1m_blended_3_to_1` first and treat the
-        # arithmetic as a fallback. That key is absent from all 443 live
-        # records, so every row took the fallback anyway — the read was dead
-        # code that made this look like an upstream figure. It is not:
-        # Artificial Analysis publishes `price_1m_blended_0_3_1`, which is
-        # (3*in + out)/4 — the OPPOSITE weighting, a median 1.91x lower.
-        #
-        # We keep the output-weighted basis deliberately. Output-only would
+        # AA publishes several of its own blends (price1mBlended0To3To1 is
+        # (3*in + out)/4 — the OPPOSITE weighting, a median 1.91x lower). We
+        # keep the output-weighted basis deliberately: output-only would
         # overstate cost for input-heavy agentic/RAG workloads, re-rank Value
         # toward models with cheap output and expensive input, and break
-        # continuity with 90 blended-only history snapshots. But nothing may
+        # continuity with the blended-only history snapshots. But nothing may
         # credit AA for it — see the labels in app.py, docs/app.js and README.md.
-        p_in  = hm.get("price_1m_input_tokens")
-        p_out = hm.get("price_1m_output_tokens")
-        if p_in is None or p_out is None or p_in < 0 or p_out < 0:
+        p_in  = m.get("price1mInputTokens")
+        p_out = m.get("price1mOutputTokens")
+        if not _real(p_in) or not _real(p_out) or p_in < 0 or p_out < 0:
             skipped["no_price"].add(model_name)
             continue
         price = (3 * p_out + 1 * p_in) / 4
@@ -142,57 +145,32 @@ def _parse_api_response(data: dict) -> list[list]:
             skipped["no_price"].add(model_name)
             continue
 
-        # Speed and latency
-        ts = hm.get("timescaleData") or {}
-        speed   = ts.get("median_output_speed") or 0
-        latency = ts.get("median_time_to_first_chunk") or 0
+        speed   = m.get("medianOutputTokensPerSecond")
+        latency = m.get("medianTimeToFirstTokenSeconds")
+        speed   = float(speed) if _real(speed) else 0
+        latency = float(latency) if _real(latency) else 0
 
-        key = (model_name, provider)
-        if key not in best:
-            best[key] = {
-                "ctx": ctx_str, "quality": quality,
-                "price": price, "speed": speed, "latency": latency,
-                "price_in": p_in, "price_out": p_out,
-            }
-        else:
-            entry = best[key]
-            # Keep the cheapest host's full record so price, speed, and
-            # latency all describe the same real API offering. The previous
-            # "elif speed > entry['speed']" branch produced synthetic records
-            # where price came from host A and speed from host B — a SKU
-            # that doesn't exist. We drop that branch entirely.
-            if price < entry["price"]:
-                entry["price"]     = price
-                entry["speed"]     = speed
-                entry["latency"]   = latency
-                entry["price_in"]  = p_in
-                entry["price_out"] = p_out
-
-    rows = []
-    for (model_name, provider), v in best.items():
+        kept.add(model_name)
         rows.append([
             model_name,
-            v["ctx"],
+            ctx_str,
             provider,
-            str(round(v["quality"], 2)),
-            f"${v['price']}",
-            str(v["speed"]),
-            str(v["latency"]),
-            "" if v.get("price_in") is None else str(v["price_in"]),
-            "" if v.get("price_out") is None else str(v["price_out"]),
+            str(round(float(quality), 2)),
+            f"${price}",
+            str(speed),
+            str(latency),
+            str(p_in),
+            str(p_out),
         ])
 
-    kept = {name for name, _ in best}
     dropped_no_score = sorted(n for n in skipped["no_score"] if n and n not in kept)
     dropped_no_price = sorted(n for n in skipped["no_price"] if n and n not in kept)
     _last_coverage.clear()
     _last_coverage.update({
-        # host x model ROWS, not models: the aggregation above collapses every
-        # host offering the same model. Published as "upstream_records" beside
-        # "kept", the 428 read as a model count and was the likely origin of the
-        # "300+ models" claim in the README. The honest denominator is the
-        # distinct-model figure below, which is what the site actually shows.
-        "upstream_host_model_rows": len(host_models),
+        # One record per model now, not per host x model, so this is a real
+        # model count rather than the 428 that used to read as one and was the
+        # likely origin of the README's retired "300+ models" claim.
+        "upstream_host_model_rows": len(models),
         "distinct_upstream_models": len(kept) + len(dropped_no_score) + len(dropped_no_price),
         "kept": len(kept),
         "skipped_no_score": dropped_no_score,
@@ -306,15 +284,10 @@ def _scrape_and_save() -> bool:
     Returns True on success, False on failure (cache unchanged).
     """
     try:
-        resp = requests.get(_API_URL, headers=_HEADERS, timeout=_TIMEOUT)
+        resp = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
 
-        data = resp.json()
-        if "hostModels" not in data:
-            print("[scraper] Unexpected API response structure")
-            return False
-
-        rows = _parse_api_response(data)
+        rows = _parse_api_response(_extract_models(resp.text))
         if not rows:
             print("[scraper] No valid model rows parsed from API response")
             return False

@@ -89,6 +89,8 @@ const PROVIDER_COLORS = {
   "Nex AGI":                "#94a3b8",
   "Multiverse Computing":   "#d6d3d1",
   "Celeris":                "#fdba74",
+  "Sarvam":                 "#f472b6",
+  "Swiss AI Initiative":    "#84cc16",
 };
 const DEFAULT_PROVIDER_COLOR = "#6b7280";
 

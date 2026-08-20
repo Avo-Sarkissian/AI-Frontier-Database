@@ -115,23 +115,22 @@ def test_scraper_counts_what_it_discards():
     point: "148 tracked" silently meant "162 upstream minus 14"."""
     from data.scraper import _parse_api_response, _last_coverage
 
-    payload = {"hostModels": [
+    payload = [
         {  # kept
-            "model": {"name": "Good Model", "intelligence_index": 50.0,
-                      "model_creators": {"name": "Anthropic"}},
-            "price_1m_blended_3_to_1": 10.0,
-            "price_1m_input_tokens": 5.0, "price_1m_output_tokens": 11.67,
+            "name": "Good Model", "intelligenceIndex": 50.0,
+            "modelCreatorName": "Anthropic", "deprecated": False,
+            "price1mInputTokens": 5.0, "price1mOutputTokens": 11.67,
         },
         {  # dropped: no intelligence score
-            "model": {"name": "Unscored Model", "intelligence_index": None,
-                      "model_creators": {"name": "Meta"}},
-            "price_1m_blended_3_to_1": 2.0,
+            "name": "Unscored Model", "intelligenceIndex": None,
+            "modelCreatorName": "Meta", "deprecated": False,
+            "price1mInputTokens": 1.0, "price1mOutputTokens": 2.0,
         },
         {  # dropped: no price at all
-            "model": {"name": "Free Model", "intelligence_index": 30.0,
-                      "model_creators": {"name": "Mistral"}},
+            "name": "Free Model", "intelligenceIndex": 30.0,
+            "modelCreatorName": "Mistral", "deprecated": False,
         },
-    ]}
+    ]
     rows = _parse_api_response(payload)
     assert len(rows) == 1
     assert _last_coverage["kept"] == 1

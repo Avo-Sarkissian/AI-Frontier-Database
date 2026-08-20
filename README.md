@@ -77,7 +77,7 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Video Elo | AA Video Arena | Human-preference ranking across two generation arenas, scraped live hourly |
 | Video generation time | AA Video Arena | End-to-end median over 14 trailing days — published by AA for only a handful of endpoints, and left blank rather than estimated for the rest |
 
-The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Four separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`, `data/video_scraper.py`) each pull their own Artificial Analysis source on the same hourly cadence. Three of the four read a rendered page rather than an API — AA key-gated the image arena endpoint, never published a video one, and its models API returns host x model rows that omit unhosted open-weight models — so `data/rsc.py` holds the Next.js payload parsing they share. Only `data/scraper.py` still uses the JSON API, because the hosted catalogue genuinely wants per-host pricing.
+The LLM dataset currently covers **155 models** across **31 providers**. Counts move every hour as Artificial Analysis adds and delists models — the header stats on the live site are always authoritative, and this number was last written on a day the catalogue held 155. It has been as high as 329 (before AA pruned ~181 legacy models on 2026-07-24) and as low as 148. Four separate scrapers (`data/scraper.py`, `data/image_scraper.py`, `data/local_scraper.py`, `data/video_scraper.py`) each pull their own Artificial Analysis source on the same hourly cadence. All four read a rendered page rather than an API, so `data/rsc.py` holds the Next.js payload parsing they share. Artificial Analysis has retired or gated every JSON endpoint this project used: the image arena went key-gated, video never had one, the models API omitted unhosted open-weight models, and on 2026-08-20 `/api/data/website/host-models/performance` — the last one in use — began returning 404.
 
 ---
 
@@ -140,7 +140,7 @@ Open **http://localhost:8050**. The scrapers fetch fresh data on startup and run
 ### Tests
 
 ```bash
-.venv/bin/python -m pytest -q        # 380 tests, ~30s
+.venv/bin/python -m pytest -q        # 383 tests, ~30s
 ```
 
 Run them from `.venv`, not the system Python: four full-build tests **silently
@@ -209,7 +209,7 @@ scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
   build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
 .github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
-tests/                     # 380 tests: data semantics, encoding calibration, control
+tests/                     # 383 tests: data semantics, encoding calibration, control
                            #   behaviour, pipeline integrity, injection surfaces
 ```
 
@@ -241,7 +241,7 @@ change needs a full `build_static.py` to reach visitors —
 | [Pyodide](https://pyodide.org/) | Runs the Python chart code in the browser (WebAssembly) for the static site |
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
-| [pytest](https://docs.pytest.org/) | 380 regression tests, each named for the defect it prevents |
+| [pytest](https://docs.pytest.org/) | 383 regression tests, each named for the defect it prevents |
 | [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
 | [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 

@@ -336,7 +336,13 @@ PROVIDER_COLORS: dict[str, str] = {
     "Sapiens AI":             "#f0abfc",  # orchid
     "Nex AGI":                "#94a3b8",  # slate
     "Multiverse Computing":   "#d6d3d1",  # warm grey
-    "Celeris":                "#fdba74",  # peach
+    "Celeris":                "#fdba74",
+    # Arrived in the hosted catalogue when data/scraper.py moved to the
+    # leaderboard on 2026-08-20 — both were previously visible only on Run
+    # Local. Assigned by farthest-point search against the palette they join:
+    # Sarvam >= 24.5 dE, Swiss AI Initiative >= 19.9 dE, both >= 3:1 on #111111.
+    "Sarvam": "#f472b6",
+    "Swiss AI Initiative": "#84cc16",  # peach
 }
 
 DEFAULT_COLOR = "#6b7280"

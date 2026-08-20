@@ -121,75 +121,86 @@ def test_context_matches_the_local_catalogue_where_they_overlap():
     )
 
 
-def test_the_scraper_prefers_the_models_own_context_window():
-    payload = {
-        "hostModels": [{
-            "model": {
-                "name": "Ctx Test", "slug": "ctx-test",
-                "model_creators": {"name": "TestLab"},
-                "intelligence_index": 50.0,
-                "context_window_tokens": 1_000_000,
-            },
-            "context_window_tokens": 29_000,          # a host's smaller cap
-            "context_window_formatted": "29k",
-            "price_1m_input_tokens": 1.0,
-            "price_1m_output_tokens": 2.0,
-            "timescaleData": {"median_output_speed": 100,
-                              "median_time_to_first_chunk": 1.0},
-        }]
-    }
-    rows = _parse_api_response(payload)
-    assert rows, "the synthetic record did not parse"
-    df = load_from_raw(rows)
-    got = str(df.iloc[0]["context"])
+def test_the_context_window_published_is_the_models_own():
+    """Nemotron 3.5 Lightning once published 29k against a real 1,000,000.
+
+    The old endpoint returned host x model rows carrying BOTH the model's window
+    and the host's smaller cap, and this module preferred the host's — 34.5x
+    understated, and disagreeing with the open-weight catalogue on 40 of 91
+    shared models. The leaderboard publishes only the model's own window, so
+    that class of mismatch cannot recur; what remains testable is that a large
+    window survives the formatting intact rather than being truncated or
+    rendered in the wrong unit.
+    """
     from static_helpers import ctx_to_k
-    assert ctx_to_k(got) == 1000, (
-        f"took the host's 29k cap instead of the model's 1M: {got}"
-    )
+
+    rows = _parse_api_response([{
+        "name": "Ctx Test", "slug": "ctx-test",
+        "modelCreatorName": "TestLab",
+        "intelligenceIndex": 50.0,
+        "contextWindowTokens": 1_000_000,
+        "deprecated": False,
+        "price1mInputTokens": 1.0,
+        "price1mOutputTokens": 2.0,
+        "medianOutputTokensPerSecond": 100,
+        "medianTimeToFirstTokenSeconds": 1.0,
+    }])
+    assert rows, "the synthetic record did not parse"
+    got = str(load_from_raw(rows).iloc[0]["context"])
+    assert ctx_to_k(got) == 1000, f"1,000,000 tokens parsed back as {got!r}"
     assert got == "1m", f"1,000,000 tokens should render as '1m', not {got!r}"
 
 
 # ── 1.3 — a rename must be loud ──────────────────────────────────────────────
 
-def _synthetic_payload(n: int = 60) -> dict:
-    return {"hostModels": [{
-        "model": {
-            "name": f"Model {i}", "slug": f"m{i}",
-            "model_creators": {"name": f"Lab{i % 5}"},
-            "intelligence_index": 40.0 + i % 20,
-            "context_window_tokens": 128_000,
-        },
-        "context_window_tokens": 128_000,
-        "context_window_formatted": "128k",
-        "price_1m_input_tokens": 1.0 + i % 3,
-        "price_1m_output_tokens": 4.0 + i % 5,
-        "timescaleData": {"median_output_speed": 50 + i,
-                          "median_time_to_first_chunk": 0.5 + (i % 4)},
-    } for i in range(n)]}
+def _synthetic_payload(n: int = 60) -> list[dict]:
+    """A leaderboard-shaped records array.
+
+    Rewritten on 2026-08-20 with the source. This used to build the old
+    /api/data/website/host-models/performance shape — nested hostModels with
+    snake_case keys — which AA retired that day with a 404. A rename test
+    against a schema that no longer exists proves nothing, so the mutations
+    below now rename the fields the scrape actually reads.
+    """
+    return [{
+        "name": f"Model {i}", "slug": f"m{i}",
+        "modelCreatorName": f"Lab{i % 5}",
+        "intelligenceIndex": 40.0 + i % 20,
+        "contextWindowTokens": 128_000,
+        "deprecated": False,
+        "price1mInputTokens": 1.0 + i % 3,
+        "price1mOutputTokens": 4.0 + i % 5,
+        "medianOutputTokensPerSecond": 50 + i,
+        "medianTimeToFirstTokenSeconds": 0.5 + (i % 4),
+    } for i in range(n)]
 
 
-def _mutate(payload: dict, mutation: str) -> dict:
+def _mutate(payload: list[dict], mutation: str) -> list[dict]:
     p = json.loads(json.dumps(payload))
-    for hm in p["hostModels"]:
-        if mutation == "timescaleData":
-            hm["perfData"] = hm.pop("timescaleData")
-        elif mutation == "median_output_speed":
-            hm["timescaleData"]["output_speed_median"] = \
-                hm["timescaleData"].pop("median_output_speed")
-        elif mutation == "model_creators":
-            hm["model"]["creator"] = hm["model"].pop("model_creators")
-        elif mutation == "context":
-            hm.pop("context_window_tokens", None)
-            hm.pop("context_window_formatted", None)
-            hm["model"].pop("context_window_tokens", None)
+    for rec in p:
+        if mutation == "medianOutputTokensPerSecond":
+            rec["outputTokensPerSecondMedian"] = rec.pop("medianOutputTokensPerSecond")
+        elif mutation == "medianTimeToFirstTokenSeconds":
+            rec["timeToFirstTokenSecondsMedian"] = rec.pop("medianTimeToFirstTokenSeconds")
+        elif mutation == "modelCreatorName":
+            rec["creatorName"] = rec.pop("modelCreatorName")
+        elif mutation == "contextWindowTokens":
+            rec.pop("contextWindowTokens", None)
+        elif mutation == "undefined_speed":
+            # Not a rename: RSC encodes JS undefined as the STRING "$undefined",
+            # so a field that stops being published arrives truthy. Reading it
+            # without _real() would publish "$undefined" as a speed.
+            rec["medianOutputTokensPerSecond"] = "$undefined"
+            rec["medianTimeToFirstTokenSeconds"] = "$undefined"
     return p
 
 
 @pytest.mark.parametrize("mutation", [
-    "timescaleData",          # -> speed and latency all zero
-    "median_output_speed",    # -> speed all zero
-    "model_creators",         # -> every provider blank
-    "context",                # -> every context '0'
+    "medianOutputTokensPerSecond",    # -> speed all zero
+    "medianTimeToFirstTokenSeconds",  # -> latency all zero
+    "modelCreatorName",               # -> every provider blank
+    "contextWindowTokens",            # -> every context '0'
+    "undefined_speed",                # -> speed and latency all zero
 ])
 def test_an_upstream_rename_is_caught_before_publishing(mutation):
     """Each of these renames used to produce 60 rows and a silent all-zero
@@ -201,6 +212,23 @@ def test_an_upstream_rename_is_caught_before_publishing(mutation):
     assert column_health_violations(df), (
         f"renaming {mutation} published {len(df)} rows with no complaint"
     )
+
+
+def test_the_two_arrays_under_models_are_told_apart():
+    """/leaderboards/models carries the lightweight picker index AND the metrics
+    records under the same "models" key. Taking the first gives a full row count
+    with every metric missing — the silent-degradation shape this file exists
+    for."""
+    from data.rsc import find_array
+    import json as _json
+
+    picker = [{"name": "Model 0", "slug": "m0", "creator": {}, "deprecated": False}]
+    metrics = _synthetic_payload(3)
+    payload = f'{{"models":{_json.dumps(picker)},"x":1,"models":{_json.dumps(metrics)}}}'
+    got = find_array(payload, "models",
+                     where=lambda a: bool(a) and isinstance(a[0], dict)
+                     and "intelligenceIndex" in a[0])
+    assert got is not None and len(got) == 3, "picked the picker index, not the metrics"
 
 
 def test_healthy_data_raises_no_column_complaints():
