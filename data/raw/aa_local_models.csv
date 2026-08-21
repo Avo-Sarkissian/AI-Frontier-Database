@@ -3,15 +3,17 @@ Kimi K3 (max),Kimi,2800.0,104.0,1049,59.7,Kimi K3 License,"vision,reasoning",Tru
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,57.7,Qwen3.8-Max License,reasoning,True
 "DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,53.2,Mit,reasoning,True
 GLM-5.2 (max),Z AI,753.0,40.0,1000,52.64,Mit,reasoning,True
-Qwen3.8 27B,Alibaba,27.0,27.0,256,52.02,Apache 2.0,"vision,reasoning",False
+Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,52.02,Apache 2.0,"vision,reasoning",False
 "DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,51.77,Mit,reasoning,True
 Kimi K3 (low),Kimi,2780.0,104.0,1049,48.25,Kimi K3,"vision,reasoning",True
 Motif 3,Motif Technologies,314.0,13.2,262,47.36,Unknown,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,45.4,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,45.27,MIT,reasoning,True
+Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,44.45,Apache 2.0,"vision,reasoning",False
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,43.75,MIT,reasoning,True
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,43.02,Modified MIT License,"vision,reasoning,code",True
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,42.88,Mit,reasoning,True
+Qwen3.8 27B (low),Alibaba,27.0,27.0,256,42.87,Apache 2.0,"vision,reasoning",False
 Inkling (xhigh),Thinking Machines,975.0,41.0,1000,42.29,Apache 2.0,"vision,audio,reasoning",True
 Hy3,Tencent,299.0,21.0,256,42.21,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,41.74,Apache 2.0,"vision,reasoning",True
@@ -162,8 +164,8 @@ Olmo 3 7B Instruct,Allen Institute for AI,7.0,7.0,66,2.4,Apache 2.0,,False
 Exaone 4.0 1.2B (Non-reasoning),LG AI Research,1.28,1.28,64,2.37,EXAONE AI Model License Agreement 1.2 - NC,,False
 LFM2.5-1.2B-Thinking,Liquid AI,1.17,1.17,32,2.34,lfm 1.0,reasoning,False
 Jamba 1.7 Mini,AI21 Labs,52.0,12.0,258,2.33,Jamba Open Model License Agreement,,True
-LFM2 2.6B,Liquid AI,2.57,2.57,33,2.3,lfm 1.0,,False
 LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.3,lfm 1.0,,False
+LFM2 2.6B,Liquid AI,2.57,2.57,33,2.3,lfm 1.0,,False
 Granite 4.0 H 1B,IBM,1.5,1.5,128,2.25,Apache 2.0,,False
 Gemma 3 270M,Google,0.268,0.268,32,1.99,Gemma license,,False
 Apertus 70B Instruct,Swiss AI Initiative,70.0,70.0,66,1.98,Apache 2.0,,False
