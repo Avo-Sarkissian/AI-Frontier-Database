@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 613,
-  "distinct_upstream_models": 268,
-  "kept": 169,
+  "upstream_host_model_rows": 616,
+  "distinct_upstream_models": 271,
+  "kept": 172,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
