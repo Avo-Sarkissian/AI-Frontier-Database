@@ -98,6 +98,7 @@ MiniCPM5-1B (Non-reasoning),OpenBMB,1.0,1.0,128,11.69,apache-2.0,,False
 Magistral Small 1.2,Mistral,24.0,24.0,128,11.46,Apache 2.0,"vision,reasoning",False
 Ministral 3 14B,Mistral,14.0,14.0,256,11.24,Apache 2.0,vision,False
 Nanbeige4.1-3B,Nanbeige,3.93,3.93,256,11.02,Apache 2.0,reasoning,False
+LFM2.5-2.6B,Liquid AI,2.7,2.7,128,10.99,lfm 1.0,reasoning,False
 EXAONE 4.0 32B (Reasoning),LG AI Research,32.0,32.0,131,10.5,EXAONE AI Model License Agreement 1.2 - NC,reasoning,False
 Llama 4 Scout,Meta,109.0,17.0,10000,10.26,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
 Hermes 4 - Llama-3.1 70B (Reasoning),Nous Research,70.6,70.6,128,9.85,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
