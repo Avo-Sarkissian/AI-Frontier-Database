@@ -26,6 +26,7 @@ Solar Open2 250B,Upstage,250.0,15.0,1049,37.43,Upstage Solar License,reasoning,T
 Muse Glimmer (high),Meta,30.0,30.0,131,35.06,Apache 2.0,"vision,reasoning",False
 A.X-K2,SK Telecom,692.0,33.0,262,35.01,Apache 2.0,reasoning,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
+Qwen3.8 27B (Non-reasoning),Alibaba,27.0,27.0,256,34.74,Apache 2.0,vision,False
 Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,34.26,Apache 2.0,"vision,reasoning",True
 MiMo-V2-Flash (Feb 2026),Xiaomi,309.0,15.0,256,34.02,MIT,reasoning,True
 G9v3-39A5B,AI9Stars,39.0,5.0,131,34.02,Apache 2.0,reasoning,True

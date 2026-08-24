@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 616,
-  "distinct_upstream_models": 271,
-  "kept": 172,
+  "upstream_host_model_rows": 618,
+  "distinct_upstream_models": 273,
+  "kept": 175,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
@@ -43,7 +43,6 @@
     "Granite 4.1 30B",
     "Granite 4.1 3B",
     "HyperCLOVA X SEED Think (32B)",
-    "HyperNova 60B 2605",
     "INTELLECT-3",
     "JT-35B-Flash",
     "JT-4.1 Flash 236B A21B",
