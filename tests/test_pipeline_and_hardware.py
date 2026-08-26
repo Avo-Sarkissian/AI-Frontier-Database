@@ -21,9 +21,14 @@ from data.ingest import get_models
 from data.image_models import get_image_df
 from data.video_models import get_video_df
 from data.local_models import (
-    get_local_df, effective_bandwidth, calc_vram_gb,
+    get_local_df, effective_bandwidth, calc_vram_gb, calc_speed_tps,
+    decode_roofline, optimal_concurrency, kv_bytes_per_token,
+    GPUS, GPU_BY_NAME, SILICON, _silicon_key, gpu_compute,
+    GIB, CUDA_CTX_GIB, WORKSPACE_GIB, GPU_MEMORY_UTILIZATION, SLO_FLOORS_TPS,
     DEFAULT_BANDWIDTH_GBPS, QUANT_LEVELS,
 )
+from components.charts.local_scatter import build_local_scatter
+from components.charts.local_compat import build_local_compat
 from components.charts.constants import BG, spotlight_split
 from components.charts.quadrant import build_quadrant
 from components.charts.radar import build_radar
@@ -296,16 +301,28 @@ def test_the_bandwidth_formula_lives_in_exactly_one_place():
     assert not hits, f"the multi-GPU bandwidth expression is still inlined in {hits}"
 
 
-def test_vram_does_not_claim_to_include_the_kv_cache():
-    """calc_vram_gb takes (params_b, quant) and nothing else, yet the constant
-    was labelled a "KV-cache + activation overhead multiplier" and the compat
-    hover printed "VRAM needed: 14.9 GB" two lines above "Context: 256k"."""
-    a = calc_vram_gb(70.0, "Q4")
-    assert a == calc_vram_gb(70.0, "Q4")
+def test_vram_now_prices_the_context_it_claims_to():
+    """INVERTED, not deleted. The old assertion was
+    test_vram_does_not_claim_to_include_the_kv_cache, and it was right for as
+    long as calc_vram_gb took (params_b, quant) and nothing else: the honest
+    move then was to label the figure "weights only" rather than imply a
+    context term that did not exist.
+
+    It exists now, so "weights only" became the false claim. Llama 3.1 8B at Q4
+    needs ~5 GiB at 8k and ~21 GiB at its advertised 128k; the tab used to tell
+    a 12 GB RTX 4070 owner it fit at 128k. Same precedent as
+    test_the_video_tab_no_longer_claims_to_be_curated."""
+    short = calc_vram_gb(70.0, "Q4", 8192, name="Llama 3.3 70B")
+    long_ = calc_vram_gb(70.0, "Q4", 131072, name="Llama 3.3 70B")
+    assert long_ > short, "context does not move the VRAM figure"
+    # The two-argument form still answers the weights-plus-overhead question.
+    assert calc_vram_gb(70.0, "Q4") == calc_vram_gb(70.0, "Q4", 0)
+
     src = (ROOT / "data" / "local_models.py").read_text()
     assert "KV-cache + activation overhead multiplier" not in src
     compat = (ROOT / "components" / "charts" / "local_compat.py").read_text()
-    assert "weights only" in compat, "the hover still implies context is included"
+    assert "weights only" not in compat, "the hover still says the KV cache is excluded"
+    assert "KV cache" in compat, "the hover no longer says what the figure covers"
 
 
 def test_the_gpu_count_control_says_what_extra_cards_do():
@@ -619,3 +636,331 @@ def test_the_intelligence_ranking_says_which_rows_cannot_be_bought():
     assert "self-host only (no API price)" in fig.layout.title.text, (
         "subtitle does not disclose the self-host rows it is showing"
     )
+
+# ── Theme 9 — the roofline must be a roofline ────────────────────────────────
+# Everything below guards a claim the old speed model made and could not keep.
+# It was `(bandwidth / (active_b * bytes * 1.18)) * eff`: no compute ceiling, no
+# KV term, and a byte count that made FP16 -> Q2 an 8x speedup.
+
+def test_every_preset_resolves_to_a_silicon_row():
+    """gpu_compute() falls back to (None, None), which decode_roofline() reads
+    as "no compute ceiling sourced" — so a preset whose name the strip rule
+    mangles degrades into a silently bandwidth-only row rather than raising.
+
+    Apple sells the same "M5 Max" name as a 460 GB/s 32-core bin at 36 GB and a
+    614 GB/s 40-core bin at 48 GB and up; a name-only rule hands the 36 GB
+    machine 25% more FLOPS than it has."""
+    missing = [g["name"] for g in GPUS if _silicon_key(g) not in SILICON]
+    assert not missing, f"presets with no silicon row: {missing[:5]}"
+
+
+def test_no_preset_claims_hardware_that_does_not_exist():
+    """"NVIDIA B200 PCIe" and "NVIDIA A6000 Ada" were both invented. NVIDIA
+    ships B200 only as SXM on an HGX baseboard — a 1,000 W part cannot be fed by
+    a PCIe slot — and the row was byte-identical to B200 SXM anyway. The two
+    real 48 GB workstation cards are the RTX A6000 (768 GB/s) and RTX 6000 Ada
+    (960 GB/s), both already presets; the A6000 Ada row's 864 GB/s is the L40's
+    number. Apple never sold a 96 GB M4 Max, a 96 GB M5 Max or a 192 GB
+    M3 Ultra."""
+    names = {g["name"] for g in GPUS}
+    for gone in ("NVIDIA B200 PCIe", "NVIDIA A6000 Ada", "NVIDIA GB200 NVL2",
+                 "Apple M4 Max (96 GB)", "Apple M5 Max (96 GB)",
+                 "Apple M3 Ultra (192 GB)"):
+        assert gone not in names, f"{gone} is not a product anyone can buy"
+
+
+def test_no_preset_encodes_a_multi_gpu_aggregate_bandwidth():
+    """effective_bandwidth() refuses to sum bandwidth across cards and says why,
+    and then GB200 NVL2 (384 GB / 16,000 GB/s = two GPUs) and H100 NVL
+    (188 GB / 7,800 = two cards) handed calc_speed_tps a summed figure it
+    treated as one card's — roughly 2x the tok/s this file's own reasoning
+    allows."""
+    over = [(g["name"], g["bandwidth_gbps"]) for g in GPUS
+            if g["bandwidth_gbps"] > 8000]
+    assert not over, f"presets carrying a multi-card bandwidth: {over}"
+
+
+def test_the_new_apple_presets_carry_the_tiers_apple_sells():
+    """The recurring defect in the Apple block is assuming a bigger memory tier
+    implies the higher-bandwidth GPU bin. M5 Ultra is 96/256/512 (there is no
+    128), M6 is 16/24/32 on one non-configurable 12-core GPU at 170 GB/s, and
+    M5 Max (36 GB) is the 32-core/460 GB/s bin rather than 614."""
+    by_name = {g["name"]: g for g in GPUS}
+    for tier in (96, 256, 512):
+        g = by_name.get(f"Apple M5 Ultra ({tier} GB)")
+        assert g, f"no M5 Ultra {tier} GB preset"
+        assert g["bandwidth_gbps"] == 1200, "M5 Ultra is 1.2 TB/s on both bins"
+    assert "Apple M5 Ultra (128 GB)" not in by_name, "Apple sells no 128 GB M5 Ultra"
+    for tier in (16, 24, 32):
+        g = by_name.get(f"Apple M6 ({tier} GB)")
+        assert g, f"no M6 {tier} GB preset"
+        assert g["bandwidth_gbps"] == 170
+    assert "Apple M6 (48 GB)" not in by_name, "M6 tops out at 32 GB"
+    assert by_name["Apple M5 Max (36 GB)"]["bandwidth_gbps"] == 460
+
+
+def test_the_newest_apple_silicon_is_the_fastest_apple_silicon():
+    """A generation added at the wrong bandwidth is invisible until someone
+    compares it to its predecessor. M5 Ultra must beat M3 Ultra (1200 vs 819)
+    and M6 must beat M5 (170 vs 153) on a model both can hold."""
+    def tps(preset, quant="Q4"):
+        g = GPU_BY_NAME[preset]
+        return calc_speed_tps(8.03, quant, g["bandwidth_gbps"], g["hw_type"],
+                              fp16_tflops=gpu_compute(g)[0])
+    assert tps("Apple M5 Ultra (256 GB)") > tps("Apple M3 Ultra (256 GB)")
+    assert tps("Apple M6 (32 GB)") > tps("Apple M5 (32 GB)")
+
+
+def test_speed_never_exceeds_the_slowest_roof():
+    """`bandwidth / active_gb * eff` had no upper bound of any kind: the number
+    it produced was whatever the division gave, and nothing in the function
+    could say which physical limit it corresponded to."""
+    offenders = []
+    for preset in ("NVIDIA RTX 5090", "Apple M5 Ultra (512 GB)",
+                   "CPU only — DDR5 laptop", "A19 Pro (iPhone 17 Pro)"):
+        g = GPU_BY_NAME[preset]
+        f, _ = gpu_compute(g)
+        for quant in QUANT_LEVELS:
+            e = decode_roofline(8.03, quant, g["bandwidth_gbps"], g["hw_type"],
+                                ctx_tokens=8192, kv_bytes_tok=131072,
+                                fp16_tflops=f)
+            slowest = max(e.t_weights + e.t_kv, e.t_compute)
+            if slowest > 0 and e.tps > 1.0 / slowest * (1 + 1e-9):
+                offenders.append((preset, quant, e.tps))
+    assert not offenders, f"tok/s above every roof: {offenders[:5]}"
+
+
+def test_batch_one_decode_is_memory_bound_on_every_gpu_in_the_list():
+    """This is the FINDING, not an accident, and it is why a compute term that
+    never binds is still worth carrying: batch-1 decode is a GEMV at 2 FLOP per
+    weight, so arithmetic intensity is 1.00 FLOP/byte at FP16 and 5.24 at Q2,
+    against a machine balance of 24 (M4 base) to 295 (H100 SXM).
+
+    A GPU row coming back bound="compute" at batch 1 means either a TFLOPS
+    figure is wrong by an order of magnitude or _MFU_DECODE has been mis-set.
+    CPU rows are exempt: T-MAC (arXiv:2407.00088) measures llama.cpp getting
+    SLOWER going 4-bit to 2-bit on three edge CPUs, which is a categorical
+    refutation of bandwidth-only for that corner."""
+    offenders = []
+    for g in GPUS:
+        if g["hw_type"] == "cpu":
+            continue
+        f, _ = gpu_compute(g)
+        for quant in ("FP16", "Q4", "Q2"):
+            e = decode_roofline(8.03, quant, g["bandwidth_gbps"], g["hw_type"],
+                                fp16_tflops=f)
+            if e.bound == "compute":
+                offenders.append((g["name"], quant))
+    assert not offenders, f"compute-bound at batch 1: {offenders[:5]}"
+
+
+def test_quantising_no_longer_buys_its_full_byte_ratio():
+    """The old model scaled tok/s as bytes**-1, so FP16 -> Q2 was exactly 8x.
+    Measured across 15 same-model/same-hardware sweeps it is 1.9x-4.0x, because
+    low-bit kernels get worse memory-level parallelism — the super-block scales
+    live in a separate region from the packed nibbles, so the read is two
+    strided streams instead of one."""
+    g = GPU_BY_NAME["NVIDIA RTX 5090"]
+    f, _ = gpu_compute(g)
+    def tps(q):
+        return calc_speed_tps(8.03, q, g["bandwidth_gbps"], g["hw_type"],
+                              fp16_tflops=f)
+    ratio = tps("Q2") / tps("FP16")
+    assert 1.9 <= ratio <= 4.0, f"FP16 -> Q2 speedup is {ratio:.2f}x, outside measurement"
+    assert ratio < 8.0 * 0.6, "the byte-ratio model is back"
+
+
+def test_more_bandwidth_never_lowers_tokens_per_second():
+    for quant in QUANT_LEVELS:
+        prev = 0.0
+        for bw in (100, 400, 1000, 2000, 8000):
+            got = calc_speed_tps(8.03, quant, bw, "nvidia", fp16_tflops=209.5)
+            assert got >= prev, f"{quant} at {bw} GB/s is slower than at less"
+            prev = got
+
+
+def test_a_larger_active_parameter_count_is_never_faster():
+    prev = float("inf")
+    for active in (1.0, 8.0, 32.0, 70.0, 405.0):
+        got = calc_speed_tps(active, "Q4", 1792, "nvidia", fp16_tflops=209.5)
+        assert got <= prev, f"{active}B decodes faster than something smaller"
+        prev = got
+
+
+def test_the_speed_reference_still_spans_the_speeds_the_tab_produces():
+    """LOCAL_SPEED_REF is FIXED so a mark does not rescale when the reader
+    narrows a filter. A model change that pushes typical tok/s past it clamps
+    every bubble to the maximum diameter and the size channel silently stops
+    encoding anything."""
+    from components.charts.constants import LOCAL_SPEED_REF
+    df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                      hw_type="nvidia", fp16_tflops=209.5)
+    runnable = df[df["fits"] != "no"]["speed_tps"]
+    assert not runnable.empty
+    assert runnable.median() < LOCAL_SPEED_REF, (
+        f"median runnable speed {runnable.median():.0f} tok/s has outgrown the "
+        f"fixed bubble reference {LOCAL_SPEED_REF}"
+    )
+
+
+# ── Theme 10 — the KV cache must be priced, and labelled ─────────────────────
+
+def test_the_kv_term_is_derived_from_published_architecture_or_is_labelled():
+    """Same doctrine as data/pending_models.py: a MEASUREMENT may never be
+    invented, a published architectural FACT may be curated. Every row carrying
+    a KV figure has to say which it got, because the estimator's p90 signed
+    residual is +50% and an unlabelled estimate sitting beside an exact weights
+    figure reads as though both were measured."""
+    df = get_local_df(ctx_tokens=8192)
+    bad = [r["name"] for _, r in df.iterrows()
+           if r["kv_gb"] > 0 and r["kv_source"] not in ("config", "estimated")]
+    assert not bad, f"KV figures with no provenance: {bad[:5]}"
+    assert (df["kv_source"] == "config").any(), "no row matches KV_ARCH at all"
+
+
+def test_the_kv_cache_changes_which_models_fit():
+    """It cost nothing before. Llama 3.1 8B at Q4 needs ~5 GiB at 8k and ~21 GiB
+    at its advertised 128k, and the tab told a 12 GB RTX 4070 owner it fit."""
+    at_8k = set(get_local_df(vram_gb=32, ctx_tokens=8192)
+                .query("fits != 'no'")["name"])
+    at_128k = set(get_local_df(vram_gb=32, ctx_tokens=131072)
+                  .query("fits != 'no'")["name"])
+    assert at_128k < at_8k, "full context costs nothing — the KV term is not reaching `fits`"
+
+
+def test_kv_is_capped_at_each_models_own_context():
+    """A 4k model cannot run 32k, and pricing it as though it could made every
+    small-context model look artificially expensive at the long settings."""
+    df = get_local_df(ctx_tokens=131072)
+    over = [(r["name"], r["ctx_used"], r["context_k"])
+            for _, r in df.iterrows() if r["ctx_used"] > r["context_k"] * 1000]
+    assert not over, f"priced past the model's own maximum: {over[:5]}"
+
+
+def test_mla_models_are_not_priced_through_the_gqa_formula():
+    """DeepSeek V3 caches ONE 576-element latent per layer, not a K/V pair —
+    68.6 KB/token, barely half of Llama-3.1-8B's 128 KB despite being 671B.
+    Routing it through the GQA estimator is +232% wrong."""
+    mla, _ = kv_bytes_per_token("DeepSeek V3", 671.0, 37.0, True, 8192)
+    llama, _ = kv_bytes_per_token("Llama 3.1 8B", 8.03, 8.03, False, 8192)
+    assert 60_000 < mla < 80_000, f"DeepSeek V3 KV is {mla:.0f} B/token"
+    assert mla < llama * 0.7, "MLA is being charged a K and a V it does not cache"
+
+
+def test_hybrid_attention_models_do_not_pay_full_kv_on_local_layers():
+    """Gemma 3 27B has 10 global layers out of 62 behind a 1024-token window;
+    the naive all-global formula overstates it 6.0x at 128k."""
+    short, _ = kv_bytes_per_token("Gemma 3 27B", 27.4, 27.4, False, 8192)
+    long_, _ = kv_bytes_per_token("Gemma 3 27B", 27.4, 27.4, False, 131072)
+    assert long_ < short, "the windowed layers are still growing with context"
+
+
+def test_vram_is_gib_not_decimal_gb():
+    """calc_vram_gb answers in GiB, which is what a vendor means by "24 GB" on
+    the box and therefore what GPUS[...]["vram_gb"] means; decode_roofline works
+    in decimal GB, because that is what "GB/s" means. Mixing them moves every
+    figure by 7.4%. 8.03B at 2 bytes is 16.06 decimal GB and 14.96 GiB — vLLM
+    reports 14.96 for exactly that model."""
+    weights_only = calc_vram_gb(8.03, "FP16") - (CUDA_CTX_GIB + WORKSPACE_GIB)
+    assert abs(weights_only - 14.96) < 0.05, f"got {weights_only:.2f} GiB"
+
+
+# ── Theme 11 — concurrency must not promise what the hardware cannot hold ────
+
+def test_concurrency_trades_per_stream_latency_for_aggregate_throughput():
+    """The whole point: one decode step reads the weight set ONCE and emits B
+    tokens, so aggregate throughput rises while each individual stream slows."""
+    df = get_local_df(quant="Q4", vram_gb=64, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                      hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
+    batched = df[df["sessions"] > 1]
+    assert not batched.empty, "nothing benefits from concurrency at all"
+    for _, r in batched.iterrows():
+        assert r["total_tps"] > r["speed_tps"], f"{r['name']}: batching lost throughput"
+        assert r["per_session_tps"] <= r["speed_tps"] + 1e-6, (
+            f"{r['name']}: each of {r['sessions']} sessions is as fast as running alone"
+        )
+
+
+def test_optimal_concurrency_never_over_commits_vram():
+    """B sequences need B KV caches resident at once. The bound that usually
+    binds is memory, not latency, and getting it wrong recommends a
+    configuration that OOMs on the first concurrent request."""
+    df = get_local_df(quant="Q4", vram_gb=24, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                      hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
+    over = []
+    for _, r in df[df["sessions"] > 0].iterrows():
+        need = r["weights_gb"] + r["sessions"] * r["kv_bytes_tok"] * r["ctx_used"] / GIB
+        if need > 24 * GPU_MEMORY_UTILIZATION:
+            over.append((r["name"], r["sessions"], round(need, 1)))
+    assert not over, f"sessions that do not fit: {over[:5]}"
+
+
+def test_optimal_concurrency_never_recommends_below_the_slo_floor():
+    """The floor is MLPerf Inference v5.1's Llama-3.1-8B Server constraint,
+    p99 TPOT <= 100 ms = 10 tok/s. A single session below it is reported
+    honestly as one session rather than hidden."""
+    df = get_local_df(quant="Q4", vram_gb=48, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                      hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192,
+                      slo="interactive")
+    floor = SLO_FLOORS_TPS["interactive"]
+    bad = [(r["name"], r["sessions"], r["per_session_tps"])
+           for _, r in df.iterrows()
+           if r["sessions"] > 1 and r["per_session_tps"] < floor]
+    assert not bad, f"sessions recommended below the floor they were sized for: {bad[:5]}"
+
+
+def test_a_stricter_slo_never_recommends_more_sessions():
+    """The control has to move the answer in the direction it claims, or it is
+    decoration. Real-time (33 tok/s) cannot support more concurrent streams than
+    Batch (5 tok/s) on the same hardware."""
+    kw = dict(quant="Q4", vram_gb=48, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+              hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
+    batch = get_local_df(slo="batch", **kw).set_index("name")["sessions"]
+    real  = get_local_df(slo="realtime", **kw).set_index("name")["sessions"]
+    shared = batch.index.intersection(real.index)
+    worse = [n for n in shared if real[n] > batch[n]]
+    assert not worse, f"a stricter latency floor allowed MORE sessions: {worse[:5]}"
+
+
+def test_an_moe_gains_less_from_batching_than_a_dense_model():
+    """Expert sparsity collapses under batching: different sequences route to
+    different experts, so the union of weights read grows as 1-(1-f)**B. At
+    f=0.10 that is 10% of the weights at B=1 but 82% at B=16. The old model
+    implied the MoE advantage was unbounded in both directions."""
+    kw = dict(quant="Q4", bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, hw_type="nvidia",
+              fp16_tflops=209.5, ctx_tokens=8192, kv_bytes_tok=98304.0,
+              weights_gib=18.0, vram_gb=48.0)
+    moe = optimal_concurrency(params_b=30.5, active_b=3.3, moe=True, **kw)
+    dense = optimal_concurrency(params_b=3.3, active_b=3.3, moe=False, **kw)
+    assert moe and dense
+    assert moe.total_tps / moe.single_tps < dense.total_tps / dense.single_tps, (
+        "an MoE gains as much from batching as a dense model of its active size"
+    )
+
+
+def test_the_tok_s_figures_say_which_of_the_two_they_are():
+    """Direct heir to test_the_budget_chart_states_the_token_mix_it_assumes: the
+    same number means many times more or less depending on an assumption the
+    reader cannot see. A bare "tok/s" beside a session count is ambiguous."""
+    df = get_local_df(ctx_tokens=8192, fp16_tflops=209.5)
+    scatter = build_local_scatter(df, vram_gb=32, quant="Q4", ctx_tokens=8192)
+    compat = build_local_compat(df, quant="Q4", vram_gb=32, ctx_tokens=8192)
+    title = scatter.layout.title.text.lower()
+    assert "single-stream" in title, f"the scatter does not say which speed it plots: {title}"
+    hover = compat.data[-1].hovertemplate.lower()
+    assert "single stream" in hover and "concurrent" in hover, hover
+    assert "8k context" in compat.layout.title.text.lower()
+
+
+def test_the_new_controls_say_what_they_cost_in_both_shells():
+    """A control that exists in two hand-synced shells is documented in neither
+    unless something checks. Same guard as
+    test_the_gpu_count_control_says_what_extra_cards_do."""
+    for rel in ("docs/index.html", "app.py"):
+        src = (ROOT / rel).read_text()
+        assert 'local-context' in src, f"{rel} has no context control"
+        assert 'local-slo' in src, f"{rel} has no sessions control"
+        assert "KV cache is read in full every token" in src, (
+            f"{rel} does not say why context moves both VRAM and speed"
+        )
+        assert "10 tok/s" in src, f"{rel} does not name the SLO floor"

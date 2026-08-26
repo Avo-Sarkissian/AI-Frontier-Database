@@ -3,7 +3,9 @@ Local models — compatible models ranked bar chart.
 
 Shows only models that fit in the user's VRAM, ranked by quality score.
 Each bar is colored by model family.
-Right-side annotations show estimated tok/s and VRAM required.
+Right-side annotations show, on two lines: single-stream tok/s and the total
+VRAM required at the selected context, then the concurrent sessions the same
+hardware supports and the aggregate tok/s they produce.
 """
 import pandas as pd
 import plotly.graph_objects as go
@@ -27,7 +29,19 @@ def _vram_note(vram_gb) -> str:
         return "your hardware"
 
 
-def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
+def _ctx_label(ctx_tokens) -> str:
+    """"32k", not "32768" — and "the model's own max" when nothing was chosen."""
+    try:
+        n = int(ctx_tokens or 0)
+    except (TypeError, ValueError):
+        return "?"
+    if n <= 0:
+        return "0"
+    return f"{n // 1024}k" if n >= 1024 else str(n)
+
+
+def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
+                       ctx_tokens=None) -> go.Figure:
     """
     Horizontal bar chart of quality scores for models that fit the user's hardware.
     df is the output of data.local_models.get_local_df(), pre-filtered.
@@ -37,7 +51,8 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
     if runnable.empty:
         return _empty(
             "No models fit your current VRAM. "
-            "Try lowering the quantization (e.g. Q4 → Q3) or adding more GPUs."
+            "Try a shorter context, a lower quantization (e.g. Q4 → Q3), "
+            "or adding more GPUs."
         )
 
     # Unscored models sort to the TOP of an ascending chart, which would read as
@@ -64,6 +79,20 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
         runnable["pending"].fillna(False).tolist()
         if "pending" in runnable.columns else [False] * len(runnable)
     )
+
+    # Whether the KV figure two lines above came from a published config or the
+    # fitted estimator. The reader has to be able to tell: the estimator's p90
+    # signed residual is +50%, and an unlabelled estimate beside an exact
+    # weights figure reads as though both were measured.
+    _KV_NOTE = {"config": "published architecture",
+                "estimated": "architecture estimated, ±30%",
+                "none": "no context priced"}
+    runnable["kv_note"] = (runnable["kv_source"] if "kv_source" in runnable
+                           else "none").map(_KV_NOTE).fillna("architecture estimated, ±30%")
+    runnable["ctx_label"] = _ctx_label(ctx_tokens)
+    for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
+        if _c not in runnable:
+            runnable[_c] = 0
 
     fig = go.Figure()
 
@@ -106,36 +135,57 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
             line=dict(width=0),
         ),
         customdata=runnable[["name", "family", "vram_req_gb", "speed_tps",
-                              "license", "context_k", "tags_str", "fits"]].values,
+                              "license", "context_k", "tags_str", "fits",
+                              "weights_gb", "kv_gb", "kv_note", "ctx_label",
+                              "sessions", "per_session_tps", "total_tps"]].values,
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
             "Intelligence: %{x:.0f}<br>"
-            "VRAM needed: %{customdata[2]:.1f} GB  ·  weights only<br>"
-            "Speed: %{customdata[3]:.0f} tok/s<br>"
+            "VRAM needed: %{customdata[2]:.1f} GB at %{customdata[11]} context<br>"
+            "  ↳ weights %{customdata[8]:.1f} + KV cache %{customdata[9]:.1f} + runtime 1.5 GB"
+            "  ·  %{customdata[10]}<br>"
+            "Speed: %{customdata[3]:.0f} tok/s single stream<br>"
+            "Sessions: ×%{customdata[12]} concurrent at %{customdata[13]:.0f} tok/s each"
+            "  →  %{customdata[14]:,.0f} tok/s total<br>"
             "License: %{customdata[4]}<br>"
-            "Max context: %{customdata[5]}k tokens  ·  KV cache not included above<br>"
+            "Max context: %{customdata[5]}k tokens<br>"
             "Tags: %{customdata[6]}<br>"
             "<extra></extra>"
         ),
         showlegend=False,
     ))
 
-    _gutter = right_gutter(
-        f"{s:.0f} tok/s  ·  {v:.1f} GB  ⚠ tight"
-        for s, v in zip(runnable["speed_tps"], runnable["vram_req_gb"])
-    )
-    # Right-side annotations: speed + VRAM
-    for i, row in runnable.iterrows():
-        color = FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)
+    def _line1(row):
         speed_str = f"{row['speed_tps']:.0f} tok/s" if row["speed_tps"] > 0 else "–"
-        vram_str  = f"{row['vram_req_gb']:.1f} GB"
         tight_tag = "  ⚠ tight" if row["fits"] == "tight" else ""
+        return f"{speed_str}  ·  {row['vram_req_gb']:.1f} GB{tight_tag}"
+
+    def _line2(row):
+        n = int(row.get("sessions") or 0)
+        if n <= 0:
+            return ""
+        return f"×{n} → {row['total_tps']:,.0f} tok/s"
+
+    # right_gutter takes the max LENGTH over the strings it is fed, so the two
+    # lines go in flat and are joined with <br> afterwards. Feeding it the
+    # joined string would budget the sum of both lines and blow the 200 px cap.
+    _rows = [r for _, r in runnable.iterrows()]
+    _gutter = right_gutter([_line1(r) for r in _rows] + [_line2(r) for r in _rows])
+    # Right-side annotations: single-stream speed + total VRAM, then the
+    # concurrency the same hardware supports. Row height is 42 px, so two 11 px
+    # lines fit.
+    for row in _rows:
+        color = FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)
+        text = fit_text(_line1(row), _gutter, size_px=11)
+        l2 = _line2(row)
+        if l2:
+            text += "<br>" + fit_text(l2, _gutter, size_px=11)
 
         fig.add_annotation(
             x=1.01,
             y=row["short_name"],
-            text=fit_text(f"{speed_str}  ·  {vram_str}{tight_tag}", _gutter, size_px=11),
+            text=text,
             showarrow=False,
             xanchor="left",
             font=dict(size=11, family=_FONT, color=color),
@@ -152,7 +202,8 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None) -> go.Figure:
             text=(
                 f"Runnable Models  "
                 f"<span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)}"
+                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)} "
+                f"at {_ctx_label(ctx_tokens)} context"
                 f"  ·  ranked by intelligence"
                 + (f"  ·  {int(sum(is_pending))} not yet scored (outlined)"
                    if any(is_pending) else "")

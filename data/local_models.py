@@ -10,7 +10,9 @@ VRAM formula:  params_b × bytes_per_weight × OVERHEAD_FACTOR
 Speed formula: memory_bandwidth_gbps / model_gb × efficiency
                (memory-bandwidth-bound inference, validated against llama.cpp benchmarks)
 """
+import re
 from pathlib import Path
+from typing import NamedTuple
 import pandas as pd
 
 from data.pending_models import merge_pending
@@ -27,6 +29,12 @@ _LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 DEFAULT_VRAM_GB = 32.0
 DEFAULT_GPU_COUNT = 1
 DEFAULT_BANDWIDTH_GBPS = 1792.0
+# Peak dense FP16 of the same default card. Named rather than inlined for the
+# same reason as the three constants above: the two render paths each used to
+# carry their own hardware defaults and answered "which models fit?" two
+# different ways. A render path that cannot find this figure falls back to a
+# bandwidth-only estimate, which is a quieter wrong answer than a crash.
+DEFAULT_FP16_TFLOPS = 209.5
 
 
 def effective_bandwidth(bandwidth_gbps: float, gpu_count: int) -> float:
@@ -49,18 +57,20 @@ def effective_bandwidth(bandwidth_gbps: float, gpu_count: int) -> float:
     return float(bandwidth_gbps)
 
 # ── Quantization ─────────────────────────────────────────────────────────────
-QUANT_LEVELS = ["FP16", "Q8", "Q5", "Q4", "Q3", "Q2"]
+# Q6 is new here: k-quants are the formats readers actually download, and Q6_K
+# is the one that sits between "basically lossless" and the Q5/Q4 working range.
+QUANT_LEVELS = ["FP16", "Q8", "Q6", "Q5", "Q4", "Q3", "Q2"]
 
 # Levels where the weight loss is severe enough to change answers, not just
 # rounding.
 #
 # WHY THIS EXISTS. Quantisation is the one control on this tab that moves two
-# columns and not the third: dropping to Q2 divides vram_req_gb by eight and
-# multiplies speed_tps by eight, while `quality` — an Artificial Analysis
-# benchmark run at the model's native precision — does not move at all, because
-# nothing in get_local_df touches it. The page therefore rendered aggressive
-# quantisation as free, and a reader optimising on what was displayed would pick
-# Q2 every time.
+# columns and not the third: dropping to Q2 shrinks vram_req_gb and raises
+# speed_tps, while `quality` — an Artificial Analysis benchmark run at the
+# model's native precision — does not move at all, because nothing in
+# get_local_df touches it. The page therefore rendered aggressive quantisation
+# as free, and a reader optimising on what was displayed would pick Q2 every
+# time.
 #
 # The missing term is real but it is NOT ours to invent. Degradation is
 # model-specific, AA publishes no quantised scores, and a generic penalty curve
@@ -86,57 +96,288 @@ def quant_options() -> list[dict]:
         for q in QUANT_LEVELS
     ]
 
-# Bytes per parameter at each quantization level
-QUANT_BYTES: dict[str, float] = {
-    "FP16": 2.000,
-    "Q8":   1.000,
-    "Q5":   0.625,
-    "Q4":   0.500,
-    "Q3":   0.375,
-    "Q2":   0.250,
+# Bits per weight in a SHIPPED file, not the nominal bit width.
+#
+# This used to be the nominal width (Q4 = 0.5 bytes exactly). Real GGUF files
+# are 6–53% fatter, for two reasons that are both structural rather than
+# incidental: k-quant super-blocks carry 6-bit scales and mins on top of the
+# packed weights (llama.cpp PR #1684 — Q2_K is 2.5625 bpw, Q3_K 3.4375, Q4_K
+# 4.5, Q5_K 5.5, Q6_K 6.5625 BEFORE the mix), and the "_M" mixes every
+# distributor ships keep output.weight and token_embd at Q6_K or Q8_0.
+#
+# MEASURED from bartowski/*-GGUF published file sizes divided by parameter
+# count, averaged over Llama-3.1-8B, Qwen2.5-32B and Llama-3.1-70B (HF API,
+# 2026-08-26); consistent to ±1.5% across the three sizes.
+#
+# The single largest consequence: FP16 → Q2 is a 5.24x byte ratio, not 8.0x, so
+# calc_vram_gb was understating Q2 by 53% and Q4 by 21%.
+GGUF_BPW: dict[str, float] = {
+    "FP16": 16.00,   # f16, exact
+    "Q8":    8.51,   # Q8_0    nominal 8 → 1.06x (32 int8 + one fp16 scale)
+    "Q6":    6.59,   # Q6_K    nominal 6 → 1.10x
+    "Q5":    5.69,   # Q5_K_M  nominal 5 → 1.14x
+    "Q4":    4.86,   # Q4_K_M  nominal 4 → 1.21x
+    "Q3":    3.93,   # Q3_K_M  nominal 3 → 1.31x
+    "Q2":    3.06,   # Q2_K    nominal 2 → 1.53x
 }
 
-# Fixed activation + runtime overhead on top of the weights.
-#
-# NOT a KV-cache term, despite what this comment used to say. calc_vram_gb takes
-# (params_b, quant) and nothing else — there is no context parameter anywhere in
-# get_local_df — so vram_req_gb is params_b * bytes_per_weight * 1.18 for every
-# model at every context length, verified identical to the cent across all 14
-# distinct context_k values in the catalogue.
-#
-# The KV cache is real and grows linearly with context, so a long-context run
-# needs more than this figure says. Modelling it properly needs per-model
-# n_layers / n_kv_heads / head_dim, which the catalogue does not carry. Until it
-# does, the honest move is to stop implying otherwise: the label below says what
-# this number is, and the hovers say what it assumes.
-_OVERHEAD = 1.18
+# Bytes per parameter at each quantization level.
+QUANT_BYTES: dict[str, float] = {q: b / 8.0 for q, b in GGUF_BPW.items()}
 
-# Memory efficiency factor by hardware type: the fraction of theoretical peak
-# bandwidth a real decode achieves.
+# ── The streaming penalty: why quantising does not buy its byte ratio ────────
 #
-# PROVENANCE — read this before trusting a tok/s figure. These are ESTIMATES
-# from published community benchmarks and vendor documentation, not numbers this
-# project measured. No run, machine or date is recorded for any of them, and an
-# audit specifically flagged apple=0.82 > nvidia=0.55 as counter-intuitive
-# (Apple's unified memory has lower peak bandwidth but a shorter path to it, so
-# a higher *fraction* is plausible — but plausible is not measured).
+# tok/s scales as bytes ** -_GAMMA, not bytes ** -1. Low-bit kernels get worse
+# memory-level parallelism: the super-block scales live in a separate region
+# from the packed nibbles, so the read is two strided streams instead of one.
 #
-# Treat the ordering between hardware types as indicative and the absolute
-# tok/s as ±30%. If you have real measurements, replace these and record the
-# machine, model, quantisation and date here.
+# It is NOT an ALU ceiling. Batch-1 decode has an arithmetic intensity of
+# 1.0 FLOP/byte at FP16 and 5.24 at Q2, against a machine balance of 24 (M4
+# base) to 295 (H100 SXM) — decode never crosses the roofline knee at any
+# quantisation level on any device in GPUS. See decode_roofline().
 #
-# apple:    0.82 = MLX Metal GPU kernels via Ollama ≥ 0.6 / mlx-lm
-# qualcomm: 0.55 = Adreno GPU via llama.cpp Vulkan backend on Windows ARM
-# intel:    0.50 = Arc GPU via SYCL/oneAPI backend in llama.cpp
-# nvidia / amd / cpu: no source recorded — unvalidated estimates
-_EFF: dict[str, float] = {
-    "nvidia":   0.55,
-    "amd":      0.50,
-    "apple":    0.82,
-    "qualcomm": 0.55,
-    "intel":    0.50,
-    "cpu":      0.30,
+# _GAMMA = 0.77 ± 0.12 (n=9): the uniform-affine / legacy-GGUF sub-population of
+# a 15-sweep pooled fit spanning MLX on M3 Ultra, exllamav2 on RTX 4090 and
+# 3090 Ti, and llama.cpp on M1 Pro / M1 Max / M2 Max / M2 Ultra / RTX 4080 /
+# Xeon 8488C.
+#
+# WHY NOT THE POOLED 0.62. Because it is arithmetically impossible. _MBU_FP16
+# below is FP16 bandwidth utilisation, so a level's achieved MBU is
+# _MBU_FP16 * k_q. Back-solving the four MEASURED consumer-NVIDIA Q4_0 MBUs
+# (4090 0.706, 3090 Ti 0.649, 3090 0.646, 5090 0.619; llama.cpp discussion
+# #15013) through k_q(Q4_0) at gamma=0.62 requires an FP16 MBU of 1.02–1.13 —
+# above theoretical peak. At 0.77 it gives 0.82–0.94, which is what a large
+# sequential GDDR6X read actually achieves. Independently confirmed by the one
+# dataset that measured BOTH formats on the same chips (llama.cpp #4167,
+# Apple): the ratio Q4_0-MBU / F16-MBU is 0.810 / 0.744 / 0.918 / 0.651, mean
+# 0.78, against 0.751 predicted here. Two independent lines land on 0.77–0.80.
+#
+# WHAT THIS GETS WRONG, and it is not small. The other sub-population — GGUF
+# K-QUANTS specifically (Q6_K…Q2_K) — measures gamma = 0.41 ± 0.13 (n=6),
+# because those kernels carry a per-format penalty on top of the byte count. So
+# for a reader running ollama with k-quants the Q6/Q5/Q3/Q2 columns read up to
+# ~1.7x fast. The FP16 and Q8 columns are right either way. If this dashboard
+# ever gains a runtime control, the k-quant branch is one line: _GAMMA = 0.41.
+#
+# REALITY IS ALSO NOT MONOTONE and this table deliberately is. Reproduced from
+# llama.cpp PR #1684: Q5_K_M is ~10% SLOWER than the 14%-larger Q6_K, and
+# Q3_K_M ~6% slower than the 20%-larger Q4_K_M — "the memory access pattern is
+# more important for performance than the amount of computation" (ikawrakow).
+# The ordering also reverses on x86 CPU. No smooth curve can be right about
+# individual formats; this one is right about the trend and wrong by up to
+# ±25% about any single level.
+_GAMMA = 0.77
+
+# k_q = (bpw / 16) ** (1 - _GAMMA). Weight-streaming efficiency of each level as
+# a fraction of FP16's. Net speedup vs FP16 is (16/bpw) * k_q, in the comments.
+_QUANT_STREAM_EFF: dict[str, float] = {
+    q: (bpw / 16.0) ** (1.0 - _GAMMA) for q, bpw in GGUF_BPW.items()
 }
+
+# Fraction of PEAK memory bandwidth an FP16 decode achieves.
+#
+# RENAMED from _EFF and REBASED. The old values were on an implicit Q4 basis —
+# the old formula divided by QUANT_BYTES[quant] with no streaming term, so the
+# constant absorbed whatever penalty existed at the quant it was tuned at — so
+# rows with no direct FP16 measurement are the old value divided by
+# _QUANT_STREAM_EFF["Q4"], which leaves them meaning exactly what they meant.
+#
+# nvidia and apple are no longer estimates. They are the standard MBU metric,
+# (weights + KV bytes) / TPOT / peak bandwidth, from published llama-2-7B
+# llama-bench scoreboards:
+#   apple  0.82 ← F16 MBU measured on 7 chips: M1 Pro 0.859, M3 Max 0.845,
+#                 M2 Max 0.830, M5 Max 0.814, M4 Max 0.781, M1 Max 0.776,
+#                 M2 Ultra 0.691 (mean 0.80). llama.cpp discussion #4167.
+#                 Independently bounded by arXiv:2502.05317, which measures
+#                 Apple M1–M4 hitting ~85% of peak on STREAM. The audit's
+#                 "apple > nvidia is counter-intuitive" flag is RESOLVED: the
+#                 old nvidia=0.55 was simply never measured.
+#   nvidia 0.85 ← back-solved from the Q4_0 MBUs above ÷ k_q(Q4_0)=0.751:
+#                 0.94 / 0.86 / 0.86 / 0.82, mean 0.87, taken as 0.85.
+#                 llama.cpp discussion #15013.
+#
+# KNOWN OVER-PREDICTION, not fixed here: the same scoreboard gives DATACENTER
+# NVIDIA an MBU of 0.31 (H100 SXM) and 0.36 (A100 80GB) on a 3.8 GB model.
+# Those cards are not bandwidth-limited at 270+ tok/s; they are latency-bound on
+# ~10 kernel launches per layer (arXiv:2605.30571 measures 3.05 ms/step of
+# launch tax on an H100, 20.6% of step time). One constant cannot span 0.87 and
+# 0.31, and the 0.31 is a small-model artefact that must NOT be generalised to a
+# 70B — so this model over-predicts SMALL models on datacenter parts. A
+# per-preset MBU is the fix when someone measures one; splitting it on a guess
+# here would be the same unmeasured constant twice.
+#
+# amd / intel / qualcomm / cpu remain UNVALIDATED ESTIMATES, rebased only.
+# Treat the ordering as indicative and any absolute tok/s as ±30%.
+_MBU_FP16: dict[str, float] = {
+    "nvidia":   0.85,   # MEASURED (consumer)
+    "apple":    0.82,   # MEASURED
+    "amd":      0.66,   # 0.50 / 0.760, unvalidated
+    "qualcomm": 0.72,   # 0.55 / 0.760, unvalidated
+    "intel":    0.66,   # 0.50 / 0.760, unvalidated
+    "cpu":      0.39,   # 0.30 / 0.760, unvalidated
+}
+
+# Effective bandwidth of the KV-cache read, as a fraction of peak. Lower than
+# the weight stream because it is a paged/strided read, and because it silently
+# absorbs the growth of attention COMPUTE with context, which is not a bandwidth
+# term at all — so treat it as an empirical lumped constant, not a physical
+# bandwidth. Two independent fits: a 3-parameter fit of the 42-cell Qwen-32B
+# grid on M3 Ultra (ml-explore/mlx #3209) gives 395 GB/s = 49% of peak (mean
+# residual 0.46%, max 1.64%); a first-party 5-point context sweep on an M1 Max
+# gives 228–250 GB/s = 57–62% across three quant levels. 0.55 is the midpoint.
+_KV_MBU = 0.55
+
+# Achieved / peak dense FLOPs for the decode GEMMs. FIT, not measured: least
+# squares over 86 inter-token-latency points from 11 published NVIDIA NIM
+# concurrency sweeps. Weakly identified — dropping the compute term entirely
+# only worsens that fit from 12.6% to 13.2% mean error, because in NVIDIA's
+# benchmark band the sublinearity is almost entirely the KV read.
+#
+# NOTE this is NOT Pope et al.'s 0.14 "low-batch decode MFU" (MLSys 2023). That
+# figure is an OUTPUT of a memory-bound regime, not a ceiling — and this model
+# reproduces it: an 8B at Q4 on a 4090 predicts ~85 tok/s memory-bound against
+# a ~6,200 tok/s compute roof, i.e. ~1.4% of peak FLOPs delivered. Use 0.14 as
+# a regression target, never as an input.
+_MFU_DECODE = 0.60
+
+# Compute roof for a dequantize-then-multiply CPU runtime (llama.cpp on x86 or
+# ARM CPU). There the per-weight instruction stream is 2 FLOPs PLUS unpack work
+# that GROWS as bit width shrinks, so a FLOP-based roof does not describe it.
+# The measured invariant is a near-constant rate of low-bit weights per second
+# which FALLS with bit width: T-MAC (EuroSys '25, arXiv:2407.00088, Table 7)
+# gives Snapdragon X Elite CPU 71.7 Gweights/s at 4-bit and 63.3 at 2-bit.
+#
+# This is the ONE place decode is genuinely compute-bound. Going 4-bit → 2-bit
+# halves the bytes but makes llama.cpp SLOWER on three separate edge CPUs
+# (0.88x, 0.84x, 0.81x) — impossible under a memory-bound model — and swapping
+# in T-MAC's lookup-table kernel, same hardware and same bytes with only the
+# dequant removed, recovers 1.47–1.63x. That is a categorical refutation of
+# bandwidth-only for this corner.
+#
+# TRANSPLANTED, and flagged: measured on one ARM CPU family, applied to three
+# generic DDR5 presets that name no CPU. It is a max() guard, not a headline —
+# at _MBU_FP16["cpu"] = 0.39 the memory roof still binds for every model in the
+# catalogue, and this term only stops a tiny model on a wide bus from charting a
+# figure no CPU reaches.
+_LOWBIT_WEIGHT_RATE_GW_S: dict[str, dict[float, float]] = {
+    "cpu": {16.0: 71.7, 4.0: 71.7, 2.0: 63.3},
+}
+
+# ── VRAM sizing constants ────────────────────────────────────────────────────
+GIB = 1024 ** 3
+
+# Runtime overhead, REPLACING the old _OVERHEAD = 1.18 multiplier.
+#
+# 1.18 was the wrong SHAPE, not the wrong value. Real overhead is close to
+# CONSTANT; a multiplier makes it proportional to weight bytes, so it added
+# 0.11 GB to a 1B/Q4 model (~10x too little against a ~1–1.5 GiB floor) and
+# 36.9 GB to a 405B/Q4 (~5–9x too much). It landed within 2x only in the 7–16B
+# band, which is presumably where it was eyeballed. It also silently scaled
+# _EFF by 1/1.18 in the SPEED path, where 18% of the weights being re-read
+# every token is not a thing that happens.
+#
+# CUDA_CTX_GIB: the driver context, PER GPU, allocated outside the framework's
+#   own accounting. vLLM issue #12059 reports 384 MiB on an RTX 4090 and
+#   ~520 MiB on an H100, and its author proposes budgeting a flat 0.5 GiB while
+#   noting "the exact discrepancy depends on the GPU type and is hard to
+#   measure". ESTIMATE, and someone else's.
+# WORKSPACE_GIB: activation / compute buffers. Sized by batch and prefill chunk,
+#   NOT by parameter count. vLLM PR #10511's own profiling log for a Llama-3-8B
+#   BF16 run: "non_torch_memory takes 0.18GiB; PyTorch activation peak memory
+#   takes 1.26GiB". llama.cpp discussion #9936 prints a 507.00 MiB compute
+#   buffer at n_batch 2048 and 126.75 MiB at n_batch 128. 1.0 GiB is a midpoint
+#   for a single-stream local run; the honest range is 0.5–2.0 GiB. ESTIMATE.
+CUDA_CTX_GIB = 0.5
+WORKSPACE_GIB = 1.0
+
+# Bytes per cached KV element. llama.cpp block formats include the per-block
+# scale, so 8-bit KV is 1.0625 bytes and not 1.0 — using 1.0 understates it 6%.
+#   q8_0 = 32 int8 + one fp16 scale = 34 B / 32 elems = 1.0625
+#   q5_1 = 32x5 bits + two fp16 scales = 24 B / 32     = 0.75
+#   q4_0 = 32 int4 + one fp16 scale = 18 B / 32        = 0.5625
+# vLLM's kv_cache_dtype="fp8" is a flat 1.0 (no block scale).
+KV_BYTES_PER_ELEM: dict[str, float] = {
+    "FP16": 2.0000, "FP8": 1.0000, "Q8": 1.0625, "Q5": 0.7500, "Q4": 0.5625,
+}
+
+# The KV cache is FP16 in llama.cpp, MLX and vLLM BY DEFAULT and is not affected
+# by weight quantisation. It is deliberately NOT wired to the quant control:
+# `-ctk q8_0` is a separate flag most readers never set, and coupling them would
+# make aggressive weight quantisation look like it shrinks the cache too — the
+# exact "quantising is free" defect QUANT_LOSSY exists to disclose.
+DEFAULT_KV_QUANT = "FP16"
+
+# Context assumed when the reader has not chosen one. 8k is a working session,
+# NOT the model's advertised maximum: `context_k` is a ceiling, and sizing at it
+# makes Llama 4 Scout demand 183 GiB of KV and renders almost the whole
+# catalogue unrunnable. Every per-model figure is capped at that model's own
+# context_k regardless, because a 4k model cannot run 32k.
+DEFAULT_CONTEXT_TOKENS = 8192
+CONTEXT_CHOICES = [2048, 4096, 8192, 16384, 32768, 65536, 131072]
+
+# ── Concurrency ──────────────────────────────────────────────────────────────
+# Per-session decode floors, tokens/sec. These are MLPerf Inference latency
+# constraints, not a number this project chose.
+#
+# Practitioners do not maximise throughput; they maximise throughput SUBJECT TO
+# a per-token latency bound. Reporting the throughput-maximising batch size
+# without one recommends a configuration nobody would actually run.
+SLO_FLOORS_TPS: dict[str, float] = {
+    # MLPerf Inference v4.0/v5.0, Llama-2-70B Server: p99 TTFT <= 2 s,
+    # p99 TPOT <= 200 ms. (Llama-3.1-405B uses 175 ms = 5.7 tok/s.) This floor
+    # coincides with actual human silent reading rather than a multiple of it:
+    # Brysbaert 2019, a meta-analysis of 190 studies / 18,573 participants, puts
+    # adult non-fiction silent reading at 238 wpm = ~5.3 tok/s at 0.75 words
+    # per token.
+    "batch":       5.0,
+    # DEFAULT. MLPerf Inference v5.1, Llama-3.1-8B Server: p99 TPOT <= 100 ms.
+    # MLCommons' stated rationale: "A TPOT of 100 ms is effectively ~480 words
+    # per minute, significantly faster than typical human reading rates."
+    "interactive": 10.0,
+    # MLPerf Inference v5.1, Llama-3.1-8B Interactive: p99 TPOT <= 30 ms, for
+    # "use cases where user engagement and responsiveness are paramount, such as
+    # code assistants and real-time creative tools".
+    "realtime":    33.3,
+}
+DEFAULT_SLO = "interactive"
+
+SLO_LABELS: dict[str, str] = {
+    "batch":       "Batch (≥ 5 tok/s)",
+    "interactive": "Interactive (≥ 10 tok/s)",
+    "realtime":    "Real-time (≥ 33 tok/s)",
+}
+
+
+def context_options() -> list[dict]:
+    """Context-length choices as {label, value}, for both render paths.
+
+    Same one-source rule as quant_options(): app.py and docs/app.js built the
+    quantisation control separately once and the lossy warning reached only one
+    of them, so a control that exists in two shells is declared in neither.
+    """
+    # "default" travels with the options so the browser does not have to name a
+    # number of its own. A JS-side `|| 8192` would be a second copy of
+    # DEFAULT_CONTEXT_TOKENS, which is the drift this project keeps paying for.
+    return [{"label": f"{n // 1024}k", "value": n,
+             "default": n == DEFAULT_CONTEXT_TOKENS} for n in CONTEXT_CHOICES]
+
+
+def slo_options() -> list[dict]:
+    """SLO choices as {label, value}, for both render paths — same one-source
+    rule as quant_options(), for the same reason."""
+    return [{"label": SLO_LABELS[k], "value": k, "default": k == DEFAULT_SLO}
+            for k in SLO_FLOORS_TPS]
+
+
+# Fraction of VRAM a serving engine actually claims for weights + KV; the rest
+# is driver context, fragmentation and activation scratch. vLLM's documented
+# default for gpu_memory_utilization, so it is what a reader following the
+# standard quickstart gets. Not an estimate.
+GPU_MEMORY_UTILIZATION = 0.92
+
+# Display bound, NOT a measured limit. Every published sweep found stops at or
+# below it (NVIDIA NIM <= 250, llama.cpp batched-bench <= 256). Past it the
+# model is extrapolating beyond all available evidence.
+MAX_REPORTED_CONCURRENCY = 256
 
 
 # ── Color palette by model family ────────────────────────────────────────────
@@ -383,11 +624,11 @@ GPUS: list[dict] = [
     # 5060 Ti: 128-bit × 28 Gbps = 448 GB/s | 5060: 128-bit × 18 Gbps = 288 GB/s
     {"name": "NVIDIA RTX 5090",          "vram_gb": 32,  "bandwidth_gbps": 1792, "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     {"name": "NVIDIA RTX 5080",          "vram_gb": 16,  "bandwidth_gbps": 960,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
-    {"name": "NVIDIA RTX 5070 Ti",       "vram_gb": 16,  "bandwidth_gbps": 864,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
+    {"name": "NVIDIA RTX 5070 Ti",       "vram_gb": 16,  "bandwidth_gbps": 896,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     {"name": "NVIDIA RTX 5070",          "vram_gb": 12,  "bandwidth_gbps": 672,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
-    {"name": "NVIDIA RTX 5060 Ti 16GB",  "vram_gb": 16,  "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
+    {"name": "NVIDIA RTX 5060 Ti 16GB",  "vram_gb": 16,  "bandwidth_gbps": 448,  "si": "GB206", "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     {"name": "NVIDIA RTX 5060 Ti",       "vram_gb": 8,   "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
-    {"name": "NVIDIA RTX 5060",          "vram_gb": 8,   "bandwidth_gbps": 288,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
+    {"name": "NVIDIA RTX 5060",          "vram_gb": 8,   "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     # ── NVIDIA RTX 40 (Ada Lovelace, GDDR6X) ─────────────────────────────────
     {"name": "NVIDIA RTX 4090",          "vram_gb": 24,  "bandwidth_gbps": 1008, "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     {"name": "NVIDIA RTX 4080 Super",    "vram_gb": 16,  "bandwidth_gbps": 736,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
@@ -396,34 +637,33 @@ GPUS: list[dict] = [
     {"name": "NVIDIA RTX 4070 Ti",       "vram_gb": 12,  "bandwidth_gbps": 504,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     {"name": "NVIDIA RTX 4070 Super",    "vram_gb": 12,  "bandwidth_gbps": 504,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     {"name": "NVIDIA RTX 4070",          "vram_gb": 12,  "bandwidth_gbps": 504,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
-    {"name": "NVIDIA RTX 4060 Ti 16GB",  "vram_gb": 16,  "bandwidth_gbps": 288,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
+    {"name": "NVIDIA RTX 4060 Ti 16GB",  "vram_gb": 16,  "bandwidth_gbps": 288,  "si": "AD106", "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     {"name": "NVIDIA RTX 4060 Ti",       "vram_gb": 8,   "bandwidth_gbps": 288,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     {"name": "NVIDIA RTX 4060",          "vram_gb": 8,   "bandwidth_gbps": 272,  "hw_type": "nvidia", "category": "NVIDIA RTX 40"},
     # ── NVIDIA RTX 30 (Ampere, GDDR6X) ───────────────────────────────────────
     {"name": "NVIDIA RTX 3090 Ti",       "vram_gb": 24,  "bandwidth_gbps": 1008, "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3090",          "vram_gb": 24,  "bandwidth_gbps": 936,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3080 Ti",       "vram_gb": 12,  "bandwidth_gbps": 912,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
-    {"name": "NVIDIA RTX 3080 12GB",     "vram_gb": 12,  "bandwidth_gbps": 912,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
+    {"name": "NVIDIA RTX 3080 12GB",     "vram_gb": 12,  "bandwidth_gbps": 912,  "si": "GA102-3080", "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3080",          "vram_gb": 10,  "bandwidth_gbps": 760,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3070 Ti",       "vram_gb": 8,   "bandwidth_gbps": 608,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 3070",          "vram_gb": 8,   "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
-    {"name": "NVIDIA RTX 2080 Ti",       "vram_gb": 11,  "bandwidth_gbps": 616,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
+    {"name": "NVIDIA RTX 2080 Ti",       "vram_gb": 11,  "bandwidth_gbps": 616,  "hw_type": "nvidia", "category": "NVIDIA RTX 20"},
     # ── NVIDIA Data Center (Blackwell) ───────────────────────────────────────
     # GB200 NVL2: 2×B200 on NVLink, 384 GB HBM3e, 16 TB/s aggregate bandwidth
     # B300 SXM (Blackwell Ultra, 2025): 288 GB HBM3e, 8 TB/s — refreshed B200
     # B200 SXM: 192 GB HBM3e, 8 TB/s | B200 PCIe: 192 GB HBM3e, 8 TB/s (lower TDP)
-    {"name": "NVIDIA GB200 NVL2",        "vram_gb": 384, "bandwidth_gbps": 16000, "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    {"name": "NVIDIA B200 SXM (GB200)",        "vram_gb": 192, "bandwidth_gbps": 8000, "si": "B200", "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     {"name": "NVIDIA B300 SXM",          "vram_gb": 288, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     {"name": "NVIDIA B200 SXM",          "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
-    {"name": "NVIDIA B200 PCIe",         "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     # ── NVIDIA Data Center (Hopper) ──────────────────────────────────────────
     # H200 SXM: 141 GB HBM3e, 4.8 TB/s | H200 PCIe: 141 GB, 3.35 TB/s
     # H100 NVL: 2×H100 PCIe with NVLink bridge, 188 GB HBM3, 7.8 TB/s aggregate
     # GH200 (Grace Hopper Superchip, 144 GB HBM3e variant): 144 GB, 4.9 TB/s HBM
     {"name": "NVIDIA GH200 144GB",       "vram_gb": 144, "bandwidth_gbps": 4900,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H200 SXM",          "vram_gb": 141, "bandwidth_gbps": 4800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
-    {"name": "NVIDIA H200 PCIe",         "vram_gb": 141, "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
-    {"name": "NVIDIA H100 NVL",          "vram_gb": 188, "bandwidth_gbps": 7800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H200 PCIe",         "vram_gb": 141, "bandwidth_gbps": 4800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
+    {"name": "NVIDIA H100 NVL",          "vram_gb": 94, "bandwidth_gbps": 3938,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H100 SXM",          "vram_gb": 80,  "bandwidth_gbps": 3350,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H100 PCIe",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     # ── NVIDIA Data Center (Ada / Ampere) ────────────────────────────────────
@@ -436,8 +676,8 @@ GPUS: list[dict] = [
     {"name": "NVIDIA L40",               "vram_gb": 48,  "bandwidth_gbps": 864,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA L4",                "vram_gb": 24,  "bandwidth_gbps": 300,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA A40",               "vram_gb": 48,  "bandwidth_gbps": 696,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
-    {"name": "NVIDIA A100 80GB",         "vram_gb": 80,  "bandwidth_gbps": 2000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
-    {"name": "NVIDIA A100 40GB",         "vram_gb": 40,  "bandwidth_gbps": 1555,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A100 80GB SXM",         "vram_gb": 80,  "bandwidth_gbps": 2039,  "si": "GA100", "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
+    {"name": "NVIDIA A100 40GB",         "vram_gb": 40,  "bandwidth_gbps": 1555,  "si": "GA100", "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA A10",               "vram_gb": 24,  "bandwidth_gbps": 600,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA V100 32GB",         "vram_gb": 32,  "bandwidth_gbps": 900,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
     {"name": "NVIDIA T4",                "vram_gb": 16,  "bandwidth_gbps": 320,   "hw_type": "nvidia", "category": "NVIDIA Data Center (Ada/Ampere)"},
@@ -458,17 +698,27 @@ GPUS: list[dict] = [
     # ── NVIDIA Professional Workstation ──────────────────────────────────────
     {"name": "NVIDIA RTX 6000 Ada",      "vram_gb": 48,  "bandwidth_gbps": 960,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA RTX 5000 Ada",      "vram_gb": 32,  "bandwidth_gbps": 576,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA A6000 Ada",         "vram_gb": 48,  "bandwidth_gbps": 864,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
-    {"name": "NVIDIA A6000",             "vram_gb": 48,  "bandwidth_gbps": 768,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
+    {"name": "NVIDIA RTX A6000",             "vram_gb": 48,  "bandwidth_gbps": 768,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     # ── Apple Silicon ─────────────────────────────────────────────────────────
     # Unified memory = VRAM; bandwidth from Apple silicon spec pages.
-    # M3 Max: 14-core GPU (300 GB/s) base / 16-core (400 GB/s) high configs.
-    # M3 Ultra (Mac Studio 2025): 2× M3 Max → 819 GB/s, up to 512 GB.
-    # M4 Max: 14-core GPU (410 GB/s) base / 16-core (546 GB/s) high configs.
-    # M5 (MacBook Air, Mar 2026): 153.6 GB/s, up to 32 GB.
-    # M5 Pro (MacBook Pro, Mar 2026): 307 GB/s, up to 64 GB.
-    # M5 Max (MacBook Pro, Mar 2026): 614 GB/s, up to 128 GB (single-tier GPU).
-    # M5 Ultra: not yet announced — expected Mac Studio mid-2026.
+    #
+    # THE RECURRING DEFECT IN THIS BLOCK, now fixed, is assuming a bigger memory
+    # tier implies the higher-bandwidth GPU bin. Apple does not sell them that
+    # way. M3 Max 96 GB shipped ONLY with the 14C-CPU/30C-GPU part (300 GB/s)
+    # while 48 GB is 16C/40C (400 GB/s) — counter-intuitive and correct. Rows
+    # where the tier picks the LOWER bin carry an explicit "si" so gpu_compute()
+    # does not hand them the big die's FLOPS.
+    #
+    # M3 Max: 30-core GPU 300 GB/s / 40-core 400 GB/s. Tiers 36/48/64/96/128.
+    # M3 Ultra (Mac Studio 2025): 2× M3 Max → 819 GB/s. Tiers 96/256/512 —
+    #   there was never a 192 GB M3 Ultra; 192 was the M2 Ultra maximum.
+    # M4 Max: 32-core GPU 410 GB/s / 40-core 546 GB/s. Tiers 36/48/64/128.
+    # M5 (MacBook Air, Mar 2026): 153 GB/s, up to 32 GB.
+    # M5 Pro (MacBook Pro / Mac mini): 307 GB/s, up to 64 GB.
+    # M5 Max: 32-core GPU 460 GB/s (36 GB only) / 40-core 614 GB/s. Tiers
+    #   36/48/64/128 — NOT a single-tier GPU, as this comment used to claim.
+    # M5 Ultra (Mac Studio, Aug 2026): 1.2 TB/s, tiers 96/256/512. See below.
+    # M6 (Mac mini, Aug 2026): first 2 nm chip, 170 GB/s, tiers 16/24/32.
     # ── M1 ──
     {"name": "Apple M1 (8 GB)",          "vram_gb": 8,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
     {"name": "Apple M1 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
@@ -497,61 +747,85 @@ GPUS: list[dict] = [
     {"name": "Apple M3 Pro (18 GB)",     "vram_gb": 18,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
     {"name": "Apple M3 Pro (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Max 14-core GPU: 300 GB/s — MacBook Pro 14" base, MacBook Pro 16" base
-    {"name": "Apple M3 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 300,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 300,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Max 16-core GPU: 400 GB/s — MacBook Pro 16" high, Mac Studio
     {"name": "Apple M3 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
     {"name": "Apple M3 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Ultra: 2× M3 Max (16-core) → 819 GB/s — Mac Studio (2025), up to 512 GB
-    {"name": "Apple M3 Ultra (192 GB)",  "vram_gb": 192, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Ultra (96 GB)",  "vram_gb": 96, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
     {"name": "Apple M3 Ultra (256 GB)",  "vram_gb": 256, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
     {"name": "Apple M3 Ultra (512 GB)",  "vram_gb": 512, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
     # ── M4 ──
     {"name": "Apple M4 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 Pro (24 GB)",     "vram_gb": 24,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 Pro (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
     # M4 Max 14-core GPU: 410 GB/s — MacBook Pro 14" / 16" base tier
-    {"name": "Apple M4 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 410,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 410,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 410,  "si": "M4 Max 32c", "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     # M4 Max 16-core GPU: 546 GB/s — MacBook Pro 16" high, Mac Studio
     {"name": "Apple M4 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     {"name": "Apple M4 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     # ── M5 ──
     # M5 base (MacBook Air, Mar 2026): 153.6 GB/s, up to 32 GB
-    {"name": "Apple M5 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 154,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Pro (MacBook Pro 14"/16", Mar 2026): 307 GB/s, up to 64 GB
     {"name": "Apple M5 Pro (24 GB)",     "vram_gb": 24,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Pro (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Pro (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Max (MacBook Pro 14"/16", Mar 2026): 614 GB/s, up to 128 GB
-    {"name": "Apple M5 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 460,  "si": "M5 Max 32c", "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     {"name": "Apple M5 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    # ── M5 Ultra ── (Mac Studio, announced 2026-08-25; ships 22 Sep 2026)
+    # Quad-die: two dual-die M5 Max joined by next-generation UltraFusion.
+    # 36-core CPU (12 super + 24 performance), up to 80-core GPU with a Neural
+    # Accelerator in every core, 32-core Neural Engine. 1.2 TB/s is the SAME on
+    # both GPU bins (64-core base, 80-core top), so unlike M5 Max the memory
+    # tier does not pick the bandwidth here — but 256 GB and 512 GB require the
+    # 80-core bin, so per this file's convention every tier carries it.
+    # Tiers Apple sells are 96 / 256 / 512 GB. There is NO 128 GB M5 Ultra.
+    # https://www.apple.com/newsroom/2026/08/apple-introduces-m6-and-m5-ultra-for-a-big-leap-in-performance-and-ai-compute/
+    #   ("1.2TB/s of unified memory bandwidth", "up to 512GB of unified memory")
+    {"name": "Apple M5 Ultra (96 GB)",   "vram_gb": 96,  "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Ultra (256 GB)",  "vram_gb": 256, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Ultra (512 GB)",  "vram_gb": 512, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    # ── M6 ── (Mac mini, announced 2026-08-25; ships 22 Sep 2026)
+    # Apple's first 2 nm chip. 12-core CPU (2 super + 4 performance + 6
+    # efficiency), 12-core GPU with a Neural Accelerator in every core, dual
+    # 16-core Neural Engine, 170 GB/s. The GPU is a SINGLE non-configurable bin,
+    # so all three memory tiers share one silicon row. Tiers: 16 / 24 / 32 GB.
+    # M6 has shipped only in the Mac mini — there is no M6 Pro/Max/Ultra yet.
+    # https://www.apple.com/newsroom/2026/08/apple-introduces-m6-and-m5-ultra-for-a-big-leap-in-performance-and-ai-compute/
+    #   ("170GB/s of unified memory bandwidth — a 10 percent increase over M5
+    #     and a 2.5x increase over M1"; 68 × 2.5 = 170 confirms both ends)
+    {"name": "Apple M6 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
     # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
     # ── Apple iPhone (on-device inference via llama.cpp Metal / Core ML) ────────
     # Named by chip, not device. Usable RAM ≈ total minus ~2 GB OS reservation.
     # Only models ≤ ~4 GB VRAM fit on phones — filter enforces this automatically.
     # Bandwidth from Apple silicon spec pages.
-    {"name": "A16 (iPhone 14 Pro / 16e)", "vram_gb": 6,  "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "Apple — iPhone"},
-    {"name": "A17 Pro (iPhone 15 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple — iPhone"},
-    {"name": "A18 Pro (iPhone 16 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 75,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A16 (iPhone 14 Pro / 16e)", "vram_gb": 6,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A17 Pro (iPhone 15 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A18 Pro (iPhone 16 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "Apple — iPhone"},
     # A19 Pro (iPhone 17 Pro, Sep 2025): 12 GB RAM, improved memory bandwidth
-    {"name": "A19 Pro (iPhone 17 Pro)",   "vram_gb": 10, "bandwidth_gbps": 84,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A19 Pro (iPhone 17 Pro)",   "vram_gb": 10, "bandwidth_gbps": 76.8,   "hw_type": "apple",  "category": "Apple — iPhone"},
     # ── AMD RDNA 4 (2025) ─────────────────────────────────────────────────────
     # RX 9070 XT: 16 GB GDDR6, 256-bit, 717 GB/s — RDNA4 flagship mainstream
     # RX 9070:    16 GB GDDR6, 256-bit, 640 GB/s
     # RX 9060 XT: 8/16 GB GDDR6, 128-bit, 384 GB/s — announced, mid-2025
-    {"name": "AMD RX 9070 XT",           "vram_gb": 16,  "bandwidth_gbps": 717,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9070 XT",           "vram_gb": 16,  "bandwidth_gbps": 640,  "hw_type": "amd",    "category": "AMD RDNA 4"},
     {"name": "AMD RX 9070",              "vram_gb": 16,  "bandwidth_gbps": 640,  "hw_type": "amd",    "category": "AMD RDNA 4"},
-    {"name": "AMD RX 9060 XT (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 384,  "hw_type": "amd",    "category": "AMD RDNA 4"},
-    {"name": "AMD RX 9060 XT (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 384,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9060 XT (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 320,  "hw_type": "amd",    "category": "AMD RDNA 4"},
+    {"name": "AMD RX 9060 XT (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 320,  "hw_type": "amd",    "category": "AMD RDNA 4"},
     # ── AMD RDNA 3 ────────────────────────────────────────────────────────────
     {"name": "AMD RX 7900 XTX",          "vram_gb": 24,  "bandwidth_gbps": 960,  "hw_type": "amd",    "category": "AMD RDNA 3"},
     {"name": "AMD RX 7900 XT",           "vram_gb": 20,  "bandwidth_gbps": 800,  "hw_type": "amd",    "category": "AMD RDNA 3"},
@@ -569,59 +843,800 @@ GPUS: list[dict] = [
     # Arc B580: 12 GB GDDR6, 192-bit, 456 GB/s — best value AI card at launch
     # Arc B770: 16 GB GDDR6, 256-bit, 608 GB/s — announced, ships Q2 2025
     # Arc A770: 16 GB GDDR6, 256-bit, 560 GB/s — Alchemist (2022), still relevant
-    {"name": "Intel Arc B770 (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 608,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc B770 (16 GB, unreleased)",   "vram_gb": 16,  "bandwidth_gbps": 608,  "si": "Intel Arc B770 (16 GB)", "hw_type": "intel",  "category": "Intel Arc"},
     {"name": "Intel Arc B580 (12 GB)",   "vram_gb": 12,  "bandwidth_gbps": 456,  "hw_type": "intel",  "category": "Intel Arc"},
     {"name": "Intel Arc A770 (16 GB)",   "vram_gb": 16,  "bandwidth_gbps": 560,  "hw_type": "intel",  "category": "Intel Arc"},
-    {"name": "Intel Arc A770 (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 560,  "hw_type": "intel",  "category": "Intel Arc"},
+    {"name": "Intel Arc A770 (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 512,  "hw_type": "intel",  "category": "Intel Arc"},
     {"name": "Intel Arc A750",           "vram_gb": 8,   "bandwidth_gbps": 512,  "hw_type": "intel",  "category": "Intel Arc"},
     # ── Qualcomm Snapdragon X (Windows ARM laptops, llama.cpp Vulkan) ─────────
     # Bandwidth = LPDDR5X spec; usable RAM ~85% of total (OS overhead).
     # Snapdragon X Elite X1E-84-100: 45/64 GB LPDDR5X, 136 GB/s
     # Snapdragon X Plus X1P-64-100:  32/64 GB LPDDR5X, 120 GB/s
-    {"name": "Snapdragon X Elite (64 GB)","vram_gb": 64, "bandwidth_gbps": 136,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Elite (45 GB)","vram_gb": 45, "bandwidth_gbps": 136,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Plus (64 GB)", "vram_gb": 64, "bandwidth_gbps": 120,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Plus (32 GB)", "vram_gb": 32, "bandwidth_gbps": 120,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (64 GB)","vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (45 GB)","vram_gb": 45, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (64 GB)", "vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (32 GB)", "vram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     # ── CPU Only ─────────────────────────────────────────────────────────────
-    {"name": "CPU only — DDR5 laptop",     "vram_gb": 16,  "bandwidth_gbps": 68,  "hw_type": "cpu",    "category": "CPU Only"},
-    {"name": "CPU only — DDR5 desktop",    "vram_gb": 32,  "bandwidth_gbps": 80,  "hw_type": "cpu",    "category": "CPU Only"},
-    {"name": "CPU only — DDR5 workstation","vram_gb": 128, "bandwidth_gbps": 120, "hw_type": "cpu",    "category": "CPU Only"},
+    {"name": "CPU only — DDR5 laptop",     "vram_gb": 16,  "bandwidth_gbps": 89.6,  "hw_type": "cpu",    "category": "CPU Only"},
+    {"name": "CPU only — DDR5 desktop",    "vram_gb": 32,  "bandwidth_gbps": 96,  "hw_type": "cpu",    "category": "CPU Only"},
+    {"name": "CPU only — DDR5 workstation","vram_gb": 128, "bandwidth_gbps": 153.6, "hw_type": "cpu",    "category": "CPU Only"},
 ]
 
 # Index by name for fast lookup
 GPU_BY_NAME: dict[str, dict] = {g["name"]: g for g in GPUS}
 
 
+# ── Peak compute, per SILICON ────────────────────────────────────────────────
+# A preset is a (silicon, memory tier) pair: `vram_gb` and `bandwidth_gbps`
+# belong to the tier, FLOPS belong to the die. Fourteen Apple M3/M4/M5 Max
+# presets are six dies; the 5060 Ti 16GB/8GB pair is one. Keeping FLOPS here
+# rather than on every preset line means the RTX 4090's figure is written once,
+# so it can be corrected once.
+#
+# fp16_tflops is DENSE FP16/BF16 tensor throughput with FP32 ACCUMULATE — the
+# rate cuBLASLt HGEMM, and therefore vLLM/llama.cpp prefill, actually hits. On
+# every NVIDIA part since Turing the FP32-accumulate rate is HALF the
+# FP16-accumulate rate and NVIDIA publishes both; using the wrong row overstates
+# by exactly 2x. int8_tops is dense INT8 tensor TOPS.
+#
+# EVERY vendor headline in this range is a SPARSE number and often a different
+# dtype. Stripped here:
+#   RTX 50 "AI TOPS"  = FP4 with sparsity  = 16x the real dense FP16 (the
+#                       5090's 3352 against its actual 209.5)
+#   RTX 40 "AI TOPS"  = INT8 with sparsity = 16x FP32
+#   Workstation Ada "Tensor performance" = FP8 with sparsity — halve it
+#   L40S/L40/A40/A10 datasheets print "dense | sparse*" — the UNSTARRED number
+#                       is ALREADY dense; do NOT halve 362.05 or 149.7
+#   Turing (2080 Ti, T4) and Volta (V100) have NO structured sparsity at all
+#
+# APPLE IS DERIVED — Apple has published no GPU FLOPS figure since M2.
+#   M1-M4:  cores x 512 FP16 FLOPS/clk (128 FP32 ALUs per core, FP16 at double
+#           rate; Apple WWDC 2020). M1/M2 use Apple's own published FP32 x2.
+#           This is a scalar-ALU ROOFLINE, not achievable matmul:
+#           arXiv:2606.12765 states the M4 Max fp16 roofline as "~32 TFLOP/s"
+#           (matching exactly) but measures real tiled matmul peaking at 14.8.
+#   M5/M6:  cores x 1024, because M5 adds a Neural Accelerator to every GPU
+#           core. The 1024 is measured, not assumed (tzakharko: 7.4 TFLOPS on
+#           the 5-core A19 at ~1.46 GHz -> 1014 ~= 1024). M5's 1.578 GHz is a
+#           measured sustained clock. M6's 1.709 GHz is INFERRED by inverting
+#           two Apple ratios that agree to 1% ("nearly 30 percent increase in
+#           peak GPU compute for AI compared to M5" -> 1.30 x 16.16 = 21.0;
+#           "more than 8x compared to M1" -> 21.0 / 2.6 = 8.08x). The 21.0 is
+#           solid; never quote 1.709 GHz anywhere as a spec.
+#   iPhone: GPU, NOT the Neural Engine. The ANE is ~8x faster and unreachable
+#           from llama.cpp Metal. If anyone "corrects" these upward with
+#           Apple's marketing TOPS, iPhone figures overstate by ~8x.
+#
+# `None` means no figure could be sourced. It is not a zero and not a licence to
+# interpolate: decode_roofline() drops the compute roof and reports bound
+# "memory?" so the UI can say the ceiling is unknown for that device.
+SILICON: dict[str, dict] = {
+    # -- NVIDIA GeForce RTX 50 (Blackwell) — whitepaper v1.1 App. A Tbl 3 ----------
+    "NVIDIA RTX 5090":                     {"fp16_tflops":   209.5, "int8_tops":     838},
+    "NVIDIA RTX 5080":                     {"fp16_tflops":   112.6, "int8_tops":   450.2},
+    "NVIDIA RTX 5070 Ti":                  {"fp16_tflops":    87.9, "int8_tops":   351.5},
+    "NVIDIA RTX 5070":                     {"fp16_tflops":    61.7, "int8_tops":   246.9},
+    "GB206":                               {"fp16_tflops":    47.4, "int8_tops":   189.8},
+    "NVIDIA RTX 5060 Ti":                  {"fp16_tflops":    47.4, "int8_tops":   189.8},
+    "NVIDIA RTX 5060":                     {"fp16_tflops":    38.4, "int8_tops":   153.5},
+    # -- NVIDIA GeForce RTX 40 (Ada) — whitepaper v2.02 App. A Tbl 2 ---------------
+    "NVIDIA RTX 4090":                     {"fp16_tflops":   165.2, "int8_tops":   660.6},
+    "NVIDIA RTX 4080 Super":               {"fp16_tflops":   104.5, "int8_tops":     418},
+    "NVIDIA RTX 4080":                     {"fp16_tflops":    97.5, "int8_tops":   389.9},
+    "NVIDIA RTX 4070 Ti Super":            {"fp16_tflops":    88.3, "int8_tops":     353},
+    "NVIDIA RTX 4070 Ti":                  {"fp16_tflops":    80.2, "int8_tops":   320.7},
+    "NVIDIA RTX 4070 Super":               {"fp16_tflops":      71, "int8_tops":     284},
+    "NVIDIA RTX 4070":                     {"fp16_tflops":    58.3, "int8_tops":   233.2},
+    "AD106":                               {"fp16_tflops":    44.1, "int8_tops":   176.5},
+    "NVIDIA RTX 4060 Ti":                  {"fp16_tflops":    44.1, "int8_tops":   176.5},
+    "NVIDIA RTX 4060":                     {"fp16_tflops":    30.3, "int8_tops":     121},
+    # -- NVIDIA GeForce RTX 30 (Ampere) — GA102 whitepaper v2 App. A ---------------
+    "NVIDIA RTX 3090 Ti":                  {"fp16_tflops":      80, "int8_tops":     320},
+    "NVIDIA RTX 3090":                     {"fp16_tflops":    71.2, "int8_tops":   284.7},
+    "NVIDIA RTX 3080 Ti":                  {"fp16_tflops":    68.2, "int8_tops":   272.8},
+    "GA102-3080":                          {"fp16_tflops":    61.3, "int8_tops":   245.1},
+    "NVIDIA RTX 3080":                     {"fp16_tflops":    59.5, "int8_tops":   238.1},
+    "NVIDIA RTX 3070 Ti":                  {"fp16_tflops":    43.5, "int8_tops":     174},
+    "NVIDIA RTX 3070":                     {"fp16_tflops":    40.6, "int8_tops":   162.6},
+    # -- NVIDIA GeForce RTX 20 (Turing) — no structured sparsity at all ------------
+    "NVIDIA RTX 2080 Ti":                  {"fp16_tflops":    56.9, "int8_tops":   227.7},
+    # -- NVIDIA data center — Blackwell --------------------------------------------
+    "B200":                                {"fp16_tflops":    2500, "int8_tops":    5000},
+    "NVIDIA B300 SXM":                     {"fp16_tflops":    2500, "int8_tops":    None},
+    "NVIDIA B200 SXM":                     {"fp16_tflops":    2500, "int8_tops":    5000},
+    # -- NVIDIA data center — Hopper -----------------------------------------------
+    "NVIDIA GH200":                        {"fp16_tflops":     990, "int8_tops":    1979},
+    "NVIDIA H200 SXM":                     {"fp16_tflops":   989.5, "int8_tops":    1979},
+    "NVIDIA H200 PCIe":                    {"fp16_tflops":   835.5, "int8_tops":  1670.5},
+    "NVIDIA H100 NVL":                     {"fp16_tflops":   835.5, "int8_tops":    1671},
+    "NVIDIA H100 SXM":                     {"fp16_tflops":   989.5, "int8_tops":    1979},
+    "NVIDIA H100 PCIe":                    {"fp16_tflops":   756.5, "int8_tops":    1513},
+    # -- NVIDIA data center — Ada / Ampere -----------------------------------------
+    "NVIDIA L40S":                         {"fp16_tflops":  362.05, "int8_tops":     733},
+    "NVIDIA L40":                          {"fp16_tflops":  181.05, "int8_tops":     362},
+    "NVIDIA L4":                           {"fp16_tflops":     121, "int8_tops":   242.5},
+    "NVIDIA A40":                          {"fp16_tflops":   149.7, "int8_tops":   299.3},
+    "GA100":                               {"fp16_tflops":     312, "int8_tops":     624},
+    "NVIDIA A10":                          {"fp16_tflops":     125, "int8_tops":     250},
+    "NVIDIA V100":                         {"fp16_tflops":     125, "int8_tops":    None},
+    "NVIDIA T4":                           {"fp16_tflops":      65, "int8_tops":     130},
+    # -- AMD Instinct (CDNA) -------------------------------------------------------
+    "AMD Instinct MI355X":                 {"fp16_tflops":    2500, "int8_tops":    5000},
+    "AMD Instinct MI325X":                 {"fp16_tflops":    1300, "int8_tops":    2600},
+    "AMD Instinct MI300X":                 {"fp16_tflops":    1300, "int8_tops":    2600},
+    "AMD Instinct MI250X":                 {"fp16_tflops":     383, "int8_tops":     383},
+    # -- Intel Gaudi ---------------------------------------------------------------
+    "Intel Gaudi 3":                       {"fp16_tflops":    1678, "int8_tops":    None},
+    "Intel Gaudi 2":                       {"fp16_tflops":     432, "int8_tops":    None},
+    # -- NVIDIA professional workstation -------------------------------------------
+    "NVIDIA RTX 6000 Ada":                 {"fp16_tflops":   182.2, "int8_tops":   728.5},
+    "NVIDIA RTX 5000 Ada":                 {"fp16_tflops":   130.6, "int8_tops":   522.2},
+    "NVIDIA RTX A6000":                    {"fp16_tflops":    77.4, "int8_tops":   309.7},
+    # -- Apple M1 — cores x 512 FP16 FLOPS/clk (128 FP32 ALUs, FP16 2x) ------------
+    "Apple M1":                            {"fp16_tflops":     5.2, "int8_tops":    None},
+    "Apple M1 Pro":                        {"fp16_tflops":    10.4, "int8_tops":    None},
+    "Apple M1 Max":                        {"fp16_tflops":    20.8, "int8_tops":    None},
+    "Apple M1 Ultra":                      {"fp16_tflops":      42, "int8_tops":    None},
+    # -- Apple M2 ------------------------------------------------------------------
+    "Apple M2":                            {"fp16_tflops":     7.2, "int8_tops":    None},
+    "Apple M2 Pro":                        {"fp16_tflops":    13.6, "int8_tops":    None},
+    "Apple M2 Max":                        {"fp16_tflops":    27.2, "int8_tops":    None},
+    "Apple M2 Ultra":                      {"fp16_tflops":    54.4, "int8_tops":    None},
+    # -- Apple M3 ------------------------------------------------------------------
+    "Apple M3":                            {"fp16_tflops":     7.1, "int8_tops":    None},
+    "Apple M3 Pro":                        {"fp16_tflops":    12.7, "int8_tops":    None},
+    "M3 Max 30c":                          {"fp16_tflops":    21.2, "int8_tops":    None},
+    "Apple M3 Max":                        {"fp16_tflops":    28.3, "int8_tops":    None},
+    "Apple M3 Ultra":                      {"fp16_tflops":    56.5, "int8_tops":    None},
+    # -- Apple M4 ------------------------------------------------------------------
+    "Apple M4":                            {"fp16_tflops":     8.1, "int8_tops":    None},
+    "Apple M4 Pro":                        {"fp16_tflops":    16.2, "int8_tops":    None},
+    "M4 Max 32c":                          {"fp16_tflops":    25.9, "int8_tops":    None},
+    "Apple M4 Max":                        {"fp16_tflops":    32.3, "int8_tops":    None},
+    # -- Apple M5 — cores x 1024 (Neural Accelerator per core), 1.578 GHz ----------
+    "Apple M5":                            {"fp16_tflops":    16.2, "int8_tops":    None},
+    "Apple M5 Pro":                        {"fp16_tflops":    32.3, "int8_tops":    None},
+    "M5 Max 32c":                          {"fp16_tflops":    51.7, "int8_tops":    None},
+    "Apple M5 Max":                        {"fp16_tflops":    64.6, "int8_tops":    None},
+    "M5 Ultra 80c":                        {"fp16_tflops":   129.3, "int8_tops":    None},
+    # -- Apple M6 — 12 cores x 1024 x 1.709 GHz (clock INFERRED, see below) --------
+    "Apple M6":                            {"fp16_tflops":      21, "int8_tops":    None},
+    # -- Apple A-series — GPU, NOT the Neural Engine -------------------------------
+    "A16 (iPhone 14 Pro / 16e)":           {"fp16_tflops":    1.79, "int8_tops":    None},
+    "A17 Pro (iPhone 15 Pro)":             {"fp16_tflops":    2.06, "int8_tops":    None},
+    "A18 Pro (iPhone 16 Pro)":             {"fp16_tflops":    2.26, "int8_tops":    None},
+    "A19 Pro (iPhone 17 Pro)":             {"fp16_tflops":    4.92, "int8_tops":    None},
+    # -- AMD Radeon RDNA 4 — AMD publishes the DENSE figure first ------------------
+    "AMD RX 9070 XT":                      {"fp16_tflops":     195, "int8_tops":     389},
+    "AMD RX 9070":                         {"fp16_tflops":     145, "int8_tops":     289},
+    "AMD RX 9060 XT":                      {"fp16_tflops":     103, "int8_tops":     205},
+    # -- AMD Radeon RDNA 3 — WMMA; AMD lists INT8 equal to FP16 here ---------------
+    "AMD RX 7900 XTX":                     {"fp16_tflops":     123, "int8_tops":     123},
+    "AMD RX 7900 XT":                      {"fp16_tflops":     103, "int8_tops":     103},
+    "AMD RX 7900 GRE":                     {"fp16_tflops":      92, "int8_tops":      92},
+    "AMD RX 7800 XT":                      {"fp16_tflops":    74.6, "int8_tops":    74.6},
+    "AMD RX 7700 XT":                      {"fp16_tflops":    70.3, "int8_tops":    70.3},
+    "AMD RX 7600 XT":                      {"fp16_tflops":    45.1, "int8_tops":    45.1},
+    "AMD RX 7600":                         {"fp16_tflops":    43.5, "int8_tops":    43.5},
+    # -- AMD Radeon RDNA 2 — no matrix cores, so FP16 is packed-FP32 rate ----------
+    "AMD RX 6900 XT":                      {"fp16_tflops":   46.08, "int8_tops":    None},
+    "AMD RX 6800 XT":                      {"fp16_tflops":   41.47, "int8_tops":    None},
+    "AMD RX 6800":                         {"fp16_tflops":   32.33, "int8_tops":    None},
+    "AMD RX 6700 XT":                      {"fp16_tflops":   26.43, "int8_tops":    None},
+    # -- Intel Arc (Xe / Xe2 XMX) --------------------------------------------------
+    "Intel Arc B770 (16 GB)":              {"fp16_tflops":   186.8, "int8_tops":   373.6},
+    "Intel Arc B580":                      {"fp16_tflops":   116.5, "int8_tops":     233},
+    "Intel Arc A770":                      {"fp16_tflops":     131, "int8_tops":     262},
+    "Intel Arc A750":                      {"fp16_tflops":   114.5, "int8_tops":     229},
+    # -- Qualcomm Snapdragon X — Adreno GPU ----------------------------------------
+    "Snapdragon X Elite":                  {"fp16_tflops":     9.2, "int8_tops":    None},
+    "Snapdragon X Plus":                   {"fp16_tflops":     7.6, "int8_tops":    None},
+    # -- x86 CPU — peak AVX-512/AMX; the LOWBIT roof is what actually binds --------
+    "CPU only — DDR5 laptop":              {"fp16_tflops":    2.05, "int8_tops":     4.1},
+    "CPU only — DDR5 desktop":             {"fp16_tflops":    9.01, "int8_tops":      18},
+    "CPU only — DDR5 workstation":         {"fp16_tflops":    73.7, "int8_tops":   147.5},
+}
+
+# Presets whose memory tier does NOT pick the silicon carry an explicit "si".
+# Everything else resolves by stripping the memory parenthetical, which is true
+# for 133 of 140 rows.
+_MEM_SUFFIX_RE = re.compile(r"\s*\((?:\d+(?:\.\d+)?\s*GB)(?:,[^)]*)?\)$|\s+\d+GB$")
+
+
+def _silicon_key(gpu: dict) -> str:
+    """Silicon a preset runs on.
+
+    The explicit "si" overrides are real hardware facts, not naming noise: Apple
+    sells the SAME "M5 Max" name as a 32-core / 460 GB/s bin at 36 GB and a
+    40-core / 614 GB/s bin at 48 GB and up, so the memory tier IS the bin, and a
+    name-only rule would hand the 36 GB machine 25% more FLOPS than it has.
+    test_every_preset_resolves_to_a_silicon_row fails loudly on a preset that
+    matches neither path.
+    """
+    if "si" in gpu:
+        return gpu["si"]
+    return _MEM_SUFFIX_RE.sub("", gpu["name"]).strip()
+
+
+def gpu_compute(gpu: dict | None) -> tuple[float | None, float | None]:
+    """(fp16_tflops, int8_tops) for a preset, or (None, None) if unsourced.
+
+    int8_tops is CARRIED AND READ BY NOTHING today. It is here because the
+    research is done and a prefill / time-to-first-token model needs it — not as
+    dead weight to be silently repurposed as a decode figure.
+    """
+    if not gpu:
+        return None, None
+    si = SILICON.get(_silicon_key(gpu))
+    if si is None:
+        return None, None            # bandwidth-only; NEVER interpolate a value
+    return si.get("fp16_tflops"), si.get("int8_tops")
+
+
+def tflops_for_gpu(gpu_name: str) -> float | None:
+    """fp16_tflops for a preset NAME, for the two render paths' hw-meta dicts."""
+    return gpu_compute(GPU_BY_NAME.get(gpu_name))[0]
+
+
 # ── Calculation helpers ───────────────────────────────────────────────────────
-def calc_vram_gb(params_b: float, quant: str) -> float:
-    """VRAM for the model WEIGHTS plus fixed overhead — excludes the KV cache.
 
-    Context length does not enter this calculation. See _OVERHEAD.
+# ── Attention geometry ───────────────────────────────────────────────────────
+# The KV cache is the term this file used to assert was free, and it is the
+# single largest error the Run Local tab shipped: a Qwen-32B at Q2 and 128k
+# context charted 67.9 tok/s against 9.3 measured, and Llama 3.1 8B at Q4 was
+# told to fit a 12 GB card at its advertised 128k context when it needs ~21 GiB.
+#
+# Modelling it needs n_layers / n_kv_heads / head_dim, which aa_local_models.csv
+# does not carry and the AA leaderboard payload does not publish. Two options
+# were on the table and BOTH have a failure mode this codebase has paid for
+# before: refusing to price context leaves the tab asserting the cache is free
+# (an error up to +1171%), and a silent fitted estimate is the hand-set-constant
+# pattern. So neither, exactly: the values below are read from each model's own
+# published config.json — data/pending_models.py's doctrine is that a
+# MEASUREMENT may never be invented but a published architectural FACT may be
+# curated — the fitted estimator runs only for models not in this table, and
+# every row carries a kv_source column saying which it got.
+#
+# Formulas are DeepSeek-V2 (arXiv:2405.04434) Table 1, "Comparison of the KV
+# cache per token among different attention mechanisms".
+#
+# Matched exact-then-longest-prefix on a case-folded name, so "Qwen 2.5 7B
+# Instruct" finds "qwen 2.5 7b".
+KV_ARCH: dict[str, dict] = {
+    # ── dense GQA ──
+    "llama 3.2 1b":        {"n_layers": 16, "n_kv_heads":  8, "head_dim":  64},
+    "llama 3.2 3b":        {"n_layers": 28, "n_kv_heads":  8, "head_dim": 128},
+    "llama 3.1 8b":        {"n_layers": 32, "n_kv_heads":  8, "head_dim": 128},
+    "llama 3.3 70b":       {"n_layers": 80, "n_kv_heads":  8, "head_dim": 128},
+    "llama 3.1 70b":       {"n_layers": 80, "n_kv_heads":  8, "head_dim": 128},
+    # 16 KV heads, NOT the 8 in the Llama 3 paper's Table 3 (arXiv:2407.21783).
+    # HF mirrors split 4-vs-4. Settled against the released BF16 weights:
+    # model.layers.0.self_attn.k_proj.weight is [2048, 16384] and 2048/128 = 16.
+    # The weights win. This DOUBLES its cache to 1008 KiB/token. Do not "fix"
+    # this back to 8 on the strength of the paper.
+    "llama 3.1 405b":      {"n_layers": 126, "n_kv_heads": 16, "head_dim": 128},
+    "qwen 2.5 0.5b":       {"n_layers": 24, "n_kv_heads":  2, "head_dim":  64},
+    "qwen 2.5 1.5b":       {"n_layers": 28, "n_kv_heads":  2, "head_dim": 128},
+    "qwen 2.5 3b":         {"n_layers": 36, "n_kv_heads":  2, "head_dim": 128},
+    "qwen 2.5 7b":         {"n_layers": 28, "n_kv_heads":  4, "head_dim": 128},
+    "qwen 2.5 14b":        {"n_layers": 48, "n_kv_heads":  8, "head_dim": 128},
+    "qwen 2.5 32b":        {"n_layers": 64, "n_kv_heads":  8, "head_dim": 128},
+    "qwen 2.5 72b":        {"n_layers": 80, "n_kv_heads":  8, "head_dim": 128},
+    "qwq 32b":             {"n_layers": 64, "n_kv_heads":  8, "head_dim": 128},
+    "qwen3 4b":            {"n_layers": 36, "n_kv_heads":  8, "head_dim": 128},
+    "qwen3 8b":            {"n_layers": 36, "n_kv_heads":  8, "head_dim": 128},
+    "qwen3 14b":           {"n_layers": 40, "n_kv_heads":  8, "head_dim": 128},
+    "qwen3 32b":           {"n_layers": 64, "n_kv_heads":  8, "head_dim": 128},
+    "mistral 7b":          {"n_layers": 32, "n_kv_heads":  8, "head_dim": 128},
+    "mistral nemo 12b":    {"n_layers": 40, "n_kv_heads":  8, "head_dim": 128},
+    "mistral small 3":     {"n_layers": 40, "n_kv_heads":  8, "head_dim": 128},
+    "phi-4 14b":           {"n_layers": 40, "n_kv_heads": 10, "head_dim": 128},
+    "phi-3 medium 14b":    {"n_layers": 40, "n_kv_heads": 10, "head_dim": 128},
+    # Gemma runs head_dim 256 at the small end — one of only two families that
+    # break the head_dim=128 rule, and it doubles the cache.
+    "gemma 2 9b":          {"n_layers": 42, "n_kv_heads":  8, "head_dim": 256},
+    "gemma 2 27b":         {"n_layers": 46, "n_kv_heads": 16, "head_dim": 128},
+    "gemma 3 4b":          {"n_layers": 34, "n_kv_heads":  4, "head_dim": 256},
+    "gemma 3 12b":         {"n_layers": 48, "n_kv_heads":  8, "head_dim": 256},
+
+    # ── hybrid local/global ──
+    # These interleave sliding-window layers with full-attention ones, and the
+    # window layers stop growing at `window` tokens. Ignoring that overstates
+    # Gemma 3 27B at 128k by 6.0x and Llama 4 Scout at 1M by 3.9x.
+    "gemma 3 27b":  {"n_layers": 62, "n_kv_heads": 16, "head_dim": 128,
+                     "global_layers": 10, "window": 1024},   # 5 local : 1 global
+    "gpt-oss-120b": {"n_layers": 36, "n_kv_heads":  8, "head_dim":  64,
+                     "global_layers": 18, "window":  128},
+    "gpt-oss-20b":  {"n_layers": 24, "n_kv_heads":  8, "head_dim":  64,
+                     "global_layers": 12, "window":  128},
+
+    # ── MoE (GQA attention) ──
+    "mixtral 8x7b":     {"n_layers": 32, "n_kv_heads": 8, "head_dim": 128},
+    "mixtral 8x22b":    {"n_layers": 56, "n_kv_heads": 8, "head_dim": 128},
+    "qwen3 30b-a3b":    {"n_layers": 48, "n_kv_heads": 4, "head_dim": 128},
+    "qwen3 235b-a22b":  {"n_layers": 94, "n_kv_heads": 4, "head_dim": 128},
+    "llama 4 scout":    {"n_layers": 48, "n_kv_heads": 8, "head_dim": 128},
+
+    # ── MLA ── ONE latent cached, no factor of 2. Verified against the weights:
+    # DeepSeek-V3's kv_a_proj_with_mqa.weight is [576, 7168] and
+    # 576 = kv_lora_rank(512) + qk_rope_head_dim(64). DeepSeek V3 caches
+    # 68.6 KB/token, barely half of Llama-3.1-8B's 128 KB despite being 671B.
+    # Routing it through the GQA estimator is +232% wrong.
+    "deepseek v3": {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
+                    "qk_rope_head_dim": 64},
+    "deepseek r1": {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
+                    "qk_rope_head_dim": 64},
+    "kimi k2":     {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
+                    "qk_rope_head_dim": 64},
+}
+
+# ── The estimator: fallback only, for models not in KV_ARCH ──────────────────
+# Fitted over the 33 published architectures above and their siblings.
+# IN-SAMPLE accuracy on that table: mean |error| 29.6%, median 15.0%, p90 55.6%,
+# max 171% (Qwen 2.5 7B, which uses 4 KV heads at 7.6B where its peers use 8).
+# Signed residuals p10 -46%, p90 +50%. In-sample means out-of-sample is worse,
+# and the sample carries no Cohere, Yi, Falcon, InternLM, GLM, MiniMax,
+# Nemotron or Granite, and no SSM hybrid at all (Jamba's KV does not follow this
+# formula in any form).
+#
+# DO NOT SURFACE THE ESTIMATED n_layers / n_kv_heads AS FACTS. The fit works
+# partly through compensating errors: on Qwen3 235B-A22B it gets layers 46% too
+# low and KV width 100% too high and the product lands within 8.5%. Show the KV
+# bytes per token; never show the shape.
+LAYERS_A, LAYERS_B = 21.6, 0.281        # n_layers = A * P_eff ** B
+LAYERS_MIN, LAYERS_MAX = 16, 128        # observed range, Llama 3.2 1B .. 405B
+EST_HEAD_DIM = 128                      # exactly 128 in 26 of 33 architectures
+# n_kv_heads is a STEP function of size: the observed values are powers of two
+# (8 in 21 of 33), never a smooth curve. A grid search preferring edges at
+# 2/8/100 was rejected as fitting noise — it puts Llama 3.1 8B, Mistral 7B and
+# Qwen3 8B, all truly 8, into the 4-head band.
+KV_HEAD_BANDS = ((2.0, 2), (4.0, 4), (200.0, 8), (float("inf"), 16))
+
+
+_KV_NAME_NOISE = re.compile(
+    r"\((?:reasoning|non-reasoning|thinking|low|medium|high|xhigh|max|max effort|"
+    r"high effort|max_effort)[^)]*\)|\b(?:instruct|chat|it|preview|base)\b",
+    re.I,
+)
+
+
+def _kv_normalise(name: str) -> str:
+    """Fold a catalogue row's display name toward a KV_ARCH key.
+
+    The scrape names a model by product, not by architecture: the same weights
+    appear as "gpt-oss-120b (high)" and "gpt-oss-120b (low)", and a finetune
+    carries its base model's attention config unchanged ("Hermes 4 -
+    Llama-3.1 70B" is Llama 3.1 70B's 80/8/128). Effort settings and
+    instruct/chat suffixes never change n_layers, n_kv_heads or head_dim, so
+    folding them is a fact, not a guess.
     """
-    return params_b * QUANT_BYTES[quant] * _OVERHEAD
+    key = _KV_NAME_NOISE.sub(" ", str(name).lower())
+    key = key.replace("-", " ").replace("_", " ")
+    return re.sub(r"\s+", " ", key).strip()
 
 
-def calc_speed_tps(
-    active_b: float,
-    quant: str,
-    bandwidth_gbps: float,
-    hw_type: str,
-) -> float:
+# KV_ARCH keys folded through the same normaliser as the catalogue names, so a
+# key written "gpt-oss-120b" still matches a row that arrives as "gpt-oss-120b
+# (high)". Built once at import; KV_ARCH stays the human-readable source.
+_KV_ARCH_NORM: dict[str, dict] = {}
+
+
+def _kv_arch_lookup(name: str) -> dict | None:
+    """Published geometry for a catalogue row: exact, then prefix, then contains.
+
+    The `contains` pass is what catches finetunes, which are most of what the
+    leaderboard carries above 100B. It is deliberately last and takes the
+    LONGEST match, so "llama 3.1 405b" wins over "llama 3.1 8b" inside
+    "Hermes 4 - Llama-3.1 405B" and a short key can never shadow a long one.
+    A row that matches nothing falls to the estimator and is labelled.
     """
-    Estimated tokens per second (memory-bandwidth-bound inference).
+    key = _kv_normalise(name)
+    if not key:
+        return None
+    hit = _KV_ARCH_NORM.get(key)
+    if hit is not None:
+        return hit
+    for pick in (lambda k: key.startswith(k), lambda k: k in key):
+        cands = [k for k in _KV_ARCH_NORM if pick(k)]
+        if cands:
+            return _KV_ARCH_NORM[max(cands, key=len)]
+    return None
 
-    Uses ACTIVE parameter count for MoE, on the assumption that only the routed
-    experts are read per token. That holds for the steady-state decode of a
-    resident model; it does NOT hold when the full weight set will not fit and
-    experts are paged, which is exactly the case the Run Local tab is about.
-    So MoE speed here is an upper bound, and the gap widens as a model
-    approaches the VRAM limit. Unvalidated — see the _EFF provenance note.
+
+_KV_ARCH_NORM.update({_kv_normalise(k): v for k, v in KV_ARCH.items()})
+
+
+def estimate_attention_shape(params_b: float, active_b: float | None = None,
+                             is_moe: bool = False) -> tuple[int, int, int]:
+    """Estimated (n_layers, n_kv_heads, head_dim). ESTIMATE, NOT MEASUREMENT.
+
+    P_eff uses ACTIVE params for MoE. The KV cache is a function of the
+    attention config alone — expert count and routing top-k do not enter it —
+    but MoE models are shallow relative to their total size (DeepSeek V3 is 671B
+    across 61 layers; Llama 3.1 405B is 405B across 126), so feeding total
+    params to the depth law over-predicts KV by +353% on average and +814% at
+    worst (gpt-oss-120b: 658 KB/token predicted against 72 real). Active params
+    gives +31% mean. Measured on 7 GQA MoE models — a small sample, and a deep
+    MoE would break it, but the direction is not in doubt.
     """
-    active_gb = active_b * QUANT_BYTES[quant] * _OVERHEAD
-    if active_gb < 0.01:
+    p_eff = active_b if (is_moe and active_b) else params_b
+    p_eff = max(float(p_eff or 0.0), 0.1)
+    n_layers = int(min(max(round(LAYERS_A * p_eff ** LAYERS_B), LAYERS_MIN),
+                       LAYERS_MAX))
+    n_kv_heads = next(h for edge, h in KV_HEAD_BANDS if p_eff < edge)
+    return n_layers, n_kv_heads, EST_HEAD_DIM
+
+
+def kv_cache_bytes(arch: dict, seq_len: int, kv_quant: str = DEFAULT_KV_QUANT,
+                   batch: int = 1) -> float:
+    """Resident KV cache in bytes for `batch` sequences of `seq_len` tokens.
+
+    Three shapes, because three real architectures need three formulas:
+      MHA / GQA / MQA : 2 * n_layers * n_kv_heads * head_dim   (K and V)
+      MLA             : n_layers * (kv_lora_rank + qk_rope)    (ONE latent)
+      hybrid          : global layers pay seq_len, window layers stop at `window`
+    """
+    b = KV_BYTES_PER_ELEM[kv_quant]
+    seq_len = max(int(seq_len), 0)
+    if arch.get("attn") == "mla":
+        return (arch["n_layers"] * (arch["kv_lora_rank"] + arch["qk_rope_head_dim"])
+                * seq_len * batch * b)
+    width = 2 * arch["n_kv_heads"] * arch["head_dim"] * b
+    g = arch.get("global_layers")
+    if g is not None:
+        local = arch["n_layers"] - g
+        return width * batch * (g * seq_len + local * min(seq_len, arch["window"]))
+    return width * arch["n_layers"] * seq_len * batch
+
+
+def resolve_attention(name: str, params_b: float, active_b: float | None = None,
+                      is_moe: bool = False) -> tuple[dict, str]:
+    """(geometry, source) where source is "config" or "estimated"."""
+    hit = _kv_arch_lookup(name)
+    if hit is not None:
+        return hit, "config"
+    L, H, D = estimate_attention_shape(params_b, active_b, is_moe)
+    return {"n_layers": L, "n_kv_heads": H, "head_dim": D}, "estimated"
+
+
+def kv_bytes_per_token(name: str, params_b: float, active_b: float | None = None,
+                       is_moe: bool = False, ctx_tokens: int = 1,
+                       kv_quant: str = DEFAULT_KV_QUANT) -> tuple[float, str]:
+    """Average KV bytes per token at this context, and where the shape came from.
+
+    Averaged rather than marginal so that hybrid models — whose window layers
+    stop growing — are priced correctly when this is multiplied back by
+    ctx_tokens. For a pure GQA/MLA model the two are identical.
+    """
+    arch, src = resolve_attention(name, params_b, active_b, is_moe)
+    n = max(int(ctx_tokens), 1)
+    return kv_cache_bytes(arch, n, kv_quant) / n, src
+
+
+# ── VRAM ─────────────────────────────────────────────────────────────────────
+class VramBreakdown(NamedTuple):
+    total_gib: float
+    weights_gib: float
+    kv_gib: float
+    overhead_gib: float
+    kv_bytes_tok: float
+    kv_source: str
+    ctx_used: int
+
+
+def vram_breakdown(params_b: float, quant: str, ctx_tokens: int = 0, *,
+                   name: str = "", active_b: float | None = None,
+                   is_moe: bool = False, max_context_tokens: int | None = None,
+                   gpu_count: int = 1,
+                   kv_quant: str = DEFAULT_KV_QUANT) -> VramBreakdown:
+    """Weights + KV cache + runtime overhead, in GiB, itemised.
+
+    UNITS ARE GiB (2**30 bytes), which is what a vendor means by "24 GB" on the
+    box and therefore what GPUS[...]["vram_gb"] means. The old body computed
+    params_b * bytes = DECIMAL GB (10**9) and compared it against a GiB card — a
+    7.4% error, in the safe direction, but the KV term has to compose with it so
+    both are GiB now. decode_roofline() stays DECIMAL GB, because bandwidth is
+    quoted in decimal GB/s. Do not unify them.
+
+    KV is sized at min(ctx_tokens, the model's own context_k) — a 4k model
+    cannot run 32k, and pricing it as though it could made every small-context
+    model look artificially expensive at the long settings — and at
+    DEFAULT_KV_QUANT (FP16), which is what every runtime uses unless the reader
+    passes `-ctk`. `-ctk q8_0` or vLLM's FP8 KV halve the term and make this
+    pessimistic at long context by up to 2x.
+    """
+    weights = params_b * QUANT_BYTES[quant] * 1e9 / GIB
+    ctx = max(int(ctx_tokens or 0), 0)
+    if max_context_tokens:
+        ctx = min(ctx, int(max_context_tokens))
+    kv_tok, src = (0.0, "none")
+    kv_gib = 0.0
+    if ctx > 0:
+        kv_tok, src = kv_bytes_per_token(name, params_b, active_b, is_moe, ctx,
+                                         kv_quant)
+        kv_gib = kv_tok * ctx / GIB
+    overhead = max(int(gpu_count), 1) * CUDA_CTX_GIB + WORKSPACE_GIB
+    return VramBreakdown(weights + kv_gib + overhead, weights, kv_gib, overhead,
+                         kv_tok, src, ctx)
+
+
+def calc_vram_gb(params_b: float, quant: str, ctx_tokens: int = 0, **kw) -> float:
+    """Total VRAM in GiB: weights + KV cache + runtime overhead.
+
+    WHAT CHANGED. This used to be `params_b * QUANT_BYTES[quant] * 1.18` with no
+    context parameter at all, verified identical to the cent across all 14
+    distinct context_k values in the catalogue. The old comment on _OVERHEAD
+    said so plainly and said the honest move was to stop implying otherwise.
+    Doing better did not need a scrape: it needed a curated table of published
+    config.json values (KV_ARCH), a fitted fallback, and a kv_source column so
+    the reader can tell which one they are looking at.
+
+    The size of what was missing: Llama 3.1 8B at Q4 with its advertised 128k
+    context needs ~21 GiB, not 4.74. The tab told a 12 GB RTX 4070 owner that
+    model fit at its stated context. It fits at about 20k tokens.
+
+    ctx_tokens defaults to 0, so the two-argument form still answers the
+    weights-plus-overhead question it used to answer.
+    """
+    return vram_breakdown(params_b, quant, ctx_tokens, **kw).total_gib
+
+
+# ── Speed: a roofline, not a division ────────────────────────────────────────
+class DecodeEstimate(NamedTuple):
+    tps: float
+    bound: str            # "memory" | "compute" | "dequant" | "memory?"
+    t_weights: float
+    t_kv: float
+    t_compute: float
+
+
+def _dequant_seconds(active_b: float, quant: str, hw_type: str) -> float:
+    """Seconds per step for a dequantize-then-multiply CPU runtime, or 0."""
+    table = _LOWBIT_WEIGHT_RATE_GW_S.get(hw_type)
+    if not table:
         return 0.0
-    eff = _EFF.get(hw_type, 0.50)
-    return (bandwidth_gbps / active_gb) * eff
+    bpw = GGUF_BPW[quant]
+    lo = max((b for b in table if b <= bpw), default=min(table))
+    hi = min((b for b in table if b >= bpw), default=max(table))
+    rate = table[lo] if lo == hi else (
+        table[lo] + (table[hi] - table[lo]) * (bpw - lo) / (hi - lo))
+    return active_b / rate if rate > 0 else 0.0
+
+
+def decode_roofline(active_b: float, quant: str, bandwidth_gbps: float,
+                    hw_type: str, *, ctx_tokens: int = 0,
+                    kv_bytes_tok: float = 0.0, fp16_tflops: float | None = None,
+                    batch: int = 1) -> DecodeEstimate:
+    """Decode throughput as the SLOWEST of three roofs.
+
+        t_weights = W / (BW * u_hw * k_q)               # flat in the batch
+        t_kv      = B * ctx * kv_bytes_tok / (BW * _KV_MBU)
+        t_compute = B * 2 * active_params / (FLOPS * _MFU_DECODE)
+        t_dequant = active_params / weight_rate(hw_type, quant)   # CPU only
+        tok/s     = batch / max(t_weights + t_kv, t_compute, t_dequant)
+
+    WHAT THIS REPLACES AND WHY. The old body was
+
+        (bandwidth_gbps / (active_b * QUANT_BYTES[quant] * 1.18)) * _EFF[hw_type]
+
+    which asserts three things that are not true. (1) tok/s scales as bytes**-1,
+    so FP16 -> Q2 was an 8x speedup; measured across 15 same-model/same-hardware
+    sweeps it is 1.9x-4.0x, and ~1.3-1.7x at 128k context. (2) The KV cache is
+    free, so a Qwen-32B at Q2 and 128k context charted 67.9 tok/s against 9.3
+    measured — 630% high. (3) The 1.18 activation allowance is bytes re-read
+    from VRAM every token, which is not a thing; it is a VRAM SIZING factor and
+    it has moved to vram_breakdown() where it belongs. Its accidental effect was
+    to scale _EFF by 1/1.18, which is the only reason the FP16 column was within
+    4% of measurement while Q2 was 375% high — the bug was invisible at the
+    default quantisation and catastrophic at the extreme.
+
+    UNITS are DECIMAL GB (1e9 bytes), because `bandwidth_gbps` is the vendor's
+    decimal GB/s. calc_vram_gb works in GiB. Do not let the two meet.
+
+    fp16_tflops=None means no compute ceiling could be sourced for this device.
+    The roof is DROPPED and `bound` comes back "memory?" so the caller can say
+    the ceiling is unknown rather than implying one was checked. Do not fill
+    those in by scaling core counts.
+
+    THE COMPUTE ROOF WILL ESSENTIALLY NEVER BIND AT batch=1, and that is the
+    correct answer rather than a bug: batch-1 decode is a GEMV at 2 FLOP per
+    weight, so its arithmetic intensity is 1.00 FLOP/byte at FP16 and 5.24 at
+    Q2, against a machine balance of 24 (M4 base) to 295 (H100 SXM). It is
+    carried because it becomes load-bearing at optimal_concurrency()'s batch
+    sizes, and because a model that cannot say WHICH roof binds is not a
+    roofline.
+
+    MoE still reads active_b, so this is still an UPPER BOUND for MoE and the
+    gap still widens as a model approaches the VRAM limit and experts page.
+    The roofline does not fix that; the old note stands.
+    """
+    batch = max(int(batch), 1)
+    weight_gb = active_b * QUANT_BYTES[quant]
+    if weight_gb < 1e-9 or bandwidth_gbps <= 0:
+        return DecodeEstimate(0.0, "memory", 0.0, 0.0, 0.0)
+
+    u_hw = _MBU_FP16.get(hw_type, 0.66)
+    k_q = _QUANT_STREAM_EFF[quant]
+    t_weights = weight_gb / (bandwidth_gbps * u_hw * k_q)
+
+    kv_gb = batch * max(int(ctx_tokens), 0) * max(kv_bytes_tok, 0.0) / 1e9
+    t_kv = kv_gb / (bandwidth_gbps * _KV_MBU) if kv_gb else 0.0
+
+    t_compute = 0.0
+    if fp16_tflops and fp16_tflops > 0:
+        t_compute = (batch * 2.0 * active_b * 1e9) / (fp16_tflops * 1e12 * _MFU_DECODE)
+    t_dequant = _dequant_seconds(active_b, quant, hw_type)
+
+    t_mem = t_weights + t_kv
+    t_step = max(t_mem, t_compute, t_dequant)
+    if t_step <= 0:
+        return DecodeEstimate(0.0, "memory", t_weights, t_kv, t_compute)
+    if t_step == t_dequant and t_dequant > t_mem:
+        bound = "dequant"
+    elif t_compute > t_mem:
+        bound = "compute"
+    else:
+        bound = "memory" if fp16_tflops else "memory?"
+    return DecodeEstimate(batch / t_step, bound, t_weights, t_kv, t_compute)
+
+
+def calc_speed_tps(active_b: float, quant: str, bandwidth_gbps: float,
+                   hw_type: str, **kw) -> float:
+    """Single-stream decode tok/s. Thin float wrapper on decode_roofline().
+
+    Signature-compatible with the four-positional-argument form on purpose: it
+    is called from get_local_df, reached from components/stack_recommender.py
+    through that frame, and pinned by six test modules.
+    """
+    return decode_roofline(active_b, quant, bandwidth_gbps, hw_type, **kw).tps
+
+
+# ── Concurrency ──────────────────────────────────────────────────────────────
+class ConcurrencyEstimate(NamedTuple):
+    sessions: int
+    total_tps: float
+    per_session_tps: float
+    single_tps: float
+    binding: str          # "kv_vram" | "latency" | "throughput_turnover"
+
+
+def _moe_read_fraction(active_b: float, params_b: float, batch: int) -> float:
+    """Fraction of an MoE's weights read per step at batch size B.
+
+    At B=1 only the routed experts are read, but different sequences route to
+    different experts, so the union grows as 1 - (1 - f)**B with
+    f = active_b / params_b. For Qwen3 30B-A3B (f=0.10) that is 10% of the
+    weights at B=1 but 82% at B=16 — an MoE's decode advantage largely
+    EVAPORATES under concurrency, which is why it shows ~1.4x batching gain
+    against a dense 8B's 3.8x on the same card.
+
+    APPROXIMATION: assumes balanced routing, so it is optimistic at small B and
+    near-exact at large. No published measurement of effective expert-read
+    fraction against batch size was found to check it against. Still strictly
+    better than the old code's implied assumption that the advantage is
+    unbounded.
+    """
+    if params_b <= 0 or active_b <= 0 or active_b >= params_b:
+        return 1.0
+    f = active_b / params_b
+    return min(1.0, 1.0 - (1.0 - f) ** max(int(batch), 1))
+
+
+def _step_seconds(*, params_b, active_b, quant, bandwidth_gbps, hw_type,
+                  fp16_tflops, ctx_tokens, kv_bytes_tok, batch, moe):
+    """Seconds for one decode step that emits `batch` tokens."""
+    read_b = active_b
+    if moe:
+        read_b = params_b * _moe_read_fraction(active_b, params_b, batch)
+    e = decode_roofline(read_b, quant, bandwidth_gbps, hw_type,
+                        ctx_tokens=ctx_tokens, kv_bytes_tok=kv_bytes_tok,
+                        fp16_tflops=fp16_tflops, batch=batch)
+    return (batch / e.tps) if e.tps > 0 else float("inf")
+
+
+def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
+                        vram_gb: float, bandwidth_gbps: float, hw_type: str,
+                        ctx_tokens: int, kv_bytes_tok: float,
+                        weights_gib: float, fp16_tflops: float | None = None,
+                        slo: str = DEFAULT_SLO, gpu_count: int = 1,
+                        moe: bool = False) -> ConcurrencyEstimate | None:
+    """Best number of concurrent sessions, and the aggregate tok/s it buys.
+
+    WHY BATCHING WORKS AT ALL, and where the usual explanation stops short. One
+    decode step reads the whole weight set ONCE and emits B tokens, so the
+    weight term is flat in B and arithmetic intensity rises linearly with it.
+    The KV read is NOT amortised — every sequence has its own cache and
+    attention streams all of it every step:
+
+        t_step(B) = W/(BW*u)  +  B*ctx*kv/(BW*u_kv)  +  2*P_active*B/(F*mfu)
+                    flat         linear in B           linear in B
+
+    Fitted to 86 measured inter-token-latency points across 11 published NVIDIA
+    NIM concurrency sweeps (Llama-3.1-8B and Llama-3.3-70B; H100/H200/A100/L40S;
+    fp8 and bf16; TP1-TP8): 1.4%-13% RMS per curve, 12.6% mean absolute error.
+    Held out: Llama-3.1-8B fp8 on an H100 at ctx 1500 predicts 11,918 tok/s at
+    B=256 against NIM's measured 11,527.6 at C=250 (+3.4%).
+
+    OPTIMAL means the largest B such that
+      (1) the KV cache for B sequences at ctx_tokens fits the leftover VRAM, and
+      (2) per-session decode stays at or above the SLO floor,
+    then clipped to argmax_B B/t_step(B), because aggregate throughput itself
+    turns over. That clip is not theoretical: llama.cpp batched-bench on an
+    RTX 3090 with Phi-4-mini Q4_K_M peaks at 3,973 tok/s at B=128 and FALLS to
+    3,419 at B=256.
+
+    Returns None when the model does not fit at all, or when kv_bytes_tok is
+    unknown. Do NOT substitute a guess: a 2x error in KV bytes is a 2x error in
+    optimal concurrency.
+
+    MULTI-GPU. bandwidth comes from effective_bandwidth(), which returns ONE
+    card's bandwidth because this project models a llama.cpp/Ollama LAYER split
+    rather than tensor parallelism. Against NVIDIA's TP2 curve that
+    under-predicts by ~30% — correctly, because it is a different deployment.
+    The hover says so, or multi-GPU rows look wrong to anyone who has run vLLM.
+
+    DECODE ONLY. Every measured curve shows time-to-first-token blowing up long
+    before throughput does: Llama-3.1-8B at 20k input on an H100 goes from 11 s
+    TTFT at C=50 to 279 s at C=250 while throughput is flat at ~1,335 tok/s. A
+    reader with long prompts will meet queueing this says nothing about.
+    """
+    if kv_bytes_tok <= 0 or ctx_tokens <= 0 or bandwidth_gbps <= 0:
+        return None
+    floor = SLO_FLOORS_TPS.get(slo, SLO_FLOORS_TPS[DEFAULT_SLO])
+
+    # (a) the KV-cache memory ceiling
+    pooled = vram_gb * GPU_MEMORY_UTILIZATION
+    free_gib = pooled - weights_gib - (max(int(gpu_count), 1) * CUDA_CTX_GIB
+                                       + WORKSPACE_GIB)
+    kv_per_seq_gib = ctx_tokens * kv_bytes_tok / GIB
+    if free_gib <= 0 or kv_per_seq_gib <= 0:
+        return None
+    b_mem = int(free_gib // kv_per_seq_gib)
+    if b_mem < 1:
+        return None
+    b_mem = min(b_mem, MAX_REPORTED_CONCURRENCY)
+
+    kw = dict(params_b=params_b, active_b=active_b, quant=quant,
+              bandwidth_gbps=bandwidth_gbps, hw_type=hw_type,
+              fp16_tflops=fp16_tflops, ctx_tokens=ctx_tokens,
+              kv_bytes_tok=kv_bytes_tok, moe=moe)
+    single = 1.0 / _step_seconds(batch=1, **kw)
+
+    # (b) the latency ceiling and (c) the throughput turnover, in one scan.
+    # Per-session speed is monotone decreasing in B, so the first SLO failure
+    # ends it; aggregate throughput is not monotone, so it is an argmax.
+    best_b, best_total, binding = 0, 0.0, "kv_vram"
+    for b in range(1, b_mem + 1):
+        t = _step_seconds(batch=b, **kw)
+        if t == float("inf"):
+            break
+        per = 1.0 / t
+        if per < floor:
+            if best_b == 0:
+                # Even one stream misses the floor. Report it honestly rather
+                # than pretending the hardware clears an SLO it does not.
+                return ConcurrencyEstimate(1, single, single, single, "latency")
+            binding = "latency"
+            break
+        total = b / t
+        if total >= best_total:
+            best_total, best_b = total, b
+        else:
+            binding = "throughput_turnover"
+            break
+    if best_b == 0:
+        return None
+    if best_b == b_mem:
+        binding = "kv_vram"
+    return ConcurrencyEstimate(best_b, best_total, best_total / best_b, single,
+                               binding)
+
+
+def total_throughput_tps(sessions: int, **kw) -> float:
+    """Aggregate tok/s across `sessions` concurrent streams."""
+    sessions = max(int(sessions), 1)
+    t = _step_seconds(batch=sessions, **kw)
+    return sessions / t if t not in (0, float("inf")) else 0.0
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -664,14 +1679,33 @@ def get_local_df(
     hw_type: str = "nvidia",
     tags: list[str] | None = None,
     include_pending: bool = True,
+    ctx_tokens: int = DEFAULT_CONTEXT_TOKENS,
+    fp16_tflops: float | None = None,
+    slo: str = DEFAULT_SLO,
+    gpu_count: int = DEFAULT_GPU_COUNT,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of all models enriched with hardware-specific columns.
 
     Columns added:
-        vram_req_gb   - VRAM required at selected quantization
-        speed_tps     - estimated tokens/second on the given hardware
-        fits          - "yes" | "tight" (< 1 GB headroom) | "no"
+        vram_req_gb     - total VRAM in GiB: weights + KV cache + runtime
+        weights_gb      - the weights alone
+        kv_gb           - the KV cache at ctx_used
+        kv_bytes_tok    - KV bytes per token, the figure the hover should show
+        kv_source       - "config" (published) | "estimated" (±30%) | "none"
+        ctx_used        - context actually priced, capped at the model's own max
+        speed_tps       - single-stream decode tok/s on the given hardware
+        bound           - which roof binds: memory | compute | dequant | memory?
+        sessions        - optimal concurrent sessions at the chosen SLO floor
+        per_session_tps - decode tok/s each of those sessions still gets
+        total_tps       - aggregate tok/s across all of them
+        concurrency_bound - what stopped it: kv_vram | latency | turnover
+        fits            - "yes" | "tight" (< 1 GB headroom) | "no"
+
+    ctx_tokens defaults to DEFAULT_CONTEXT_TOKENS rather than 0 so that a bare
+    get_local_df() — the form the chart-contract tests call — validates the
+    charts against the hardware the product actually presents. The same reason
+    vram_gb and bandwidth_gbps stopped defaulting to 24 GB / 1008 GB/s.
     """
     # Curated open-weight releases AA has not benchmarked yet are folded in
     # here, carrying quality=None. See data/pending_models.py for what an entry
@@ -683,21 +1717,52 @@ def get_local_df(
         if tags:
             if not any(t in m["tags"] for t in tags):
                 continue
-        vram_req = calc_vram_gb(m["params_b"], quant)
-        speed    = calc_speed_tps(m["active_b"], quant, bandwidth_gbps, hw_type)
-        headroom = vram_gb - vram_req
+        vb = vram_breakdown(
+            m["params_b"], quant, ctx_tokens,
+            name=m["name"], active_b=m["active_b"], is_moe=bool(m.get("moe")),
+            max_context_tokens=int(m["context_k"]) * 1000,
+            gpu_count=gpu_count,
+        )
+        est = decode_roofline(
+            m["active_b"], quant, bandwidth_gbps, hw_type,
+            ctx_tokens=vb.ctx_used, kv_bytes_tok=vb.kv_bytes_tok,
+            fp16_tflops=fp16_tflops,
+        )
+        headroom = vram_gb - vb.total_gib
         if headroom >= 1.0:
             fits = "yes"
         elif headroom >= 0:
             fits = "tight"
         else:
             fits = "no"
+        # Concurrency is only meaningful for a model that fits at all — a
+        # session count for a model the reader cannot load is noise, and
+        # optimal_concurrency returns None for it anyway.
+        conc = None
+        if fits != "no":
+            conc = optimal_concurrency(
+                params_b=m["params_b"], active_b=m["active_b"], quant=quant,
+                vram_gb=vram_gb, bandwidth_gbps=bandwidth_gbps, hw_type=hw_type,
+                ctx_tokens=vb.ctx_used, kv_bytes_tok=vb.kv_bytes_tok,
+                weights_gib=vb.weights_gib, fp16_tflops=fp16_tflops, slo=slo,
+                gpu_count=gpu_count, moe=bool(m.get("moe")),
+            )
         rows.append({
             **m,
-            "vram_req_gb": round(vram_req, 2),
-            "speed_tps":   round(speed, 1),
-            "fits":        fits,
-            "tags_str":    ", ".join(m["tags"]) if m["tags"] else "general",
+            "vram_req_gb":  round(vb.total_gib, 2),
+            "weights_gb":   round(vb.weights_gib, 2),
+            "kv_gb":        round(vb.kv_gib, 2),
+            "kv_bytes_tok": round(vb.kv_bytes_tok, 1),
+            "kv_source":    vb.kv_source,
+            "ctx_used":     vb.ctx_used,
+            "speed_tps":    round(est.tps, 1),
+            "bound":        est.bound,
+            "sessions":         conc.sessions if conc else 0,
+            "per_session_tps":  round(conc.per_session_tps, 1) if conc else 0.0,
+            "total_tps":        round(conc.total_tps, 1) if conc else 0.0,
+            "concurrency_bound": conc.binding if conc else "",
+            "fits":         fits,
+            "tags_str":     ", ".join(m["tags"]) if m["tags"] else "general",
         })
     df = pd.DataFrame(rows)
     if df.empty:
@@ -710,6 +1775,13 @@ def get_local_df(
             "name", "family", "params_b", "active_b", "context_k", "quality",
             "license", "tags", "moe", "vram_req_gb", "speed_tps", "fits", "tags_str",
             "pending",
+            # Every column the loop above emits has to appear here too, or a
+            # filter that matches nothing raises KeyError in a chart builder
+            # instead of rendering the empty state — the exact bug this list
+            # was written to fix, one new column later.
+            "weights_gb", "kv_gb", "kv_bytes_tok", "kv_source", "ctx_used",
+            "bound", "sessions", "per_session_tps", "total_tps",
+            "concurrency_bound",
         ])
     df["family_color"] = df["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR)
     return df

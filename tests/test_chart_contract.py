@@ -343,7 +343,12 @@ def test_annotations_fit_inside_their_gutter():
     """Capping the gutter is only safe if the labels are trimmed to match --
     otherwise the longest one runs off the canvas and reads as a broken render.
     cost_calc is excluded: its annotation is span markup, so character length
-    is not visible width."""
+    is not visible width.
+
+    Width is the longest LINE, not the whole string: local_compat's annotation
+    is two lines joined by <br> (single-stream speed and VRAM, then the
+    concurrent sessions the same hardware supports), and summing them budgeted
+    twice the width the render actually needs."""
     from components.charts.constants import MAX_RIGHT_GUTTER_PX
     for name, fig in _annotated_charts().items():
         if name == "cost_calc":
@@ -352,7 +357,8 @@ def test_annotations_fit_inside_their_gutter():
         for a in fig.layout.annotations:
             if not a.text or "<span" in a.text:
                 continue
-            approx_px = len(a.text) * 10 * 0.55
+            widest = max(len(line) for line in a.text.split("<br>"))
+            approx_px = widest * 10 * 0.55
             assert approx_px <= gutter + 8, (
                 f"{name}: {a.text!r} needs ~{approx_px:.0f}px of a {gutter}px gutter"
             )

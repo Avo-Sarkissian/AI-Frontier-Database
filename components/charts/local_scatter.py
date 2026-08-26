@@ -1,9 +1,10 @@
 """
 Local models — VRAM vs Quality scatter chart.
 
-X-axis : VRAM required (GB) at the selected quantization — log scale
+X-axis : VRAM required (GiB) at the selected quantization AND context —
+         weights + KV cache + runtime overhead — log scale
 Y-axis : AA Intelligence Index (raw, calibrated to AA scale)
-Size   : Estimated tokens/second on the selected hardware
+Size   : Estimated SINGLE-STREAM tokens/second on the selected hardware
 Color  : Model family
 Shape  : ● dense  ◆ MoE (mixture-of-experts)
 
@@ -25,10 +26,22 @@ _TIGHT_ALPHA = 0.75  # fits but < 1 GB headroom
 _NO_ALPHA   = 0.25   # won't fit — greyed out
 
 
+def _ctx_label(ctx_tokens) -> str:
+    """"32k", not "32768"."""
+    try:
+        n = int(ctx_tokens or 0)
+    except (TypeError, ValueError):
+        return "?"
+    if n <= 0:
+        return "0"
+    return f"{n // 1024}k" if n >= 1024 else str(n)
+
+
 def build_local_scatter(
     df: pd.DataFrame,
     vram_gb: float,
     quant: str,
+    ctx_tokens=None,
 ) -> go.Figure:
     """
     Scatter: VRAM required vs quality score.
@@ -49,6 +62,20 @@ def build_local_scatter(
     if df.empty:
         return _empty("No scored models found.")
 
+    # Whether the KV figure in the hover came from a published config or the
+    # fitted estimator. The reader has to be able to tell — see the same note
+    # in local_compat.py.
+    _KV_NOTE = {"config": "published architecture",
+                "estimated": "architecture estimated, ±30%",
+                "none": "no context priced"}
+    df = df.copy()
+    df["kv_note"] = (df["kv_source"] if "kv_source" in df else "none") \
+        .map(_KV_NOTE).fillna("architecture estimated, ±30%")
+    df["ctx_label"] = _ctx_label(ctx_tokens)
+    for _c in ("weights_gb", "kv_gb", "sessions", "total_tps"):
+        if _c not in df:
+            df[_c] = 0
+
     fig = go.Figure()
 
     # Draw each family as its own trace so the legend is grouped by family
@@ -66,11 +93,14 @@ def build_local_scatter(
             hover = (
                 "<b>%{customdata[0]}</b><br>"
                 f"Family: {plot_text(family)}<br>"
-                "VRAM required: %{x:.1f} GB<br>"
+                "VRAM required: %{x:.1f} GB at %{customdata[8]} context<br>"
+                "  ↳ weights %{customdata[5]:.1f} + KV cache %{customdata[6]:.1f}"
+                " + runtime 1.5 GB  ·  %{customdata[7]}<br>"
                 "Intelligence: %{y:.0f}<br>"
-                "Speed: %{customdata[1]:.0f} tok/s<br>"
+                "Speed: %{customdata[1]:.0f} tok/s single stream<br>"
+                "Sessions: ×%{customdata[9]} concurrent → %{customdata[10]:,.0f} tok/s total<br>"
                 "License: %{customdata[2]}<br>"
-                "Max context: %{customdata[3]}k tokens  ·  KV cache not in the VRAM figure<br>"
+                "Max context: %{customdata[3]}k tokens<br>"
                 "Tags: %{customdata[4]}<br>"
                 "<extra></extra>"
             )
@@ -93,11 +123,16 @@ def build_local_scatter(
                     symbol=["diamond" if m else "circle" for m in sub["moe"]],
                     line=dict(width=0.5, color="rgba(255,255,255,0.15)"),
                 ),
+                # customdata is POSITIONAL — every %{customdata[N]} above indexes
+                # into this list, so a column added here without updating the
+                # template silently shifts every later field.
                 customdata=sub.assign(
                     name=sub["name"].map(plot_text),
                     license=sub["license"].map(plot_text),
                     tags_str=sub["tags_str"].map(plot_text),
-                )[["name", "speed_tps", "license", "context_k", "tags_str"]].values,
+                )[["name", "speed_tps", "license", "context_k", "tags_str",
+                   "weights_gb", "kv_gb", "kv_note", "ctx_label",
+                   "sessions", "total_tps"]].values,
                 hovertemplate=hover,
             ))
 
@@ -142,7 +177,8 @@ def build_local_scatter(
             text=(
                 "VRAM Requirement vs Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  {quant} quantization  ·  left of line = runnable  ·  bubble = speed"
+                f"  ·  {quant} at {_ctx_label(ctx_tokens)} context"
+                f"  ·  left of line = runnable  ·  bubble = single-stream speed"
                 + (f"  ·  {_pending_n} newer model{'s' if _pending_n != 1 else ''} "
                    f"not yet scored — see the ranking below" if _pending_n else "")
                 + "</span>"
@@ -185,7 +221,7 @@ def build_local_scatter(
             dict(
                 x=1.0, y=1.04, xref="paper", yref="paper",
                 xanchor="right",
-                text="Bubble size = tokens/s<br>◆ = MoE architecture",
+                text="Bubble size = single-stream tok/s<br>◆ = MoE architecture",
                 showarrow=False,
                 font=dict(color="#666666", size=10, family=_FONT),
                 align="left",

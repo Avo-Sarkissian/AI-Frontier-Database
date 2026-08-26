@@ -11,8 +11,11 @@ from data.ingest import get_models
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
     quant_options as local_quant_options,
+    context_options as local_context_options,
+    slo_options as local_slo_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
-    effective_bandwidth,
+    DEFAULT_CONTEXT_TOKENS, DEFAULT_SLO,
+    effective_bandwidth, tflops_for_gpu,
 )
 from data.image_models import get_image_df
 from data.video_models import (
@@ -327,22 +330,38 @@ def model_detail(model_name, provider):
 
 # ── Task 5: Local / Image / Video / Agent-Stack callbacks ─────────────────────
 
-def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags):
-    """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}."""
+def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
+                 ctx_tokens=None, slo=None, fp16_tflops=None):
+    """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}.
+
+    The three new parameters are APPENDED with None defaults, deliberately.
+    docs/pyworker.js calls staticApi[fn](*args) with no whitelist, no arity
+    check and no type check, so inserting a parameter mid-signature shifts every
+    later argument and surfaces only as a console line in someone's browser.
+    """
     gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
     vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
     bw = coerce_number(bandwidth_gbps, default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
     eff_bw = effective_bandwidth(bw, gpu_count)
+    ctx = int(coerce_number(ctx_tokens, default=DEFAULT_CONTEXT_TOKENS, minimum=0))
     ldf = get_local_df(
         quant=quant or "Q4",
         vram_gb=vram_gb,
         bandwidth_gbps=eff_bw,
         hw_type=hw_type or "nvidia",
         tags=list(tags) if tags else None,
+        ctx_tokens=ctx,
+        # None stays None: decode_roofline drops the compute roof and reports
+        # bound="memory?" rather than implying a ceiling was checked.
+        fp16_tflops=fp16_tflops,
+        slo=slo or DEFAULT_SLO,
+        gpu_count=gpu_count,
     )
     return json.dumps({
-        "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4").to_json()),
-        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4", vram_gb=vram_gb).to_json()),
+        "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4",
+                                                  ctx_tokens=ctx).to_json()),
+        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4", vram_gb=vram_gb,
+                                                 ctx_tokens=ctx).to_json()),
     })
 
 
@@ -351,7 +370,23 @@ def local_hw_for_gpu(gpu_name):
     g = GPU_BY_NAME.get(gpu_name)
     if not g:
         return json.dumps(None)
-    return json.dumps({"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"], "hw_type": g["hw_type"]})
+    # fp16_tflops MUST be here. This dict is the only route a compute figure
+    # takes to the browser — app.py:1233 reads GPU_BY_NAME server-side and does
+    # not need it — so omitting it makes the deployed site compute
+    # bandwidth-only speeds while Dash computes roofline speeds for the same card.
+    return json.dumps({"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"],
+                       "hw_type": g["hw_type"],
+                       "fp16_tflops": tflops_for_gpu(gpu_name)})
+
+
+def context_options():
+    """Return JSON list of {label, value} for the CONTEXT control."""
+    return json.dumps(local_context_options())
+
+
+def slo_options():
+    """Return JSON list of {label, value} for the SESSIONS (SLO floor) control."""
+    return json.dumps(local_slo_options())
 
 
 def gpu_options():
@@ -440,6 +475,11 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
             vram_gb=vram_gb,
             bandwidth_gbps=eff_bw,
             hw_type=meta.get("hw_type", "nvidia"),
+            # Same pinned default as app.py's update_recommend, so the two tabs
+            # cannot price the same hardware differently.
+            ctx_tokens=DEFAULT_CONTEXT_TOKENS,
+            fp16_tflops=tflops_for_gpu(gpu_preset or ""),
+            gpu_count=gpu_count,
         )
 
     cards = build_stack_cards_html(_DF, providers, mode=mode, local_df=local_df)

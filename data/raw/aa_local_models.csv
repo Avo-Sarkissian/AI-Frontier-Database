@@ -128,8 +128,8 @@ LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.14,lfm 1.0,reasoning,True
 Ring-flash-2.0,InclusionAI,103.0,6.1,128,7.97,MIT,reasoning,True
 Olmo 3.1 32B Think,Allen Institute for AI,32.2,32.2,66,7.9,Apache 2.0,reasoning,False
 Command A,Cohere,111.0,111.0,256,7.46,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
 Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.43,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
+Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
 NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,7.17,Nvidia Nemotron Open Model License,,True
 NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.16,NVIDIA Open Model License Agreement,,False
 Ministral 3 3B,Mistral,3.0,3.0,256,7.07,Apache 2.0,vision,False
@@ -175,8 +175,8 @@ DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning),Nous Research,8.0,8.0,128,1.
 Granite 4.0 1B,IBM,1.6,1.6,128,1.63,Apache 2.0,,False
 Molmo2-8B,Allen Institute for AI,8.66,8.66,37,1.59,Apache 2.0,vision,False
 LFM2 8B A1B,Liquid AI,8.34,1.5,33,1.34,lfm 1.0,,True
-LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,1.0,lfm 1.0,vision,False
-Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,1.0,Apache 2.0,,False
-Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
 Granite 4.0 350M,IBM,0.35,0.35,33,1.0,Apache 2.0,,False
 Granite 4.0 H 350M,IBM,0.34,0.34,33,1.0,Apache 2.0,,False
+LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,1.0,lfm 1.0,vision,False
+Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
+Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,1.0,Apache 2.0,,False

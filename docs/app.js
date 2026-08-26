@@ -344,7 +344,12 @@ function fillQuantSelect(selectId, options, defaultValue) {
     // o is {label, value}: the label carries the "(lossy)" marker for Q3/Q2,
     // the value is what the Python side keys QUANT_BYTES by.
     opt.value = o.value; opt.textContent = o.label;
-    if (o.value === defaultValue) opt.selected = true;
+    // o.default lets Python carry the default with the options (CONTEXT,
+    // SESSIONS) instead of this file naming a number. defaultValue stays for
+    // the quant selects, whose default is a string literal in one place.
+    if (o.default === true || (defaultValue != null && o.value === defaultValue)) {
+      opt.selected = true;
+    }
     return opt;
   }));
 }
@@ -488,6 +493,16 @@ async function populateDynamicSelects() {
     // third select cannot drift.
     fillQuantSelect("local-quant", quantLevels, DEFAULT_QUANT);
     fillQuantSelect("recommend-quant", quantLevels, DEFAULT_QUANT);
+
+    // CONTEXT and SESSIONS, filled the same way and for the same reason: the
+    // choices and their defaults live in data/local_models.py, so neither shell
+    // declares a hardware default of its own.
+    try {
+      const ctxOpts = await window.AF.callPy("context_options");
+      fillQuantSelect("local-context", ctxOpts, null);
+      const sloOpts = await window.AF.callPy("slo_options");
+      fillQuantSelect("local-slo", sloOpts, null);
+    } catch (e) { console.warn("context/slo options:", e); }
 
     // Set default local HW meta for RTX 5090
     try {
@@ -768,10 +783,20 @@ async function refreshLocal() {
   const vram = numOrNull("local-vram");
   const gpus = numOrNull("local-num-gpus");
   const quant = document.getElementById("local-quant").value || "Q4";
+  // numOrNull, never `|| 8192`: a literal numeric fallback on a local-* box is
+  // a second copy of a constant that lives in data/local_models.py, and
+  // test_neither_rendering_declares_its_own_hardware_default greps for exactly
+  // that shape.
+  const ctx = numOrNull("local-context");
+  const slo = document.getElementById("local-slo")?.value || null;
   const tags = multiVals("local-tags");
   try {
+    // The three new args are APPENDED. pyworker.js spreads this list straight
+    // into the Python function with no arity check, so an argument inserted
+    // mid-list shifts every one after it and fails silently.
     const out = await window.AF.callPy("update_local", vram, gpus, quant,
-      hw.bandwidth_gbps ?? null, hw.hw_type ?? null, tags.length ? tags : null);
+      hw.bandwidth_gbps ?? null, hw.hw_type ?? null, tags.length ? tags : null,
+      ctx, slo, hw.fp16_tflops ?? null);
     renderJsonFig("chart-local_scatter", out.scatter);
     renderJsonFig("chart-local_compat", out.compat);
   } catch (e) { console.error("refreshLocal failed:", e); }
@@ -1205,10 +1230,14 @@ function wireTabControls() {
   const localVram = document.getElementById("local-vram");
   const localNumGpus = document.getElementById("local-num-gpus");
   const localQuant = document.getElementById("local-quant");
+  const localContext = document.getElementById("local-context");
+  const localSlo = document.getElementById("local-slo");
   const localTags = document.getElementById("local-tags");
   if (localVram) localVram.oninput = debounce(() => refreshLocal(), 300);
   if (localNumGpus) localNumGpus.onchange = () => refreshLocal();
   if (localQuant) localQuant.onchange = () => refreshLocal();
+  if (localContext) localContext.onchange = () => refreshLocal();
+  if (localSlo) localSlo.onchange = () => refreshLocal();
   if (localTags) localTags.onchange = () => refreshLocal();
 
   // Image Gen filters

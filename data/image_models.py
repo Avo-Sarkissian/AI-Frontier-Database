@@ -65,6 +65,11 @@ PROVIDER_COLORS: dict[str, str] = {
     "Meituan":                      "#ffb020",  # meituan yellow
     "Vidu":                         "#2dd4bf",  # teal-alt
     "Z AI":                         "#e879f9",  # fuchsia
+    # Arrived in the 2026-08-26 scrape. Baidu's brand blue is #2932E1, which is
+    # too dark to clear 3:1 on the #111111 surface, so this is that hue lifted
+    # in L* — the same treatment Tencent's WeChat blue already gets. Checked
+    # against the two nearest entries: Tencent #1677ff and Google #60a5fa.
+    "Baidu":                        "#4f6bff",  # baidu blue, lifted
 }
 
 DEFAULT_COLOR = "#6b7280"

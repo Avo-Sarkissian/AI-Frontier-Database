@@ -26,6 +26,8 @@ from data.video_scraper import start_background_video_scraper
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS, quant_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+    DEFAULT_CONTEXT_TOKENS, DEFAULT_SLO, DEFAULT_FP16_TFLOPS,
+    context_options, slo_options, tflops_for_gpu,
     effective_bandwidth,
 )
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
@@ -254,7 +256,12 @@ app.layout = html.Div([
     # Invisible infrastructure
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="url-sync"),
-    dcc.Store(id="local-hw-meta",     data={"bandwidth_gbps": 1792, "hw_type": "nvidia"}),
+    # The FIRST PAINT reads this, so it must carry every field the model needs.
+    # A literal figure here is a second copy of a constant that lives in
+    # data/local_models.py — hence the names, not the numbers.
+    dcc.Store(id="local-hw-meta",
+              data={"bandwidth_gbps": DEFAULT_BANDWIDTH_GBPS, "hw_type": "nvidia",
+                    "fp16_tflops": DEFAULT_FP16_TFLOPS}),
     dcc.Store(id="detail-model-name", data=None),
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
@@ -455,7 +462,7 @@ app.layout = html.Div([
                     },
                 ),
                 html.Div(className="filter-sep"),
-                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth."),
+                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it."),
                 dcc.Dropdown(
                     id="recommend-num-gpus",
                     options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
@@ -724,7 +731,7 @@ app.layout = html.Div([
                     },
                 ),
                 html.Div(className="filter-sep"),
-                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth."),
+                html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it."),
                 dcc.Dropdown(
                     id="local-num-gpus",
                     options=[{"label": f"×{n}", "value": n} for n in [1, 2, 4, 8]],
@@ -738,6 +745,22 @@ app.layout = html.Div([
                     options=quant_options(),
                     value="Q4", clearable=False,
                     style={"width": "132px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("CONTEXT", className="filter-label", title="VRAM and speed both move with context: the KV cache is read in full every token and is not affected by quantising the weights. Capped per model at its own maximum."),
+                dcc.Dropdown(
+                    id="local-context",
+                    options=context_options(),
+                    value=DEFAULT_CONTEXT_TOKENS, clearable=False,
+                    style={"width": "84px"},
+                ),
+                html.Div(className="filter-sep"),
+                html.Span("SESSIONS", className="filter-label", title="How fast each concurrent session must still decode. Sessions is the largest number of streams that both fit their KV cache in VRAM and hold this floor — MLPerf Inference's Llama-3.1-8B Server constraint is 10 tok/s."),
+                dcc.Dropdown(
+                    id="local-slo",
+                    options=slo_options(),
+                    value=DEFAULT_SLO, clearable=False,
+                    style={"width": "184px"},
                 ),
                 html.Div(className="filter-sep"),
                 html.Span("TAGS", className="filter-label"),
@@ -763,8 +786,11 @@ app.layout = html.Div([
                     figure=build_local_scatter(
                         get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
                                      bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
-                                     hw_type="nvidia"),
+                                     hw_type="nvidia",
+                                     ctx_tokens=DEFAULT_CONTEXT_TOKENS,
+                                     fp16_tflops=DEFAULT_FP16_TFLOPS),
                         vram_gb=DEFAULT_VRAM_GB, quant="Q4",
+                        ctx_tokens=DEFAULT_CONTEXT_TOKENS,
                     ),
                     config=_GRAPH_CONFIG, style={"height": "640px"},
                 ),
@@ -775,8 +801,11 @@ app.layout = html.Div([
                     figure=build_local_compat(
                         get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
                                      bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
-                                     hw_type="nvidia"),
+                                     hw_type="nvidia",
+                                     ctx_tokens=DEFAULT_CONTEXT_TOKENS,
+                                     fp16_tflops=DEFAULT_FP16_TFLOPS),
                         quant="Q4", vram_gb=DEFAULT_VRAM_GB,
+                        ctx_tokens=DEFAULT_CONTEXT_TOKENS,
                     ),
                     config=_GRAPH_CONFIG_FIXED,
                 ),
@@ -1097,6 +1126,13 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
             vram_gb=vram_gb,
             bandwidth_gbps=eff_bw,
             hw_type=hw_type,
+            # Pinned to the shared default rather than left to get_local_df's
+            # own, so this tab and Run Local price the same hardware the same
+            # way. The Agent Stack has no context control of its own; if it
+            # ever gains one, it goes here, not into a second default.
+            ctx_tokens=DEFAULT_CONTEXT_TOKENS,
+            fp16_tflops=tflops_for_gpu(gpu_preset or ""),
+            gpu_count=gpu_count,
         )
 
     cards = build_stack_cards(df, providers, mode=mode, local_df=local_df)
@@ -1233,7 +1269,14 @@ def update_local_hw(gpu_name: str):
     gpu = GPU_BY_NAME.get(gpu_name)
     if not gpu:
         return no_update, no_update
-    return gpu["vram_gb"], {"bandwidth_gbps": gpu["bandwidth_gbps"], "hw_type": gpu["hw_type"]}
+    # fp16_tflops travels WITH the other two. There are four copies of this
+    # shape (here, static_api.local_hw_for_gpu, the dcc.Store default, and
+    # refreshLocal in docs/app.js); a field added to fewer than all four means
+    # one render path computes a roofline and the other a bandwidth-only
+    # estimate for the same card.
+    return gpu["vram_gb"], {"bandwidth_gbps": gpu["bandwidth_gbps"],
+                            "hw_type": gpu["hw_type"],
+                            "fp16_tflops": tflops_for_gpu(gpu_name)}
 
 
 @callback(
@@ -1242,11 +1285,13 @@ def update_local_hw(gpu_name: str):
     Input("local-vram",     "value"),
     Input("local-num-gpus", "value"),
     Input("local-quant",    "value"),
+    Input("local-context",  "value"),
+    Input("local-slo",      "value"),
     Input("local-hw-meta",  "data"),
     Input("local-tags",     "value"),
     prevent_initial_call=True,
 )
-def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
+def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, slo, hw_meta, tags):
     # Shared defaults: this used to assume 8GB while the public site assumed 32,
     # so a cleared VRAM box answered "which models fit?" two different ways.
     gpu_count      = int(_coerce_number(num_gpus, DEFAULT_GPU_COUNT, minimum=1))
@@ -1255,6 +1300,11 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
                                     DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
     hw_type        = (hw_meta or {}).get("hw_type", "nvidia")
     eff_bw         = effective_bandwidth(bandwidth_gbps, gpu_count)
+    ctx            = int(_coerce_number(ctx_tokens, DEFAULT_CONTEXT_TOKENS, minimum=0))
+    # A cleared preset leaves no compute figure. None is the honest value —
+    # decode_roofline drops the compute roof and reports bound="memory?" —
+    # rather than a stand-in that would imply a ceiling was checked.
+    tflops         = (hw_meta or {}).get("fp16_tflops")
 
     local_df = get_local_df(
         quant=quant or "Q4",
@@ -1262,10 +1312,16 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, hw_meta, tags):
         bandwidth_gbps=eff_bw,
         hw_type=hw_type,
         tags=tags or None,
+        ctx_tokens=ctx,
+        fp16_tflops=tflops,
+        slo=slo or DEFAULT_SLO,
+        gpu_count=gpu_count,
     )
     return (
-        build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4"),
-        build_local_compat(local_df, quant=quant or "Q4", vram_gb=vram_gb),
+        build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4",
+                            ctx_tokens=ctx),
+        build_local_compat(local_df, quant=quant or "Q4", vram_gb=vram_gb,
+                           ctx_tokens=ctx),
     )
 
 

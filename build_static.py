@@ -6,7 +6,10 @@ from pathlib import Path
 import pandas as pd
 
 from data.ingest import get_models
-from data.local_models import get_local_df, DEFAULT_VRAM_GB, DEFAULT_BANDWIDTH_GBPS
+from data.local_models import (
+    get_local_df, DEFAULT_VRAM_GB, DEFAULT_BANDWIDTH_GBPS,
+    DEFAULT_CONTEXT_TOKENS, DEFAULT_FP16_TFLOPS,
+)
 from data.image_models import get_image_df, get_image_providers, get_image_tags
 from data.video_models import (
     get_video_df, get_video_providers, get_video_tags, VIDEO_MODES,
@@ -65,7 +68,14 @@ def export_default_figures(out_dir: Path) -> list[str]:
     df = get_models()
     diverse5 = compute_diverse5(df)
     local_df = get_local_df(quant="Q4", vram_gb=DEFAULT_VRAM_GB,
-                            bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, hw_type="nvidia")
+                            bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                            hw_type="nvidia",
+                            # Must match app.py's initial figures and the static
+                            # shell's defaults. When they diverge the pre-rendered
+                            # figure visibly changes a few seconds after every
+                            # page load, as the live render replaces it.
+                            ctx_tokens=DEFAULT_CONTEXT_TOKENS,
+                            fp16_tflops=DEFAULT_FP16_TFLOPS)
     img_df = get_image_df()
     vdf = get_video_df()
     figures = {
@@ -77,8 +87,10 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "value_leaders":        build_value_leaders(df),
         "radar":                build_radar(df, diverse5, full_df=df),
         "cost_calc":            build_cost_calc(df, monthly_tokens_m=1.0),
-        "local_scatter":        build_local_scatter(local_df, vram_gb=DEFAULT_VRAM_GB, quant="Q4"),
-        "local_compat":         build_local_compat(local_df, quant="Q4", vram_gb=DEFAULT_VRAM_GB),
+        "local_scatter":        build_local_scatter(local_df, vram_gb=DEFAULT_VRAM_GB, quant="Q4",
+                                                    ctx_tokens=DEFAULT_CONTEXT_TOKENS),
+        "local_compat":         build_local_compat(local_df, quant="Q4", vram_gb=DEFAULT_VRAM_GB,
+                                                   ctx_tokens=DEFAULT_CONTEXT_TOKENS),
         "image_faceted":        build_image_faceted(img_df),
         # full_df on both, matching static_api.update_video. Without it the
         # pre-rendered default figure anchored its axis and its frontier on a
