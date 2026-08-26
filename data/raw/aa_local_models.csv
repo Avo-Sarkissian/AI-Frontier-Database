@@ -1,6 +1,7 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
 Kimi K3 (max),Kimi,2800.0,104.0,1049,59.7,Kimi K3 License,"vision,reasoning",True
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,57.7,Qwen3.8-Max License,reasoning,True
+GLM-5.3-Flash,Z AI,320.0,18.0,1000,57.46,Mit,"vision,reasoning",True
 "DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,53.2,Mit,reasoning,True
 GLM-5.2 (max),Z AI,753.0,40.0,1000,52.64,Mit,reasoning,True
 Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,52.02,Apache 2.0,"vision,reasoning",False
