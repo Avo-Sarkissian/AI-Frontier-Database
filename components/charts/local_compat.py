@@ -90,6 +90,18 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     runnable["kv_note"] = (runnable["kv_source"] if "kv_source" in runnable
                            else "none").map(_KV_NOTE).fillna("architecture estimated, ±30%")
     runnable["ctx_label"] = _ctx_label(ctx_tokens)
+    # Built here, not in the template, so a row with no session count renders a
+    # sentence instead of "Sessions: ×0 concurrent at 0 tok/s each → 0 tok/s
+    # total" — which is what the tooltip said for a model the chart had just
+    # listed as runnable.
+    runnable["sessions_note"] = [
+        (f"Sessions: ×{int(n)} concurrent at {p:.0f} tok/s each"
+         f"  →  {t:,.0f} tok/s total") if int(n or 0) > 0
+        else "Sessions: not sized — no context selected"
+        for n, p, t in zip(runnable.get("sessions", 0),
+                           runnable.get("per_session_tps", 0),
+                           runnable.get("total_tps", 0))
+    ]
     for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
         if _c not in runnable:
             runnable[_c] = 0
@@ -137,17 +149,17 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
         customdata=runnable[["name", "family", "vram_req_gb", "speed_tps",
                               "license", "context_k", "tags_str", "fits",
                               "weights_gb", "kv_gb", "kv_note", "ctx_label",
-                              "sessions", "per_session_tps", "total_tps"]].values,
+                              "sessions", "per_session_tps", "total_tps",
+                              "overhead_gb", "sessions_note"]].values,
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
             "Intelligence: %{x:.0f}<br>"
             "VRAM needed: %{customdata[2]:.1f} GB at %{customdata[11]} context<br>"
-            "  ↳ weights %{customdata[8]:.1f} + KV cache %{customdata[9]:.1f} + runtime 1.5 GB"
-            "  ·  %{customdata[10]}<br>"
+            "  ↳ weights %{customdata[8]:.1f} + KV cache %{customdata[9]:.1f}"
+            " + runtime %{customdata[15]:.1f} GB  ·  %{customdata[10]}<br>"
             "Speed: %{customdata[3]:.0f} tok/s single stream<br>"
-            "Sessions: ×%{customdata[12]} concurrent at %{customdata[13]:.0f} tok/s each"
-            "  →  %{customdata[14]:,.0f} tok/s total<br>"
+            "%{customdata[16]}<br>"
             "License: %{customdata[4]}<br>"
             "Max context: %{customdata[5]}k tokens<br>"
             "Tags: %{customdata[6]}<br>"

@@ -368,11 +368,16 @@ def slo_options() -> list[dict]:
             for k in SLO_FLOORS_TPS]
 
 
-# Fraction of VRAM a serving engine actually claims for weights + KV; the rest
-# is driver context, fragmentation and activation scratch. vLLM's documented
-# default for gpu_memory_utilization, so it is what a reader following the
-# standard quickstart gets. Not an estimate.
-GPU_MEMORY_UTILIZATION = 0.92
+# NOT A CONSTANT ANY MORE, and the reason is worth keeping.
+#
+# vLLM's documented gpu_memory_utilization default of 0.92 reserves the last 8%
+# of VRAM for driver context, fragmentation and activation scratch. This file
+# already models exactly that, itemised, as CUDA_CTX_GIB + WORKSPACE_GIB — so
+# applying both charged for the same thing twice. That is not a rounding
+# quibble: `fits` used the raw capacity while optimal_concurrency() used the
+# discounted one, and 3.4% of the rows the chart drew as runnable came back
+# with sessions=0, putting "Speed: 484 tok/s single stream" and "Sessions: x0
+# concurrent" in the same tooltip. Both now spend out of the same wallet.
 
 # Display bound, NOT a measured limit. Every published sweep found stops at or
 # below it (NVIDIA NIM <= 250, llama.cpp batched-bench <= 256). Past it the
@@ -620,8 +625,9 @@ for _m in _MODELS_RAW:
 GPUS: list[dict] = [
     # ── NVIDIA RTX 50 (Blackwell, GDDR7) ─────────────────────────────────────
     # 5090: 512-bit × 28 Gbps = 1792 GB/s | 5080: 256-bit × 30 Gbps = 960 GB/s
-    # 5070 Ti: 256-bit × 27 Gbps = 864 GB/s | 5070: 192-bit × 28 Gbps = 672 GB/s
-    # 5060 Ti: 128-bit × 28 Gbps = 448 GB/s | 5060: 128-bit × 18 Gbps = 288 GB/s
+    # 5070 Ti: 256-bit × 28 Gbps = 896 GB/s | 5070: 192-bit × 28 Gbps = 672 GB/s
+    # 5060 Ti: 128-bit × 28 Gbps = 448 GB/s | 5060: 128-bit × 28 Gbps = 448 GB/s
+    #   (the old 864 and 288 assumed 27 and 18 Gbps; GDDR7 ships neither)
     {"name": "NVIDIA RTX 5090",          "vram_gb": 32,  "bandwidth_gbps": 1792, "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     {"name": "NVIDIA RTX 5080",          "vram_gb": 16,  "bandwidth_gbps": 960,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
     {"name": "NVIDIA RTX 5070 Ti",       "vram_gb": 16,  "bandwidth_gbps": 896,  "hw_type": "nvidia", "category": "NVIDIA RTX 50"},
@@ -650,15 +656,20 @@ GPUS: list[dict] = [
     {"name": "NVIDIA RTX 3070",          "vram_gb": 8,   "bandwidth_gbps": 448,  "hw_type": "nvidia", "category": "NVIDIA RTX 30"},
     {"name": "NVIDIA RTX 2080 Ti",       "vram_gb": 11,  "bandwidth_gbps": 616,  "hw_type": "nvidia", "category": "NVIDIA RTX 20"},
     # ── NVIDIA Data Center (Blackwell) ───────────────────────────────────────
-    # GB200 NVL2: 2×B200 on NVLink, 384 GB HBM3e, 16 TB/s aggregate bandwidth
     # B300 SXM (Blackwell Ultra, 2025): 288 GB HBM3e, 8 TB/s — refreshed B200
-    # B200 SXM: 192 GB HBM3e, 8 TB/s | B200 PCIe: 192 GB HBM3e, 8 TB/s (lower TDP)
-    {"name": "NVIDIA B200 SXM (GB200)",        "vram_gb": 192, "bandwidth_gbps": 8000, "si": "B200", "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
+    # B200 SXM: 192 GB HBM3e, 8 TB/s. NVIDIA ships B200 only as SXM on an HGX
+    #   baseboard — a 1,000 W part cannot be fed by a PCIe slot — so the old
+    #   "B200 PCIe" row was a duplicate of a card that does not exist, and
+    #   "GB200 NVL2" was a TWO-GPU aggregate (384 GB / 16 TB/s) handed to a
+    #   function whose docstring refuses to sum bandwidth across cards.
     {"name": "NVIDIA B300 SXM",          "vram_gb": 288, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     {"name": "NVIDIA B200 SXM",          "vram_gb": 192, "bandwidth_gbps": 8000,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Blackwell)"},
     # ── NVIDIA Data Center (Hopper) ──────────────────────────────────────────
-    # H200 SXM: 141 GB HBM3e, 4.8 TB/s | H200 PCIe: 141 GB, 3.35 TB/s
-    # H100 NVL: 2×H100 PCIe with NVLink bridge, 188 GB HBM3, 7.8 TB/s aggregate
+    # H200 SXM and H200 NVL/PCIe are both 141 GB @ 4.8 TB/s — only the TDP
+    #   differs. The old 3.35 TB/s on the PCIe row was the H100 SXM figure
+    #   copied from the line below, under-predicting that card by 30%.
+    # H100 NVL: NVIDIA now lists this as ONE 94 GB / 3.9 TB/s card; the old
+    #   188 GB / 7.8 TB/s was the two-card pair's aggregate.
     # GH200 (Grace Hopper Superchip, 144 GB HBM3e variant): 144 GB, 4.9 TB/s HBM
     {"name": "NVIDIA GH200 144GB",       "vram_gb": 144, "bandwidth_gbps": 4900,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
     {"name": "NVIDIA H200 SXM",          "vram_gb": 141, "bandwidth_gbps": 4800,  "hw_type": "nvidia", "category": "NVIDIA Data Center (Hopper)"},
@@ -805,7 +816,7 @@ GPUS: list[dict] = [
     # https://www.apple.com/newsroom/2026/08/apple-introduces-m6-and-m5-ultra-for-a-big-leap-in-performance-and-ai-compute/
     #   ("170GB/s of unified memory bandwidth — a 10 percent increase over M5
     #     and a 2.5x increase over M1"; 68 × 2.5 = 170 confirms both ends)
-    {"name": "Apple M6 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M6"},
     {"name": "Apple M6 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
     {"name": "Apple M6 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
     # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
@@ -853,7 +864,7 @@ GPUS: list[dict] = [
     # Snapdragon X Elite X1E-84-100: 45/64 GB LPDDR5X, 136 GB/s
     # Snapdragon X Plus X1P-64-100:  32/64 GB LPDDR5X, 120 GB/s
     {"name": "Snapdragon X Elite (64 GB)","vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Elite (45 GB)","vram_gb": 45, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (32 GB)","vram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     {"name": "Snapdragon X Plus (64 GB)", "vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     {"name": "Snapdragon X Plus (32 GB)", "vram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     # ── CPU Only ─────────────────────────────────────────────────────────────
@@ -969,9 +980,9 @@ SILICON: dict[str, dict] = {
     "Intel Gaudi 3":                       {"fp16_tflops":    1678, "int8_tops":    None},
     "Intel Gaudi 2":                       {"fp16_tflops":     432, "int8_tops":    None},
     # -- NVIDIA professional workstation -------------------------------------------
-    "NVIDIA RTX 6000 Ada":                 {"fp16_tflops":   182.2, "int8_tops":   728.5},
-    "NVIDIA RTX 5000 Ada":                 {"fp16_tflops":   130.6, "int8_tops":   522.2},
-    "NVIDIA RTX A6000":                    {"fp16_tflops":    77.4, "int8_tops":   309.7},
+    "NVIDIA RTX 6000 Ada":                 {"fp16_tflops":   364.2, "int8_tops":   728.5},
+    "NVIDIA RTX 5000 Ada":                 {"fp16_tflops":   261.2, "int8_tops":   522.2},
+    "NVIDIA RTX A6000":                    {"fp16_tflops":   154.8, "int8_tops":   309.7},
     # -- Apple M1 — cores x 512 FP16 FLOPS/clk (128 FP32 ALUs, FP16 2x) ------------
     "Apple M1":                            {"fp16_tflops":     5.2, "int8_tops":    None},
     "Apple M1 Pro":                        {"fp16_tflops":    10.4, "int8_tops":    None},
@@ -1005,7 +1016,7 @@ SILICON: dict[str, dict] = {
     "A16 (iPhone 14 Pro / 16e)":           {"fp16_tflops":    1.79, "int8_tops":    None},
     "A17 Pro (iPhone 15 Pro)":             {"fp16_tflops":    2.06, "int8_tops":    None},
     "A18 Pro (iPhone 16 Pro)":             {"fp16_tflops":    2.26, "int8_tops":    None},
-    "A19 Pro (iPhone 17 Pro)":             {"fp16_tflops":    4.92, "int8_tops":    None},
+    "A19 Pro (iPhone 17 Pro)":             {"fp16_tflops":    9.83, "int8_tops":    None},
     # -- AMD Radeon RDNA 4 — AMD publishes the DENSE figure first ------------------
     "AMD RX 9070 XT":                      {"fp16_tflops":     195, "int8_tops":     389},
     "AMD RX 9070":                         {"fp16_tflops":     145, "int8_tops":     289},
@@ -1026,8 +1037,8 @@ SILICON: dict[str, dict] = {
     # -- Intel Arc (Xe / Xe2 XMX) --------------------------------------------------
     "Intel Arc B770 (16 GB)":              {"fp16_tflops":   186.8, "int8_tops":   373.6},
     "Intel Arc B580":                      {"fp16_tflops":   116.5, "int8_tops":     233},
-    "Intel Arc A770":                      {"fp16_tflops":     131, "int8_tops":     262},
-    "Intel Arc A750":                      {"fp16_tflops":   114.5, "int8_tops":     229},
+    "Intel Arc A770":                      {"fp16_tflops":   137.6, "int8_tops":   275.1},
+    "Intel Arc A750":                      {"fp16_tflops":   117.4, "int8_tops":   234.9},
     # -- Qualcomm Snapdragon X — Adreno GPU ----------------------------------------
     "Snapdragon X Elite":                  {"fp16_tflops":     9.2, "int8_tops":    None},
     "Snapdragon X Plus":                   {"fp16_tflops":     7.6, "int8_tops":    None},
@@ -1406,7 +1417,7 @@ def _dequant_seconds(active_b: float, quant: str, hw_type: str) -> float:
 def decode_roofline(active_b: float, quant: str, bandwidth_gbps: float,
                     hw_type: str, *, ctx_tokens: int = 0,
                     kv_bytes_tok: float = 0.0, fp16_tflops: float | None = None,
-                    batch: int = 1) -> DecodeEstimate:
+                    batch: int = 1, compute_b: float | None = None) -> DecodeEstimate:
     """Decode throughput as the SLOWEST of three roofs.
 
         t_weights = W / (BW * u_hw * k_q)               # flat in the batch
@@ -1462,9 +1473,18 @@ def decode_roofline(active_b: float, quant: str, bandwidth_gbps: float,
     kv_gb = batch * max(int(ctx_tokens), 0) * max(kv_bytes_tok, 0.0) / 1e9
     t_kv = kv_gb / (bandwidth_gbps * _KV_MBU) if kv_gb else 0.0
 
+    # compute_b, not active_b. Under batching an MoE reads the UNION of the
+    # experts its sequences route to, but it still only MULTIPLIES by the ones
+    # each token actually routes to: an expert whose weights were fetched for
+    # another sequence contributes zero multiply-accumulates to this token. The
+    # union is a bytes-moved quantity and belongs to the weight-stream roof
+    # alone. Passing it here charged a 21B-A3.6B MoE exactly the decode FLOPs of
+    # a DENSE 21B at batch >= 32, asserting that expert sparsity buys no FLOP
+    # reduction under concurrency, and flipped real rows to bound="compute".
+    flops_b = active_b if compute_b is None else compute_b
     t_compute = 0.0
     if fp16_tflops and fp16_tflops > 0:
-        t_compute = (batch * 2.0 * active_b * 1e9) / (fp16_tflops * 1e12 * _MFU_DECODE)
+        t_compute = (batch * 2.0 * flops_b * 1e9) / (fp16_tflops * 1e12 * _MFU_DECODE)
     t_dequant = _dequant_seconds(active_b, quant, hw_type)
 
     t_mem = t_weights + t_kv
@@ -1530,7 +1550,10 @@ def _step_seconds(*, params_b, active_b, quant, bandwidth_gbps, hw_type,
         read_b = params_b * _moe_read_fraction(active_b, params_b, batch)
     e = decode_roofline(read_b, quant, bandwidth_gbps, hw_type,
                         ctx_tokens=ctx_tokens, kv_bytes_tok=kv_bytes_tok,
-                        fp16_tflops=fp16_tflops, batch=batch)
+                        fp16_tflops=fp16_tflops, batch=batch,
+                        # read_b is the weight stream; the FLOPs stay on the
+                        # routed experts. For a dense model these are equal.
+                        compute_b=active_b)
     return (batch / e.tps) if e.tps > 0 else float("inf")
 
 
@@ -1554,8 +1577,13 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
     Fitted to 86 measured inter-token-latency points across 11 published NVIDIA
     NIM concurrency sweeps (Llama-3.1-8B and Llama-3.3-70B; H100/H200/A100/L40S;
     fp8 and bf16; TP1-TP8): 1.4%-13% RMS per curve, 12.6% mean absolute error.
-    Held out: Llama-3.1-8B fp8 on an H100 at ctx 1500 predicts 11,918 tok/s at
-    B=256 against NIM's measured 11,527.6 at C=250 (+3.4%).
+    Held out, and it does NOT flatter the model: Llama-3.1-8B at ctx 1500 on
+    this file's H100 SXM preset (80 GB, 3350 GB/s) predicts 8,319 tok/s at
+    B=256 against NIM's measured 11,527.6 at C=250 — 28% LOW. The +3.4% this
+    docstring used to claim was real arithmetic against the wrong card: 4800
+    GB/s reproduces 11,920, and 4800 is the H200. Under-prediction here is the
+    expected direction and has a named cause — see the datacenter-MBU note on
+    _MBU_FP16, which measures 0.31 on an H100 where this model assumes 0.85.
 
     OPTIMAL means the largest B such that
       (1) the KV cache for B sequences at ctx_tokens fits the leftover VRAM, and
@@ -1584,10 +1612,18 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
         return None
     floor = SLO_FLOORS_TPS.get(slo, SLO_FLOORS_TPS[DEFAULT_SLO])
 
-    # (a) the KV-cache memory ceiling
-    pooled = vram_gb * GPU_MEMORY_UTILIZATION
-    free_gib = pooled - weights_gib - (max(int(gpu_count), 1) * CUDA_CTX_GIB
-                                       + WORKSPACE_GIB)
+    # (a) the KV-cache memory ceiling.
+    #
+    # The budget is the SAME one `fits` uses, and that is not a detail. This
+    # used to be `vram_gb * GPU_MEMORY_UTILIZATION` minus the runtime overhead,
+    # which charges for the driver context and the activation scratch TWICE —
+    # vLLM's 0.92 is a reserve for exactly what CUDA_CTX_GIB + WORKSPACE_GIB
+    # already models. The visible symptom was worse than the 8%: 3.4% of rows
+    # the chart drew as runnable came back with sessions=0, so the same tooltip
+    # read "Speed: 484 tok/s single stream" and "Sessions: x0 concurrent",
+    # because `fits` and this function were answering out of different wallets.
+    free_gib = vram_gb - weights_gib - (max(int(gpu_count), 1) * CUDA_CTX_GIB
+                                        + WORKSPACE_GIB)
     kv_per_seq_gib = ctx_tokens * kv_bytes_tok / GIB
     if free_gib <= 0 or kv_per_seq_gib <= 0:
         return None
@@ -1619,8 +1655,16 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
             binding = "latency"
             break
         total = b / t
-        if total >= best_total:
-            best_total, best_b = total, b
+        # A relative tolerance, not `>=`. On a compute-bound plateau b/t_step(b)
+        # is mathematically constant but not bit-constant, so a 1-ULP downward
+        # blip took the else branch, stopped the scan early and labelled the
+        # stop "throughput_turnover" when nothing had turned over. 0.1% is far
+        # below any real turnover (the measured RTX 3090 curve falls 14% from
+        # B=128 to B=256) and far above float noise.
+        if total >= best_total * (1.0 - 1e-3):
+            if total > best_total:
+                best_total = total
+            best_b = b
         else:
             binding = "throughput_turnover"
             break
@@ -1752,6 +1796,10 @@ def get_local_df(
             "vram_req_gb":  round(vb.total_gib, 2),
             "weights_gb":   round(vb.weights_gib, 2),
             "kv_gb":        round(vb.kv_gib, 2),
+            # Carried rather than hardcoded in the hovers: the driver context is
+            # PER GPU, so this is 1.5 GiB at x1 and 5.0 at x8, and both hovers
+            # printed a flat "runtime 1.5 GB" under a total that included 5.0.
+            "overhead_gb":  round(vb.overhead_gib, 2),
             "kv_bytes_tok": round(vb.kv_bytes_tok, 1),
             "kv_source":    vb.kv_source,
             "ctx_used":     vb.ctx_used,
@@ -1779,7 +1827,7 @@ def get_local_df(
             # filter that matches nothing raises KeyError in a chart builder
             # instead of rendering the empty state — the exact bug this list
             # was written to fix, one new column later.
-            "weights_gb", "kv_gb", "kv_bytes_tok", "kv_source", "ctx_used",
+            "weights_gb", "kv_gb", "overhead_gb", "kv_bytes_tok", "kv_source", "ctx_used",
             "bound", "sessions", "per_session_tps", "total_tps",
             "concurrency_bound",
         ])

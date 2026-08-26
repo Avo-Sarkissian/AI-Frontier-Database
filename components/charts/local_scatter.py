@@ -72,6 +72,12 @@ def build_local_scatter(
     df["kv_note"] = (df["kv_source"] if "kv_source" in df else "none") \
         .map(_KV_NOTE).fillna("architecture estimated, ±30%")
     df["ctx_label"] = _ctx_label(ctx_tokens)
+    # See the same note in local_compat.py: never render "×0 concurrent".
+    df["sessions_note"] = [
+        f"Sessions: ×{int(n)} concurrent → {t:,.0f} tok/s total"
+        if int(n or 0) > 0 else "Sessions: not sized — no context selected"
+        for n, t in zip(df.get("sessions", 0), df.get("total_tps", 0))
+    ]
     for _c in ("weights_gb", "kv_gb", "sessions", "total_tps"):
         if _c not in df:
             df[_c] = 0
@@ -95,10 +101,10 @@ def build_local_scatter(
                 f"Family: {plot_text(family)}<br>"
                 "VRAM required: %{x:.1f} GB at %{customdata[8]} context<br>"
                 "  ↳ weights %{customdata[5]:.1f} + KV cache %{customdata[6]:.1f}"
-                " + runtime 1.5 GB  ·  %{customdata[7]}<br>"
+                " + runtime %{customdata[11]:.1f} GB  ·  %{customdata[7]}<br>"
                 "Intelligence: %{y:.0f}<br>"
                 "Speed: %{customdata[1]:.0f} tok/s single stream<br>"
-                "Sessions: ×%{customdata[9]} concurrent → %{customdata[10]:,.0f} tok/s total<br>"
+                "%{customdata[12]}<br>"
                 "License: %{customdata[2]}<br>"
                 "Max context: %{customdata[3]}k tokens<br>"
                 "Tags: %{customdata[4]}<br>"
@@ -132,7 +138,7 @@ def build_local_scatter(
                     tags_str=sub["tags_str"].map(plot_text),
                 )[["name", "speed_tps", "license", "context_k", "tags_str",
                    "weights_gb", "kv_gb", "kv_note", "ctx_label",
-                   "sessions", "total_tps"]].values,
+                   "sessions", "total_tps", "overhead_gb", "sessions_note"]].values,
                 hovertemplate=hover,
             ))
 

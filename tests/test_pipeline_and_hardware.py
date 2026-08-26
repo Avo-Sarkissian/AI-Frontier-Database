@@ -24,7 +24,7 @@ from data.local_models import (
     get_local_df, effective_bandwidth, calc_vram_gb, calc_speed_tps,
     decode_roofline, optimal_concurrency, kv_bytes_per_token,
     GPUS, GPU_BY_NAME, SILICON, _silicon_key, gpu_compute,
-    GIB, CUDA_CTX_GIB, WORKSPACE_GIB, GPU_MEMORY_UTILIZATION, SLO_FLOORS_TPS,
+    GIB, CUDA_CTX_GIB, WORKSPACE_GIB, SLO_FLOORS_TPS,
     DEFAULT_BANDWIDTH_GBPS, QUANT_LEVELS,
 )
 from components.charts.local_scatter import build_local_scatter
@@ -691,10 +691,15 @@ def test_the_new_apple_presets_carry_the_tiers_apple_sells():
         assert g, f"no M5 Ultra {tier} GB preset"
         assert g["bandwidth_gbps"] == 1200, "M5 Ultra is 1.2 TB/s on both bins"
     assert "Apple M5 Ultra (128 GB)" not in by_name, "Apple sells no 128 GB M5 Ultra"
-    for tier in (16, 24, 32):
+    # The M6 GPU is one bin, but the BANDWIDTH is not: apple.com/mac-mini/specs
+    # prints 153GB/s on the 16 GB models and 170GB/s on the 24 GB one, and the
+    # configure-to line reads "24GB or 32GB (170GB/s memory bandwidth)". The
+    # Newsroom's figure is "UP TO 170GB/s". Flattening that to 170 charted the
+    # entry-level Mac mini 11% fast.
+    for tier, bw in ((16, 153), (24, 170), (32, 170)):
         g = by_name.get(f"Apple M6 ({tier} GB)")
         assert g, f"no M6 {tier} GB preset"
-        assert g["bandwidth_gbps"] == 170
+        assert g["bandwidth_gbps"] == bw, f"M6 {tier} GB is {g['bandwidth_gbps']}, not {bw}"
     assert "Apple M6 (48 GB)" not in by_name, "M6 tops out at 32 GB"
     assert by_name["Apple M5 Max (36 GB)"]["bandwidth_gbps"] == 460
 
@@ -889,10 +894,50 @@ def test_optimal_concurrency_never_over_commits_vram():
                       hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
     over = []
     for _, r in df[df["sessions"] > 0].iterrows():
-        need = r["weights_gb"] + r["sessions"] * r["kv_bytes_tok"] * r["ctx_used"] / GIB
-        if need > 24 * GPU_MEMORY_UTILIZATION:
+        need = (r["weights_gb"] + CUDA_CTX_GIB + WORKSPACE_GIB
+                + r["sessions"] * r["kv_bytes_tok"] * r["ctx_used"] / GIB)
+        if need > 24 + 1e-6:
             over.append((r["name"], r["sessions"], round(need, 1)))
     assert not over, f"sessions that do not fit: {over[:5]}"
+
+
+def test_a_model_that_fits_always_gets_at_least_one_session():
+    """`fits` and `sessions` have to spend out of the same wallet. They did not:
+    optimal_concurrency discounted VRAM by vLLM's 0.92 AND subtracted the
+    runtime overhead this file already itemises, charging twice for the same
+    reserve. 3.4% of rows the chart drew as runnable came back sessions=0, so
+    one tooltip read "Speed: 484 tok/s single stream" directly above
+    "Sessions: x0 concurrent at 0 tok/s each"."""
+    for vram in (8, 12, 24, 32, 80):
+        df = get_local_df(quant="Q4", vram_gb=vram,
+                          bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, hw_type="nvidia",
+                          fp16_tflops=209.5, ctx_tokens=8192)
+        bad = [(r["name"], r["vram_req_gb"]) for _, r in df.iterrows()
+               if r["fits"] != "no" and r["sessions"] < 1]
+        assert not bad, f"at {vram} GB, runnable rows with no session: {bad[:5]}"
+
+
+def test_an_moe_is_not_charged_dense_flops_under_batching():
+    """The expert UNION is a bytes-moved quantity. _step_seconds passed it as
+    decode_roofline's active_b, which also drives the compute roof, so a
+    21B-A3.6B MoE was charged exactly a dense 21B's decode FLOPs at batch >= 32
+    — asserting that expert sparsity buys no arithmetic saving at all. Real
+    catalogue rows flipped to bound="compute" as a result."""
+    kw = dict(quant="Q4", bandwidth_gbps=1792, hw_type="nvidia",
+              fp16_tflops=209.5, ctx_tokens=8192, kv_bytes_tok=98304.0)
+    dense = decode_roofline(30.5, **{k: v for k, v in kw.items()
+                                     if k != "quant"}, batch=64,
+                            **{"quant": kw["quant"]}).t_compute
+    sparse = decode_roofline(30.5, **{k: v for k, v in kw.items()
+                                      if k != "quant"}, batch=64,
+                             compute_b=3.3, **{"quant": kw["quant"]}).t_compute
+    assert sparse < dense / 5, (
+        "the compute roof does not distinguish experts READ from experts USED"
+    )
+    df = get_local_df(quant="Q4", vram_gb=64, bandwidth_gbps=1792,
+                      hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
+    moe_compute = df[(df["moe"]) & (df["bound"] == "compute")]["name"].tolist()
+    assert not moe_compute, f"MoE rows reported compute-bound: {moe_compute[:5]}"
 
 
 def test_optimal_concurrency_never_recommends_below_the_slo_floor():
@@ -948,7 +993,15 @@ def test_the_tok_s_figures_say_which_of_the_two_they_are():
     title = scatter.layout.title.text.lower()
     assert "single-stream" in title, f"the scatter does not say which speed it plots: {title}"
     hover = compat.data[-1].hovertemplate.lower()
-    assert "single stream" in hover and "concurrent" in hover, hover
+    assert "single stream" in hover, hover
+    # "concurrent" lives in a customdata column, not the template: the sessions
+    # line is built in Python so a row with no session count renders a sentence
+    # rather than "×0 concurrent at 0 tok/s each".
+    rendered = [str(r[-1]).lower() for r in compat.data[-1].customdata]
+    assert any("concurrent" in r for r in rendered), rendered[:3]
+    assert not any("×0 concurrent" in r for r in rendered), (
+        "a row is still rendering zero sessions as though it had been sized"
+    )
     assert "8k context" in compat.layout.title.text.lower()
 
 
