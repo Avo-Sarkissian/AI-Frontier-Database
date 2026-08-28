@@ -1166,3 +1166,31 @@ def test_a_linear_attention_hybrid_is_not_charged_for_its_recurrent_layers():
         assert abs(hybrid - full * g / n) < 1, (
             f"{name}: hybrid cache is not exactly the full-attention share"
         )
+
+
+def test_the_family_legend_encodes_colour_and_nothing_else():
+    """Shape on this chart means dense vs mixture-of-experts. The legend is
+    FAMILY, and its swatches used to inherit the per-point symbol array, so
+    Plotly drew each family with whichever of its models happened to sort first
+    — Alibaba a circle, NVIDIA a diamond, by accident of ordering. A reader
+    comparing Qwen3.8 27B (dense, circle) against Qwen3.8-Flash-Next (MoE,
+    diamond) reasonably concluded the shape was the lab's.
+
+    Every legend swatch must be the same neutral symbol, and the legend must
+    still list exactly the families that got a runnable mark."""
+    df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
+                      hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
+    fig = build_local_scatter(df, vram_gb=32, quant="Q4", ctx_tokens=8192)
+    legend = [t for t in fig.data if t.showlegend]
+    assert legend, "the family legend disappeared"
+    symbols = {str(t.marker.symbol) for t in legend}
+    assert symbols == {"circle"}, f"legend swatches encode shape: {symbols}"
+
+    scored = df[~(df.get("pending", False).fillna(False) & df["quality"].isna())]
+    expected = set(scored[scored["fits"] == "yes"]["family"])
+    assert {t.name for t in legend} <= {str(f) for f in expected}, (
+        "the legend lists a family with nothing plotted"
+    )
+    # And the key that DOES explain shape has to be on the chart.
+    key = " ".join(a.text for a in fig.layout.annotations if a.text)
+    assert "dense" in key and "mixture-of-experts" in key, key

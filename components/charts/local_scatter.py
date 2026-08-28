@@ -6,8 +6,8 @@ X-axis : VRAM required (GiB) at the selected quantization AND context —
 Y-axis : AA Intelligence Index (raw, calibrated to AA scale)
 Size   : tokens/second — single-stream or aggregate at optimal concurrency,
          whichever the SPEED control selects
-Color  : Model family
-Shape  : ● dense  ◆ MoE (mixture-of-experts)
+Color  : Model family (the legend encodes colour ONLY)
+Shape  : ● dense  ◆ MoE (mixture-of-experts) — never the lab
 
 A vertical dashed line marks the user's available VRAM.
 Models to the left of the line are runnable; those to the right are not.
@@ -108,8 +108,15 @@ def build_local_scatter(
     fig = go.Figure()
 
     # Draw each family as its own trace so the legend is grouped by family
+    # Families that actually got a runnable mark. The old rule was
+    # showlegend=(fits_val == "yes"), so a family with nothing that fits never
+    # appeared; the proxies have to reproduce that or the legend grows by the
+    # 18 families whose models are all too big for the selected hardware.
+    _legend_families: list = []
     for family, fdf in df.groupby("family", sort=False):
         color = FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR)
+        if not fdf[fdf["fits"] == "yes"].empty:
+            _legend_families.append(family)
 
         for fits_val, opacity in [("yes", _FIT_ALPHA), ("tight", _TIGHT_ALPHA), ("no", _NO_ALPHA)]:
             sub = fdf[fdf["fits"] == fits_val]
@@ -141,7 +148,14 @@ def build_local_scatter(
                 y=sub["quality"],
                 mode="markers",
                 name=plot_text(family),
-                showlegend=(fits_val == "yes"),   # one legend entry per family
+                # NEVER the legend entry. The symbol is a per-point array, so
+                # Plotly draws the swatch with whichever model happens to sort
+                # first in the family — Alibaba came out a circle and NVIDIA a
+                # diamond purely by accident of ordering, which reads as though
+                # SHAPE encoded the lab. It encodes dense vs MoE. The legend is
+                # drawn from fixed-symbol proxies below so it carries colour and
+                # nothing else.
+                showlegend=False,
                 legendgroup=plot_text(family),
                 marker=dict(
                     color=color,
@@ -166,6 +180,19 @@ def build_local_scatter(
                    "sessions", "total_tps", "overhead_gb", "speed_note"]].values,
                 hovertemplate=hover,
             ))
+
+    # Legend proxies: one per family, fixed circle, no data. They exist so the
+    # FAMILY legend encodes colour only. The dense/MoE key is the annotation in
+    # the corner, which is the one place shape is explained.
+    for family in _legend_families:
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            name=plot_text(family), legendgroup=plot_text(family),
+            marker=dict(color=FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR),
+                        size=9, symbol="circle",
+                        line=dict(width=0.5, color="rgba(255,255,255,0.15)")),
+            hoverinfo="skip", showlegend=True,
+        ))
 
     # Vertical threshold line at user's VRAM
     fig.add_vline(
@@ -252,7 +279,9 @@ def build_local_scatter(
             dict(
                 x=1.0, y=1.04, xref="paper", yref="paper",
                 xanchor="right",
-                text=f"Bubble size = {_speed_label} tok/s<br>◆ = MoE architecture",
+                text=(f"● dense   ◆ mixture-of-experts"
+                      f"<br>bubble size = {_speed_label} tok/s"
+                      f"<br>colour = lab"),
                 showarrow=False,
                 font=dict(color="#666666", size=10, family=_FONT),
                 align="left",
