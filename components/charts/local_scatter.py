@@ -74,7 +74,11 @@ def build_local_scatter(
     # Whether the KV figure in the hover came from a published config or the
     # fitted estimator. The reader has to be able to tell — see the same note
     # in local_compat.py.
+    # "config" is the hand-curated table, "hf" the model's own config.json off
+    # HuggingFace. Both are published facts, so they read the same; only the
+    # fitted estimate carries a warning, because it is the only guess.
     _KV_NOTE = {"config": "published architecture",
+                "hf": "published architecture",
                 "estimated": "architecture estimated, ±30%",
                 "none": "no context priced"}
     df = df.copy()

@@ -55,6 +55,11 @@ FIG  = DOCS / "figures"
 DATA_CSVS = [
     "data/raw/aa_models.csv",
     "data/raw/aa_local_models.csv",
+    # Attention geometry for the Run Local KV-cache term. It rides with the
+    # other data files rather than the code because it is refreshed by the same
+    # hourly bot, so a --data-only rebuild picks up newly resolved models
+    # without a full rebuild.
+    "data/raw/aa_local_arch.csv",
     "data/raw/aa_image_models.csv",
     "data/raw/aa_video_models.csv",
 ]
@@ -257,7 +262,8 @@ def build_pybundle(docs: Path | None = None):
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
-        "data/raw/aa_models.csv", "data/raw/aa_local_models.csv", "data/raw/aa_image_models.csv",
+        "data/raw/aa_models.csv", "data/raw/aa_local_models.csv",
+        "data/raw/aa_local_arch.csv", "data/raw/aa_image_models.csv",
         "data/raw/aa_video_models.csv",
     ]
 

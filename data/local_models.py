@@ -1147,12 +1147,21 @@ KV_ARCH: dict[str, dict] = {
     "llama 3.1 8b":        {"n_layers": 32, "n_kv_heads":  8, "head_dim": 128},
     "llama 3.3 70b":       {"n_layers": 80, "n_kv_heads":  8, "head_dim": 128},
     "llama 3.1 70b":       {"n_layers": 80, "n_kv_heads":  8, "head_dim": 128},
-    # 16 KV heads, NOT the 8 in the Llama 3 paper's Table 3 (arXiv:2407.21783).
-    # HF mirrors split 4-vs-4. Settled against the released BF16 weights:
-    # model.layers.0.self_attn.k_proj.weight is [2048, 16384] and 2048/128 = 16.
-    # The weights win. This DOUBLES its cache to 1008 KiB/token. Do not "fix"
-    # this back to 8 on the strength of the paper.
-    "llama 3.1 405b":      {"n_layers": 126, "n_kv_heads": 16, "head_dim": 128},
+    # 8 KV heads, as the Llama 3 paper's Table 3 says (arXiv:2407.21783).
+    #
+    # This row said 16 for one commit, on the strength of a k_proj shape read out
+    # of SillyTilly/Meta-Llama-3.1-405B-Instruct. That mirror is a repack, not
+    # the model, and the parameter counts settle it without needing to trust any
+    # single header: meta-llama/Llama-3.1-405B publishes 405,853,388,800
+    # parameters and so does NousResearch's mirror, while SillyTilly's publishes
+    # 410,081,247,232. The difference is 4,227,858,432, which is EXACTLY
+    # 126 layers x 2 tensors x 8 extra KV heads x 128 head_dim x 16384 hidden.
+    # The repack carries eight KV heads the released model does not have.
+    #
+    # Caught by test_scraped_architecture_agrees_with_the_hand_curated_table,
+    # which exists for precisely this: two published sources disagreeing means
+    # one of them is being read wrong. The cache is 504 KiB/token, not 1008.
+    "llama 3.1 405b":      {"n_layers": 126, "n_kv_heads": 8, "head_dim": 128},
     "qwen 2.5 0.5b":       {"n_layers": 24, "n_kv_heads":  2, "head_dim":  64},
     "qwen 2.5 1.5b":       {"n_layers": 28, "n_kv_heads":  2, "head_dim": 128},
     "qwen 2.5 3b":         {"n_layers": 36, "n_kv_heads":  2, "head_dim": 128},
@@ -1212,10 +1221,18 @@ KV_ARCH: dict[str, dict] = {
 # Fitted over the 33 published architectures above and their siblings.
 # IN-SAMPLE accuracy on that table: mean |error| 29.6%, median 15.0%, p90 55.6%,
 # max 171% (Qwen 2.5 7B, which uses 4 KV heads at 7.6B where its peers use 8).
-# Signed residuals p10 -46%, p90 +50%. In-sample means out-of-sample is worse,
-# and the sample carries no Cohere, Yi, Falcon, InternLM, GLM, MiniMax,
-# Nemotron or Granite, and no SSM hybrid at all (Jamba's KV does not follow this
-# formula in any form).
+#
+# OUT OF SAMPLE IT IS MUCH WORSE, and now that data/arch_scraper.py resolves most
+# of the catalogue we can measure it rather than warn about it: against the 147
+# rows whose real geometry is known, the estimator's error is mean 89%, median
+# 33%, p90 272%, max 885%. The tail is structural, not noise — the estimator
+# assumes every layer caches the full sequence, so it cannot see sliding-window
+# attention (Gemma 4 E4B: +618%; Muse Glimmer: +885%) or latent attention
+# (Sarvam 105B: +367%). Those are the two things it is worst at and they are
+# increasingly common.
+#
+# This is the FALLBACK now, not the main path. Roughly one row in five reaches
+# it, and every one of those is labelled "architecture estimated" on screen.
 #
 # DO NOT SURFACE THE ESTIMATED n_layers / n_kv_heads AS FACTS. The fit works
 # partly through compensating errors: on Qwen3 235B-A22B it gets layers 46% too
@@ -1327,12 +1344,76 @@ def kv_cache_bytes(arch: dict, seq_len: int, kv_quant: str = DEFAULT_KV_QUANT,
     return width * arch["n_layers"] * seq_len * batch
 
 
+# ── Scraped attention geometry ───────────────────────────────────────────────
+# data/arch_scraper.py resolves each catalogue row to its HuggingFace repo and
+# reads n_layers / n_kv_heads / head_dim straight out of the model's own
+# config.json, refusing any repo whose published parameter count disagrees with
+# the catalogue's. That is the same class of fact as KV_ARCH above — a published
+# architectural fact, which data/pending_models.py's doctrine permits curating —
+# so it is priced identically and labelled identically. KV_ARCH stays ahead of
+# it only because those rows were read and cross-checked by hand.
+_ARCH_CACHE = Path(__file__).parent / "raw" / "aa_local_arch.csv"
+_SCRAPED_ARCH: dict[str, dict] | None = None
+
+
+def _load_scraped_arch() -> dict[str, dict]:
+    """Name -> geometry from the scrape, memoised. Missing file is not an error:
+    the estimator answers for everything absent, and says so."""
+    global _SCRAPED_ARCH
+    if _SCRAPED_ARCH is not None:
+        return _SCRAPED_ARCH
+    out: dict[str, dict] = {}
+    if _ARCH_CACHE.exists():
+        try:
+            df = pd.read_csv(_ARCH_CACHE)
+        except Exception:
+            df = None
+        for _, r in (df.iterrows() if df is not None else ()):
+            def _i(k):
+                v = r.get(k)
+                try:
+                    return int(v) if pd.notna(v) and str(v) != "" else None
+                except (TypeError, ValueError):
+                    return None
+            n_layers = _i("n_layers")
+            if not n_layers:
+                continue
+            if str(r.get("attn", "")).lower() == "mla":
+                latent = _i("kv_lora_rank")
+                if not latent:
+                    continue
+                geo = {"attn": "mla", "n_layers": n_layers,
+                       "kv_lora_rank": latent,
+                       "qk_rope_head_dim": _i("qk_rope_head_dim") or 0}
+            else:
+                n_kv, head_dim = _i("n_kv_heads"), _i("head_dim")
+                if not (n_kv and head_dim):
+                    continue
+                geo = {"n_layers": n_layers, "n_kv_heads": n_kv,
+                       "head_dim": head_dim}
+                g, w = _i("global_layers"), _i("sliding_window")
+                if g and w and 0 < g < n_layers:
+                    geo["global_layers"], geo["window"] = g, w
+            out[str(r["name"])] = geo
+    _SCRAPED_ARCH = out
+    return out
+
+
 def resolve_attention(name: str, params_b: float, active_b: float | None = None,
                       is_moe: bool = False) -> tuple[dict, str]:
-    """(geometry, source) where source is "config" or "estimated"."""
+    """(geometry, source) where source is "config", "hf" or "estimated".
+
+    Order is hand-curated, then scraped, then fitted. The first two are both
+    published facts and the UI presents them the same way; the estimator is the
+    only one the reader is warned about, because it is the only one that is a
+    guess.
+    """
     hit = _kv_arch_lookup(name)
     if hit is not None:
         return hit, "config"
+    scraped = _load_scraped_arch().get(str(name))
+    if scraped is not None:
+        return scraped, "hf"
     L, H, D = estimate_attention_shape(params_b, active_b, is_moe)
     return {"n_layers": L, "n_kv_heads": H, "head_dim": D}, "estimated"
 

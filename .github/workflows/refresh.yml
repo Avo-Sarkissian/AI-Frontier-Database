@@ -45,6 +45,11 @@ jobs:
           failed=""
           python -m data.scraper       || failed="$failed hosted"
           python -m data.local_scraper || failed="$failed local"
+          # Incremental: only resolves catalogue rows it has not seen, so the
+          # steady-state cost is a handful of HuggingFace requests. A failure
+          # here is not a data outage — every unresolved model falls back to the
+          # fitted estimator and the hover says so.
+          python -m data.arch_scraper  || failed="$failed arch"
           python -m data.image_scraper || failed="$failed image"
           python -m data.video_scraper || failed="$failed video"
           echo "failed=${failed# }" >> "$GITHUB_OUTPUT"

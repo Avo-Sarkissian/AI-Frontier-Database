@@ -824,9 +824,12 @@ def test_the_kv_term_is_derived_from_published_architecture_or_is_labelled():
     figure reads as though both were measured."""
     df = get_local_df(ctx_tokens=8192)
     bad = [r["name"] for _, r in df.iterrows()
-           if r["kv_gb"] > 0 and r["kv_source"] not in ("config", "estimated")]
+           if r["kv_gb"] > 0 and r["kv_source"] not in ("config", "hf", "estimated")]
     assert not bad, f"KV figures with no provenance: {bad[:5]}"
     assert (df["kv_source"] == "config").any(), "no row matches KV_ARCH at all"
+    # "config" is hand-curated, "hf" is scraped from the model's own
+    # config.json by data/arch_scraper.py. Both are published facts and read
+    # identically on screen; only "estimated" carries a warning.
 
 
 def test_the_kv_cache_changes_which_models_fit():
@@ -1031,3 +1034,109 @@ def test_the_new_controls_say_what_they_cost_in_both_shells():
             f"{rel} does not say why context moves both VRAM and speed"
         )
         assert "10 tok/s" in src, f"{rel} does not name the per-session floor"
+
+
+# ── Theme 12 — scraped architecture must be a fact, not a better guess ───────
+
+def test_the_two_published_sources_never_answer_for_the_same_model():
+    """resolve_attention() prefers the hand-curated KV_ARCH, so a scraped row
+    for a model the table already covers can never be used — and a second,
+    differing answer sitting in the cache is pure risk with no upside.
+    arch_scraper skips those names; this asserts it kept skipping them.
+
+    THIS IS NOT HYPOTHETICAL. The overlap is how a repack got in: searching
+    "Llama 3.1 Instruct 405B" surfaces SillyTilly's 410,081,247,232-parameter
+    upload but not Meta's own gated 405,853,388,800 one, and the 4,227,858,432
+    difference is exactly 126 layers x 2 tensors x 8 extra KV heads x 128 x
+    16384 — eight KV heads per layer the released model does not have. Its
+    config would have doubled that model's KV cache.
+
+    The same clash also corrected KV_ARCH itself, which had believed the repack
+    and told future readers not to "fix" it back to the paper's 8."""
+    from data.local_models import _kv_arch_lookup, _load_scraped_arch
+    overlap = [n for n in _load_scraped_arch() if _kv_arch_lookup(n) is not None]
+    assert not overlap, (
+        f"scraped rows shadowed by the curated table: {overlap[:5]}"
+    )
+
+
+def test_llama_31_405b_has_the_eight_kv_heads_its_weights_carry():
+    """Pinned because this row was wrong once and the wrong value came with a
+    comment telling the next reader not to change it. Meta publishes
+    405,853,388,800 parameters; the 16-head repack publishes 410,081,247,232,
+    and the difference is exactly the extra heads. 8 gives 504 KiB/token."""
+    from data.local_models import _kv_arch_lookup, kv_cache_bytes
+    geo = _kv_arch_lookup("Llama 3.1 405B")
+    assert geo and geo["n_kv_heads"] == 8, geo
+    per_tok = kv_cache_bytes(geo, 1)
+    assert abs(per_tok - 504 * 1024) < 1024, f"{per_tok / 1024:.0f} KiB/token"
+
+
+def test_an_mla_model_is_never_written_through_the_gqa_columns():
+    """A latent-attention model caches ONE vector per layer, so the GQA
+    formula's leading 2 alone doubles it. DeepSeek V4 is the trap: it publishes
+    no kv_lora_rank and expresses the latent as num_key_value_heads=1 with
+    head_dim=512, which reads as ordinary MQA. Priced as GQA it comes out 78%
+    high."""
+    from data.local_models import _load_scraped_arch
+    bad = [(n, g) for n, g in _load_scraped_arch().items()
+           if g.get("attn") == "mla" and (g.get("n_kv_heads") or g.get("head_dim"))]
+    assert not bad, f"MLA rows carrying GQA columns: {bad[:3]}"
+    for name, geo in _load_scraped_arch().items():
+        if geo.get("attn") == "mla":
+            assert geo.get("kv_lora_rank"), f"{name}: MLA row with no latent width"
+
+
+def test_a_published_architecture_is_never_labelled_an_estimate():
+    """kv_source is the only thing telling the reader whether the KV figure
+    beside the exact weights figure was read or fitted. A row resolved from a
+    config.json must not carry the estimator's ±30% warning, and a row that was
+    fitted must not pass as published."""
+    from data.local_models import _kv_arch_lookup, _load_scraped_arch
+    df = get_local_df(ctx_tokens=8192)
+    scraped = _load_scraped_arch()
+    wrong = []
+    for _, r in df.iterrows():
+        published = (_kv_arch_lookup(r["name"]) is not None
+                     or str(r["name"]) in scraped)
+        if published and r["kv_source"] == "estimated":
+            wrong.append((r["name"], "published but labelled estimated"))
+        if not published and r["kv_source"] in ("config", "hf"):
+            wrong.append((r["name"], "fitted but labelled published"))
+    assert not wrong, wrong[:5]
+
+
+def test_the_scrape_shrinks_the_share_of_models_running_on_a_guess():
+    """The whole point. Before the scrape, 166 of 179 catalogue rows priced
+    their KV cache from a fit with a p90 signed residual of +50%; a KV error is
+    a fits/does-not-fit error on the tab's central question."""
+    df = get_local_df(ctx_tokens=8192)
+    published = int((df["kv_source"].isin(("config", "hf"))).sum())
+    assert published >= 13, (
+        f"only {published} of {len(df)} rows carry a published architecture — "
+        f"has data/raw/aa_local_arch.csv gone missing?"
+    )
+
+
+def test_every_scraped_row_cleared_the_parameter_guard():
+    """A name can be ambiguous; a parameter count cannot. Every cached row
+    records the count HuggingFace published for the repo it read, and it has to
+    agree with the catalogue's — otherwise the scraper resolved the 8B when the
+    catalogue meant the 70B and wrote a confidently wrong architecture."""
+    import pandas as _pd
+    from data.arch_scraper import _CACHE, _PARAM_TOLERANCE
+    if not _CACHE.exists():
+        pytest.skip("no architecture cache in this checkout")
+    arch = _pd.read_csv(_CACHE).set_index("name")
+    cat = get_local_df(ctx_tokens=0).set_index("name")
+    off = []
+    for name, r in arch.iterrows():
+        if name not in cat.index:
+            continue
+        want = float(_pd.Series(cat.loc[name, "params_b"]).iloc[0]
+                     if hasattr(cat.loc[name, "params_b"], "__len__")
+                     else cat.loc[name, "params_b"])
+        got = float(r["params_hf_b"])
+        if want > 0 and abs(got - want) / want > _PARAM_TOLERANCE + 1e-9:
+            off.append((name, want, got))
+    assert not off, f"cached rows whose repo is the wrong size: {off[:5]}"

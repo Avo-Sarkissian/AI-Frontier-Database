@@ -88,7 +88,11 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     # fitted estimator. The reader has to be able to tell: the estimator's p90
     # signed residual is +50%, and an unlabelled estimate beside an exact
     # weights figure reads as though both were measured.
+    # "config" is the hand-curated table, "hf" the model's own config.json off
+    # HuggingFace. Both are published facts, so they read the same; only the
+    # fitted estimate carries a warning, because it is the only guess.
     _KV_NOTE = {"config": "published architecture",
+                "hf": "published architecture",
                 "estimated": "architecture estimated, ±30%",
                 "none": "no context priced"}
     runnable["kv_note"] = (runnable["kv_source"] if "kv_source" in runnable
