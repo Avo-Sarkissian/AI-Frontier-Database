@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 624,
   "distinct_upstream_models": 279,
-  "kept": 180,
+  "kept": 181,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
@@ -97,7 +97,6 @@
     "Qwen3.5 0.8B (Reasoning)",
     "Qwen3.5 2B (Non-reasoning)",
     "Qwen3.5 2B (Reasoning)",
-    "Qwen3.8-Flash-Next",
     "R1 1776",
     "Solar Open 100B (Reasoning)",
     "Solar Open2 250B",
