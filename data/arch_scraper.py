@@ -45,6 +45,7 @@ Run standalone:  python -m data.arch_scraper
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -58,6 +59,22 @@ from static_helpers import csv_safe
 
 _CACHE = Path(__file__).parent / "raw" / "aa_local_arch.csv"
 _LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
+# Names the API answered about and produced nothing qualifying for. See
+# scrape_and_save(): without this the hourly bot re-searched the same permanent
+# non-matches ~100 requests a run, forever.
+# Overridable for the same reason data/scrape_status.py's path is: a test has to
+# drive this module through its outage path without rewriting the ledger the
+# committed run depends on.
+_UNRESOLVED = Path(
+    os.environ.get("AI_FRONTIER_ARCH_UNRESOLVED_PATH")
+    or Path(__file__).parent / "raw" / "aa_local_arch_unresolved.csv"
+)
+
+# How long a recorded non-match is left alone before being retried. Long enough
+# that the hourly bot stops re-asking a question upstream has already answered,
+# short enough that a name which becomes resolvable (a repo published, a
+# catalogue params_b corrected) is picked up without anyone intervening.
+_RETRY_DAYS = 7
 
 _HEADERS = {"User-Agent": "AI-Frontier-Dashboard/1.0 (+github.com/Avo-Sarkissian)"}
 _API = "https://huggingface.co/api/models"
@@ -112,6 +129,16 @@ def _search_terms(name: str) -> list[str]:
     return out
 
 
+class ApiError(RuntimeError):
+    """HuggingFace did not answer.
+
+    Kept strictly separate from "answered, and nothing qualified". The two are
+    identical at the call site — both end in no geometry — but they mean
+    opposite things: one is an outage that must turn the run red, the other is
+    the documented steady state in which the estimator answers and says so.
+    """
+
+
 def _get(url: str, params: dict | None = None):
     r = requests.get(url, params=params, headers=_HEADERS, timeout=_TIMEOUT)
     r.raise_for_status()
@@ -119,12 +146,20 @@ def _get(url: str, params: dict | None = None):
 
 
 def _candidates(name: str, limit: int = 12) -> list[dict]:
-    seen, out = set(), []
+    """Search hits for a name.
+
+    Raises ApiError if every query for this name failed at the transport level,
+    so a rate-limited or unreachable API cannot be mistaken for "no such model"
+    and recorded as a settled non-match.
+    """
+    seen, out, tried, errors = set(), [], 0, 0
     for term in _search_terms(name):
+        tried += 1
         try:
             rows = _get(_API, {"search": term, "limit": limit,
                                "expand[]": "safetensors"})
         except Exception:
+            errors += 1
             continue
         for m in rows or []:
             rid = m.get("id")
@@ -133,6 +168,8 @@ def _candidates(name: str, limit: int = 12) -> list[dict]:
                 out.append(m)
         if out:
             break
+    if tried and errors == tried:
+        raise ApiError(f"every search for {name!r} failed")
     return out
 
 
@@ -186,8 +223,13 @@ def _fetch_config(repo: str) -> dict | None:
     try:
         r = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT,
                          allow_redirects=True)
-        if r.status_code != 200:
-            return None
+    except Exception as e:
+        # Never reached the server. Gating and 404s answer with a status code;
+        # this did not, so it says nothing about whether the config exists.
+        raise ApiError(f"{repo}: {type(e).__name__}") from e
+    if r.status_code != 200:
+        return None
+    try:
         return r.json()
     except Exception:
         return None
@@ -309,6 +351,86 @@ def resolve_one(name: str, params_b: float) -> dict | None:
     return None
 
 
+def _api_healthy() -> bool:
+    """Positive control: is the search API still answering with usable rows?
+
+    "Resolved nothing" has two causes that look identical from here. Forty of
+    the catalogue's names have no qualifying repo and never will -- a product
+    name the labs never uploaded under, or a marketing parameter count the
+    published weights disagree with by more than the guard allows. That is the
+    documented steady state: those rows fall back to the fitted estimator and
+    the hover says so. A dead or rate-limited API produces the same empty
+    result.
+
+    Without a control this module had to guess which it was, and it guessed
+    "failure" -- so every hourly run went red on a healthy scrape, which is the
+    image endpoint's 29 silent days running in reverse: a guard that fires
+    constantly stops being read exactly like one that never fires at all.
+
+    So ask about something that cannot plausibly be missing. If "llama" comes
+    back with parameter counts attached, the API is fine and an unresolved name
+    is a fact about naming, not an outage.
+    """
+    try:
+        rows = _get(_API, {"search": "llama", "limit": 5, "expand[]": "safetensors"})
+    except Exception as e:
+        print(f"[arch_scraper] control query failed: {type(e).__name__} — "
+              f"treating this run as an upstream failure")
+        return False
+    if not any((r.get("safetensors") or {}).get("total") for r in rows or []):
+        print("[arch_scraper] control query answered but carried no parameter "
+              "counts — the search API has changed shape")
+        return False
+    return True
+
+
+def _load_unresolved() -> dict:
+    """name -> {params_b, attempts, last_tried, reason} for settled non-matches."""
+    if not _UNRESOLVED.exists():
+        return {}
+    try:
+        df = pd.read_csv(_UNRESOLVED)
+    except Exception:
+        return {}
+    return {str(r["name"]): {k: r[k] for k in df.columns} for _, r in df.iterrows()}
+
+
+def _due(rec: dict | None, params_b: float, today: date) -> bool:
+    """Should this name be looked up again this run?"""
+    if not rec:
+        return True
+    # The catalogue moved its parameter count, so the guard that rejected every
+    # candidate last time is now a different guard. Ask again.
+    try:
+        if abs(float(rec.get("params_b") or 0) - params_b) > 1e-6:
+            return True
+        last = date.fromisoformat(str(rec.get("last_tried")))
+    except Exception:
+        return True
+    return (today - last).days >= _RETRY_DAYS
+
+
+def _save_unresolved(ledger: dict) -> None:
+    """Write the ledger, but only when it actually changed.
+
+    data/raw is what the workflow's change guard watches. A file rewritten every
+    run with nothing but a fresh timestamp would make that guard fire hourly and
+    commit nothing of substance -- the same trap scrape_status.json is excluded
+    from in refresh.yml.
+    """
+    cols = ["name", "params_b", "attempts", "last_tried", "reason"]
+    if not ledger:
+        return
+    out = pd.DataFrame(
+        [{c: rec.get(c, "") for c in cols} for rec in ledger.values()]
+    ).sort_values("name")
+    body = csv_safe(out).to_csv(index=False)
+    if _UNRESOLVED.exists() and _UNRESOLVED.read_text() == body:
+        return
+    _UNRESOLVED.parent.mkdir(parents=True, exist_ok=True)
+    _UNRESOLVED.write_text(body)
+
+
 def load_cached() -> pd.DataFrame | None:
     if _CACHE.exists():
         return pd.read_csv(_CACHE)
@@ -324,8 +446,20 @@ def scrape_and_save(limit: int | None = None, sleep_s: float = 0.4,
     once published. Only names absent from the cache are looked up, so a steady
     state costs one search per newly scraped model and the file converges.
 
-    A row that fails to resolve is NOT written as a blank. It stays absent, gets
-    retried next run, and until then the estimator answers for it and says so.
+    A row that fails to resolve is NOT written as a blank. It stays absent and
+    the estimator answers for it, labelled. It is recorded in
+    aa_local_arch_unresolved.csv and retried every _RETRY_DAYS rather than every
+    hour, because a name upstream has no repo for does not acquire one in the
+    next sixty minutes, and re-asking 40 of them hourly is how an anonymous
+    client earns a rate limit -- which would be a real outage, manufactured by
+    the check for outages.
+
+    RETURN VALUE MEANS "THE SOURCE ANSWERED", NOT "SOMETHING RESOLVED". refresh.yml
+    turns a False into a red run reading "the upstream endpoint is failing", so
+    False must mean exactly that. Resolving nothing is the steady state once
+    every resolvable name is cached: 40 of the catalogue's rows are product
+    names with no qualifying repo, and reporting that as an outage every hour
+    for a healthy scrape is how the one alert that matters gets ignored.
     """
     if not _LOCAL_CACHE.exists():
         print("[arch_scraper] no aa_local_models.csv yet — run local_scraper first")
@@ -342,48 +476,80 @@ def scrape_and_save(limit: int | None = None, sleep_s: float = 0.4,
     # Meta's own gated 405.85B one, and the extra 4.23B is eight KV heads per
     # layer the released model does not have. Curated wins; do not store a rival.
     from data.local_models import _kv_arch_lookup
-    todo = [(str(r["name"]), float(r["params_b"]))
-            for _, r in catalogue.iterrows()
-            if str(r["name"]) not in have and float(r.get("params_b") or 0) > 0
-            and _kv_arch_lookup(str(r["name"])) is None]
+    candidates = [(str(r["name"]), float(r["params_b"]))
+                  for _, r in catalogue.iterrows()
+                  if str(r["name"]) not in have and float(r.get("params_b") or 0) > 0
+                  and _kv_arch_lookup(str(r["name"])) is None]
+
+    today = date.today()
+    ledger = {} if refresh_all else _load_unresolved()
+    todo = [(n, pb) for n, pb in candidates
+            if refresh_all or _due(ledger.get(n), pb, today)]
+    resting = len(candidates) - len(todo)
     if limit:
         todo = todo[:limit]
     if not todo:
-        print(f"[arch_scraper] nothing to resolve ({len(have)} already cached)")
+        print(f"[arch_scraper] nothing to resolve ({len(have)} cached, "
+              f"{resting} known non-matches resting until retried)")
         return True
 
-    rows, failed = [], []
+    rows, failed, errored = [], [], []
     for i, (name, params_b) in enumerate(todo, 1):
         try:
             got = resolve_one(name, params_b)
+            reason = "no repo cleared the parameter guard"
+        except ApiError as e:
+            got, reason = None, str(e)
+            errored.append(name)
+            print(f"  ! {name}: upstream did not answer ({e})")
         except Exception as e:
-            got = None
+            got, reason = None, f"{type(e).__name__}"
             print(f"  ! {name}: {type(e).__name__}")
         if got:
             rows.append(got)
+            ledger.pop(name, None)
             shape = (f"{got['n_layers']}L/mla{got['kv_lora_rank']}+{got['qk_rope_head_dim']}"
                      if got["attn"] == "mla"
                      else f"{got['n_layers']}L/{got['n_kv_heads']}kv/{got['head_dim']}d")
             print(f"  [{i}/{len(todo)}] {name} -> {got['repo']} ({shape})")
-        else:
+        elif name not in errored:
+            # The API answered; this name simply has no qualifying repo. Record
+            # it so the next 167 hourly runs do not ask again.
             failed.append(name)
+            prev = ledger.get(name) or {}
+            ledger[name] = {
+                "name": name, "params_b": params_b,
+                "attempts": int(float(prev.get("attempts") or 0)) + 1,
+                "last_tried": today.isoformat(), "reason": reason,
+            }
         time.sleep(sleep_s)
 
-    if not rows:
+    if rows:
+        out = pd.DataFrame(rows)
+        if cached is not None and not refresh_all:
+            out = pd.concat([cached, out], ignore_index=True)
+            out = out.drop_duplicates(subset=["name"], keep="last")
+        _CACHE.parent.mkdir(parents=True, exist_ok=True)
+        csv_safe(out).to_csv(_CACHE, index=False)
+        print(f"[arch_scraper] Saved {len(out)} architectures "
+              f"(+{len(rows)} this run, {len(failed)} unresolved)")
+    else:
         print(f"[arch_scraper] resolved 0 of {len(todo)} — cache unchanged")
-        return False
-
-    out = pd.DataFrame(rows)
-    if cached is not None and not refresh_all:
-        out = pd.concat([cached, out], ignore_index=True)
-        out = out.drop_duplicates(subset=["name"], keep="last")
-    _CACHE.parent.mkdir(parents=True, exist_ok=True)
-    csv_safe(out).to_csv(_CACHE, index=False)
-    print(f"[arch_scraper] Saved {len(out)} architectures "
-          f"(+{len(rows)} this run, {len(failed)} unresolved)")
     if failed:
         print(f"  unresolved: {failed[:8]}{' …' if len(failed) > 8 else ''}")
-    return True
+    _save_unresolved(ledger)
+
+    # Something resolved: the source is demonstrably up, whatever else failed.
+    if rows:
+        return True
+    # Nothing resolved AND the API refused to talk about at least one name.
+    if errored:
+        print(f"[arch_scraper] {len(errored)} name(s) got no response — "
+              f"reporting upstream failure")
+        return False
+    # Nothing resolved and nothing errored. Only the control can tell an outage
+    # from a catalogue of names upstream has never published.
+    return _api_healthy()
 
 
 if __name__ == "__main__":
