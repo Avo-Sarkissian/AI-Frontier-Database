@@ -1,135 +1,136 @@
 name,repo,attn,n_layers,kv_lora_rank,qk_rope_head_dim,n_kv_heads,head_dim,sliding_window,global_layers,params_hf_b,resolved_at,local_kind
-Kimi K3 (max),moonshotai/Kimi-K3,mla,93,512,64,,,,,2779.932,2026-08-27,
-Qwen3.8 2.4T A95B,Qwen/Qwen3.8-2.4T-A95B,gqa,92,,,4,256,,23,2446.183,2026-08-27,linear
-GLM-5.3-Flash,zai-org/GLM-5.3-Flash,mla,45,512,0,,,,,321.323,2026-08-27,
-Qwen3.8-Flash-Next,Qwen/Qwen3.8-Flash-Next,gqa,48,,,2,256,,12,180.0,2026-08-27,linear
-"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Pro-0813,mla,61,512,64,,,,,1650.498,2026-08-27,
-GLM-5.2 (max),zai-org/GLM-5.2,mla,78,512,64,,,,,753.33,2026-08-27,
-Qwen3.8 27B (xhigh),Qwen/Qwen3.8-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-"DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Flash-0731,mla,43,512,64,,,,,304.18,2026-08-27,
-Kimi K3 (low),moonshotai/Kimi-K3,mla,93,512,64,,,,,2779.932,2026-08-27,
-Motif 3,Motif-Technologies/Motif-3,mla,53,512,64,,,,,314.842,2026-08-27,
-MiniMax-M3,MiniMaxAI/MiniMax-M3,gqa,60,,,4,128,,,427.04,2026-08-27,
-"DeepSeek V4 Pro (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Pro,mla,61,512,64,,,,,1598.84,2026-08-27,
-Qwen3.8 27B (medium),Qwen/Qwen3.8-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-"DeepSeek V4 Pro (Reasoning, High Effort)",deepseek-ai/DeepSeek-V4-Pro,mla,61,512,64,,,,,1598.84,2026-08-27,
-MiMo-V2.5-Pro,XiaomiMiMo/MiMo-V2.5-Pro,gqa,70,,,8,192,,,1023.245,2026-08-27,
-Qwen3.8 27B (low),Qwen/Qwen3.8-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-Inkling (xhigh),thinkingmachines/Inkling,gqa,66,,,8,128,,,952.378,2026-08-27,
-Hy3,tencent/Hy3,gqa,80,,,8,128,,,298.786,2026-08-27,
-Nex-N2-Pro,nex-agi/Nex-N2-Pro,gqa,60,,,2,256,,15,396.802,2026-08-27,linear
-Inkling Small,unsloth/Inkling-Small,gqa,42,,,8,128,,,265.956,2026-08-27,
-Agnes 2.5 Pro Alpha,Agnes-AI/Agnes-2.5-Pro-Alpha,gqa,60,,,2,256,,15,396.802,2026-08-27,linear
-MiMo-V2.5,XiaomiMiMo/MiMo-V2.5,gqa,48,,,4,192,,,310.775,2026-08-27,
-Ling 3.0 Flash,inclusionAI/Ling-3.0-flash,mla,42,512,64,,,,,127.486,2026-08-27,
-Qwen3.6 27B (Reasoning),Qwen/Qwen3.6-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-Solar Open2 250B,upstage/Solar-Open2-250B,gqa,48,,,8,128,,,250.288,2026-08-27,
-Muse Glimmer (high),meta-models/Muse-Glimmer-30B,gqa,52,,,2,128,2048,13,29.777,2026-08-27,sliding
-A.X-K2,skt/A.X-K2,mla,61,512,64,,,,,691.69,2026-08-27,
-GLM-5.2 (Non-reasoning),zai-org/GLM-5.2,mla,78,512,64,,,,,753.33,2026-08-27,
-Qwen3.8 27B (Non-reasoning),Qwen/Qwen3.8-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-Qwen3.5 397B A17B (Reasoning),Qwen/Qwen3.5-397B-A17B,gqa,60,,,2,256,,15,403.398,2026-08-27,linear
-G9v3-39A5B,ai9stars/G9v3-39A5B,gqa,38,,,2,128,,,38.967,2026-08-27,
-Qwen3.5 122B A10B (Reasoning),Qwen/Qwen3.5-122B-A10B,gqa,48,,,2,256,,12,125.086,2026-08-27,linear
-Qwen3.5 397B A17B (Non-reasoning),Qwen/Qwen3.5-397B-A17B,gqa,60,,,2,256,,15,403.398,2026-08-27,linear
-Qwen3.6 35B A3B (Reasoning),Qwen/Qwen3.6-35B-A3B,gqa,40,,,2,256,,10,35.952,2026-08-27,linear
-DeepSeek V4 Pro (Non-reasoning),deepseek-ai/DeepSeek-V4-Pro,mla,61,512,64,,,,,1598.84,2026-08-27,
-Ring-2.6-1T,inclusionAI/Ring-2.6-1T,mla,80,512,64,,,,,1025.658,2026-08-27,
-Qwen3.6 27B (Non-reasoning),Qwen/Qwen3.6-27B,gqa,64,,,4,256,,16,27.781,2026-08-27,linear
-Step 3.7 Flash,mlx-community/Step-3.7-Flash-4bit,gqa,45,,,64,128,512,12,196.956,2026-08-27,sliding
-Mistral Medium 3.5,mistralai/Mistral-Medium-3.5-128B,gqa,88,,,8,128,,,127.704,2026-08-27,
-Gemma 4 31B (Reasoning),google/gemma-4-31B-it,gqa,60,,,16,256,1024,10,31.273,2026-08-27,sliding
-DeepSeek V4 Flash (Non-reasoning),deepseek-ai/DeepSeek-V4-Flash,mla,43,512,64,,,,,290.945,2026-08-27,
-MiMo-V2.5-Pro (Non-reasoning),XiaomiMiMo/MiMo-V2.5-Pro,gqa,70,,,8,192,,,1023.245,2026-08-27,
-Qwen3.5 122B A10B (Non-reasoning),Qwen/Qwen3.5-122B-A10B,gqa,48,,,2,256,,12,125.086,2026-08-27,linear
-Gemma 4 26B A4B (Reasoning),google/gemma-4-26B-A4B-it,gqa,30,,,8,256,1024,5,25.806,2026-08-27,sliding
-Nemotron 3 Super 120B A12B (Reasoning),nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16,gqa,88,,,2,128,,,123.611,2026-08-27,
-MiMo-V2-Flash (Non-reasoning),mlx-community/MiMo-V2-Flash-4bit,gqa,48,,,4,192,,,308.779,2026-08-27,
-Qwen3.6 35B A3B (Non-reasoning),Qwen/Qwen3.6-35B-A3B,gqa,40,,,2,256,,10,35.952,2026-08-27,linear
-Ling 3.0 Tiny,inclusionAI/Ling-3.0-tiny,mla,24,512,64,,,,,7.893,2026-08-27,
-Qwen3.5 35B A3B (Non-reasoning),Qwen/Qwen3.5-35B-A3B,gqa,40,,,2,256,,10,35.952,2026-08-27,linear
-Granite 4.2 30B,ibm-granite/granite-4.2-30b,gqa,64,,,8,128,,,29.277,2026-08-27,
-Nemotron 3.5 Lightning,nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16,gqa,52,,,2,128,,,31.578,2026-08-27,
-Gemma 4 31B (Non-reasoning),google/gemma-4-31B-it,gqa,60,,,16,256,1024,10,31.273,2026-08-27,sliding
-Gemma 4 12B (Reasoning),google/gemma-4-12B,gqa,48,,,8,256,1024,8,11.96,2026-08-27,sliding
-Qwen3.5 9B (Reasoning),Qwen/Qwen3.5-9B,gqa,32,,,4,256,,8,9.653,2026-08-27,linear
-Qwen3 Coder Next,Qwen/Qwen3-Coder-Next,gqa,48,,,2,256,,,79.674,2026-08-27,
-Qwen3.5 9B (Non-reasoning),Qwen/Qwen3.5-9B,gqa,32,,,4,256,,8,9.653,2026-08-27,linear
-EXAONE 4.5 33B,LGAI-EXAONE/EXAONE-4.5-33B,gqa,64,,,8,128,4096,16,34.35,2026-08-27,sliding
-Gemma 4 26B A4B (Non-reasoning),google/gemma-4-26B-A4B-it,gqa,30,,,8,256,1024,5,25.806,2026-08-27,sliding
-Qwen3.5 4B (Reasoning),Qwen/Qwen3.5-4B,gqa,32,,,4,256,,8,4.66,2026-08-27,linear
-North Mini Code,CohereLabs/North-Mini-Code-1.0,gqa,49,,,4,128,4096,13,30.484,2026-08-27,sliding
-Trinity Large Thinking,arcee-ai/Trinity-Large-Thinking,gqa,60,,,8,128,4096,15,398.635,2026-08-27,sliding
-HyperNova 60B 2605,MultiverseComputingCAI/Hypernova-60B-2605,gqa,32,,,8,64,128,16,58.659,2026-08-27,sliding
-Nemotron Cascade 2 30B A3B,nvidia/Nemotron-Cascade-2-30B-A3B,gqa,52,,,2,128,,,31.578,2026-08-27,
-Devstral Small 2,mistralai/Devstral-Small-2-24B-Instruct-2512,gqa,40,,,8,128,,,24.011,2026-08-27,
-K2 Think V2,IFM/K2-Think-V2,gqa,80,,,8,128,,,72.55,2026-08-27,
-Qwen3 Next 80B A3B (Reasoning),Qwen/Qwen3-Next-80B-A3B-Instruct,gqa,48,,,2,256,,,81.325,2026-08-27,
-G9v3-3B,ai9stars/G9v3-3B,gqa,52,,,2,128,,,2.989,2026-08-27,
-Qwen3.5 4B (Non-reasoning),Qwen/Qwen3.5-4B,gqa,32,,,4,256,,8,4.66,2026-08-27,linear
-INTELLECT-3,PrimeIntellect/INTELLECT-3,gqa,46,,,8,128,,,106.852,2026-08-27,
-Solar Open 100B (Reasoning),upstage/Solar-Open-100B,gqa,48,,,8,128,,,102.652,2026-08-27,
-NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,gqa,52,,,2,128,,,31.578,2026-08-27,
-Llama 4 Maverick,unsloth/Llama-4-Maverick-17B-128E,gqa,48,,,8,128,,,401.584,2026-08-27,
-Qwen3 Next 80B A3B Instruct,Qwen/Qwen3-Next-80B-A3B-Instruct,gqa,48,,,2,256,,,81.325,2026-08-27,
-DiffusionGemma 26B A4B,google/diffusiongemma-26B-A4B-it,gqa,30,,,8,256,1024,5,25.824,2026-08-27,sliding
-Gemma 4 12B (Non-reasoning),google/gemma-4-12B,gqa,48,,,8,256,1024,8,11.96,2026-08-27,sliding
-Tri-21B-Think,trillionlabs/Tri-21B-Think,gqa,40,,,8,160,,,20.726,2026-08-27,
-Gemma 4 E4B (Reasoning),google/gemma-4-E4B,gqa,42,,,2,256,512,7,7.996,2026-08-27,sliding
-Sarvam 105B (high),sarvamai/sarvam-105b,mla,32,512,64,,,,,106.032,2026-08-27,
-Magistral Small 1.2,grayarea/Magistral-Small-2509-Heretic-v1.2,gqa,40,,,8,128,,,24.011,2026-08-27,
-Ministral 3 14B,mistralai/Ministral-3-14B-Base-2512,gqa,40,,,8,128,,,13.945,2026-08-27,
-Nanbeige4.1-3B,Nanbeige/Nanbeige4.1-3B,gqa,32,,,4,128,,,3.934,2026-08-27,
-LFM2.5-2.6B,LiquidAI/LFM2.5-2.6B,gqa,30,,,8,64,,8,2.697,2026-08-27,
-EXAONE 4.0 32B (Reasoning),LGAI-EXAONE/EXAONE-4.0-32B,gqa,64,,,8,128,4096,16,32.003,2026-08-27,sliding
-Gemma 4 E2B (Reasoning),google/gemma-4-E2B,gqa,35,,,1,256,512,7,5.123,2026-08-27,sliding
-Step3 VL 10B,stepfun-ai/Step3-VL-10B,gqa,36,,,8,128,,,10.172,2026-08-27,
-Ministral 3 8B,w4ffl35/Ministral-8B-Instruct-2410-doublequant,gqa,36,,,8,128,,,8.237,2026-08-27,
-ERNIE 4.5 300B A47B,baidu/ERNIE-4.5-300B-A47B-PT,gqa,54,,,8,128,,,300.474,2026-08-27,
-Gemma 4 E4B (Non-reasoning),google/gemma-4-E4B,gqa,42,,,2,256,512,7,7.996,2026-08-27,sliding
-Granite 4.1 30B,ibm-granite/granite-4.1-30b,gqa,64,,,8,128,,,28.866,2026-08-27,
-NVIDIA Nemotron Nano 9B V2 (Reasoning),nvidia/NVIDIA-Nemotron-Nano-9B-v2,gqa,56,,,8,128,,,8.888,2026-08-27,
-NVIDIA Nemotron 3 Nano 4B,nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16,gqa,42,,,8,128,,,3.974,2026-08-27,
-Kimi Linear 48B A3B Instruct,moonshotai/Kimi-Linear-48B-A3B-Instruct,mla,27,512,64,,,,,49.123,2026-08-27,
-LFM2.5-8B-A1B,LiquidAI/LFM2.5-8B-A1B,gqa,24,,,8,64,,6,8.468,2026-08-27,
-Ring-flash-2.0,inclusionAI/Ring-flash-2.0,gqa,32,,,4,128,,,102.89,2026-08-27,
-Olmo 3.1 32B Think,allenai/Olmo-3.1-32B-Think,gqa,64,,,8,128,4096,16,32.234,2026-08-27,sliding
-Llama 3.1 Nemotron Instruct 70B,nvidia/Llama-3.1-Nemotron-70B-Instruct-HF,gqa,80,,,8,128,,,70.554,2026-08-27,
-Qwen3.5 2B (Reasoning),Qwen/Qwen3.5-2B,gqa,24,,,2,256,,6,2.274,2026-08-27,linear
-NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,gqa,52,,,2,128,,,31.578,2026-08-27,
-NVIDIA Nemotron Nano 9B V2 (Non-reasoning),nvidia/NVIDIA-Nemotron-Nano-9B-v2,gqa,56,,,8,128,,,8.888,2026-08-27,
-Granite 4.1 8B,ibm-granite/granite-4.1-8b-base,gqa,40,,,8,128,,,8.381,2026-08-27,
-Sarvam 30B (high),sarvamai/sarvam-30b,gqa,19,,,4,64,,,32.153,2026-08-27,
-Olmo 3.1 32B Instruct,allenai/Olmo-3.1-32B-Instruct,gqa,64,,,8,128,4096,16,32.234,2026-08-27,sliding
-Gemma 4 E2B (Non-reasoning),google/gemma-4-E2B,gqa,35,,,1,256,512,7,5.123,2026-08-27,sliding
-Phi-4 Mini Instruct,microsoft/Phi-4-mini-instruct,gqa,32,,,8,128,,,3.836,2026-08-27,
-EXAONE 4.0 32B (Non-reasoning),LGAI-EXAONE/EXAONE-4.0-32B,gqa,64,,,8,128,4096,16,32.003,2026-08-27,sliding
-Qwen3.5 2B (Non-reasoning),Qwen/Qwen3.5-2B,gqa,24,,,2,256,,6,2.274,2026-08-27,linear
-Qwen3.5 0.8B (Reasoning),Qwen/Qwen3.5-0.8B,gqa,24,,,2,256,,6,0.873,2026-08-27,linear
-DeepHermes 3 - Mistral 24B Preview (Non-reasoning),NousResearch/DeepHermes-3-Mistral-24B-Preview,gqa,40,,,8,128,,,23.572,2026-08-27,
-Granite 4.0 H Small,ibm-granite/granite-4.0-h-small,gqa,40,,,8,128,,,32.207,2026-08-27,
-LFM2 24B A2B,LiquidAI/LFM2-24B-A2B-MLX-bf16,gqa,40,,,8,64,,10,23.844,2026-08-27,
-Phi-4,microsoft/phi-4,gqa,40,,,10,128,,,14.66,2026-08-27,
-Phi-4 Multimodal Instruct,microsoft/Phi-4-multimodal-instruct,gqa,32,,,8,128,,,5.574,2026-08-27,
-Jamba Reasoning 3B,mlx-community/AI21-Jamba-Reasoning-3B-bf16,gqa,28,,,1,128,,,3.027,2026-08-27,
-Reka Flash 3,RekaAI/reka-flash-3,gqa,44,,,8,96,,,20.905,2026-08-27,
-Olmo 3 7B Think,allenai/Olmo-3-7B-Think,gqa,32,,,32,128,4096,8,7.298,2026-08-27,sliding
-Molmo 7B-D,allenai/Molmo-7B-D-0924,gqa,28,,,4,128,,,8.021,2026-08-27,
-Qwen3.5 0.8B (Non-reasoning),Qwen/Qwen3.5-0.8B,gqa,24,,,2,256,,6,0.873,2026-08-27,linear
-Exaone 4.0 1.2B (Reasoning),LGAI-EXAONE/EXAONE-4.0-1.2B,gqa,30,,,8,64,,,1.279,2026-08-27,
-Olmo 3 7B Instruct,allenai/Olmo-3-7B-Instruct,gqa,32,,,32,128,4096,8,7.298,2026-08-27,sliding
-Exaone 4.0 1.2B (Non-reasoning),LGAI-EXAONE/EXAONE-4.0-1.2B,gqa,30,,,8,64,,,1.279,2026-08-27,
-LFM2.5-1.2B-Thinking,DavidAU/LFM2.5-1.2B-Instruct-Thinking-Claude-High-Reasoning,gqa,16,,,8,64,,6,1.17,2026-08-27,
-LFM2.5-1.2B-Instruct,LiquidAI/LFM2.5-1.2B-Instruct,gqa,16,,,8,64,,6,1.17,2026-08-27,
-LFM2 2.6B,LiquidAI/LFM2.5-2.6B,gqa,30,,,8,64,,8,2.697,2026-08-27,
-Granite 4.0 H 1B,unsloth/granite-4.0-h-1b-base-bnb-4bit,gqa,40,,,4,128,,,1.486,2026-08-27,
-Gemma 3 270M,unsloth/gemma-3-270m,gqa,18,,,1,256,512,3,0.268,2026-08-27,sliding
-Apertus 70B Instruct,swiss-ai/Apertus-70B-Instruct-2509,gqa,80,,,8,128,,,70.6,2026-08-27,
-Granite 4.0 Micro,ibm-granite/granite-4.0-h-micro,gqa,40,,,8,64,,,3.191,2026-08-27,
-Granite 4.0 1B,ibm-granite/granite-4.0-1b,gqa,40,,,4,128,,,1.632,2026-08-27,
-Molmo2-8B,allenai/Molmo2-8B,gqa,36,,,8,128,,,8.662,2026-08-27,
-LFM2 8B A1B,LiquidAI/LFM2.5-8B-A1B,gqa,24,,,8,64,,6,8.468,2026-08-27,
-LFM2.5-VL-1.6B,LiquidAI/LFM2.5-VL-1.6B,gqa,16,,,8,64,,6,1.597,2026-08-27,
-Apertus 8B Instruct,swiss-ai/Apertus-8B-Instruct-2509,gqa,32,,,8,128,,,8.053,2026-08-27,
-Granite 4.0 350M,ibm-granite/granite-4.0-350m,gqa,28,,,4,64,,,0.352,2026-08-27,
-Granite 4.0 H 350M,ibm-granite/granite-4.0-h-350m,gqa,32,,,4,64,,,0.34,2026-08-27,
+Kimi K3 (max),moonshotai/Kimi-K3,mla,93,512.0,64.0,,,,,2779.932,2026-08-27,
+Qwen3.8 2.4T A95B,Qwen/Qwen3.8-2.4T-A95B,gqa,92,,,4.0,256.0,,23.0,2446.183,2026-08-27,linear
+GLM-5.3-Flash,zai-org/GLM-5.3-Flash,mla,45,512.0,0.0,,,,,321.323,2026-08-27,
+Qwen3.8-Flash-Next,Qwen/Qwen3.8-Flash-Next,gqa,48,,,2.0,256.0,,12.0,180.0,2026-08-27,linear
+"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Pro-0813,mla,61,512.0,64.0,,,,,1650.498,2026-08-27,
+GLM-5.2 (max),zai-org/GLM-5.2,mla,78,512.0,64.0,,,,,753.33,2026-08-27,
+Qwen3.8 27B (xhigh),Qwen/Qwen3.8-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+"DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Flash-0731,mla,43,512.0,64.0,,,,,304.18,2026-08-27,
+Kimi K3 (low),moonshotai/Kimi-K3,mla,93,512.0,64.0,,,,,2779.932,2026-08-27,
+Motif 3,Motif-Technologies/Motif-3,mla,53,512.0,64.0,,,,,314.842,2026-08-27,
+MiniMax-M3,MiniMaxAI/MiniMax-M3,gqa,60,,,4.0,128.0,,,427.04,2026-08-27,
+"DeepSeek V4 Pro (Reasoning, Max Effort)",deepseek-ai/DeepSeek-V4-Pro,mla,61,512.0,64.0,,,,,1598.84,2026-08-27,
+Qwen3.8 27B (medium),Qwen/Qwen3.8-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+"DeepSeek V4 Pro (Reasoning, High Effort)",deepseek-ai/DeepSeek-V4-Pro,mla,61,512.0,64.0,,,,,1598.84,2026-08-27,
+MiMo-V2.5-Pro,XiaomiMiMo/MiMo-V2.5-Pro,gqa,70,,,8.0,192.0,,,1023.245,2026-08-27,
+Qwen3.8 27B (low),Qwen/Qwen3.8-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+Inkling (xhigh),thinkingmachines/Inkling,gqa,66,,,8.0,128.0,,,952.378,2026-08-27,
+Hy3,tencent/Hy3,gqa,80,,,8.0,128.0,,,298.786,2026-08-27,
+Nex-N2-Pro,nex-agi/Nex-N2-Pro,gqa,60,,,2.0,256.0,,15.0,396.802,2026-08-27,linear
+Inkling Small,unsloth/Inkling-Small,gqa,42,,,8.0,128.0,,,265.956,2026-08-27,
+Agnes 2.5 Pro Alpha,Agnes-AI/Agnes-2.5-Pro-Alpha,gqa,60,,,2.0,256.0,,15.0,396.802,2026-08-27,linear
+MiMo-V2.5,XiaomiMiMo/MiMo-V2.5,gqa,48,,,4.0,192.0,,,310.775,2026-08-27,
+Ling 3.0 Flash,inclusionAI/Ling-3.0-flash,mla,42,512.0,64.0,,,,,127.486,2026-08-27,
+Qwen3.6 27B (Reasoning),Qwen/Qwen3.6-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+Solar Open2 250B,upstage/Solar-Open2-250B,gqa,48,,,8.0,128.0,,,250.288,2026-08-27,
+Muse Glimmer (high),meta-models/Muse-Glimmer-30B,gqa,52,,,2.0,128.0,2048.0,13.0,29.777,2026-08-27,sliding
+A.X-K2,skt/A.X-K2,mla,61,512.0,64.0,,,,,691.69,2026-08-27,
+GLM-5.2 (Non-reasoning),zai-org/GLM-5.2,mla,78,512.0,64.0,,,,,753.33,2026-08-27,
+Qwen3.8 27B (Non-reasoning),Qwen/Qwen3.8-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+Qwen3.5 397B A17B (Reasoning),Qwen/Qwen3.5-397B-A17B,gqa,60,,,2.0,256.0,,15.0,403.398,2026-08-27,linear
+G9v3-39A5B,ai9stars/G9v3-39A5B,gqa,38,,,2.0,128.0,,,38.967,2026-08-27,
+Qwen3.5 122B A10B (Reasoning),Qwen/Qwen3.5-122B-A10B,gqa,48,,,2.0,256.0,,12.0,125.086,2026-08-27,linear
+Qwen3.5 397B A17B (Non-reasoning),Qwen/Qwen3.5-397B-A17B,gqa,60,,,2.0,256.0,,15.0,403.398,2026-08-27,linear
+Qwen3.6 35B A3B (Reasoning),Qwen/Qwen3.6-35B-A3B,gqa,40,,,2.0,256.0,,10.0,35.952,2026-08-27,linear
+DeepSeek V4 Pro (Non-reasoning),deepseek-ai/DeepSeek-V4-Pro,mla,61,512.0,64.0,,,,,1598.84,2026-08-27,
+Ring-2.6-1T,inclusionAI/Ring-2.6-1T,mla,80,512.0,64.0,,,,,1025.658,2026-08-27,
+Qwen3.6 27B (Non-reasoning),Qwen/Qwen3.6-27B,gqa,64,,,4.0,256.0,,16.0,27.781,2026-08-27,linear
+Step 3.7 Flash,mlx-community/Step-3.7-Flash-4bit,gqa,45,,,64.0,128.0,512.0,12.0,196.956,2026-08-27,sliding
+Mistral Medium 3.5,mistralai/Mistral-Medium-3.5-128B,gqa,88,,,8.0,128.0,,,127.704,2026-08-27,
+Gemma 4 31B (Reasoning),google/gemma-4-31B-it,gqa,60,,,16.0,256.0,1024.0,10.0,31.273,2026-08-27,sliding
+DeepSeek V4 Flash (Non-reasoning),deepseek-ai/DeepSeek-V4-Flash,mla,43,512.0,64.0,,,,,290.945,2026-08-27,
+MiMo-V2.5-Pro (Non-reasoning),XiaomiMiMo/MiMo-V2.5-Pro,gqa,70,,,8.0,192.0,,,1023.245,2026-08-27,
+Qwen3.5 122B A10B (Non-reasoning),Qwen/Qwen3.5-122B-A10B,gqa,48,,,2.0,256.0,,12.0,125.086,2026-08-27,linear
+Gemma 4 26B A4B (Reasoning),google/gemma-4-26B-A4B-it,gqa,30,,,8.0,256.0,1024.0,5.0,25.806,2026-08-27,sliding
+Nemotron 3 Super 120B A12B (Reasoning),nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16,gqa,88,,,2.0,128.0,,,123.611,2026-08-27,
+MiMo-V2-Flash (Non-reasoning),mlx-community/MiMo-V2-Flash-4bit,gqa,48,,,4.0,192.0,,,308.779,2026-08-27,
+Qwen3.6 35B A3B (Non-reasoning),Qwen/Qwen3.6-35B-A3B,gqa,40,,,2.0,256.0,,10.0,35.952,2026-08-27,linear
+Ling 3.0 Tiny,inclusionAI/Ling-3.0-tiny,mla,24,512.0,64.0,,,,,7.893,2026-08-27,
+Qwen3.5 35B A3B (Non-reasoning),Qwen/Qwen3.5-35B-A3B,gqa,40,,,2.0,256.0,,10.0,35.952,2026-08-27,linear
+Granite 4.2 30B,ibm-granite/granite-4.2-30b,gqa,64,,,8.0,128.0,,,29.277,2026-08-27,
+Nemotron 3.5 Lightning,nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16,gqa,52,,,2.0,128.0,,,31.578,2026-08-27,
+Gemma 4 31B (Non-reasoning),google/gemma-4-31B-it,gqa,60,,,16.0,256.0,1024.0,10.0,31.273,2026-08-27,sliding
+Gemma 4 12B (Reasoning),google/gemma-4-12B,gqa,48,,,8.0,256.0,1024.0,8.0,11.96,2026-08-27,sliding
+Qwen3.5 9B (Reasoning),Qwen/Qwen3.5-9B,gqa,32,,,4.0,256.0,,8.0,9.653,2026-08-27,linear
+Qwen3 Coder Next,Qwen/Qwen3-Coder-Next,gqa,48,,,2.0,256.0,,,79.674,2026-08-27,
+Qwen3.5 9B (Non-reasoning),Qwen/Qwen3.5-9B,gqa,32,,,4.0,256.0,,8.0,9.653,2026-08-27,linear
+EXAONE 4.5 33B,LGAI-EXAONE/EXAONE-4.5-33B,gqa,64,,,8.0,128.0,4096.0,16.0,34.35,2026-08-27,sliding
+Gemma 4 26B A4B (Non-reasoning),google/gemma-4-26B-A4B-it,gqa,30,,,8.0,256.0,1024.0,5.0,25.806,2026-08-27,sliding
+Qwen3.5 4B (Reasoning),Qwen/Qwen3.5-4B,gqa,32,,,4.0,256.0,,8.0,4.66,2026-08-27,linear
+North Mini Code,CohereLabs/North-Mini-Code-1.0,gqa,49,,,4.0,128.0,4096.0,13.0,30.484,2026-08-27,sliding
+Trinity Large Thinking,arcee-ai/Trinity-Large-Thinking,gqa,60,,,8.0,128.0,4096.0,15.0,398.635,2026-08-27,sliding
+HyperNova 60B 2605,MultiverseComputingCAI/Hypernova-60B-2605,gqa,32,,,8.0,64.0,128.0,16.0,58.659,2026-08-27,sliding
+Nemotron Cascade 2 30B A3B,nvidia/Nemotron-Cascade-2-30B-A3B,gqa,52,,,2.0,128.0,,,31.578,2026-08-27,
+Devstral Small 2,mistralai/Devstral-Small-2-24B-Instruct-2512,gqa,40,,,8.0,128.0,,,24.011,2026-08-27,
+K2 Think V2,IFM/K2-Think-V2,gqa,80,,,8.0,128.0,,,72.55,2026-08-27,
+Qwen3 Next 80B A3B (Reasoning),Qwen/Qwen3-Next-80B-A3B-Instruct,gqa,48,,,2.0,256.0,,,81.325,2026-08-27,
+G9v3-3B,ai9stars/G9v3-3B,gqa,52,,,2.0,128.0,,,2.989,2026-08-27,
+Qwen3.5 4B (Non-reasoning),Qwen/Qwen3.5-4B,gqa,32,,,4.0,256.0,,8.0,4.66,2026-08-27,linear
+INTELLECT-3,PrimeIntellect/INTELLECT-3,gqa,46,,,8.0,128.0,,,106.852,2026-08-27,
+Solar Open 100B (Reasoning),upstage/Solar-Open-100B,gqa,48,,,8.0,128.0,,,102.652,2026-08-27,
+NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,gqa,52,,,2.0,128.0,,,31.578,2026-08-27,
+Llama 4 Maverick,unsloth/Llama-4-Maverick-17B-128E,gqa,48,,,8.0,128.0,,,401.584,2026-08-27,
+Qwen3 Next 80B A3B Instruct,Qwen/Qwen3-Next-80B-A3B-Instruct,gqa,48,,,2.0,256.0,,,81.325,2026-08-27,
+DiffusionGemma 26B A4B,google/diffusiongemma-26B-A4B-it,gqa,30,,,8.0,256.0,1024.0,5.0,25.824,2026-08-27,sliding
+Gemma 4 12B (Non-reasoning),google/gemma-4-12B,gqa,48,,,8.0,256.0,1024.0,8.0,11.96,2026-08-27,sliding
+Tri-21B-Think,trillionlabs/Tri-21B-Think,gqa,40,,,8.0,160.0,,,20.726,2026-08-27,
+Gemma 4 E4B (Reasoning),google/gemma-4-E4B,gqa,42,,,2.0,256.0,512.0,7.0,7.996,2026-08-27,sliding
+Sarvam 105B (high),sarvamai/sarvam-105b,mla,32,512.0,64.0,,,,,106.032,2026-08-27,
+Magistral Small 1.2,grayarea/Magistral-Small-2509-Heretic-v1.2,gqa,40,,,8.0,128.0,,,24.011,2026-08-27,
+Ministral 3 14B,mistralai/Ministral-3-14B-Base-2512,gqa,40,,,8.0,128.0,,,13.945,2026-08-27,
+Nanbeige4.1-3B,Nanbeige/Nanbeige4.1-3B,gqa,32,,,4.0,128.0,,,3.934,2026-08-27,
+LFM2.5-2.6B,LiquidAI/LFM2.5-2.6B,gqa,30,,,8.0,64.0,,8.0,2.697,2026-08-27,
+EXAONE 4.0 32B (Reasoning),LGAI-EXAONE/EXAONE-4.0-32B,gqa,64,,,8.0,128.0,4096.0,16.0,32.003,2026-08-27,sliding
+Gemma 4 E2B (Reasoning),google/gemma-4-E2B,gqa,35,,,1.0,256.0,512.0,7.0,5.123,2026-08-27,sliding
+Step3 VL 10B,stepfun-ai/Step3-VL-10B,gqa,36,,,8.0,128.0,,,10.172,2026-08-27,
+Ministral 3 8B,w4ffl35/Ministral-8B-Instruct-2410-doublequant,gqa,36,,,8.0,128.0,,,8.237,2026-08-27,
+ERNIE 4.5 300B A47B,baidu/ERNIE-4.5-300B-A47B-PT,gqa,54,,,8.0,128.0,,,300.474,2026-08-27,
+Gemma 4 E4B (Non-reasoning),google/gemma-4-E4B,gqa,42,,,2.0,256.0,512.0,7.0,7.996,2026-08-27,sliding
+Granite 4.1 30B,ibm-granite/granite-4.1-30b,gqa,64,,,8.0,128.0,,,28.866,2026-08-27,
+NVIDIA Nemotron Nano 9B V2 (Reasoning),nvidia/NVIDIA-Nemotron-Nano-9B-v2,gqa,56,,,8.0,128.0,,,8.888,2026-08-27,
+NVIDIA Nemotron 3 Nano 4B,nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16,gqa,42,,,8.0,128.0,,,3.974,2026-08-27,
+Kimi Linear 48B A3B Instruct,moonshotai/Kimi-Linear-48B-A3B-Instruct,mla,27,512.0,64.0,,,,,49.123,2026-08-27,
+LFM2.5-8B-A1B,LiquidAI/LFM2.5-8B-A1B,gqa,24,,,8.0,64.0,,6.0,8.468,2026-08-27,
+Ring-flash-2.0,inclusionAI/Ring-flash-2.0,gqa,32,,,4.0,128.0,,,102.89,2026-08-27,
+Olmo 3.1 32B Think,allenai/Olmo-3.1-32B-Think,gqa,64,,,8.0,128.0,4096.0,16.0,32.234,2026-08-27,sliding
+Llama 3.1 Nemotron Instruct 70B,nvidia/Llama-3.1-Nemotron-70B-Instruct-HF,gqa,80,,,8.0,128.0,,,70.554,2026-08-27,
+Qwen3.5 2B (Reasoning),Qwen/Qwen3.5-2B,gqa,24,,,2.0,256.0,,6.0,2.274,2026-08-27,linear
+NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,gqa,52,,,2.0,128.0,,,31.578,2026-08-27,
+NVIDIA Nemotron Nano 9B V2 (Non-reasoning),nvidia/NVIDIA-Nemotron-Nano-9B-v2,gqa,56,,,8.0,128.0,,,8.888,2026-08-27,
+Granite 4.1 8B,ibm-granite/granite-4.1-8b-base,gqa,40,,,8.0,128.0,,,8.381,2026-08-27,
+Sarvam 30B (high),sarvamai/sarvam-30b,gqa,19,,,4.0,64.0,,,32.153,2026-08-27,
+Olmo 3.1 32B Instruct,allenai/Olmo-3.1-32B-Instruct,gqa,64,,,8.0,128.0,4096.0,16.0,32.234,2026-08-27,sliding
+Gemma 4 E2B (Non-reasoning),google/gemma-4-E2B,gqa,35,,,1.0,256.0,512.0,7.0,5.123,2026-08-27,sliding
+Phi-4 Mini Instruct,microsoft/Phi-4-mini-instruct,gqa,32,,,8.0,128.0,,,3.836,2026-08-27,
+EXAONE 4.0 32B (Non-reasoning),LGAI-EXAONE/EXAONE-4.0-32B,gqa,64,,,8.0,128.0,4096.0,16.0,32.003,2026-08-27,sliding
+Qwen3.5 2B (Non-reasoning),Qwen/Qwen3.5-2B,gqa,24,,,2.0,256.0,,6.0,2.274,2026-08-27,linear
+Qwen3.5 0.8B (Reasoning),Qwen/Qwen3.5-0.8B,gqa,24,,,2.0,256.0,,6.0,0.873,2026-08-27,linear
+DeepHermes 3 - Mistral 24B Preview (Non-reasoning),NousResearch/DeepHermes-3-Mistral-24B-Preview,gqa,40,,,8.0,128.0,,,23.572,2026-08-27,
+Granite 4.0 H Small,ibm-granite/granite-4.0-h-small,gqa,40,,,8.0,128.0,,,32.207,2026-08-27,
+LFM2 24B A2B,LiquidAI/LFM2-24B-A2B-MLX-bf16,gqa,40,,,8.0,64.0,,10.0,23.844,2026-08-27,
+Phi-4,microsoft/phi-4,gqa,40,,,10.0,128.0,,,14.66,2026-08-27,
+Phi-4 Multimodal Instruct,microsoft/Phi-4-multimodal-instruct,gqa,32,,,8.0,128.0,,,5.574,2026-08-27,
+Jamba Reasoning 3B,mlx-community/AI21-Jamba-Reasoning-3B-bf16,gqa,28,,,1.0,128.0,,,3.027,2026-08-27,
+Reka Flash 3,RekaAI/reka-flash-3,gqa,44,,,8.0,96.0,,,20.905,2026-08-27,
+Olmo 3 7B Think,allenai/Olmo-3-7B-Think,gqa,32,,,32.0,128.0,4096.0,8.0,7.298,2026-08-27,sliding
+Molmo 7B-D,allenai/Molmo-7B-D-0924,gqa,28,,,4.0,128.0,,,8.021,2026-08-27,
+Qwen3.5 0.8B (Non-reasoning),Qwen/Qwen3.5-0.8B,gqa,24,,,2.0,256.0,,6.0,0.873,2026-08-27,linear
+Exaone 4.0 1.2B (Reasoning),LGAI-EXAONE/EXAONE-4.0-1.2B,gqa,30,,,8.0,64.0,,,1.279,2026-08-27,
+Olmo 3 7B Instruct,allenai/Olmo-3-7B-Instruct,gqa,32,,,32.0,128.0,4096.0,8.0,7.298,2026-08-27,sliding
+Exaone 4.0 1.2B (Non-reasoning),LGAI-EXAONE/EXAONE-4.0-1.2B,gqa,30,,,8.0,64.0,,,1.279,2026-08-27,
+LFM2.5-1.2B-Thinking,DavidAU/LFM2.5-1.2B-Instruct-Thinking-Claude-High-Reasoning,gqa,16,,,8.0,64.0,,6.0,1.17,2026-08-27,
+LFM2.5-1.2B-Instruct,LiquidAI/LFM2.5-1.2B-Instruct,gqa,16,,,8.0,64.0,,6.0,1.17,2026-08-27,
+LFM2 2.6B,LiquidAI/LFM2.5-2.6B,gqa,30,,,8.0,64.0,,8.0,2.697,2026-08-27,
+Granite 4.0 H 1B,unsloth/granite-4.0-h-1b-base-bnb-4bit,gqa,40,,,4.0,128.0,,,1.486,2026-08-27,
+Gemma 3 270M,unsloth/gemma-3-270m,gqa,18,,,1.0,256.0,512.0,3.0,0.268,2026-08-27,sliding
+Apertus 70B Instruct,swiss-ai/Apertus-70B-Instruct-2509,gqa,80,,,8.0,128.0,,,70.6,2026-08-27,
+Granite 4.0 Micro,ibm-granite/granite-4.0-h-micro,gqa,40,,,8.0,64.0,,,3.191,2026-08-27,
+Granite 4.0 1B,ibm-granite/granite-4.0-1b,gqa,40,,,4.0,128.0,,,1.632,2026-08-27,
+Molmo2-8B,allenai/Molmo2-8B,gqa,36,,,8.0,128.0,,,8.662,2026-08-27,
+LFM2 8B A1B,LiquidAI/LFM2.5-8B-A1B,gqa,24,,,8.0,64.0,,6.0,8.468,2026-08-27,
+LFM2.5-VL-1.6B,LiquidAI/LFM2.5-VL-1.6B,gqa,16,,,8.0,64.0,,6.0,1.597,2026-08-27,
+Apertus 8B Instruct,swiss-ai/Apertus-8B-Instruct-2509,gqa,32,,,8.0,128.0,,,8.053,2026-08-27,
+Granite 4.0 350M,ibm-granite/granite-4.0-350m,gqa,28,,,4.0,64.0,,,0.352,2026-08-27,
+Granite 4.0 H 350M,ibm-granite/granite-4.0-h-350m,gqa,32,,,4.0,64.0,,,0.34,2026-08-27,
+GLM-5.3 (max),zai-org/GLM-5.3,mla,78,512.0,64.0,,,,,753.33,2026-08-28,

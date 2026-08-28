@@ -1,5 +1,6 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
 Kimi K3 (max),Kimi,2800.0,104.0,1049,59.7,Kimi K3 License,"vision,reasoning",True
+GLM-5.3 (max),Z AI,753.0,40.0,1000,59.51,GLM-5.3 License,reasoning,True
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,57.7,Qwen3.8-Max License,reasoning,True
 GLM-5.3-Flash,Z AI,320.0,18.0,1000,57.46,Mit,"vision,reasoning",True
 Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,55.81,Qwen Community License 1.0,"vision,reasoning",True
@@ -96,8 +97,8 @@ K2-V2 (high),MBZUAI Institute of Foundation Models,70.0,70.0,512,14.24,Apache 2.
 Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,13.75,Apache 2.0,,True
 DiffusionGemma 26B A4B,Google,25.2,3.8,256,13.47,Apache 2.0,"vision,reasoning",True
 Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.2,Apache 2.0,"vision,audio",False
-K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,12.4,Apache 2.0,reasoning,False
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.4,NVIDIA Open Model License Agreement,reasoning,False
+K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,12.4,Apache 2.0,reasoning,False
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.35,Apache 2.0,vision,True
 Tri-21B-Think,Trillion Labs,21.0,21.0,32,12.34,Apache 2.0,reasoning,False
 Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.18,Apache 2.0,"vision,audio,reasoning",True
@@ -134,8 +135,8 @@ LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.14,lfm 1.0,reasoning,True
 Ring-flash-2.0,InclusionAI,103.0,6.1,128,7.97,MIT,reasoning,True
 Olmo 3.1 32B Think,Allen Institute for AI,32.2,32.2,66,7.9,Apache 2.0,reasoning,False
 Command A,Cohere,111.0,111.0,256,7.46,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.43,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
+Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.43,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
 NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,7.17,Nvidia Nemotron Open Model License,,True
 NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.16,NVIDIA Open Model License Agreement,,False
 Ministral 3 3B,Mistral,3.0,3.0,256,7.07,Apache 2.0,vision,False
