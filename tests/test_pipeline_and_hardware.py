@@ -1140,3 +1140,29 @@ def test_every_scraped_row_cleared_the_parameter_guard():
         if want > 0 and abs(got - want) / want > _PARAM_TOLERANCE + 1e-9:
             off.append((name, want, got))
     assert not off, f"cached rows whose repo is the wrong size: {off[:5]}"
+
+
+def test_a_linear_attention_hybrid_is_not_charged_for_its_recurrent_layers():
+    """Qwen3.8-Flash-Next is 12 full-attention layers out of 48; the other 36
+    are Gated-DeltaNet linear layers carrying a fixed-size state that does not
+    grow with context. Charging all 48 as full attention overstated its KV cache
+    by exactly 4x — 98,304 B/token against a true 24,576.
+
+    The bug was a missing `sliding_window`: the hybrid branch required both a
+    global-layer count AND a window, and a linear layer has no window because it
+    has no per-token cache at all, so every linear hybrid fell through to the
+    all-layers-full formula. 25 of 134 scraped rows are linear hybrids."""
+    from data.local_models import _load_scraped_arch, kv_cache_bytes
+    scraped = _load_scraped_arch()
+    linear = {n: g for n, g in scraped.items() if g.get("local_kind") == "linear"}
+    assert linear, "no linear hybrid resolved — has layer_types stopped being read?"
+    for name, geo in linear.items():
+        g, n = geo["global_layers"], geo["n_layers"]
+        assert 0 < g < n, (name, g, n)
+        full = kv_cache_bytes({k: v for k, v in geo.items()
+                               if k not in ("global_layers", "local_kind", "window")}, 8192)
+        hybrid = kv_cache_bytes(geo, 8192)
+        assert hybrid < full, f"{name}: linear layers still charged full price"
+        assert abs(hybrid - full * g / n) < 1, (
+            f"{name}: hybrid cache is not exactly the full-attention share"
+        )

@@ -1340,7 +1340,16 @@ def kv_cache_bytes(arch: dict, seq_len: int, kv_quant: str = DEFAULT_KV_QUANT,
     g = arch.get("global_layers")
     if g is not None:
         local = arch["n_layers"] - g
-        return width * batch * (g * seq_len + local * min(seq_len, arch["window"]))
+        # What the non-full layers are decides what they cost. A sliding-window
+        # layer stops growing at `window`; a LINEAR / recurrent layer (Gated
+        # DeltaNet, Mamba) holds a fixed-size state and contributes nothing that
+        # grows with context at all. Qwen3.8-Flash-Next is 12 full-attention
+        # layers out of 48 — charging the other 36 as full overstates it 4x.
+        if arch.get("local_kind") == "linear":
+            per_local = 0
+        else:
+            per_local = min(seq_len, arch.get("window") or seq_len)
+        return width * batch * (g * seq_len + local * per_local)
     return width * arch["n_layers"] * seq_len * batch
 
 
@@ -1392,8 +1401,16 @@ def _load_scraped_arch() -> dict[str, dict]:
                 geo = {"n_layers": n_layers, "n_kv_heads": n_kv,
                        "head_dim": head_dim}
                 g, w = _i("global_layers"), _i("sliding_window")
-                if g and w and 0 < g < n_layers:
-                    geo["global_layers"], geo["window"] = g, w
+                kind = str(r.get("local_kind") or "").strip().lower()
+                # A linear-attention hybrid needs NO window to be modelled —
+                # its non-full layers cache nothing that grows. Requiring one
+                # (as this did) silently charged every such model full price on
+                # every layer.
+                if g and 0 < g < n_layers and (w or kind == "linear"):
+                    geo["global_layers"] = g
+                    geo["local_kind"] = kind or "sliding"
+                    if w:
+                        geo["window"] = w
             out[str(r["name"])] = geo
     _SCRAPED_ARCH = out
     return out

@@ -38,7 +38,8 @@ the estimator, labelled as such.
 
 Fields written per resolved model:
   name, repo, attn, n_layers, n_kv_heads, head_dim, kv_lora_rank,
-  qk_rope_head_dim, sliding_window, global_layers, params_hf_b, resolved_at
+  qk_rope_head_dim, sliding_window, global_layers, local_kind,
+  params_hf_b, resolved_at
 
 Run standalone:  python -m data.arch_scraper
 """
@@ -245,23 +246,37 @@ def _geometry(cfg: dict) -> dict | None:
     # config whose layers are ALL windowed still means every layer is capped.
     window = t.get("sliding_window")
     layer_types = t.get("layer_types")
-    global_layers = None
+    global_layers, local_kind = None, ""
     if layer_types:
         n_full = sum(1 for x in layer_types if "full" in str(x).lower())
         if 0 < n_full < len(layer_types):
             global_layers = n_full
+            # WHAT THE OTHER LAYERS ARE decides whether they cache anything at
+            # all, and the difference is not small. A sliding-window layer
+            # caches `window` tokens; a LINEAR / recurrent layer (Gated
+            # DeltaNet, Mamba) carries a fixed-size state and caches nothing
+            # that grows with context. Qwen3.8-Flash-Next is 12 full-attention
+            # layers out of 48 with the other 36 linear, so charging all 48 as
+            # full overstates its KV cache by exactly 4x.
+            rest = " ".join(str(x).lower() for x in layer_types
+                            if "full" not in str(x).lower())
+            if any(k in rest for k in ("linear", "mamba", "recurrent", "ssm")):
+                local_kind = "linear"
+            elif "slid" in rest or window:
+                local_kind = "sliding"
     elif window and t.get("sliding_window_pattern"):
-        p = int(t["sliding_window_pattern"])
-        if p > 1:
-            global_layers = max(1, int(n_layers) // p)
+        pat = int(t["sliding_window_pattern"])
+        if pat > 1:
+            global_layers, local_kind = max(1, int(n_layers) // pat), "sliding"
     return {
         "attn": "gqa",
         "n_layers": int(n_layers),
         "n_kv_heads": int(n_kv),
         "head_dim": int(head_dim),
         "kv_lora_rank": "", "qk_rope_head_dim": "",
-        "sliding_window": int(window) if window and global_layers else "",
+        "sliding_window": int(window) if window and local_kind == "sliding" else "",
         "global_layers": int(global_layers) if global_layers else "",
+        "local_kind": local_kind,
     }
 
 
