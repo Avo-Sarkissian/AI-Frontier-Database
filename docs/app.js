@@ -500,8 +500,8 @@ async function populateDynamicSelects() {
     try {
       const ctxOpts = await window.AF.callPy("context_options");
       fillQuantSelect("local-context", ctxOpts, null);
-      const sloOpts = await window.AF.callPy("slo_options");
-      fillQuantSelect("local-slo", sloOpts, null);
+      const speedOpts = await window.AF.callPy("speed_mode_options");
+      fillQuantSelect("local-speed-mode", speedOpts, null);
     } catch (e) { console.warn("context/slo options:", e); }
 
     // Set default local HW meta for RTX 5090
@@ -788,7 +788,7 @@ async function refreshLocal() {
   // test_neither_rendering_declares_its_own_hardware_default greps for exactly
   // that shape.
   const ctx = numOrNull("local-context");
-  const slo = document.getElementById("local-slo")?.value || null;
+  const speedMode = document.getElementById("local-speed-mode")?.value || null;
   const tags = multiVals("local-tags");
   try {
     // The three new args are APPENDED. pyworker.js spreads this list straight
@@ -796,7 +796,7 @@ async function refreshLocal() {
     // mid-list shifts every one after it and fails silently.
     const out = await window.AF.callPy("update_local", vram, gpus, quant,
       hw.bandwidth_gbps ?? null, hw.hw_type ?? null, tags.length ? tags : null,
-      ctx, slo, hw.fp16_tflops ?? null);
+      ctx, speedMode, hw.fp16_tflops ?? null);
     renderJsonFig("chart-local_scatter", out.scatter);
     renderJsonFig("chart-local_compat", out.compat);
   } catch (e) { console.error("refreshLocal failed:", e); }
@@ -1231,13 +1231,13 @@ function wireTabControls() {
   const localNumGpus = document.getElementById("local-num-gpus");
   const localQuant = document.getElementById("local-quant");
   const localContext = document.getElementById("local-context");
-  const localSlo = document.getElementById("local-slo");
+  const localSpeedMode = document.getElementById("local-speed-mode");
   const localTags = document.getElementById("local-tags");
   if (localVram) localVram.oninput = debounce(() => refreshLocal(), 300);
   if (localNumGpus) localNumGpus.onchange = () => refreshLocal();
   if (localQuant) localQuant.onchange = () => refreshLocal();
   if (localContext) localContext.onchange = () => refreshLocal();
-  if (localSlo) localSlo.onchange = () => refreshLocal();
+  if (localSpeedMode) localSpeedMode.onchange = () => refreshLocal();
   if (localTags) localTags.onchange = () => refreshLocal();
 
   // Image Gen filters

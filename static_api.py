@@ -12,9 +12,9 @@ from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS,
     quant_options as local_quant_options,
     context_options as local_context_options,
-    slo_options as local_slo_options,
+    speed_mode_options as local_speed_mode_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
-    DEFAULT_CONTEXT_TOKENS, DEFAULT_SLO,
+    DEFAULT_CONTEXT_TOKENS, DEFAULT_SPEED_MODE,
     effective_bandwidth, tflops_for_gpu,
 )
 from data.image_models import get_image_df
@@ -331,7 +331,7 @@ def model_detail(model_name, provider):
 # ── Task 5: Local / Image / Video / Agent-Stack callbacks ─────────────────────
 
 def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
-                 ctx_tokens=None, slo=None, fp16_tflops=None):
+                 ctx_tokens=None, speed_mode=None, fp16_tflops=None):
     """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}.
 
     The three new parameters are APPENDED with None defaults, deliberately.
@@ -354,14 +354,14 @@ def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
         # None stays None: decode_roofline drops the compute roof and reports
         # bound="memory?" rather than implying a ceiling was checked.
         fp16_tflops=fp16_tflops,
-        slo=slo or DEFAULT_SLO,
         gpu_count=gpu_count,
     )
+    mode = speed_mode or DEFAULT_SPEED_MODE
     return json.dumps({
         "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4",
-                                                  ctx_tokens=ctx).to_json()),
+                                                  ctx_tokens=ctx, speed_mode=mode).to_json()),
         "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4", vram_gb=vram_gb,
-                                                 ctx_tokens=ctx).to_json()),
+                                                 ctx_tokens=ctx, speed_mode=mode).to_json()),
     })
 
 
@@ -384,9 +384,13 @@ def context_options():
     return json.dumps(local_context_options())
 
 
-def slo_options():
-    """Return JSON list of {label, value} for the SESSIONS (SLO floor) control."""
-    return json.dumps(local_slo_options())
+def speed_mode_options():
+    """Return JSON list of {label, value} for the SPEED control.
+
+    Single-stream or aggregate-at-optimal-concurrency: the two are 2-4x apart,
+    so the tab shows one at a time and this control names which.
+    """
+    return json.dumps(local_speed_mode_options())
 
 
 def gpu_options():

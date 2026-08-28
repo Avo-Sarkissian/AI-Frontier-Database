@@ -26,8 +26,8 @@ from data.video_scraper import start_background_video_scraper
 from data.local_models import (
     get_local_df, get_gpu_options, GPU_BY_NAME, QUANT_LEVELS, quant_options,
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
-    DEFAULT_CONTEXT_TOKENS, DEFAULT_SLO, DEFAULT_FP16_TFLOPS,
-    context_options, slo_options, tflops_for_gpu,
+    DEFAULT_CONTEXT_TOKENS, DEFAULT_SPEED_MODE, DEFAULT_FP16_TFLOPS,
+    context_options, speed_mode_options, tflops_for_gpu,
     effective_bandwidth,
 )
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
@@ -755,12 +755,12 @@ app.layout = html.Div([
                     style={"width": "84px"},
                 ),
                 html.Div(className="filter-sep"),
-                html.Span("SESSIONS", className="filter-label", title="How fast each concurrent session must still decode. Sessions is the largest number of streams that both fit their KV cache in VRAM and hold this floor — MLPerf Inference's Llama-3.1-8B Server constraint is 10 tok/s."),
+                html.Span("SPEED", className="filter-label", title="Single stream is one conversation at a time. Max throughput is the total across as many concurrent sessions as the KV cache fits in VRAM while each one still decodes at 10 tok/s or better — MLPerf Inference's Llama-3.1-8B Server floor. The two are 2-4x apart, so the chart shows one at a time."),
                 dcc.Dropdown(
-                    id="local-slo",
-                    options=slo_options(),
-                    value=DEFAULT_SLO, clearable=False,
-                    style={"width": "184px"},
+                    id="local-speed-mode",
+                    options=speed_mode_options(),
+                    value=DEFAULT_SPEED_MODE, clearable=False,
+                    style={"width": "156px"},
                 ),
                 html.Div(className="filter-sep"),
                 html.Span("TAGS", className="filter-label"),
@@ -1286,12 +1286,12 @@ def update_local_hw(gpu_name: str):
     Input("local-num-gpus", "value"),
     Input("local-quant",    "value"),
     Input("local-context",  "value"),
-    Input("local-slo",      "value"),
+    Input("local-speed-mode", "value"),
     Input("local-hw-meta",  "data"),
     Input("local-tags",     "value"),
     prevent_initial_call=True,
 )
-def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, slo, hw_meta, tags):
+def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, hw_meta, tags):
     # Shared defaults: this used to assume 8GB while the public site assumed 32,
     # so a cleared VRAM box answered "which models fit?" two different ways.
     gpu_count      = int(_coerce_number(num_gpus, DEFAULT_GPU_COUNT, minimum=1))
@@ -1314,14 +1314,14 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, slo, hw_meta,
         tags=tags or None,
         ctx_tokens=ctx,
         fp16_tflops=tflops,
-        slo=slo or DEFAULT_SLO,
         gpu_count=gpu_count,
     )
+    mode = speed_mode or DEFAULT_SPEED_MODE
     return (
         build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4",
-                            ctx_tokens=ctx),
+                            ctx_tokens=ctx, speed_mode=mode),
         build_local_compat(local_df, quant=quant or "Q4", vram_gb=vram_gb,
-                           ctx_tokens=ctx),
+                           ctx_tokens=ctx, speed_mode=mode),
     )
 
 

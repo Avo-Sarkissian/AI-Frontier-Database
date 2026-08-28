@@ -340,11 +340,26 @@ SLO_FLOORS_TPS: dict[str, float] = {
 }
 DEFAULT_SLO = "interactive"
 
-SLO_LABELS: dict[str, str] = {
-    "batch":       "Batch (≥ 5 tok/s)",
-    "interactive": "Interactive (≥ 10 tok/s)",
-    "realtime":    "Real-time (≥ 33 tok/s)",
+# NOT A CONTROL, deliberately. The tab briefly shipped an SLO dropdown and it
+# was the wrong question to put in front of a reader: it was labelled SESSIONS
+# but set a latency policy, so choosing "Interactive" produced a session count
+# nobody had asked for and could not predict from the label. The floor is fixed
+# at DEFAULT_SLO now and named in the caption — the reader picks what they want
+# to SEE, and the floor is a stated assumption behind it, which is the shape
+# every other assumption on this dashboard takes. All three floors stay because
+# optimal_concurrency() still takes the argument.
+
+# ── What the speed column MEANS ──────────────────────────────────────────────
+# One number on screen at a time, and a control that says which one. The tab
+# briefly showed BOTH at once — a single-stream figure and an aggregate figure,
+# in the same gutter, differing by 2-4x. That is the ambiguity
+# test_the_tok_s_figures_say_which_of_the_two_they_are exists to prevent, moved
+# from "unlabelled" to "labelled twice" rather than fixed.
+SPEED_MODES: dict[str, str] = {
+    "single":     "Single stream",
+    "throughput": "Max throughput",
 }
+DEFAULT_SPEED_MODE = "single"
 
 
 def context_options() -> list[dict]:
@@ -361,11 +376,23 @@ def context_options() -> list[dict]:
              "default": n == DEFAULT_CONTEXT_TOKENS} for n in CONTEXT_CHOICES]
 
 
-def slo_options() -> list[dict]:
-    """SLO choices as {label, value}, for both render paths — same one-source
-    rule as quant_options(), for the same reason."""
-    return [{"label": SLO_LABELS[k], "value": k, "default": k == DEFAULT_SLO}
-            for k in SLO_FLOORS_TPS]
+def speed_mode_options() -> list[dict]:
+    """Speed-metric choices as {label, value}, for both render paths — same
+    one-source rule as quant_options(), for the same reason."""
+    return [{"label": v, "value": k, "default": k == DEFAULT_SPEED_MODE}
+            for k, v in SPEED_MODES.items()]
+
+
+def speed_columns(speed_mode: str) -> tuple[str, str]:
+    """(value column, label) for the metric the reader selected.
+
+    One place, because the scatter's bubble size, the compat chart's gutter and
+    both hovers all have to agree about which of the two tok/s figures is the
+    headline — and they are 2-4x apart.
+    """
+    if speed_mode == "throughput":
+        return "total_tps", "max throughput"
+    return "speed_tps", "single stream"
 
 
 # NOT A CONSTANT ANY MORE, and the reason is worth keeping.

@@ -185,8 +185,8 @@
     <span class="filter-label" title="VRAM and speed both move with context: the KV cache is read in full every token and is not affected by quantising the weights. Capped per model at its own maximum.">CONTEXT</span>
     <select id="local-context" style="min-width:80px;"></select>
     <div class="filter-sep"></div>
-    <span class="filter-label" title="How fast each concurrent session must still decode. Sessions is the largest number of streams that both fit their KV cache in VRAM and hold this floor — MLPerf Inference's Llama-3.1-8B Server constraint is 10 tok/s.">SESSIONS</span>
-    <select id="local-slo" style="min-width:170px;"></select>
+    <span class="filter-label" title="Single stream is one conversation at a time. Max throughput is the total across as many concurrent sessions as the KV cache fits in VRAM while each one still decodes at 10 tok/s or better — MLPerf Inference's Llama-3.1-8B Server floor. The two are 2-4x apart, so the chart shows one at a time.">SPEED</span>
+    <select id="local-speed-mode" style="min-width:146px;"></select>
     <div class="filter-sep"></div>
     <span class="filter-label">TAGS</span>
     <select id="local-tags" multiple style="min-width:160px;">

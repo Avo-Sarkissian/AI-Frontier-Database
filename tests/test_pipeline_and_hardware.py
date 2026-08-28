@@ -797,15 +797,21 @@ def test_the_speed_reference_still_spans_the_speeds_the_tab_produces():
     narrows a filter. A model change that pushes typical tok/s past it clamps
     every bubble to the maximum diameter and the size channel silently stops
     encoding anything."""
-    from components.charts.constants import LOCAL_SPEED_REF
+    from components.charts.constants import LOCAL_SPEED_REF, LOCAL_THROUGHPUT_REF
     df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
                       hw_type="nvidia", fp16_tflops=209.5)
-    runnable = df[df["fits"] != "no"]["speed_tps"]
+    runnable = df[df["fits"] != "no"]
     assert not runnable.empty
-    assert runnable.median() < LOCAL_SPEED_REF, (
-        f"median runnable speed {runnable.median():.0f} tok/s has outgrown the "
-        f"fixed bubble reference {LOCAL_SPEED_REF}"
-    )
+    # BOTH metrics can drive the bubble now, so both need a reference that still
+    # spans them. Aggregate throughput runs 2-4x single-stream, which is why it
+    # gets its own rather than sharing one.
+    for col, ref in (("speed_tps", LOCAL_SPEED_REF),
+                     ("total_tps", LOCAL_THROUGHPUT_REF)):
+        med = runnable[col].median()
+        assert med < ref, (
+            f"median runnable {col} {med:.0f} tok/s has outgrown the fixed "
+            f"bubble reference {ref}"
+        )
 
 
 # ── Theme 10 — the KV cache must be priced, and labelled ─────────────────────
@@ -955,9 +961,13 @@ def test_optimal_concurrency_never_recommends_below_the_slo_floor():
 
 
 def test_a_stricter_slo_never_recommends_more_sessions():
-    """The control has to move the answer in the direction it claims, or it is
-    decoration. Real-time (33 tok/s) cannot support more concurrent streams than
-    Batch (5 tok/s) on the same hardware."""
+    """No longer a control — the tab fixes the floor at DEFAULT_SLO and names it
+    in the caption, because a dropdown labelled SESSIONS that actually set a
+    latency policy produced a session count the reader could not predict from
+    the label. The argument survives on optimal_concurrency() and still has to
+    move the answer in the direction it claims: real-time (33 tok/s) cannot
+    support more concurrent streams than batch (5 tok/s) on the same
+    hardware."""
     kw = dict(quant="Q4", vram_gb=48, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS,
               hw_type="nvidia", fp16_tflops=209.5, ctx_tokens=8192)
     batch = get_local_df(slo="batch", **kw).set_index("name")["sessions"]
@@ -990,19 +1000,23 @@ def test_the_tok_s_figures_say_which_of_the_two_they_are():
     df = get_local_df(ctx_tokens=8192, fp16_tflops=209.5)
     scatter = build_local_scatter(df, vram_gb=32, quant="Q4", ctx_tokens=8192)
     compat = build_local_compat(df, quant="Q4", vram_gb=32, ctx_tokens=8192)
-    title = scatter.layout.title.text.lower()
-    assert "single-stream" in title, f"the scatter does not say which speed it plots: {title}"
-    hover = compat.data[-1].hovertemplate.lower()
-    assert "single stream" in hover, hover
-    # "concurrent" lives in a customdata column, not the template: the sessions
-    # line is built in Python so a row with no session count renders a sentence
-    # rather than "×0 concurrent at 0 tok/s each".
-    rendered = [str(r[-1]).lower() for r in compat.data[-1].customdata]
-    assert any("concurrent" in r for r in rendered), rendered[:3]
-    assert not any("×0 concurrent" in r for r in rendered), (
-        "a row is still rendering zero sessions as though it had been sized"
-    )
     assert "8k context" in compat.layout.title.text.lower()
+    # Whichever metric is selected, BOTH charts must name it and the hover must
+    # carry the other one — the two are 2-4x apart, and the tab briefly put both
+    # in the same gutter with nothing saying which was which.
+    for mode, headline, other in (("single", "single stream", "across"),
+                                  ("throughput", "max throughput", "if you run one")):
+        sc = build_local_scatter(df, vram_gb=32, quant="Q4", ctx_tokens=8192,
+                                 speed_mode=mode)
+        cp = build_local_compat(df, quant="Q4", vram_gb=32, ctx_tokens=8192,
+                                speed_mode=mode)
+        assert headline in sc.layout.title.text.lower(), sc.layout.title.text
+        assert headline in cp.layout.title.text.lower(), cp.layout.title.text
+        rendered = [str(r[-1]).lower() for r in cp.data[-1].customdata]
+        assert any(other in r for r in rendered), (mode, rendered[:3])
+        assert not any("×0" in r for r in rendered), (
+            "a row is still rendering zero sessions as though it had been sized"
+        )
 
 
 def test_the_new_controls_say_what_they_cost_in_both_shells():
@@ -1012,8 +1026,8 @@ def test_the_new_controls_say_what_they_cost_in_both_shells():
     for rel in ("docs/index.html", "app.py"):
         src = (ROOT / rel).read_text()
         assert 'local-context' in src, f"{rel} has no context control"
-        assert 'local-slo' in src, f"{rel} has no sessions control"
+        assert 'local-speed-mode' in src, f"{rel} has no speed-metric control"
         assert "KV cache is read in full every token" in src, (
             f"{rel} does not say why context moves both VRAM and speed"
         )
-        assert "10 tok/s" in src, f"{rel} does not name the SLO floor"
+        assert "10 tok/s" in src, f"{rel} does not name the per-session floor"

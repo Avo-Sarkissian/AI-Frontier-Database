@@ -11,7 +11,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM
-from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
+from data.local_models import (
+    FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
+)
 
 
 def _vram_note(vram_gb) -> str:
@@ -41,7 +43,7 @@ def _ctx_label(ctx_tokens) -> str:
 
 
 def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
-                       ctx_tokens=None) -> go.Figure:
+                       ctx_tokens=None, speed_mode=DEFAULT_SPEED_MODE) -> go.Figure:
     """
     Horizontal bar chart of quality scores for models that fit the user's hardware.
     df is the output of data.local_models.get_local_df(), pre-filtered.
@@ -80,6 +82,8 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
         if "pending" in runnable.columns else [False] * len(runnable)
     )
 
+    _speed_col, _speed_label = speed_columns(speed_mode)
+
     # Whether the KV figure two lines above came from a published config or the
     # fitted estimator. The reader has to be able to tell: the estimator's p90
     # signed residual is +50%, and an unlabelled estimate beside an exact
@@ -94,14 +98,26 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     # sentence instead of "Sessions: ×0 concurrent at 0 tok/s each → 0 tok/s
     # total" — which is what the tooltip said for a model the chart had just
     # listed as runnable.
-    runnable["sessions_note"] = [
-        (f"Sessions: ×{int(n)} concurrent at {p:.0f} tok/s each"
-         f"  →  {t:,.0f} tok/s total") if int(n or 0) > 0
-        else "Sessions: not sized — no context selected"
-        for n, p, t in zip(runnable.get("sessions", 0),
-                           runnable.get("per_session_tps", 0),
-                           runnable.get("total_tps", 0))
-    ]
+    # The hover leads with the metric the reader chose and offers the other one
+    # underneath, so the 2-4x gap between them is never a surprise and never an
+    # unlabelled second number.
+    _single, _total, _sess = (runnable.get("speed_tps", 0),
+                              runnable.get("total_tps", 0),
+                              runnable.get("sessions", 0))
+    if speed_mode == "throughput":
+        runnable["speed_note"] = [
+            (f"Speed: {t:,.0f} tok/s across {int(n)} sessions<br>"
+             f"       {s:,.0f} tok/s if you run one")
+            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
+            for s, t, n in zip(_single, _total, _sess)
+        ]
+    else:
+        runnable["speed_note"] = [
+            (f"Speed: {s:,.0f} tok/s single stream<br>"
+             f"       {t:,.0f} tok/s across {int(n)} sessions")
+            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
+            for s, t, n in zip(_single, _total, _sess)
+        ]
     for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
         if _c not in runnable:
             runnable[_c] = 0
@@ -150,7 +166,7 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                               "license", "context_k", "tags_str", "fits",
                               "weights_gb", "kv_gb", "kv_note", "ctx_label",
                               "sessions", "per_session_tps", "total_tps",
-                              "overhead_gb", "sessions_note"]].values,
+                              "overhead_gb", "speed_note"]].values,
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
@@ -158,7 +174,6 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
             "VRAM needed: %{customdata[2]:.1f} GB at %{customdata[11]} context<br>"
             "  ↳ weights %{customdata[8]:.1f} + KV cache %{customdata[9]:.1f}"
             " + runtime %{customdata[15]:.1f} GB  ·  %{customdata[10]}<br>"
-            "Speed: %{customdata[3]:.0f} tok/s single stream<br>"
             "%{customdata[16]}<br>"
             "License: %{customdata[4]}<br>"
             "Max context: %{customdata[5]}k tokens<br>"
@@ -168,31 +183,31 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
         showlegend=False,
     ))
 
-    def _line1(row):
-        speed_str = f"{row['speed_tps']:.0f} tok/s" if row["speed_tps"] > 0 else "–"
+    # ONE line, showing the metric the reader selected. It briefly showed two —
+    # single-stream on top and aggregate underneath — which put two tok/s
+    # figures 2-4x apart in the same 200 px gutter with nothing on screen saying
+    # which was which.
+    def _label(row):
+        v = row[_speed_col]
+        speed_str = f"{v:,.0f} tok/s" if v > 0 else "–"
         tight_tag = "  ⚠ tight" if row["fits"] == "tight" else ""
-        return f"{speed_str}  ·  {row['vram_req_gb']:.1f} GB{tight_tag}"
+        # The session count rides directly after the throughput it qualifies,
+        # on one space. The roomier "  (×24)" form pushed the label past the
+        # 200 px gutter cap on 24 of 109 rows and got trimmed to "(×2…".
+        sessions = ""
+        if speed_mode == "throughput" and int(row.get("sessions") or 0) > 1:
+            sessions = f" ×{int(row['sessions'])}"
+        return f"{speed_str}{sessions}  ·  {row['vram_req_gb']:.1f} GB{tight_tag}"
 
-    def _line2(row):
-        n = int(row.get("sessions") or 0)
-        if n <= 0:
-            return ""
-        return f"×{n} → {row['total_tps']:,.0f} tok/s"
-
-    # right_gutter takes the max LENGTH over the strings it is fed, so the two
-    # lines go in flat and are joined with <br> afterwards. Feeding it the
-    # joined string would budget the sum of both lines and blow the 200 px cap.
     _rows = [r for _, r in runnable.iterrows()]
-    _gutter = right_gutter([_line1(r) for r in _rows] + [_line2(r) for r in _rows])
-    # Right-side annotations: single-stream speed + total VRAM, then the
-    # concurrency the same hardware supports. Row height is 42 px, so two 11 px
-    # lines fit.
+    # size_px=11 to MATCH the fit_text call below. They disagreed — the gutter
+    # was sized at 10 px/char and the labels trimmed at 11 — so every annotation
+    # here lost ~10% of the width it had actually been given, and a throughput
+    # label ended "816 tok/s · 22.3 GB (×2…" with room to spare beside it.
+    _gutter = right_gutter([_label(r) for r in _rows], size_px=11)
     for row in _rows:
         color = FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)
-        text = fit_text(_line1(row), _gutter, size_px=11)
-        l2 = _line2(row)
-        if l2:
-            text += "<br>" + fit_text(l2, _gutter, size_px=11)
+        text = fit_text(_label(row), _gutter, size_px=11)
 
         fig.add_annotation(
             x=1.01,
@@ -217,6 +232,7 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                 f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)} "
                 f"at {_ctx_label(ctx_tokens)} context"
                 f"  ·  ranked by intelligence"
+                f"  ·  tok/s = {_speed_label}"
                 + (f"  ·  {int(sum(is_pending))} not yet scored (outlined)"
                    if any(is_pending) else "")
                 + "</span>"

@@ -4,7 +4,8 @@ Local models — VRAM vs Quality scatter chart.
 X-axis : VRAM required (GiB) at the selected quantization AND context —
          weights + KV cache + runtime overhead — log scale
 Y-axis : AA Intelligence Index (raw, calibrated to AA scale)
-Size   : Estimated SINGLE-STREAM tokens/second on the selected hardware
+Size   : tokens/second — single-stream or aggregate at optimal concurrency,
+         whichever the SPEED control selects
 Color  : Model family
 Shape  : ● dense  ◆ MoE (mixture-of-experts)
 
@@ -18,8 +19,11 @@ from components.charts.constants import (
     plot_text,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     bubble_size, legend_below, QUALITY_INDEX_MAX, LOCAL_SPEED_REF,
+    LOCAL_THROUGHPUT_REF,
 )
-from data.local_models import FAMILY_COLORS, DEFAULT_FAMILY_COLOR
+from data.local_models import (
+    FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
+)
 
 _FIT_ALPHA  = 1.00   # fully runnable
 _TIGHT_ALPHA = 0.75  # fits but < 1 GB headroom
@@ -42,6 +46,7 @@ def build_local_scatter(
     vram_gb: float,
     quant: str,
     ctx_tokens=None,
+    speed_mode: str = DEFAULT_SPEED_MODE,
 ) -> go.Figure:
     """
     Scatter: VRAM required vs quality score.
@@ -62,6 +67,10 @@ def build_local_scatter(
     if df.empty:
         return _empty("No scored models found.")
 
+    _speed_col, _speed_label = speed_columns(speed_mode)
+    _speed_ref = (LOCAL_THROUGHPUT_REF if speed_mode == "throughput"
+                  else LOCAL_SPEED_REF)
+
     # Whether the KV figure in the hover came from a published config or the
     # fitted estimator. The reader has to be able to tell — see the same note
     # in local_compat.py.
@@ -73,11 +82,21 @@ def build_local_scatter(
         .map(_KV_NOTE).fillna("architecture estimated, ±30%")
     df["ctx_label"] = _ctx_label(ctx_tokens)
     # See the same note in local_compat.py: never render "×0 concurrent".
-    df["sessions_note"] = [
-        f"Sessions: ×{int(n)} concurrent → {t:,.0f} tok/s total"
-        if int(n or 0) > 0 else "Sessions: not sized — no context selected"
-        for n, t in zip(df.get("sessions", 0), df.get("total_tps", 0))
-    ]
+    # Leads with the metric the reader chose and offers the other underneath —
+    # see the same note in local_compat.py.
+    _s, _t, _n = df.get("speed_tps", 0), df.get("total_tps", 0), df.get("sessions", 0)
+    if speed_mode == "throughput":
+        df["speed_note"] = [
+            (f"Speed: {t:,.0f} tok/s across {int(n)} sessions<br>"
+             f"       {s:,.0f} tok/s if you run one")
+            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
+            for s, t, n in zip(_s, _t, _n)]
+    else:
+        df["speed_note"] = [
+            (f"Speed: {s:,.0f} tok/s single stream<br>"
+             f"       {t:,.0f} tok/s across {int(n)} sessions")
+            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
+            for s, t, n in zip(_s, _t, _n)]
     for _c in ("weights_gb", "kv_gb", "sessions", "total_tps"):
         if _c not in df:
             df[_c] = 0
@@ -93,8 +112,11 @@ def build_local_scatter(
             if sub.empty:
                 continue
 
-            # Scale bubble size: sqrt of tok/s so fast models aren't enormous
-            sizes = bubble_size(sub["speed_tps"], LOCAL_SPEED_REF).values
+            # Scale bubble size: sqrt of tok/s so fast models aren't enormous.
+            # The reference is per-metric — aggregate throughput runs 2-4x
+            # single-stream, so sharing one would clamp every bubble in
+            # throughput mode and the size channel would stop encoding anything.
+            sizes = bubble_size(sub[_speed_col], _speed_ref).values
 
             hover = (
                 "<b>%{customdata[0]}</b><br>"
@@ -103,7 +125,6 @@ def build_local_scatter(
                 "  ↳ weights %{customdata[5]:.1f} + KV cache %{customdata[6]:.1f}"
                 " + runtime %{customdata[11]:.1f} GB  ·  %{customdata[7]}<br>"
                 "Intelligence: %{y:.0f}<br>"
-                "Speed: %{customdata[1]:.0f} tok/s single stream<br>"
                 "%{customdata[12]}<br>"
                 "License: %{customdata[2]}<br>"
                 "Max context: %{customdata[3]}k tokens<br>"
@@ -138,7 +159,7 @@ def build_local_scatter(
                     tags_str=sub["tags_str"].map(plot_text),
                 )[["name", "speed_tps", "license", "context_k", "tags_str",
                    "weights_gb", "kv_gb", "kv_note", "ctx_label",
-                   "sessions", "total_tps", "overhead_gb", "sessions_note"]].values,
+                   "sessions", "total_tps", "overhead_gb", "speed_note"]].values,
                 hovertemplate=hover,
             ))
 
@@ -184,7 +205,7 @@ def build_local_scatter(
                 "VRAM Requirement vs Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {quant} at {_ctx_label(ctx_tokens)} context"
-                f"  ·  left of line = runnable  ·  bubble = single-stream speed"
+                f"  ·  left of line = runnable  ·  bubble = {_speed_label} tok/s"
                 + (f"  ·  {_pending_n} newer model{'s' if _pending_n != 1 else ''} "
                    f"not yet scored — see the ranking below" if _pending_n else "")
                 + "</span>"
@@ -227,7 +248,7 @@ def build_local_scatter(
             dict(
                 x=1.0, y=1.04, xref="paper", yref="paper",
                 xanchor="right",
-                text="Bubble size = single-stream tok/s<br>◆ = MoE architecture",
+                text=f"Bubble size = {_speed_label} tok/s<br>◆ = MoE architecture",
                 showarrow=False,
                 font=dict(color="#666666", size=10, family=_FONT),
                 align="left",

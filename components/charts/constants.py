@@ -435,6 +435,17 @@ BUBBLE_PRICE_FLOOR = 0.05
 # their own throughput reference.
 LOCAL_SPEED_REF = 400.0
 
+# The same fixed-reference rule for the Run Local tab's OTHER speed metric.
+# Aggregate throughput at optimal concurrency runs 2-4x single-stream, so
+# reusing LOCAL_SPEED_REF clamped almost every bubble to the maximum diameter
+# and the size channel stopped encoding anything. 1200 keeps the median
+# runnable model under the reference on the fastest preset in GPUS (RTX 5090,
+# median 816 tok/s) while leaving a small machine's bubbles visible (M6 32 GB,
+# median 44). Fixed for the same reason as LOCAL_SPEED_REF: a reference derived
+# from the filtered frame makes a model appear to change speed when the reader
+# narrows a filter.
+LOCAL_THROUGHPUT_REF = 1200.0
+
 # Ceiling for the AA Intelligence Index axis and colour ramps. Fixed so a
 # model keeps the same vertical position and the same tile colour whatever the
 # filter — scaling either to the filtered frame's own max made a provider's
@@ -671,7 +682,13 @@ def right_gutter(texts, size_px: int = 10, pad_px: int = 20) -> int:
     model name cannot take the plot back.
     """
     longest = max((len(str(t)) for t in texts), default=0)
-    return int(min(MAX_RIGHT_GUTTER_PX, longest * size_px * 0.55 + pad_px))
+    # ceil, not int(). fit_text() floors the same arithmetic back the other way,
+    # so two truncations in a row cost a character that had been paid for: a
+    # 22-char label sized a 153 px gutter, which fit_text then read as room for
+    # 21, and every label at the widest width came back with a needless
+    # ellipsis. Rounding up here makes the pair exact.
+    return int(min(MAX_RIGHT_GUTTER_PX,
+                   _math.ceil(longest * size_px * 0.55) + pad_px))
 
 
 def fit_text(text: str, gutter_px: int, size_px: int = 10, pad_px: int = 20) -> str:
