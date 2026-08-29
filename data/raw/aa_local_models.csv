@@ -41,7 +41,7 @@ Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,32.13,Apache 2.0,"vision,reason
 DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,31.94,Mit,,True
 Ring-2.6-1T,InclusionAI,1000.0,63.0,262,31.66,MIT,reasoning,True
 Qwen3.6 27B (Non-reasoning),Alibaba,27.8,27.8,262,31.33,Apache 2.0,vision,False
-K-EXAONE 2.0 0803,LG AI Research,750.0,37.0,262,30.98,apache-2.0,reasoning,True
+K-EXAONE 2.0,LG AI Research,750.0,37.0,262,30.98,apache-2.0,reasoning,True
 Step 3.7 Flash,StepFun,198.0,11.0,262,30.9,Apache 2.0,"vision,reasoning",True
 Mistral Medium 3.5,Mistral,128.0,128.0,256,30.39,Modified MIT License,"vision,reasoning",False
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.69,Apache 2.0,"vision,reasoning",False

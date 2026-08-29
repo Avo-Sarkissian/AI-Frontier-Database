@@ -134,3 +134,4 @@ Apertus 8B Instruct,swiss-ai/Apertus-8B-Instruct-2509,gqa,32,,,8.0,128.0,,,8.053
 Granite 4.0 350M,ibm-granite/granite-4.0-350m,gqa,28,,,4.0,64.0,,,0.352,2026-08-27,
 Granite 4.0 H 350M,ibm-granite/granite-4.0-h-350m,gqa,32,,,4.0,64.0,,,0.34,2026-08-27,
 GLM-5.3 (max),zai-org/GLM-5.3,mla,78,512.0,64.0,,,,,753.33,2026-08-28,
+K-EXAONE 2.0,LGAI-EXAONE/K-EXAONE-2.0-750B-A37B,gqa,78,,,8.0,128.0,,20.0,749.357,2026-08-29,sliding
