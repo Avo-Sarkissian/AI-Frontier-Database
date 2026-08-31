@@ -145,6 +145,11 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "datasets":         scrape_status.load(),
         "data_fetched_iso": scrape_status.oldest_successful_fetch(),
         "stale_datasets":   scrape_status.stale_datasets(),
+        # Shipped, not duplicated in JS. The browser re-checks staleness live
+        # (a page left open must age honestly), which means it needs this
+        # number — and a second copy of it in app.js is exactly how the palette
+        # and the labels drifted. See data/scrape_status.STALE_AFTER_HOURS.
+        "stale_after_hours": scrape_status.STALE_AFTER_HOURS,
         # MIN SCORE options, including the exact preset percentiles, so the
         # <select> can hold the value a preset sets instead of snapping it.
         # Reasoning effort: AA publishes the same model at several efforts and

@@ -248,3 +248,100 @@ def test_settled_non_matches_rest_between_retries():
     assert A._due(None, 550.0, today) is True
     # the catalogue moved the parameter count, so the guard's verdict may change
     assert A._due(fresh, 551.0, today) is True
+
+
+# ---------------------------------------------------------------------------
+# The freshness badge said "Updated 11 hours ago ⚠" while all four scrapers
+# were healthy and refreshing the page could not clear it.
+#
+# scrape_status.record() stamps fetched_at on every SUCCESSFUL scrape, so the
+# runner always knew the data had just been verified. But refresh.yml only
+# committed when a NUMBER moved -- scrape_status.json is deliberately excluded
+# from the change guard so it cannot trigger a commit by itself -- so on a quiet
+# upstream the fresh timestamp was written on the runner and thrown away. The
+# site kept serving the stamp from the last run where some model's price
+# happened to change, the browser aged it past STALE_AFTER_HOURS, and no
+# refresh could help because the published manifest genuinely held that stamp.
+#
+# Observed 2026-08-30: data last moved 06:46; runs at 12:58 and 17:34 both
+# scraped all four datasets successfully and skipped the commit; at 17:35 the
+# badge read "Updated 11 hours ago" with the warning triangle.
+# ---------------------------------------------------------------------------
+
+def test_a_successful_scrape_publishes_freshness_even_when_no_data_moved():
+    """The alarm itself, not the YAML that describes it."""
+    from datetime import datetime, timedelta, timezone
+    from data import scrape_status as S
+
+    now = datetime(2026, 8, 30, 17, 35, tzinfo=timezone.utc)
+    published = (now - timedelta(hours=10, minutes=49)).isoformat()   # 06:46
+    assert S.heartbeat_due(published, now) is True, (
+        "a run that verified the data 10h after the last published stamp must "
+        "publish, or the badge warns about a pipeline that is working"
+    )
+    # ...but a stamp published minutes ago is not worth a commit. The guard
+    # exists to stop the bot committing on every run; the heartbeat must not
+    # quietly undo it.
+    fresh = (now - timedelta(minutes=20)).isoformat()
+    assert S.heartbeat_due(fresh, now) is False
+    # Nothing published at all is the strongest possible case for publishing.
+    assert S.heartbeat_due(None, now) is True
+
+
+def test_heartbeat_publishes_a_failing_scrape_too():
+    """ok=false has the same publication problem, and it is the worse one.
+
+    If every scraper started failing on a quiet upstream, nothing would move, so
+    nothing would be committed, and the site would keep showing the last happy
+    status until the timestamps aged out. The heartbeat is what carries the bad
+    news to the badge."""
+    from datetime import datetime, timedelta, timezone
+    from data import scrape_status as S
+
+    now = datetime(2026, 8, 30, 17, 35, tzinfo=timezone.utc)
+    stale = (now - timedelta(hours=6)).isoformat()
+    assert S.heartbeat_due(stale, now) is True
+
+
+def test_workflow_publishes_the_heartbeat_when_no_data_changed():
+    txt = WF.read_text()
+    assert "--heartbeat-due" in txt, "the workflow never asks whether to publish"
+    assert "steps.heartbeat.outputs.due" in txt, "the heartbeat decision is unused"
+    # Every step that publishes must run on the heartbeat path too, or the
+    # timestamp is recomputed and still never reaches the site.
+    for step in ["Rebuild static site (data-only)", "Commit + push"]:
+        i = txt.index(step)
+        window = txt[i:i + 400]
+        assert "heartbeat.outputs.due" in window, (
+            f"{step!r} still runs only when a number moved, so a verified-but-"
+            f"unchanged scrape is never published"
+        )
+
+
+def test_stale_threshold_has_one_source():
+    """Palettes, labels and price semantics each drifted from a second copy.
+    A threshold in both Python and JS is the same bug waiting to happen."""
+    from data import scrape_status as S
+
+    js = (ROOT / "docs" / "app.js").read_text()
+    assert "stale_after_hours" in js, "app.js does not read the threshold from the manifest"
+    assert "STALE_AFTER_HOURS = 3" not in js, "app.js still hardcodes a rival threshold"
+    assert "stale_after_hours" in (ROOT / "build_static.py").read_text(), (
+        "build_static.py does not ship the threshold, so app.js has nothing to read"
+    )
+    assert S.STALE_AFTER_HOURS == S.stale_datasets.__defaults__[1]
+
+
+def test_stale_threshold_survives_githubs_dropped_cron_runs():
+    """The cron says hourly. GitHub does not honour it: across 59 successful
+    runs (2026-08-24..31) the median gap was 1.3h but p90 was 6.9h and the
+    largest was 19.7h. A 3h threshold therefore warned on a healthy pipeline
+    roughly a tenth of the time, which is how a badge stops being read.
+
+    A scraper that actually FAILS still flags instantly via ok=false, so buying
+    quiet here costs nothing that matters."""
+    from data import scrape_status as S
+    assert S.STALE_AFTER_HOURS >= 7.0, (
+        "threshold is back under the observed p90 gap between bot runs; it will "
+        "warn about GitHub's scheduling, not about the data"
+    )

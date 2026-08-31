@@ -589,7 +589,10 @@ function renderFreshness() {
   // relative time aged honestly while the warning never appeared. A dataset
   // that has not refreshed in STALE_AFTER_HOURS is stale no matter what the
   // build thought.
-  const STALE_AFTER_HOURS = 3;
+  // Shipped by build_static.py from data/scrape_status.STALE_AFTER_HOURS. It
+  // was hardcoded as 3 here, against a cron that claims hourly but whose p90
+  // gap is 6.9h — so the badge warned about GitHub's scheduler, not the data.
+  const STALE_AFTER_HOURS = Number(m.stale_after_hours) || 12;
   const ds0 = m.datasets || {};
   const stale = Array.from(new Set([
     ...(Array.isArray(m.stale_datasets) ? m.stale_datasets : []),

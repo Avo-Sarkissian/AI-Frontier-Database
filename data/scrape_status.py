@@ -44,6 +44,25 @@ STATUS_PATH = Path(
 # unknown rather than fresh — absence of evidence is not evidence of freshness.
 DATASETS = ("hosted", "local", "image", "video")
 
+# How old the newest successful fetch may get before the badge warns.
+#
+# This was 3h, chosen against a cron that claims to run hourly. GitHub does not
+# honour that claim: across 59 successful runs (2026-08-24..31) the median gap
+# was 1.3h, but p90 was 6.9h and the largest was 19.7h. So the badge spent a
+# good part of every week warning about GitHub's scheduler while all four
+# scrapers were healthy — and a warning that common is one nobody reads, which
+# is the same failure as the image endpoint's 29 silent days, just louder.
+#
+# 12h sits above the p90 gap and well under a day, so it flags a pipeline that
+# has genuinely stopped. It costs nothing in sensitivity to the failure that
+# actually matters: a scraper that breaks reports ok=false and flags instantly,
+# with no reference to the clock.
+STALE_AFTER_HOURS = 12.0
+
+# How old the PUBLISHED freshness stamp may get before a run republishes it even
+# though no number moved. See heartbeat_due().
+HEARTBEAT_AFTER_HOURS = 4.0
+
 
 def _read() -> dict:
     if not STATUS_PATH.exists():
@@ -97,7 +116,45 @@ def oldest_successful_fetch(status: dict | None = None) -> str | None:
     return min(stamps) if len(stamps) == len(DATASETS) else None
 
 
-def stale_datasets(status: dict | None = None, max_age_hours: float = 3.0) -> list[str]:
+def heartbeat_due(published_iso: str | None,
+                  now: datetime | None = None) -> bool:
+    """Should this run publish its freshness even though no data moved?
+
+    THE BUG THIS EXISTS FOR. record() stamps fetched_at on every successful
+    scrape, so the runner always knows the data was just verified. But
+    refresh.yml only commits when a NUMBER moves — scrape_status.json is
+    excluded from the change guard precisely so it cannot trigger a commit by
+    itself — so on a quiet upstream that fresh stamp was written on the runner
+    and thrown away. The site kept serving the stamp from the last run where
+    some price happened to change, the browser aged it past STALE_AFTER_HOURS,
+    and refreshing could not help: the published manifest really did hold that
+    stamp. On 2026-08-30 the data last moved at 06:46, runs at 12:58 and 17:34
+    both scraped all four datasets successfully and committed nothing, and the
+    badge read "Updated 11 hours ago" under a warning triangle.
+
+    A failing scrape needs publishing for the same reason and more urgently: if
+    every scraper broke on a quiet upstream, nothing would move, nothing would
+    be committed, and the site would go on showing the last happy status. The
+    heartbeat is what carries ok=false to the badge.
+
+    Answering "is the published stamp old" rather than "did anything change"
+    keeps the original guard intact — the bot still skips the commit on the
+    runs that have nothing to say.
+    """
+    if not published_iso:
+        return True
+    now = now or datetime.now(timezone.utc)
+    try:
+        when = datetime.fromisoformat(str(published_iso))
+    except ValueError:
+        return True
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return (now - when).total_seconds() > HEARTBEAT_AFTER_HOURS * 3600
+
+
+def stale_datasets(status: dict | None = None,
+                   max_age_hours: float = STALE_AFTER_HOURS) -> list[str]:
     """Datasets that failed their last scrape or have not refreshed in a while."""
     status = load() if status is None else status
     now = datetime.now(timezone.utc)
@@ -123,3 +180,23 @@ def stale_datasets(status: dict | None = None, max_age_hours: float = 3.0) -> li
         if (now - when).total_seconds() > max_age_hours * 3600:
             out.append(name)
     return sorted(out)
+
+
+if __name__ == "__main__":
+    # `--heartbeat-due <manifest.json>`: prints true/false for refresh.yml.
+    # The decision lives here, with a test, rather than as a shell expression in
+    # the workflow — the alarm is the thing that has to work, not the YAML that
+    # describes it.
+    import sys
+
+    if "--heartbeat-due" in sys.argv:
+        i = sys.argv.index("--heartbeat-due")
+        published = None
+        if len(sys.argv) > i + 1:
+            manifest = Path(sys.argv[i + 1])
+            if manifest.exists():
+                try:
+                    published = json.loads(manifest.read_text()).get("data_fetched_iso")
+                except (ValueError, OSError):
+                    published = None
+        print("true" if heartbeat_due(published) else "false")

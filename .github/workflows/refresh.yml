@@ -71,23 +71,58 @@ jobs:
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+      # A run that verified the data but found nothing moved still has something
+      # to publish: the fact that it checked. record() stamps fetched_at on
+      # every successful scrape, but the guard above only fires when a NUMBER
+      # moves, so that stamp used to be written on the runner and thrown away —
+      # and the site went on serving the stamp from the last run where some
+      # price happened to change. The browser ages that stamp live, so a quiet
+      # upstream turned the badge orange with "Updated 11 hours ago" while all
+      # four scrapers were healthy, and no refresh could clear it because the
+      # published manifest really did hold that stamp (2026-08-30: data last
+      # moved 06:46, healthy runs at 12:58 and 17:34 published nothing).
+      #
+      # Asking "is the PUBLISHED stamp old" rather than "did anything change"
+      # keeps this guard doing its job: the bot still skips the commit on runs
+      # that have nothing to say. The decision lives in Python, with tests.
+      - name: Freshness heartbeat — publish that we checked
+        id: heartbeat
+        run: |
+          due=$(python -m data.scrape_status --heartbeat-due docs/figures/manifest.json)
+          echo "due=$due" >> "$GITHUB_OUTPUT"
+          [ "$due" = "true" ] && echo "Republishing freshness (no data moved)." || true
       # Absolute floor + relative drop. The old check was the floor alone, which
       # a 53% contraction (329 -> 155 rows on 2026-07-24) sailed straight past.
       - name: Sanity check — absolute floor and row-loss guard
         if: steps.guard.outputs.changed == 'true'
         run: python data_guard.py ${{ inputs.allow_shrink && '--allow-shrink' || '' }}
       - name: Rebuild static site (data-only)
-        if: steps.guard.outputs.changed == 'true'
+        if: steps.guard.outputs.changed == 'true' || steps.heartbeat.outputs.due == 'true'
         run: python build_static.py --data-only
       - name: Commit + push
-        if: steps.guard.outputs.changed == 'true'
+        if: steps.guard.outputs.changed == 'true' || steps.heartbeat.outputs.due == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- data/raw docs
-          git commit -m "data: hourly AA refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
-          git pull --rebase --autostash origin main
-          git push
+          if [ "${{ steps.guard.outputs.changed }}" = "true" ]; then
+            msg="data: hourly AA refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
+          else
+            # Distinct subject so `git log` still reads as a history of the data
+            # rather than a heartbeat trace.
+            msg="chore: freshness heartbeat ($(date -u +%Y-%m-%dT%H:%MZ))"
+          fi
+          # The heartbeat path stages a rebuilt manifest whose only change is a
+          # timestamp, which is the point. But `git commit` on an empty index
+          # exits non-zero under `bash -e`, and a publishing path must never be
+          # the thing that turns the run red.
+          if git diff --cached --quiet; then
+            echo "nothing staged — skipping commit"
+          else
+            git commit -m "$msg"
+            git pull --rebase --autostash origin main
+            git push
+          fi
 
       # Last, so a broken scraper never blocks publishing the datasets that did
       # refresh — but the run still goes red instead of hiding a dead endpoint.
