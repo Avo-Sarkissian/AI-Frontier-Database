@@ -277,6 +277,26 @@ def canonical_provider(name: str) -> str:
 # the #d97757 clay read off anthropic.com are ΔE 2.3 apart (hue 39.1° vs 38.8°).
 # Do not "restore" either one over the other; they are the same colour.
 #
+# KNOWN, ACCEPTED VALIDATOR FAILURE: the dark lightness band (OKLCH L 0.48-0.67).
+# The palette this replaced passed it; this one does not, and the trade is
+# deliberate. A free-hue palette separates using HUE, so every slot can sit
+# mid-lightness. Mirroring AA locks the hues — four of them inside 26 degrees --
+# so separation has to come from LIGHTNESS, which pushes slots out of a band
+# only 0.19 wide.
+#
+# Measured, not assumed: with Anthropic pinned to AA's #cc785c (L 0.658) there
+# is NO assignment of the other six mirrored labs inside the band, exhaustively
+# and with no node budget, even with the chroma floor dropped to 10% of AA's and
+# the drift cap opened to dE 40. The search terminates in 59 nodes: pinning clay
+# mid-band leaves nothing that both fits the band and clears dE 15 from it.
+#
+# (The unpinned variant was NOT proven — that search does not terminate in
+# reasonable time — but unpinning Anthropic is not on the table, so it does not
+# decide anything.)
+#
+# The checks that govern legibility all pass: normal-vision floor 15.0, CVD 8.3
+# protan / 8.2 tritan, contrast all >= 3:1 on #111111.
+#
 # Re-validate any change, and re-read AA rather than editing a hex by hand:
 #   node scripts/validate_palette.js "<hexes>" --mode dark \
 #        --surface "#111111" --pairs all
