@@ -362,3 +362,60 @@ def test_annotations_fit_inside_their_gutter():
             assert approx_px <= gutter + 8, (
                 f"{name}: {a.text!r} needs ~{approx_px:.0f}px of a {gutter}px gutter"
             )
+
+
+def test_palette_mirrors_artificial_analysis():
+    """Every provider wears Artificial Analysis's own creator colour, or its hue.
+
+    AA publishes a `modelCreatorColor` per company and paints it on their charts.
+    Read 2026-09-01 from the leaderboard, text-to-image, video and text-to-speech
+    payloads and checked against the rendered SVG fills, not just the JSON.
+    Mirroring it is the whole point of this palette, so it is asserted:
+
+      * AA_MIRROR_EXACT - painted byte for byte as AA paints it
+      * AA_MIRROR_HUE   - AA's colour is unusable on #111111 or collides on the
+                          Overview scatter, so L and C move but the HUE is AA's
+      * AA_NO_HUE       - deliberately not mirrored, each with its reason
+
+    A provider with an AA colour that appears in none of the three has drifted
+    out of the mirror unnoticed, which is the failure this catches.
+    """
+    import math
+
+    from components.charts.constants import (
+        AA_CREATOR_COLORS, AA_MIRROR_EXACT, AA_MIRROR_HUE, AA_NO_HUE,
+    )
+
+    def oklch_hue(hex_colour):
+        h = hex_colour.lstrip("#")
+        srgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        r, g, b = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                   for c in srgb]
+        l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+        m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+        s = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+        a_ = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
+        b_ = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+        return math.degrees(math.atan2(b_, a_)) % 360
+
+    for provider in sorted(AA_MIRROR_EXACT):
+        assert PROVIDER_COLORS[provider] == AA_CREATOR_COLORS[provider], (
+            f"{provider} should be AA's {AA_CREATOR_COLORS[provider]} verbatim, "
+            f"got {PROVIDER_COLORS[provider]}"
+        )
+
+    for provider in sorted(AA_MIRROR_HUE):
+        ours, theirs = PROVIDER_COLORS[provider], AA_CREATOR_COLORS[provider]
+        delta = abs(oklch_hue(ours) - oklch_hue(theirs)) % 360
+        delta = min(delta, 360 - delta)
+        assert delta <= 1.0, (
+            f"{provider} drifted {delta:.1f} degrees off AA's hue "
+            f"({theirs} -> {ours}); mirroring AA means keeping the hue"
+        )
+
+    accounted = set(AA_MIRROR_EXACT) | set(AA_MIRROR_HUE) | set(AA_NO_HUE)
+    mirrorable = {p for p in PROVIDER_COLORS if p in AA_CREATOR_COLORS}
+    assert mirrorable <= accounted, (
+        f"providers with an AA colour that no rule covers: "
+        f"{sorted(mirrorable - accounted)}"
+    )

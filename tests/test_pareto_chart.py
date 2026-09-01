@@ -251,3 +251,20 @@ def test_empty_frame_does_not_raise(real_df):
     empty = real_df.iloc[0:0]
     out = build_pareto_scatter(empty)
     assert out is not None
+
+
+def test_spotlight_separates_from_the_grey_other_bucket():
+    """Spotlight bubbles sit beside the grey "Other" series constantly, so it is
+    a mark to be told apart from, not background.
+
+    The palette this replaced never checked it and violated it twice: NVIDIA
+    #777221 at ΔE 12.3 and Alibaba #b46eb6 at 15.0 against #6b7280.
+    """
+    from components.charts.constants import DEFAULT_COLOR
+
+    for provider in SPOTLIGHT_PROVIDERS:
+        d = _delta_e(PROVIDER_COLORS[provider], DEFAULT_COLOR)
+        assert d >= NORMAL_VISION_FLOOR, (
+            f"{provider} ({PROVIDER_COLORS[provider]}) is only ΔE {d:.1f} from "
+            f'the "Other" bucket {DEFAULT_COLOR} (floor {NORMAL_VISION_FLOOR})'
+        )

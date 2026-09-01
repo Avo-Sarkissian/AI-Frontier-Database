@@ -231,118 +231,224 @@ def canonical_provider(name: str) -> str:
     return PROVIDER_ALIASES.get(name, name)
 
 
-# --- Spotlight series palette -------------------------------------------------
-# These nine providers can appear as their own series in the Overview scatter,
-# so every pair of them has to be separable. The set was solved for, not picked
-# by eye — see the palette note below for the measured separations.
+# --- Artificial Analysis is the palette's source of truth ---------------------
+# AA publishes a `modelCreatorColor` per company and paints it on their own
+# charts. Ours mirror it, so a reader who knows a lab's colour from AA finds the
+# same lab here. Read 2026-09-01 off the leaderboard, text-to-image, video and
+# text-to-speech payloads and checked against the rendered SVG fills, not just
+# the JSON: `AA_CREATOR_COLORS` below is that map, verbatim.
 #
-# The CVD figure sits in the 6–8 floor band, which is only legal alongside
-# secondary encoding — that is what PROVIDER_SHAPES below is for.
+# WHERE THE MIRROR CANNOT BE EXACT, AND WHY.
+# AA's charts label every bar with a logo and a model name, so colour there is
+# decoration on a row that is already identified. Two labs may share a hue at no
+# cost. The Overview scatter has ~150 unlabelled bubbles, where colour IS the
+# identity, so the same set has to clear the all-pairs floors. Run through the
+# data-viz validator, AA's palette fails on any surface:
 #
-# THE TENTH ENTRY IS AN ACHROMATIC EXCEPTION, NOT A RELAXED RULE.
-# This block used to say a tenth provider made the set infeasible, and for a
-# tenth *hue* it still does — nine is all the #111111 surface will separate once
-# brand colours are pinned. SpaceXAI is white, which is not a hue: it sits in a
-# region of L*a*b* nothing else occupies, so it costs the set nothing. Measured
-# on 2026-08-18, adding it:
+#   Alibaba #ff7018 / Mistral #fd6f00   ΔE  0.7 normal vision (floor 15)
+#   Google  #34A853 / NVIDIA  #76b900   ΔE  9.2
+#   Anthropic       / Alibaba           ΔE  9.7
+#   OpenAI  #1f1f1f on #111111          1.15:1 contrast — invisible
 #
-#   min ΔE across the nine    24.7  (Alibaba / Mistral)
-#   min ΔE across the ten     24.7  (Alibaba / Mistral — unchanged)
-#   SpaceXAI nearest neighbour 43.8  (Mistral)
-#   contrast on #111111       18.9:1 — the highest in the set
-#   deutan / protan / tritan  SpaceXAI's nearest is 34.1 / 39.7 / 56.4, while
-#                             the worst existing pairs (13.5 / 19.9 / 5.9) are
-#                             untouched
+# Three rules resolve it, applied in this order:
 #
-# It earned the seat on the data too: 5 models on Overview, tied with Meta, and
-# Grok 4.6 at 60.92 is the 6th strongest model in the catalogue. Bucketing that
-# into grey "Other" was the inconsistency.
+#   1. AA's hex verbatim wherever it clears 3:1 on #111111 and separates.
+#      60 of the 103 names across all four catalogues take this path.
+#   2. AA's HUE, with lightness and chroma moved as little as the floors allow.
+#      OpenAI is the extreme case: AA paints it the maximum-contrast neutral
+#      against their white page, so on #111111 it becomes the maximum-contrast
+#      neutral the other way up — near-white, still achromatic, still the tenth
+#      slot that costs the set no hue.
+#   3. Labs AA paints black (#000000 and friends) keep the hue this repo
+#      assigned by farthest-point search. Black has no hue to mirror.
 #
-# An eleventh CHROMATIC provider remains infeasible. Do not add one without
-# re-running the validator; tests/test_pareto_chart.py checks every pair against
-# the ΔE floor and tests/test_chart_contract.py refuses a new chromatic entry.
+# THE ORANGE QUARTET IS PROVABLY INFEASIBLE, NOT MERELY HARD.
+# Anthropic 39.1°, Alibaba 45.3°, Mistral 46.8°, Amazon 64.6° — four labs inside
+# a 26° band. With Anthropic pinned to AA's own #cc785c and every hue locked,
+# an exhaustive sweep of 726 x 714 x 632 = 327M combinations returns ZERO legal
+# assignments. Drop any one of the three and it is feasible at once (2,495 to
+# 3,854 solutions). So exactly one orange must yield, and the user's standing
+# collision rule decides which: the primary company keeps the colour, the others
+# take something that stands out. By catalogue size that is Mistral — 8 models
+# against Alibaba's 28 and Amazon's 12 — placed at the hue furthest from
+# everything already on screen.
 #
-#   node scripts/validate_palette.js "<hexes>" --mode dark --surface "#111111" --pairs all
+# Anthropic is pinned and both instructions agree on the value: AA's #cc785c and
+# the #d97757 clay read off anthropic.com are ΔE 2.3 apart (hue 39.1° vs 38.8°).
+# Do not "restore" either one over the other; they are the same colour.
+#
+# Re-validate any change, and re-read AA rather than editing a hex by hand:
+#   node scripts/validate_palette.js "<hexes>" --mode dark \
+#        --surface "#111111" --pairs all
+
+AA_CREATOR_COLORS: dict[str, str] = {
+    "AI21 Labs":                             "#d63864",
+    "AI9Stars":                              "#795bcf",
+    "Alibaba":                               "#ff7018",
+    "Alibaba-ATH":                           "#ff7018",
+    "Allen Institute for AI":                "#f0529c",
+    "Amazon":                                "#ff9900",
+    "Anthropic":                             "#cc785c",
+    "Apodex":                                "#0fd9d2",
+    "Api Airforce":                          "#4c7fa6",
+    "Arcee AI":                              "#008c8d",
+    "Baidu":                                 "#2436d8",
+    "Black Forest Labs":                     "#272727",
+    "Bria":                                  "#5200c8",
+    "ByteDance Seed":                        "#3c8bff",
+    "Cohere":                                "#d18ee2",
+    "Deep Cogito":                           "#5080ec",
+    "DeepSeek":                              "#2243e6",
+    "Eigen AI":                              "#115792",
+    "Fal":                                   "#ff6b35",
+    "Genmo":                                 "#8bbbe1",
+    "Google":                                "#34a853",
+    "Haiper":                                "#7b61ff00",
+    "HiDream":                               "#1d8eff",
+    "IBM":                                   "#0f62fe",
+    "Ideogram":                              "#18181b",
+    "ImagineArt":                            "#000000",
+    "Inception":                             "#021b30",
+    "InclusionAI":                           "#4fb5ff",
+    "Kimi":                                  "#047afe",
+    "KlingAI":                               "#ff3417",
+    "Krea":                                  "#000000",
+    "KwaiKAT":                               "#489034",
+    "LG AI Research":                        "#df3b8a",
+    "Leonardo.Ai":                           "#016db6",
+    "Lightricks":                            "#000000",
+    "Liquid AI":                             "#000000",
+    "LongCat":                               "#2adb65",
+    "Luma Labs":                             "#3face6",
+    "MBZUAI Institute of Foundation Models": "#1521a9",
+    "Meituan":                               "#f8d103",
+    "Meta":                                  "#0089f4",
+    "Microsoft":                             "#0078d5",
+    "Microsoft AI":                          "#5f4e41",
+    "Midjourney":                            "#45578c",
+    "MiniMax":                               "#eb3568",
+    "Mistral":                               "#fd6f00",
+    "Moonvalley":                            "#030303",
+    "Motif Technologies":                    "#6a93eb",
+    "Multiverse Computing":                  "#f11338",
+    "NVIDIA":                                "#76b900",
+    "Nanbeige":                              "#023c3e",
+    "Naver":                                 "#03c75b",
+    "Nex AGI":                               "#0351bc",
+    "Nous Research":                         "#006fa8",
+    "Open Source":                           "#ffce19",
+    "OpenAI":                                "#1f1f1f",
+    "OpenBMB":                               "#3b62ec",
+    "OpenGVLab":                             "#396099",
+    "Perplexity":                            "#1b818e",
+    "Pika Art":                              "#feedd1",
+    "PixVerse":                              "#000000",
+    "Playground AI":                         "#6858f5",
+    "Prime Intellect":                       "#000000",
+    "Pruna AI":                              "#9334e9",
+    "Recraft":                               "#000000",
+    "Reka AI":                               "#172136",
+    "Reve":                                  "#ffbb00",
+    "Runway":                                "#000000",
+    "SK Telecom":                            "#e1002a",
+    "Sapiens AI":                            "#1521a9",
+    "Sarvam":                                "#807d77",
+    "ServiceNow":                            "#80b6a1",
+    "Skywork AI":                            "#4d5eff",
+    "Sourceful":                             "#000000",
+    "SpaceXAI":                              "#736cd3",
+    "Stability.ai":                          "#a381ff",
+    "StepFun":                               "#017aff",
+    "Swiss AI Initiative":                   "#bee9fa",
+    "TII UAE":                               "#6502ff",
+    "Tencent":                               "#5cb9ff",
+    "Thinking Machines":                     "#676767",
+    "Trillion Labs":                         "#1f2120",
+    "Upstage":                               "#7c59f5",
+    "VectorSpaceLab":                        "#000000",
+    "Video Rebirth":                         "#000000",
+    "Vidu":                                  "#1fcfff",
+    "Xiaomi":                                "#ff6900",
+    "Z AI":                                  "#1c7ff8",
+}
+
+# Providers whose painted colour IS Artificial Analysis's, byte for byte.
+AA_MIRROR_EXACT: frozenset[str] = frozenset({
+    "AI21 Labs", "Allen Institute for AI", "Anthropic", "Apodex",
+    "Arcee AI", "Cohere", "Deep Cogito", "IBM", "InclusionAI", "Kimi",
+    "KwaiKAT", "LG AI Research", "LongCat", "Microsoft", "MiniMax",
+    "Multiverse Computing", "Nous Research", "Perplexity", "StepFun",
+    "Swiss AI Initiative", "Tencent", "Upstage", "Xiaomi", "Z AI",
+})
+
+# Providers that keep AA's HUE but move in lightness/chroma, because AA's own
+# value is unusable on #111111 or collides on the Overview scatter.
+AA_MIRROR_HUE: frozenset[str] = frozenset({
+    "Amazon", "Baidu", "DeepSeek", "Google", "Inception", "Meta", "NVIDIA",
+    "Nex AGI", "Reka AI", "Sapiens AI", "SpaceXAI",
+})
+
+# Providers with an AA colour that is deliberately NOT mirrored, and why.
+AA_NO_HUE: dict[str, str] = {
+    "OpenAI":            "AA's #1f1f1f is a neutral, not a hue; inverted for this surface",
+    "Alibaba":           "collision rule — AA's orange belongs to Anthropic here",
+    "Mistral":           "collision rule — AA's orange belongs to Anthropic here",
+    "Thinking Machines": "AA paints it #676767, which reads as the grey Other bucket",
+    "Sarvam":            "AA paints it #807d77, which reads as the grey Other bucket",
+}
+
 SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
     "Anthropic", "Meta", "OpenAI", "Alibaba", "Google",
     "NVIDIA", "Amazon", "Mistral", "DeepSeek", "SpaceXAI",
 )
 
 PROVIDER_COLORS: dict[str, str] = {
-    # -- spotlight nine. Anthropic is pinned to its EXACT published brand orange,
-    #    #D97757 ("clay", read off anthropic.com's own --swatch--clay token; the
-    #    darker --swatch--accent is #C6613F). That pin drives everything else here.
-    #
-    #    Clay is a muted, low-chroma coral, which makes it a far harder colour to
-    #    seat than the saturated orange that used to stand in for it: against the
-    #    old Alibaba orange it was ΔE 7.1 for normal vision (floor is 15) and
-    #    against the old NVIDIA green ΔE 1.5 under deuteranopia. No arrangement
-    #    within four colour changes clears the floors — the set had to be re-solved.
-    #
-    #    The binding constraint was subtle: OpenAI's old #0e8c6d is DARK, and clay
-    #    is light, so the two converged at ΔE 3.7 under protanopia — a pair no
-    #    other slot could separate. Lightening OpenAI's green fixed it (ΔE 17.5).
-    #
-    #    Result is better than the palette it replaces: worst normal-vision pair
-    #    ΔE 15.1, worst CVD ΔE 8.2 (deutan) / 9.6 (tritan) — above the ΔE 8 target,
-    #    so this set no longer leans on marker shape to be legal, though the shapes
-    #    stay as secondary encoding. All ≥ 3:1 on the #111111 surface. Nine is
-    #    still the ceiling; a tenth makes the set infeasible.
-    #
-    #    Brand fidelity is kept where the pin allows: Anthropic, Meta, Google and
-    #    DeepSeek wear their own hues. Alibaba's only brand colour is the orange
-    #    Anthropic now owns, so per the collision rule it takes a distinct hue;
-    #    OpenAI, NVIDIA and Mistral likewise moved to seat clay.
-    #
-    #    Re-validate any change with the dataviz skill's validator:
-    #      node scripts/validate_palette.js "<hexes>" --mode dark \
-    #           --surface "#111111" --pairs all
-    "Anthropic":              "#d97757",  # Anthropic clay — exact brand · 6.05:1
-    "Meta":                   "#0566db",  # Meta blue (#0064E0)         · 3.53:1
-    "OpenAI":                 "#52d678",  # teal-green, lightened off clay · 10.28:1
-    "Alibaba":                "#b46eb6",  # orange is Anthropic's → orchid · 5.30:1
-    "Google":                 "#fea92f",  # Google yellow (#FBBC05)     · 9.83:1
-    "NVIDIA":                 "#777221",  # green, darkened off Google  · 3.55:1
-    "Amazon":                 "#bd088c",  # AWS orange taken → magenta  · 3.22:1
-    "Mistral":                "#dcb1f2",  # Mistral orange taken → lavender · 9.44:1
-    "DeepSeek":               "#7d9bff",  # DeepSeek blue (#4D6BFE)     · 7.20:1
-    "Kimi":                   "#b200c1",  # magenta
-    # -- secondary providers: never share the Overview legend with each other,
-    #    so they only need to read distinctly in the tabs that show them all --
-    "SpaceXAI":               "#ffffff",  # white — requested; xAI/SpaceX brand is white on black
-    "Microsoft":              "#818cf8",  # indigo
-    "Cohere":                 "#f87171",  # red
-    "Z AI":                   "#7dd3fc",  # light blue
-    "MiniMax":                "#86efac",  # light green
-    "InclusionAI":            "#fca5a5",  # light red
-    "Xiaomi":                 "#6ee7b7",  # teal
-    "Baidu":                  "#fde68a",  # amber
-    "IBM":                    "#93c5fd",  # periwinkle
-    "LG AI Research":         "#c4b5fd",  # violet
-    "Nous Research":          "#f9a8d4",  # rose
-    "Reka AI":                "#a78bfa",  # purple-blue
-    "AI21 Labs":              "#2dd4bf",  # teal — was #34d399, colliding with OpenAI
-    "Allen Institute for AI": "#67e8f9",  # light cyan
-    "Inception":              "#fb7185",  # hot pink
-    "Upstage":                "#fbbf24",  # amber
-    "Perplexity":             "#a3a3a3",  # neutral
-    "KwaiKAT":                "#f97316",  # amber-orange
-    "Deep Cogito":            "#a8a29e",  # stone
-    "Thinking Machines":      "#5eead4",  # aquamarine
-    "Tencent":                "#4ade80",  # green
-    "StepFun":                "#e879f9",  # fuchsia
-    "Arcee AI":               "#fcd34d",  # gold
-    "LongCat":                "#bef264",  # yellow-green
-    "Sapiens AI":             "#f0abfc",  # orchid
-    "Nex AGI":                "#94a3b8",  # slate
-    "Multiverse Computing":   "#d6d3d1",  # warm grey
-    "Celeris":                "#fdba74",
-    # Arrived in the hosted catalogue when data/scraper.py moved to the
-    # leaderboard on 2026-08-20 — both were previously visible only on Run
-    # Local. Assigned by farthest-point search against the palette they join:
-    # Sarvam >= 24.5 dE, Swiss AI Initiative >= 19.9 dE, both >= 3:1 on #111111.
-    "Sarvam": "#f472b6",
-    "Swiss AI Initiative": "#84cc16",  # peach
+    # -- spotlight ten. Seven mirror AA's hue; Alibaba and Mistral take
+    #    collision colours; OpenAI is AA's neutral, inverted for this surface.
+    "Anthropic":                 "#cc785c",  # AA verbatim — and the brand pin; AA's #cc785c and anthropic.com's clay are ΔE 2.3 apart
+    "Meta":                      "#178af1",  # AA hue, ΔE 0.7 — 96% of AA's chroma
+    "OpenAI":                    "#efefef",  # AA paints it #1f1f1f: the max-contrast NEUTRAL on white. Inverted for #111111
+    "Alibaba":                   "#ed1fb2",  # collision rule — AA's orange is Anthropic's; 28 models, takes the roomier slot
+    "Google":                    "#72cc83",  # AA hue, 84% chroma. Separating from NVIDIA (18° apart) costs lightness, not colour
+    "NVIDIA":                    "#a2f332",  # AA hue, 72% chroma — the light green of the pair
+    "Amazon":                    "#fea33d",  # AA hue, ΔE 2.6 — 89% of AA's chroma
+    "Mistral":                   "#c41847",  # collision rule — AA's orange is Anthropic's
+    "DeepSeek":                  "#2649f4",  # AA hue, ΔE 2.6 — 104% of AA's chroma
+    "SpaceXAI":                  "#a2a1ee",  # AA hue, 72% chroma
+    # -- secondary providers: they never share the Overview legend with each
+    #    other (everything past the spotlight folds into grey "Other"), so they
+    #    only need to read distinctly on the tabs that show them all.
+    "Kimi":                      "#047afe",  # AA verbatim
+    "Microsoft":                 "#0078d5",  # AA verbatim
+    "Cohere":                    "#d18ee2",  # AA verbatim
+    "Z AI":                      "#1c7ff8",  # AA verbatim
+    "MiniMax":                   "#eb3568",  # AA verbatim
+    "InclusionAI":               "#4fb5ff",  # AA verbatim
+    "Xiaomi":                    "#ff6900",  # AA verbatim
+    "Baidu":                     "#2f4bec",  # AA #2436d8, lifted to 3.00:1
+    "IBM":                       "#0f62fe",  # AA verbatim
+    "LG AI Research":            "#df3b8a",  # AA verbatim
+    "Nous Research":             "#006fa8",  # AA verbatim
+    "Reka AI":                   "#546079",  # AA #172136, lifted to 2.99:1
+    "AI21 Labs":                 "#d63864",  # AA verbatim
+    "Allen Institute for AI":    "#f0529c",  # AA verbatim
+    "Inception":                 "#47637c",  # AA #021b30, lifted to 3.01:1
+    "Upstage":                   "#7c59f5",  # AA verbatim
+    "Perplexity":                "#1b818e",  # AA verbatim
+    "KwaiKAT":                   "#489034",  # AA verbatim
+    "Deep Cogito":               "#5080ec",  # AA verbatim
+    "Thinking Machines":         "#5eead4",  # AA paints it #676767 — no hue to mirror
+    "Tencent":                   "#5cb9ff",  # AA verbatim
+    "StepFun":                   "#017aff",  # AA verbatim
+    "Arcee AI":                  "#008c8d",  # AA verbatim
+    "LongCat":                   "#2adb65",  # AA verbatim
+    "Sapiens AI":                "#3152d8",  # AA #1521a9, lifted to 2.99:1
+    "Nex AGI":                   "#125bc7",  # AA #0351bc, lifted to 3.01:1
+    "Multiverse Computing":      "#f11338",  # AA verbatim
+    "Apodex":                    "#0fd9d2",  # AA verbatim
+    "Celeris":                   "#fdba74",  # not in AA's catalogue
+    "Sarvam":                    "#f472b6",  # AA paints it #807d77 — no hue to mirror
+    "Swiss AI Initiative":       "#bee9fa",  # AA verbatim
 }
 
 DEFAULT_COLOR = "#6b7280"

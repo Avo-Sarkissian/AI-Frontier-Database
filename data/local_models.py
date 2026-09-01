@@ -439,25 +439,24 @@ _FAMILY_ALIASES: dict[str, str] = {
 # which is why the compat chart labels every bar and the scatter leans on
 # position rather than hue.
 _LOCAL_ONLY_COLORS: dict[str, str] = {
-    "TII":         "#7048e8",
-    "01.AI":       "#d9480f",
-    "InternLM":    "#74c0fc",
-    "HuggingFace": "#fab005",
-    "SOLAR":       "#ff6b6b",
-    "Liquid AI":   "#38bdf8",
-    "Ornith AI":   "#f0abfc",
-    # ── unhosted open-weight labs, added 2026-08-17 ──
-    "AI9Stars":                              "#f97316",
-    "MBZUAI Institute of Foundation Models": "#f472b6",
-    "Motif Technologies":                    "#fdba74",
-    "Nanbeige":                              "#a3e635",
-    "Naver":                                 "#60a5fa",
-    "OpenBMB":                               "#34d399",
-    "Prime Intellect":                       "#f0abfc",
-    "SK Telecom":                            "#c084fc",
-    "ServiceNow":                            "#22d3ee",
-    "TII UAE":                               "#facc15",
-    "Trillion Labs":                         "#cbd5e1",
+    "TII":                                     "#6928ff",  # AA #6502ff lifted to 3.01:1
+    "01.AI":                                   "#d9480f",  # not in AA's catalogue
+    "InternLM":                                "#74c0fc",  # not in AA's catalogue
+    "HuggingFace":                             "#fab005",  # not in AA's catalogue
+    "SOLAR":                                   "#ff6b6b",  # not in AA's catalogue
+    "Liquid AI":                               "#38bdf8",  # AA paints it #000000 — no hue to mirror
+    "Ornith AI":                               "#f0abfc",  # not in AA's catalogue
+    "AI9Stars":                                "#795bcf",  # AA verbatim
+    "MBZUAI Institute of Foundation Models":   "#4a6ae4",  # AA #1521a9 lifted to 4.02:1
+    "Motif Technologies":                      "#6a93eb",  # AA verbatim
+    "Nanbeige":                                "#36686a",  # AA #023c3e lifted to 3.01:1
+    "Naver":                                   "#03c75b",  # AA verbatim
+    "OpenBMB":                                 "#3b62ec",  # AA verbatim
+    "Prime Intellect":                         "#f0abfc",  # AA paints it #000000 — no hue to mirror
+    "SK Telecom":                              "#e1002a",  # AA verbatim
+    "ServiceNow":                              "#80b6a1",  # AA verbatim
+    "TII UAE":                                 "#6928ff",  # AA #6502ff lifted to 3.01:1
+    "Trillion Labs":                           "#cbd5e1",  # AA paints it #1f2120 — no hue to mirror
 }
 
 FAMILY_COLORS: dict[str, str] = {

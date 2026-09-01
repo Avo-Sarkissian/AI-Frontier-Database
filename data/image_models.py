@@ -10,9 +10,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from components.charts.constants import (
+    PROVIDER_COLORS as _SHARED_COLORS, DEFAULT_COLOR as _SHARED_DEFAULT,
+)
+
 _CACHE = Path(__file__).parent / "raw" / "aa_image_models.csv"
 
-# Provider color palette.
+# Provider color palette — mirrors Artificial Analysis's own creator colours.
 #
 # The comment here used to claim it "covers all providers seen in live AA data".
 # It did not: 11 of 148 models fell through to grey, including MAI-Image-2.5
@@ -20,59 +24,51 @@ _CACHE = Path(__file__).parent / "raw" / "aa_image_models.csv"
 # at all. A palette that silently greys a top-5 model is worse than no palette,
 # so tests/test_encoding_calibration.py now asserts full coverage the way the
 # LLM palette already does.
-PROVIDER_COLORS: dict[str, str] = {
-    "Api Airforce":                 "#facc15",  # yellow
-    "Microsoft AI":                 "#818cf8",  # indigo — same family as Microsoft
-    "StepFun":                      "#e879f9",  # fuchsia
-    "OpenAI":                       "#34d399",  # emerald
-    "Google":                       "#60a5fa",  # blue
-    "Black Forest Labs":             "#f97316",  # orange
-    "ByteDance Seed":               "#38bdf8",  # sky
-    "Bytedance":                    "#38bdf8",  # sky (alt spelling)
-    "xAI":                          "#a3e635",  # lime
-    "SpaceXAI":                     "#a3e635",  # lime (AA's current spelling)
-    "Ideogram":                     "#f472b6",  # pink
-    "Recraft":                      "#818cf8",  # indigo
-    "Stability AI":                 "#c084fc",  # purple
-    "Stability.ai":                 "#c084fc",  # purple (alt spelling)
-    "Adobe":                        "#f87171",  # red
-    "Midjourney":                   "#e2e8f0",  # light gray
-    "Playground":                   "#4ade80",  # green
-    "Playground AI":                "#4ade80",  # green (alt spelling)
-    "Fal":                          "#fb923c",  # amber-orange
-    "KlingAI":                      "#67e8f9",  # cyan
-    "Leonardo AI":                  "#fbbf24",  # amber
-    "Leonardo.Ai":                  "#fbbf24",  # amber (alt spelling)
-    "Alibaba":                      "#a78bfa",  # violet
-    "HiDream":                      "#34d399",  # emerald-alt
-    "Runway":                       "#f472b6",  # pink-alt
-    "Luma Labs":                    "#86efac",  # light green
-    "MiniMax":                      "#7dd3fc",  # light blue
-    "Sourceful":                    "#d8b4fe",  # lavender
-    "Bria":                         "#fda4af",  # rose
-    "Reve":                         "#6ee7b7",  # teal
-    "Krea":                         "#fcd34d",  # yellow
-    "ImagineArt":                   "#c4b5fd",  # light purple
-    "DeepSeek":                     "#5eead4",  # turquoise
-    "Microsoft Azure":              "#93c5fd",  # blue-200
-    "Amazon":                       "#ff9900",  # AWS orange
-    "NVIDIA":                       "#76c442",  # NVIDIA green
-    "Tencent":                      "#1677ff",  # WeChat blue
-    "OpenGVLab":                    "#64748b",  # slate
-    "VectorSpaceLab":               "#9ca3af",  # gray
-    "Pruna AI":                     "#a1a1aa",  # zinc
-    "Eigen AI":                     "#71717a",  # dark gray
-    "Meituan":                      "#ffb020",  # meituan yellow
-    "Vidu":                         "#2dd4bf",  # teal-alt
-    "Z AI":                         "#e879f9",  # fuchsia
-    # Arrived in the 2026-08-26 scrape. Baidu's brand blue is #2932E1, which is
-    # too dark to clear 3:1 on the #111111 surface, so this is that hue lifted
-    # in L* — the same treatment Tencent's WeChat blue already gets. Checked
-    # against the two nearest entries: Tencent #1677ff and Google #60a5fa.
-    "Baidu":                        "#4f6bff",  # baidu blue, lifted
+#
+# Labs that also ship LLMs inherit the shared palette rather than keeping a
+# second opinion here: this file used to paint OpenAI emerald and Google blue
+# while Overview painted them white and green, so one lab read as two different
+# companies depending on the tab. Image-only studios keep their own hues, since
+# they have no entry in the shared palette to inherit.
+_IMAGE_ONLY_COLORS: dict[str, str] = {
+    "Api Airforce":        "#4c7fa6",  # AA verbatim
+    "Microsoft AI":        "#6e5d50",  # AA #5f4e41 lifted to 3.01:1
+    "Black Forest Labs":   "#f97316",  # AA paints it #272727 — no hue to mirror
+    "ByteDance Seed":      "#3c8bff",  # AA verbatim
+    "Bytedance":           "#3c8bff",  # AA verbatim
+    "xAI":                 "#736cd3",  # AA verbatim
+    "Ideogram":            "#f472b6",  # AA paints it #18181b — no hue to mirror
+    "Recraft":             "#818cf8",  # AA paints it #000000 — no hue to mirror
+    "Stability AI":        "#a381ff",  # AA verbatim
+    "Stability.ai":        "#a381ff",  # AA verbatim
+    "Adobe":               "#f87171",  # not in AA's catalogue
+    "Midjourney":          "#4c5e94",  # AA #45578c lifted to 3.00:1
+    "Playground":          "#6858f5",  # AA verbatim
+    "Playground AI":       "#6858f5",  # AA verbatim
+    "Fal":                 "#ff6b35",  # AA verbatim
+    "KlingAI":             "#ff3417",  # AA verbatim
+    "Leonardo AI":         "#016db6",  # AA verbatim
+    "Leonardo.Ai":         "#016db6",  # AA verbatim
+    "HiDream":             "#1d8eff",  # AA verbatim
+    "Runway":              "#f472b6",  # AA paints it #000000 — no hue to mirror
+    "Luma Labs":           "#3face6",  # AA verbatim
+    "Sourceful":           "#d8b4fe",  # AA paints it #000000 — no hue to mirror
+    "Bria":                "#6938e9",  # AA #5200c8 lifted to 3.01:1
+    "Reve":                "#ffbb00",  # AA verbatim
+    "Krea":                "#fcd34d",  # AA paints it #000000 — no hue to mirror
+    "ImagineArt":          "#c4b5fd",  # AA paints it #000000 — no hue to mirror
+    "Microsoft Azure":     "#0078d5",  # AA verbatim
+    "OpenGVLab":           "#3a619a",  # AA #396099 lifted to 3.02:1
+    "VectorSpaceLab":      "#9ca3af",  # AA paints it #000000 — no hue to mirror
+    "Pruna AI":            "#9334e9",  # AA verbatim
+    "Eigen AI":            "#21639f",  # AA #115792 lifted to 3.01:1
+    "Meituan":             "#f8d103",  # AA verbatim
+    "Vidu":                "#1fcfff",  # AA verbatim
 }
 
-DEFAULT_COLOR = "#6b7280"
+PROVIDER_COLORS: dict[str, str] = {**_IMAGE_ONLY_COLORS, **_SHARED_COLORS}
+
+DEFAULT_COLOR = _SHARED_DEFAULT
 
 
 # ── Static fallback dataset ───────────────────────────────────────────────────

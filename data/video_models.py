@@ -100,26 +100,26 @@ def _resolve_mode(mode: str | None) -> str:
 # grey "Other" (see components/charts/video_chart.py). Colour groups here; it
 # never has to identify on its own.
 _VIDEO_ONLY_COLORS: dict[str, str] = {
-    "Alibaba-ATH":    "#a8a29e",
-    "ByteDance Seed": "#2dd4bf",
-    "Genmo":          "#a3e635",
-    "Haiper":         "#f87171",
-    "HiDream":        "#a5b4fc",
-    "KlingAI":        "#0ea5e9",
-    "Krea":           "#fdba74",
-    "Leonardo.Ai":    "#818cf8",
-    "Lightricks":     "#fca5a5",
-    "Luma Labs":      "#c084fc",
-    "Midjourney":     "#f9a8d4",
-    "Moonvalley":     "#67e8f9",
-    "Open Source":    "#cbd5e1",
-    "Pika Art":       "#facc15",
-    "PixVerse":       "#fb923c",
-    "Pruna AI":       "#94a3b8",
-    "Runway":         "#f472b6",
-    "Skywork AI":     "#bef264",
-    "Video Rebirth":  "#fcd34d",
-    "Vidu":           "#93c5fd",
+    "Alibaba-ATH":       "#ff7018",  # AA verbatim
+    "ByteDance Seed":    "#3c8bff",  # AA verbatim
+    "Genmo":             "#8bbbe1",  # AA verbatim
+    "Haiper":            "#7b61ff",  # AA verbatim
+    "HiDream":           "#1d8eff",  # AA verbatim
+    "KlingAI":           "#ff3417",  # AA verbatim
+    "Krea":              "#fdba74",  # AA paints it #000000 — no hue to mirror
+    "Leonardo.Ai":       "#016db6",  # AA verbatim
+    "Lightricks":        "#fca5a5",  # AA paints it #000000 — no hue to mirror
+    "Luma Labs":         "#3face6",  # AA verbatim
+    "Midjourney":        "#4c5e94",  # AA #45578c lifted to 3.00:1
+    "Moonvalley":        "#67e8f9",  # AA paints it #030303 — no hue to mirror
+    "Open Source":       "#ffce19",  # AA verbatim
+    "Pika Art":          "#feedd1",  # AA verbatim
+    "PixVerse":          "#fb923c",  # AA paints it #000000 — no hue to mirror
+    "Pruna AI":          "#9334e9",  # AA verbatim
+    "Runway":            "#f472b6",  # AA paints it #000000 — no hue to mirror
+    "Skywork AI":        "#4d5eff",  # AA verbatim
+    "Video Rebirth":     "#fcd34d",  # AA paints it #000000 — no hue to mirror
+    "Vidu":              "#1fcfff",  # AA verbatim
 }
 
 PROVIDER_COLORS: dict[str, str] = {**_VIDEO_ONLY_COLORS, **_SHARED_COLORS}
