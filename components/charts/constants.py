@@ -290,9 +290,12 @@ def canonical_provider(name: str) -> str:
 # the drift cap opened to dE 40. The search terminates in 59 nodes: pinning clay
 # mid-band leaves nothing that both fits the band and clears dE 15 from it.
 #
-# (The unpinned variant was NOT proven — that search does not terminate in
-# reasonable time — but unpinning Anthropic is not on the table, so it does not
-# decide anything.)
+# Unpinning Anthropic DOES make the band satisfiable, but only by abandoning the
+# mirror it exists to serve: the one solution found needs the chroma floor at
+# 10% and the cap at dE 40, and it pays for the band with Amazon at #8d5407
+# (dE 27.9, a dark brown, not AWS amber), NVIDIA at #91988b (dE 17.9, a grey
+# green) and Anthropic itself off clay at #e7571e. A palette that satisfies the
+# band by not looking like the brands is not the trade this file wants.
 #
 # The checks that govern legibility all pass: normal-vision floor 15.0, CVD 8.3
 # protan / 8.2 tritan, contrast all >= 3:1 on #111111.
