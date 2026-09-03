@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 636,
-  "distinct_upstream_models": 291,
+  "upstream_host_model_rows": 637,
+  "distinct_upstream_models": 292,
   "kept": 192,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
@@ -53,6 +53,7 @@
     "K-EXAONE (Non-reasoning)",
     "K-EXAONE (Reasoning)",
     "K-EXAONE 2.0",
+    "K2 Horizon 375B A23B",
     "K2 Think V2",
     "K2-V2 (high)",
     "K2-V2 (low)",

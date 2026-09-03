@@ -10,6 +10,7 @@ Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,52.02,Apache 2.0,"vision,reasoning",Fa
 "DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,51.77,Mit,reasoning,True
 Kimi K3 (low),Kimi,2780.0,104.0,1049,48.25,Kimi K3,"vision,reasoning",True
 Motif 3,Motif Technologies,314.0,13.2,262,47.36,Unknown,reasoning,True
+K2 Horizon 375B A23B,MBZUAI Institute of Foundation Models,375.0,23.0,524,47.28,Apache 2.0,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,45.4,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
 "DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,45.27,MIT,reasoning,True
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,44.45,Apache 2.0,"vision,reasoning",False
@@ -135,8 +136,8 @@ LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.14,lfm 1.0,reasoning,True
 Ring-flash-2.0,InclusionAI,103.0,6.1,128,7.97,MIT,reasoning,True
 Olmo 3.1 32B Think,Allen Institute for AI,32.2,32.2,66,7.9,Apache 2.0,reasoning,False
 Command A,Cohere,111.0,111.0,256,7.46,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
 Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.43,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
+Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
 NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,7.17,Nvidia Nemotron Open Model License,,True
 NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.16,NVIDIA Open Model License Agreement,,False
 Ministral 3 3B,Mistral,3.0,3.0,256,7.07,Apache 2.0,vision,False
