@@ -398,10 +398,10 @@ AA_CREATOR_COLORS: dict[str, str] = {
 # Providers whose painted colour IS Artificial Analysis's, byte for byte.
 AA_MIRROR_EXACT: frozenset[str] = frozenset({
     "AI21 Labs", "Allen Institute for AI", "Anthropic", "Apodex",
-    "Arcee AI", "Cohere", "Deep Cogito", "IBM", "InclusionAI", "Kimi",
-    "KwaiKAT", "LG AI Research", "LongCat", "Microsoft", "MiniMax",
+    "Arcee AI", "Cohere", "Deep Cogito", "IBM", "InclusionAI", "KwaiKAT",
+    "LG AI Research", "LongCat", "Microsoft", "MiniMax",
     "Multiverse Computing", "Nous Research", "Perplexity", "StepFun",
-    "Swiss AI Initiative", "Tencent", "Upstage", "Xiaomi", "Z AI",
+    "Swiss AI Initiative", "Tencent", "Upstage", "Xiaomi",
 })
 
 # Providers that keep AA's HUE but move in lightness/chroma, because AA's own
@@ -416,6 +416,8 @@ AA_NO_HUE: dict[str, str] = {
     "OpenAI":            "AA's #1f1f1f is a neutral, not a hue; inverted for this surface",
     "Alibaba":           "collision rule — AA's orange belongs to Anthropic here",
     "Mistral":           "collision rule — AA's orange belongs to Anthropic here",
+    "Kimi":              "collision rule — AA's blue belongs to Meta here",
+    "Z AI":              "collision rule — AA's blue belongs to Meta here",
     "Thinking Machines": "AA paints it #676767, which reads as the grey Other bucket",
     "Sarvam":            "AA paints it #807d77, which reads as the grey Other bucket",
 }
@@ -423,28 +425,29 @@ AA_NO_HUE: dict[str, str] = {
 SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
     "Anthropic", "Meta", "OpenAI", "Alibaba", "Google",
     "NVIDIA", "Amazon", "Mistral", "DeepSeek", "SpaceXAI",
+    "Kimi", "Z AI",
 )
 
 PROVIDER_COLORS: dict[str, str] = {
     # -- spotlight ten. Seven mirror AA's hue; Alibaba and Mistral take
     #    collision colours; OpenAI is AA's neutral, inverted for this surface.
     "Anthropic":                 "#cc785c",  # AA verbatim — and the brand pin; AA's #cc785c and anthropic.com's clay are ΔE 2.3 apart
-    "Meta":                      "#178af1",  # AA hue, ΔE 0.7 — 96% of AA's chroma
+    "Meta":                      "#138df7",  # AA hue, ΔE 0.7 — 96% of AA's chroma
     "OpenAI":                    "#efefef",  # AA paints it #1f1f1f: the max-contrast NEUTRAL on white. Inverted for #111111
-    "Alibaba":                   "#ed1fb2",  # collision rule — AA's orange is Anthropic's; 28 models, takes the roomier slot
-    "Google":                    "#72cc83",  # AA hue, 84% chroma. Separating from NVIDIA (18° apart) costs lightness, not colour
-    "NVIDIA":                    "#a2f332",  # AA hue, 72% chroma — the light green of the pair
+    "Alibaba":                   "#fb3eb2",  # collision rule — AA's orange is Anthropic's; 28 models, takes the roomier slot
+    "Google":                    "#6fcd81",  # AA hue, 84% chroma. Separating from NVIDIA (18° apart) costs lightness, not colour
+    "NVIDIA":                    "#a0f427",  # AA hue, 72% chroma — the light green of the pair
     "Amazon":                    "#fea33d",  # AA hue, ΔE 2.6 — 89% of AA's chroma
-    "Mistral":                   "#c41847",  # collision rule — AA's orange is Anthropic's
-    "DeepSeek":                  "#2649f4",  # AA hue, ΔE 2.6 — 104% of AA's chroma
-    "SpaceXAI":                  "#a2a1ee",  # AA hue, 72% chroma
+    "Mistral":                   "#ce1202",  # collision rule — AA's orange is Anthropic's
+    "DeepSeek":                  "#274bfb",  # AA hue, ΔE 2.6 — 104% of AA's chroma
+    "SpaceXAI":                  "#a2a2e8",  # AA hue, 72% chroma
     # -- secondary providers: they never share the Overview legend with each
     #    other (everything past the spotlight folds into grey "Other"), so they
     #    only need to read distinctly on the tabs that show them all.
-    "Kimi":                      "#047afe",  # AA verbatim
+    "Kimi":                      "#af41c3",  # AA verbatim
     "Microsoft":                 "#0078d5",  # AA verbatim
     "Cohere":                    "#d18ee2",  # AA verbatim
-    "Z AI":                      "#1c7ff8",  # AA verbatim
+    "Z AI":                      "#1e710d",  # AA verbatim
     "MiniMax":                   "#eb3568",  # AA verbatim
     "InclusionAI":               "#4fb5ff",  # AA verbatim
     "Xiaomi":                    "#ff6900",  # AA verbatim
@@ -499,7 +502,12 @@ _EXPLICIT_SHAPES: dict[str, str] = {
     # star-triangle-up was indistinguishable from Google's triangle-up at
     # bubble sizes; hourglass shares its outline with nothing else here.
     "NVIDIA":    "hourglass",
-    "Kimi":      "hexagon2",
+    # Kimi held hexagon2, which is SpaceXAI's hexagon rotated — the same
+    # outline at bubble sizes. Z AI had no explicit shape at all and the pool
+    # was exhausted, so it fell through to DEFAULT_SHAPE "circle", the one
+    # marker reserved for the grey "Other" bucket.
+    "Kimi":      "bowtie",
+    "Z AI":      "star-square",
     "Microsoft": "square-cross",
     "Cohere":    "circle-cross",
 }

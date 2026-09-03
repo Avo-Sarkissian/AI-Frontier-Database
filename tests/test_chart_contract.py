@@ -191,17 +191,22 @@ def test_spotlight_palette_is_not_silently_widened():
     """MAX_LEGEND_PROVIDERS tracks the validated set; widening it puts
     unvalidated colour pairs on screen.
 
-    NINE CHROMATIC is the ceiling — that is what the #111111 surface will
-    separate once brand hues are pinned, and it is why this test exists. The
-    count moved to ten on 2026-08-18 for SpaceXAI, which is white: achromatic,
-    so it occupies a region of the space no hue competes for and left the set's
-    worst pair exactly where it was (ΔE 24.7, Alibaba/Mistral, before and
-    after).
+    THE CEILING IS A MEASUREMENT, NOT A CONSTANT. It read "nine chromatic" for
+    most of this file's life, then ten-with-one-achromatic, and it is now
+    eleven chromatic plus achromatic OpenAI. Each move was a re-solve, never a
+    loosened assertion: the set is only legal because every pair was re-checked
+    against the floors, which tests/test_pareto_chart.py does independently.
 
-    So the guard now checks the thing that actually matters rather than a
-    number. Counting alone would have let a tenth *hue* through on the same
-    edit; this fails unless every entry past the ninth is achromatic, and
-    tests/test_pareto_chart.py independently holds every pair to the ΔE floor.
+    Kimi and Z AI were promoted on 2026-09-02 because the data had made the
+    omission indefensible — by best model they ranked 4th and 5th, ahead of
+    four labs that already had their own colour, and Kimi K3 (max) was the 12th
+    strongest model in the catalogue while rendering as grey "Other".
+
+    Twelve saturates this surface. Seating them cost the palette its slack: the
+    ten-way set had room to spare and the twelve-way set meets the normal-vision
+    floor at exactly 15.0. Marker shape carries proportionally more of the load
+    now, which is why PROVIDER_SHAPES pins all twelve explicitly. A thirteenth
+    should be assumed infeasible until a re-solve says otherwise.
     """
     assert all(p in PROVIDER_COLORS for p in SPOTLIGHT_PROVIDERS)
 
@@ -211,10 +216,16 @@ def test_spotlight_palette_is_not_silently_widened():
 
     chromatic = [p for p in SPOTLIGHT_PROVIDERS
                  if _chroma(PROVIDER_COLORS[p]) > 12]
-    assert len(chromatic) <= 9, (
-        f"{len(chromatic)} chromatic spotlight hues ({chromatic}) — nine is the "
-        f"most this surface separates. Re-run the palette validator before "
-        f"adding another, or make the newcomer achromatic."
+    assert len(chromatic) <= 11, (
+        f"{len(chromatic)} chromatic spotlight hues ({chromatic}) — eleven is "
+        f"what this surface was last shown to separate. Re-run the palette "
+        f"validator before adding another, or make the newcomer achromatic."
+    )
+    achromatic = [p for p in SPOTLIGHT_PROVIDERS
+                  if _chroma(PROVIDER_COLORS[p]) <= 12]
+    assert len(achromatic) == 1, (
+        f"expected exactly one achromatic spotlight entry (OpenAI, which is "
+        f"AA's neutral inverted for this surface), got {achromatic}"
     )
 
 
