@@ -112,11 +112,21 @@ def _tag_slug(tag: dict) -> str | None:
 
 
 def _global_elo(record: dict) -> float | None:
-    """The `tag: null` entry in elos[] — the model's overall Elo in that arena.
+    """The model's overall Elo in one arena.
 
-    The record's own `overallElo` field cannot be used: it is an RSC back
-    reference ("$f:props:children:2:props:textToVideo:0:elos:0"), not a number.
+    AA FLATTENED THESE RECORDS ON 2026-09-02. They used to carry an `elos[]`
+    array whose `tag: null` entry held the overall score; a record now carries a
+    plain top-level `elo` number and ships no `elos[]` at all (0 occurrences in
+    the payload). Reading only the old shape scored every row None, which the
+    parser treats as "no score to publish", so all 92 rows were dropped and the
+    hourly job published the cache and failed for a day.
+
+    Both shapes are read: the flat field first, the array as a fallback, so a
+    revert upstream does not break this a second time.
     """
+    val = record.get("elo")
+    if isinstance(val, (int, float)):
+        return float(val)
     for entry in record.get("elos") or []:
         if entry.get("tag") is None and entry.get("elo") is not None:
             return float(entry["elo"])
@@ -124,6 +134,14 @@ def _global_elo(record: dict) -> float | None:
 
 
 def _category_elos(record: dict) -> dict[str, float]:
+    """Per-category Elos, when the arena publishes them.
+
+    Empty since 2026-09-02: the flattened record carries one overall `elo` and
+    no tagged breakdown. The per-category columns therefore stop being written
+    and the ones already in the cache keep their last known values. Kept rather
+    than deleted because the shape may come back, and because deriving the
+    column names from tag slugs is the part that was hard to get right.
+    """
     out: dict[str, float] = {}
     for entry in record.get("elos") or []:
         tag, val = entry.get("tag"), entry.get("elo")
@@ -143,7 +161,10 @@ def _price(record: dict) -> float | None:
     "no published price" and "genuinely free" become indistinguishable, so the
     UI printed "free" for models nobody can price.
     """
-    val = record.get("pricePerMinute")
+    # Flattened alongside the Elo on 2026-09-02: `pricePerMinute` became `price`.
+    val = record.get("price")
+    if val is None:
+        val = record.get("pricePerMinute")
     if val is None:
         return None
     try:
@@ -220,12 +241,21 @@ def _parse(arenas: dict[str, list[dict]],
                     "slug":         slug,
                     "provider":     _canonical_video_provider(
                                         (creator.get("name") or "").strip()),
+                    # family, releaseDate, isCurrent and openWeightsUrl all
+                    # vanished from these records on 2026-09-02 and are not
+                    # recoverable from the page: videoModelFamilies carries only
+                    # creator/id/name/slug/url, and the 636 "releaseDate" hits
+                    # elsewhere in the payload belong to the LLM nav picker.
                     "family":       (family.get("name") or "").strip(),
                     "release_date": (rec.get("releaseDate") or "").strip(),
                     # AA retires preview/dated variants but keeps them ranked.
-                    # Carried so the UI can default to shipping models without
-                    # deleting the history a comparison needs.
-                    "is_current":   bool(rec.get("isCurrent")),
+                    # `isCurrent` is gone; `isDefault` is the field that replaced
+                    # it — the variant the arena shows for a family — and it is
+                    # what the "hide retired" default now rests on. This matters
+                    # more than it looks: get_video_df(include_retired=False)
+                    # filters on it, so an all-False column empties the tab.
+                    "is_current":   bool(rec.get("isDefault",
+                                                 rec.get("isCurrent"))),
                     "open_weights": bool(rec.get("openWeightsUrl")),
                 }
                 order.append(slug)
@@ -253,9 +283,18 @@ def _parse(arenas: dict[str, list[dict]],
                 row["price_per_min_audio"] = min(
                     price, row.get("price_per_min_audio", price))
 
+    # Carry forward what upstream stopped publishing. open_weights and
+    # release_date back a filter and a column that would otherwise flip to
+    # False/empty for every model at once — a silent, total data loss dressed as
+    # a successful scrape. Last known value by slug, blank for models we have
+    # never seen; _sticky_from_cache says how many rows it had to rescue.
+    sticky = _sticky_from_cache(("open_weights", "release_date", "family"))
     for slug, row in rows.items():
         row.setdefault("audio", False)
         row.update(gen_times.get(slug, {}))
+        for col, val in sticky.get(slug, {}).items():
+            if not row.get(col):
+                row[col] = val
 
     df = pd.DataFrame([rows[s] for s in order])
     for col in ("elo_t2v", "elo_i2v", "price_per_min_t2v", "price_per_min_i2v",
@@ -283,6 +322,37 @@ _PROVIDER_ALIASES = {
 }
 
 
+def _sticky_from_cache(cols: tuple[str, ...]) -> dict[str, dict]:
+    """Last known values for columns upstream no longer publishes, keyed by slug.
+
+    Only ever fills a blank: a value the live scrape DID provide always wins, so
+    this cannot pin stale data over fresh data. It exists because AA removed
+    openWeightsUrl and releaseDate from the video records on 2026-09-02, and
+    without it every model would report "not open weights" and no release date
+    from one run to the next.
+    """
+    try:
+        cached = load_cached()
+    except Exception:
+        return {}
+    if cached is None or cached.empty or "slug" not in cached.columns:
+        return {}
+    keep = [c for c in cols if c in cached.columns]
+    if not keep:
+        return {}
+    out: dict[str, dict] = {}
+    for rec in cached[["slug", *keep]].to_dict("records"):
+        slug = str(rec.get("slug") or "").strip()
+        if not slug:
+            continue
+        vals = {c: rec[c] for c in keep
+                if rec.get(c) not in (None, "", False)
+                and not (isinstance(rec[c], float) and rec[c] != rec[c])}
+        if vals:
+            out[slug] = vals
+    return out
+
+
 def _canonical_video_provider(name: str) -> str:
     return _PROVIDER_ALIASES.get(name.strip().lower(), name.strip())
 
@@ -306,7 +376,10 @@ _COLUMN_HEALTH = {
     "model":             0.99,
     "provider":          0.95,
     "slug":              0.99,
-    "release_date":      0.90,
+    # release_date was 0.90 until AA stopped publishing it per record on
+    # 2026-09-02. It now survives only for models already in the cache, so a
+    # coverage gate on it would fail the scrape for a field the scrape cannot
+    # affect. The columns that DO come from upstream are still gated below.
     "elo_t2v":           0.60,
     "elo_i2v":           0.55,
     "price_per_min_t2v": 0.50,
