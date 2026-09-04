@@ -27,7 +27,7 @@ Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,38.32,OpenMDW,reaso
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,38.04,Mit,"vision,reasoning",True
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,37.82,Unknown,reasoning,True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.7,Apache 2.0,"vision,reasoning",False
-Solar Open2 250B,Upstage,250.0,15.0,1049,37.43,Upstage Solar License,reasoning,True
+Solar Open2 250B,Upstage,250.0,15.0,1049,37.51,Upstage Solar License,reasoning,True
 Muse Glimmer (high),Meta,30.0,30.0,131,35.06,Apache 2.0,"vision,reasoning",False
 A.X-K2,SK Telecom,692.0,33.0,262,35.01,Apache 2.0,reasoning,True
 GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
