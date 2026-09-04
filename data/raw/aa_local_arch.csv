@@ -137,3 +137,9 @@ GLM-5.3 (max),zai-org/GLM-5.3,mla,78,512.0,64.0,,,,,753.33,2026-08-28,
 K-EXAONE 2.0,LGAI-EXAONE/K-EXAONE-2.0-750B-A37B,gqa,78,,,8.0,128.0,,20.0,749.357,2026-08-29,sliding
 "HyperNova 60B 2605 (high, based on gpt-oss-120b)",MultiverseComputingCAI/Hypernova-60B-2605,gqa,32,,,8.0,64.0,128.0,16.0,58.659,2026-09-03,sliding
 K2 Horizon 375B A23B,IFM/K2-Horizon-375B-A23B,gqa,61,,,8.0,128.0,,,379.167,2026-09-03,
+K-EXAONE (Reasoning),LGAI-EXAONE/K-EXAONE-236B-A23B,gqa,48,,,8,128,128,12,237.1,2026-09-04,sliding
+Mistral Small 4 (Reasoning),mistralai/Mistral-Small-4-119B-2603,mla,36,256,64,,,,,119.401,2026-09-04,
+Devstral 2,mistralai/Devstral-2-123B-Instruct-2512,gqa,88,,,8,128,,,125.026,2026-09-04,
+K-EXAONE (Non-reasoning),LGAI-EXAONE/K-EXAONE-236B-A23B,gqa,48,,,8,128,128,12,237.1,2026-09-04,sliding
+Mistral Small 4 (Non-reasoning),mistralai/Mistral-Small-4-119B-2603,mla,36,256,64,,,,,119.401,2026-09-04,
+Tiny Aya Global,mlx-community/tiny-aya-global-8bit-mlx,gqa,36,,,4,128,4096,9,3.349,2026-09-04,sliding
