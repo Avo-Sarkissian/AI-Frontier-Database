@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 643,
   "distinct_upstream_models": 298,
-  "kept": 198,
+  "kept": 199,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
@@ -85,7 +85,6 @@
     "Motif 3",
     "Motif 3 (Beta)",
     "Motif-2-12.7B-Reasoning",
-    "Muse Spark 1.3 (max)",
     "NVIDIA Nemotron 3 Nano 4B",
     "Nanbeige4.1-3B",
     "Nemotron Cascade 2 30B A3B",

@@ -1,190 +1,190 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe
-Kimi K3 (max),Kimi,2800.0,104.0,1049,59.7,Kimi K3 License,"vision,reasoning",True
-GLM-5.3 (max),Z AI,753.0,40.0,1000,59.51,GLM-5.3 License,reasoning,True
-Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,57.7,Qwen3.8-Max License,reasoning,True
-GLM-5.3-Flash,Z AI,320.0,18.0,1000,57.46,Mit,"vision,reasoning",True
-Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,55.81,Qwen Community License 1.0,"vision,reasoning",True
-"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,53.2,Mit,reasoning,True
-GLM-5.2 (max),Z AI,753.0,40.0,1000,52.64,Mit,reasoning,True
-Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,52.02,Apache 2.0,"vision,reasoning",False
-"DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,51.77,Mit,reasoning,True
-Kimi K3 (low),Kimi,2780.0,104.0,1049,48.25,Kimi K3,"vision,reasoning",True
-Motif 3,Motif Technologies,314.0,13.2,262,47.36,Unknown,reasoning,True
-K2 Horizon 375B A23B,MBZUAI Institute of Foundation Models,375.0,23.0,524,47.28,Apache 2.0,reasoning,True
-MiniMax-M3,MiniMax,428.0,23.0,1000,45.4,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
-"DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,45.27,MIT,reasoning,True
-Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,44.45,Apache 2.0,"vision,reasoning",False
-"DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,43.75,MIT,reasoning,True
-Kimi K2.7 Code,Kimi,1000.0,32.0,256,43.02,Modified MIT License,"vision,reasoning,code",True
-MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,42.88,Mit,reasoning,True
-Qwen3.8 27B (low),Alibaba,27.0,27.0,256,42.87,Apache 2.0,"vision,reasoning",False
-Inkling (xhigh),Thinking Machines,975.0,41.0,1000,42.29,Apache 2.0,"vision,audio,reasoning",True
-Hy3,Tencent,299.0,21.0,256,42.21,Apache 2.0,reasoning,True
-Nex-N2-Pro,Nex AGI,397.0,17.0,262,41.74,Apache 2.0,"vision,reasoning",True
-Inkling Small,Thinking Machines,266.0,12.0,1000,41.18,Apache 2.0,"vision,audio,reasoning",True
-Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,39.71,Apache 2.0,"vision,reasoning",True
-Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,38.32,OpenMDW,reasoning,True
-MiMo-V2.5,Xiaomi,310.0,15.0,1000,38.04,Mit,"vision,reasoning",True
-Ling 3.0 Flash,InclusionAI,124.0,5.1,262,37.82,Unknown,reasoning,True
-Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,37.7,Apache 2.0,"vision,reasoning",False
-Solar Open2 250B,Upstage,250.0,15.0,1049,37.51,Upstage Solar License,reasoning,True
-Muse Glimmer (high),Meta,30.0,30.0,131,35.06,Apache 2.0,"vision,reasoning",False
-A.X-K2,SK Telecom,692.0,33.0,262,35.01,Apache 2.0,reasoning,True
-GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,34.81,Mit,,True
-Qwen3.8 27B (Non-reasoning),Alibaba,27.0,27.0,256,34.74,Apache 2.0,vision,False
-Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,34.26,Apache 2.0,"vision,reasoning",True
-MiMo-V2-Flash (Feb 2026),Xiaomi,309.0,15.0,256,34.02,MIT,reasoning,True
-G9v3-39A5B,AI9Stars,39.0,5.0,131,34.02,Apache 2.0,reasoning,True
-LongCat 2.0,LongCat,1600.0,48.0,1000,33.97,Mit,reasoning,True
-Qwen3.5 122B A10B (Reasoning),Alibaba,125.0,10.0,262,32.85,Apache 2.0,"vision,reasoning",True
-Qwen3.5 397B A17B (Non-reasoning),Alibaba,397.0,17.0,262,32.73,Apache 2.0,vision,True
-Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,32.13,Apache 2.0,"vision,reasoning",True
-DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,31.94,Mit,,True
-Ring-2.6-1T,InclusionAI,1000.0,63.0,262,31.66,MIT,reasoning,True
-Qwen3.6 27B (Non-reasoning),Alibaba,27.8,27.8,262,31.33,Apache 2.0,vision,False
-K-EXAONE 2.0,LG AI Research,750.0,37.0,262,30.98,apache-2.0,reasoning,True
-Step 3.7 Flash,StepFun,198.0,11.0,262,30.9,Apache 2.0,"vision,reasoning",True
-Mistral Medium 3.5,Mistral,128.0,128.0,256,30.39,Modified MIT License,"vision,reasoning",False
-Gemma 4 31B (Reasoning),Google,30.7,30.7,256,29.69,Apache 2.0,"vision,reasoning",False
-DeepSeek V4 Flash (Non-reasoning),DeepSeek,284.0,13.0,1000,29.28,Mit,,True
-MiMo-V2.5-Pro (Non-reasoning),Xiaomi,1023.0,41.7,1000,28.45,Mit,,True
-Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,28.18,Apache 2.0,vision,True
-Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,26.07,Apache 2.0,"vision,reasoning",True
-Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,25.67,Nvidia Nemotron Open Model License,reasoning,True
-MiMo-V2-Flash (Non-reasoning),Xiaomi,309.0,15.0,256,25.14,MIT,,True
-Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.55,Apache 2.0,vision,True
-Ling 3.0 Tiny,InclusionAI,7.9,1.3,262,24.52,Mit,reasoning,True
-Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,24.32,Apache 2.0,vision,True
-gpt-oss-120b (high),OpenAI,117.0,5.1,131,24.13,Apache 2.0,reasoning,True
-Granite 4.2 30B,IBM,30.0,30.0,131,23.74,Apache 2.0,reasoning,False
-Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,23.61,OpenMDW-1.1,reasoning,True
-Command A+,Cohere,218.0,25.0,192,22.77,Apache 2.0,"vision,reasoning",True
-K-EXAONE (Reasoning),LG AI Research,236.0,23.0,256,22.47,K Exaone,reasoning,True
-Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,22.25,Apache 2.0,vision,False
-Gemma 4 12B (Reasoning),Google,12.0,12.0,256,22.16,Apache 2.0,"vision,audio,reasoning",False
-Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,21.79,Apache 2.0,"vision,reasoning",False
-Qwen3 Coder Next,Alibaba,79.7,3.0,256,21.29,Apache 2.0,code,True
-Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,20.85,MIT,"vision,reasoning",False
-Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,20.61,Apache 2.0,vision,False
-EXAONE 4.5 33B,LG AI Research,34.4,34.4,262,20.51,EXAONE AI Model License Agreement 1.2 - NC,"vision,reasoning",False
-Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,20.38,Apache 2.0,vision,True
-Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,20.37,Apache 2.0,"vision,reasoning",False
-North Mini Code,Cohere,30.0,3.0,256,20.17,Apache 2.0,"reasoning,code",True
-Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,19.71,Apache 2.0,"vision,reasoning",True
-Granite 4.2 8B,IBM,8.0,8.0,131,19.61,Apache 2.0,reasoning,False
-Devstral 2,Mistral,125.0,125.0,256,19.24,Modified MIT License,,False
-Trinity Large Thinking,Arcee AI,399.0,13.0,512,18.66,Apache 2.0,reasoning,True
-"HyperNova 60B 2605 (high, based on gpt-oss-120b)",Multiverse Computing,58.7,4.8,131,18.32,Apache 2.0,reasoning,True
-Nemotron Cascade 2 30B A3B,NVIDIA,31.6,3.0,1000,17.76,Nvidia Open Model License,reasoning,True
-Devstral Small 2,Mistral,24.0,24.0,256,17.72,Apache 2.0,vision,False
-K2 Think V2,MBZUAI Institute of Foundation Models,70.0,70.0,262,17.43,Apache 2.0,reasoning,False
-LongCat Flash Lite,LongCat,68.5,3.0,256,17.39,MIT,,True
-HyperCLOVA X SEED Think (32B),Naver,32.0,32.0,128,17.19,HyperCLOVA X SEED 32B Think Model License Agreement,"vision,reasoning",False
-K-EXAONE (Non-reasoning),LG AI Research,236.0,23.0,256,16.89,K Exaone,,True
-Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,16.87,Apache 2.0,reasoning,True
-G9v3-3B,AI9Stars,3.0,3.0,131,16.18,Apache 2.0,reasoning,False
-Qwen3.5 4B (Non-reasoning),Alibaba,4.66,4.66,262,16.12,Apache 2.0,vision,False
-Mistral Large 3,Mistral,675.0,41.0,256,15.92,Apache 2.0,vision,True
-INTELLECT-3,Prime Intellect,107.0,12.0,131,15.72,MIT,reasoning,True
-Solar Open 100B (Reasoning),Upstage,102.0,12.0,128,15.24,Upstage Solar License,reasoning,True
-gpt-oss-20b (high),OpenAI,21.0,3.6,131,15.23,Apache 2.0,reasoning,True
-Nemotron 3 Nano Omni 30B A3B Reasoning,NVIDIA,30.0,3.0,256,15.01,NVIDIA Open Model License Agreement,"vision,audio,reasoning",True
-gpt-oss-120b (low),OpenAI,117.0,5.1,131,14.93,Apache 2.0,reasoning,True
-NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,14.54,Nvidia Nemotron Open Model License,reasoning,True
-Llama 4 Maverick,Meta,402.0,17.0,1000,14.48,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
-gpt-oss-20b (low),OpenAI,21.0,3.6,131,14.4,Apache 2.0,reasoning,True
-Granite 4.2 3B,IBM,3.0,3.0,131,14.28,Apache 2.0,reasoning,False
-K2-V2 (high),MBZUAI Institute of Foundation Models,70.0,70.0,512,14.24,Apache 2.0,reasoning,False
-Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,13.75,Apache 2.0,,True
-DiffusionGemma 26B A4B,Google,25.2,3.8,256,13.47,Apache 2.0,"vision,reasoning",True
-Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,13.2,Apache 2.0,"vision,audio",False
-Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,12.4,NVIDIA Open Model License Agreement,reasoning,False
-K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,12.4,Apache 2.0,reasoning,False
-Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,12.35,Apache 2.0,vision,True
-Tri-21B-Think,Trillion Labs,21.0,21.0,32,12.34,Apache 2.0,reasoning,False
-Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,12.18,Apache 2.0,"vision,audio,reasoning",True
-MiniCPM5-1B (Reasoning),OpenBMB,1.0,1.0,128,11.92,Apache 2.0,reasoning,False
-Sarvam 105B (high),Sarvam,106.0,10.3,128,11.9,Apache 2.0,reasoning,True
-MiniCPM5-1B (Non-reasoning),OpenBMB,1.0,1.0,128,11.69,apache-2.0,,False
-Magistral Small 1.2,Mistral,24.0,24.0,128,11.46,Apache 2.0,"vision,reasoning",False
-Ministral 3 14B,Mistral,14.0,14.0,256,11.24,Apache 2.0,vision,False
-Nanbeige4.1-3B,Nanbeige,3.93,3.93,256,11.02,Apache 2.0,reasoning,False
-LFM2.5-2.6B,Liquid AI,2.7,2.7,128,10.99,lfm 1.0,reasoning,False
-EXAONE 4.0 32B (Reasoning),LG AI Research,32.0,32.0,131,10.5,EXAONE AI Model License Agreement 1.2 - NC,reasoning,False
-Llama 4 Scout,Meta,109.0,17.0,10000,10.26,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
-Hermes 4 - Llama-3.1 70B (Reasoning),Nous Research,70.6,70.6,128,9.85,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
-Falcon-H1R-7B,TII UAE,7.0,7.0,256,9.66,Falcon Mamba 7B TII License Version 1.0,reasoning,False
-Gemma 4 E2B (Reasoning),Google,5.1,2.3,128,9.53,Apache 2.0,"vision,audio,reasoning",True
-Qwen3 Omni 30B A3B (Reasoning),Alibaba,35.3,3.0,66,9.5,Apache 2.0,"vision,audio,reasoning",True
-Step3 VL 10B,StepFun,10.2,10.2,66,9.34,Apache 2.0,"vision,reasoning",False
-Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,9.26,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
-Ministral 3 8B,Mistral,8.0,8.0,256,8.97,Apache 2.0,vision,False
-Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,8.92,NVIDIA Open Model License Agreement,reasoning,False
-ERNIE 4.5 300B A47B,Baidu,300.0,47.0,131,8.87,Apache 2.0,,True
-Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,8.84,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
-NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,8.8,Nvidia Open Model License,"vision,reasoning",False
-Gemma 4 E4B (Non-reasoning),Google,8.0,4.5,128,8.75,Apache 2.0,"vision,audio",True
-Granite 4.1 30B,IBM,30.0,30.0,131,8.7,Apache 2.0,,False
-NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,8.68,NVIDIA Open Model License Agreement,reasoning,False
-Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,8.64,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
-NVIDIA Nemotron 3 Nano 4B,NVIDIA,3.97,3.97,262,8.56,Nvidia Nemotron Open Model License,reasoning,False
-Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,8.51,NVIDIA Open Model License Agreement,,False
-K2-V2 (low),MBZUAI Institute of Foundation Models,70.0,70.0,512,8.38,Apache 2.0,reasoning,False
-Kimi Linear 48B A3B Instruct,Kimi,49.1,3.0,1000,8.35,MIT,,True
-Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,8.32,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
-LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,8.14,lfm 1.0,reasoning,True
-Ring-flash-2.0,InclusionAI,103.0,6.1,128,7.97,MIT,reasoning,True
-Olmo 3.1 32B Think,Allen Institute for AI,32.2,32.2,66,7.9,Apache 2.0,reasoning,False
-Command A,Cohere,111.0,111.0,256,7.46,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
-Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,7.43,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
-Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,7.43,Apache 2.0,"vision,reasoning",False
-NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,7.17,Nvidia Nemotron Open Model License,,True
-NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,7.16,NVIDIA Open Model License Agreement,,False
-Ministral 3 3B,Mistral,3.0,3.0,256,7.07,Apache 2.0,vision,False
-Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,6.66,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
-Granite 4.1 8B,IBM,8.0,8.0,131,6.42,Apache 2.0,,False
-Sarvam 30B (high),Sarvam,32.2,2.4,66,6.39,Apache 2.0,reasoning,True
-Olmo 3.1 32B Instruct,Allen Institute for AI,32.2,32.2,66,6.21,Apache 2.0,,False
-Gemma 4 E2B (Non-reasoning),Google,5.1,2.3,128,6.15,Apache 2.0,"vision,audio",True
-R1 1776,Perplexity,671.0,37.0,128,6.05,MIT,reasoning,True
-Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,5.97,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
-Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,5.74,MIT,,False
-EXAONE 4.0 32B (Non-reasoning),LG AI Research,32.0,32.0,131,5.73,EXAONE AI Model License Agreement 1.2 - NC,,False
-Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,5.33,Apache 2.0,vision,False
-Qwen3.5 0.8B (Reasoning),Alibaba,0.873,0.873,262,5.16,Apache 2.0,"vision,reasoning",False
-DeepHermes 3 - Mistral 24B Preview (Non-reasoning),Nous Research,24.0,24.0,32,5.0,Apache 2.0,,False
-Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,4.99,Jamba Open Model License Agreement,,True
-Granite 4.0 H Small,IBM,32.0,9.0,128,4.93,Apache 2.0,,True
-Qwen3 Omni 30B A3B Instruct,Alibaba,35.3,3.0,66,4.8,Apache 2.0,"vision,audio",True
-LFM2 24B A2B,Liquid AI,23.8,2.3,33,4.63,lfm 1.0,,True
-Phi-4,Microsoft,14.0,14.0,16,4.55,MIT,,False
-Granite 4.1 3B,IBM,3.0,3.0,131,4.37,Apache 2.0,,False
-NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning),NVIDIA,13.2,13.2,128,4.25,Nvidia Open Model License,vision,False
-Phi-4 Multimodal Instruct,Microsoft,5.6,5.6,128,4.2,MIT,"vision,audio",False
-MiniCPM-V 4.6 1.3B,OpenBMB,1.3,1.3,262,3.85,Apache 2.0,vision,False
-Jamba Reasoning 3B,AI21 Labs,3.0,3.0,262,3.78,Apache 2.0,reasoning,False
-Reka Flash 3,Reka AI,21.0,21.0,128,3.71,Apache 2.0,reasoning,False
-Olmo 3 7B Think,Allen Institute for AI,7.0,7.0,66,3.62,Apache 2.0,reasoning,False
-Molmo 7B-D,Allen Institute for AI,8.02,8.02,4,3.45,Apache 2.0,vision,False
-Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,2.95,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
-Qwen3.5 0.8B (Non-reasoning),Alibaba,0.873,0.873,262,2.93,Apache 2.0,vision,False
-Exaone 4.0 1.2B (Reasoning),LG AI Research,1.28,1.28,64,2.51,EXAONE AI Model License Agreement 1.2 - NC,reasoning,False
-Olmo 3 7B Instruct,Allen Institute for AI,7.0,7.0,66,2.4,Apache 2.0,,False
-Exaone 4.0 1.2B (Non-reasoning),LG AI Research,1.28,1.28,64,2.37,EXAONE AI Model License Agreement 1.2 - NC,,False
-LFM2.5-1.2B-Thinking,Liquid AI,1.17,1.17,32,2.34,lfm 1.0,reasoning,False
-Jamba 1.7 Mini,AI21 Labs,52.0,12.0,258,2.33,Jamba Open Model License Agreement,,True
-LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,2.3,lfm 1.0,,False
-LFM2 2.6B,Liquid AI,2.57,2.57,33,2.3,lfm 1.0,,False
-Granite 4.0 H 1B,IBM,1.5,1.5,128,2.25,Apache 2.0,,False
-Gemma 3 270M,Google,0.268,0.268,32,1.99,Gemma license,,False
-Apertus 70B Instruct,Swiss AI Initiative,70.0,70.0,66,1.98,Apache 2.0,,False
-Granite 4.0 Micro,IBM,3.0,3.0,128,1.95,Apache 2.0,,False
-DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning),Nous Research,8.0,8.0,128,1.86,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
-Granite 4.0 1B,IBM,1.6,1.6,128,1.63,Apache 2.0,,False
-Molmo2-8B,Allen Institute for AI,8.66,8.66,37,1.59,Apache 2.0,vision,False
-LFM2 8B A1B,Liquid AI,8.34,1.5,33,1.34,lfm 1.0,,True
+Kimi K3 (max),Kimi,2800.0,104.0,1049,50.23,Kimi K3 License,"vision,reasoning",True
+GLM-5.3 (max),Z AI,753.0,40.0,1000,48.58,GLM-5.3 License,reasoning,True
+Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,46.74,Qwen3.8-Max License,reasoning,True
+GLM-5.3-Flash,Z AI,320.0,18.0,1000,46.22,Mit,"vision,reasoning",True
+Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,45.58,Qwen Community License 1.0,"vision,reasoning",True
+GLM-5.2 (max),Z AI,753.0,40.0,1000,42.54,Mit,reasoning,True
+"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,42.11,Mit,reasoning,True
+Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,41.41,Apache 2.0,"vision,reasoning",False
+"DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.84,Mit,reasoning,True
+Kimi K3 (low),Kimi,2780.0,104.0,1049,38.81,Kimi K3,"vision,reasoning",True
+Motif 3,Motif Technologies,314.0,13.2,262,37.98,Unknown,reasoning,True
+K2 Horizon 375B A23B,MBZUAI Institute of Foundation Models,375.0,23.0,524,37.75,Apache 2.0,reasoning,True
+MiniMax-M3,MiniMax,428.0,23.0,1000,35.75,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
+"DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,35.75,MIT,reasoning,True
+Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,35.18,Apache 2.0,"vision,reasoning",False
+"DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,34.65,MIT,reasoning,True
+Kimi K2.7 Code,Kimi,1000.0,32.0,256,33.86,Modified MIT License,"vision,reasoning,code",True
+Qwen3.8 27B (low),Alibaba,27.0,27.0,256,33.76,Apache 2.0,"vision,reasoning",False
+Hy3,Tencent,299.0,21.0,256,33.25,Apache 2.0,reasoning,True
+Nex-N2-Pro,Nex AGI,397.0,17.0,262,32.73,Apache 2.0,"vision,reasoning",True
+MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,32.59,Mit,reasoning,True
+Inkling Small,Thinking Machines,266.0,12.0,1000,32.3,Apache 2.0,"vision,audio,reasoning",True
+Inkling (xhigh),Thinking Machines,975.0,41.0,1000,32.17,Apache 2.0,"vision,audio,reasoning",True
+Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,31.25,Apache 2.0,"vision,reasoning",True
+Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,29.55,OpenMDW,reasoning,True
+MiMo-V2.5,Xiaomi,310.0,15.0,1000,29.53,Mit,"vision,reasoning",True
+Solar Open2 250B,Upstage,250.0,15.0,1049,29.05,Upstage Solar License,reasoning,True
+Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,29.0,Apache 2.0,"vision,reasoning",False
+Ling 3.0 Flash,InclusionAI,124.0,5.1,262,27.36,Unknown,reasoning,True
+A.X-K2,SK Telecom,692.0,33.0,262,26.75,Apache 2.0,reasoning,True
+GLM-5.2 (Non-reasoning),Z AI,753.0,40.0,1000,26.45,Mit,,True
+Qwen3.8 27B (Non-reasoning),Alibaba,27.0,27.0,256,26.45,Apache 2.0,vision,False
+MiMo-V2-Flash (Feb 2026),Xiaomi,309.0,15.0,256,26.42,MIT,reasoning,True
+Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,26.21,Apache 2.0,"vision,reasoning",True
+Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,26.15,Apache 2.0,"vision,reasoning",True
+LongCat 2.0,LongCat,1600.0,48.0,1000,25.85,Mit,reasoning,True
+G9v3-39A5B,AI9Stars,39.0,5.0,131,25.75,Apache 2.0,reasoning,True
+Qwen3.5 397B A17B (Non-reasoning),Alibaba,397.0,17.0,262,25.23,Apache 2.0,vision,True
+Qwen3.5 122B A10B (Reasoning),Alibaba,125.0,10.0,262,24.83,Apache 2.0,"vision,reasoning",True
+DeepSeek V4 Pro (Non-reasoning),DeepSeek,1600.0,49.0,1000,24.51,Mit,,True
+Muse Glimmer (high),Meta,30.0,30.0,131,24.38,Apache 2.0,"vision,reasoning",False
+Ring-2.6-1T,InclusionAI,1000.0,63.0,262,23.74,MIT,reasoning,True
+Qwen3.6 27B (Non-reasoning),Alibaba,27.8,27.8,262,23.31,Apache 2.0,vision,False
+K-EXAONE 2.0,LG AI Research,750.0,37.0,262,23.15,apache-2.0,reasoning,True
+Step 3.7 Flash,StepFun,198.0,11.0,262,22.88,Apache 2.0,"vision,reasoning",True
+Mistral Medium 3.5,Mistral,128.0,128.0,256,22.66,Modified MIT License,"vision,reasoning",False
+Gemma 4 31B (Reasoning),Google,30.7,30.7,256,22.23,Apache 2.0,"vision,reasoning",False
+DeepSeek V4 Flash (Non-reasoning),DeepSeek,284.0,13.0,1000,22.07,Mit,,True
+MiMo-V2.5-Pro (Non-reasoning),Xiaomi,1023.0,41.7,1000,21.31,Mit,,True
+Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,20.62,Apache 2.0,vision,True
+Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,19.17,Apache 2.0,"vision,reasoning",True
+Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,18.64,Nvidia Nemotron Open Model License,reasoning,True
+MiMo-V2-Flash (Non-reasoning),Xiaomi,309.0,15.0,256,18.27,MIT,,True
+Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,17.14,Apache 2.0,vision,True
+Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,16.96,Apache 2.0,vision,True
+Granite 4.2 30B,IBM,30.0,30.0,131,16.55,Apache 2.0,reasoning,False
+Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,16.38,OpenMDW-1.1,reasoning,True
+K-EXAONE (Reasoning),LG AI Research,236.0,23.0,256,15.83,K Exaone,reasoning,True
+Ling 3.0 Tiny,InclusionAI,7.9,1.3,262,15.68,Mit,reasoning,True
+Command A+,Cohere,218.0,25.0,192,15.6,Apache 2.0,"vision,reasoning",True
+gpt-oss-120b (high),OpenAI,117.0,5.1,131,15.57,Apache 2.0,reasoning,True
+Gemma 4 12B (Reasoning),Google,12.0,12.0,256,15.55,Apache 2.0,"vision,audio,reasoning",False
+Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,15.18,Apache 2.0,vision,False
+Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,14.76,Apache 2.0,"vision,reasoning",False
+Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,14.35,MIT,"vision,reasoning",False
+Qwen3 Coder Next,Alibaba,79.7,3.0,256,14.34,Apache 2.0,code,True
+Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,14.13,Apache 2.0,vision,False
+EXAONE 4.5 33B,LG AI Research,34.4,34.4,262,14.04,EXAONE AI Model License Agreement 1.2 - NC,"vision,reasoning",False
+Granite 4.2 8B,IBM,8.0,8.0,131,13.94,Apache 2.0,reasoning,False
+Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,13.92,Apache 2.0,vision,True
+Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,13.91,Apache 2.0,"vision,reasoning",False
+North Mini Code,Cohere,30.0,3.0,256,13.45,Apache 2.0,"reasoning,code",True
+Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,12.84,Apache 2.0,"vision,reasoning",True
+Devstral 2,Mistral,125.0,125.0,256,12.66,Modified MIT License,,False
+Trinity Large Thinking,Arcee AI,399.0,13.0,512,11.98,Apache 2.0,reasoning,True
+"HyperNova 60B 2605 (high, based on gpt-oss-120b)",Multiverse Computing,58.7,4.8,131,11.66,Apache 2.0,reasoning,True
+Nemotron Cascade 2 30B A3B,NVIDIA,31.6,3.0,1000,11.52,Nvidia Open Model License,reasoning,True
+K2 Think V2,MBZUAI Institute of Foundation Models,70.0,70.0,262,11.22,Apache 2.0,reasoning,False
+LongCat Flash Lite,LongCat,68.5,3.0,256,11.18,MIT,,True
+Devstral Small 2,Mistral,24.0,24.0,256,11.16,Apache 2.0,vision,False
+Mistral Large 3,Mistral,675.0,41.0,256,11.13,Apache 2.0,vision,True
+HyperCLOVA X SEED Think (32B),Naver,32.0,32.0,128,10.99,HyperCLOVA X SEED 32B Think Model License Agreement,"vision,reasoning",False
+K-EXAONE (Non-reasoning),LG AI Research,236.0,23.0,256,10.72,K Exaone,,True
+Granite 4.2 3B,IBM,3.0,3.0,131,10.7,Apache 2.0,reasoning,False
+Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,10.7,Apache 2.0,reasoning,True
+G9v3-3B,AI9Stars,3.0,3.0,131,10.07,Apache 2.0,reasoning,False
+Qwen3.5 4B (Non-reasoning),Alibaba,4.66,4.66,262,10.02,Apache 2.0,vision,False
+INTELLECT-3,Prime Intellect,107.0,12.0,131,9.65,MIT,reasoning,True
+Solar Open 100B (Reasoning),Upstage,102.0,12.0,128,9.21,Upstage Solar License,reasoning,True
+gpt-oss-20b (high),OpenAI,21.0,3.6,131,9.14,Apache 2.0,reasoning,True
+Nemotron 3 Nano Omni 30B A3B Reasoning,NVIDIA,30.0,3.0,256,9.0,NVIDIA Open Model License Agreement,"vision,audio,reasoning",True
+gpt-oss-120b (low),OpenAI,117.0,5.1,131,8.92,Apache 2.0,reasoning,True
+NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,8.57,Nvidia Nemotron Open Model License,reasoning,True
+Llama 4 Maverick,Meta,402.0,17.0,1000,8.51,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
+gpt-oss-20b (low),OpenAI,21.0,3.6,131,8.44,Apache 2.0,reasoning,True
+K2-V2 (high),MBZUAI Institute of Foundation Models,70.0,70.0,512,8.29,Apache 2.0,reasoning,False
+Qwen3 Next 80B A3B Instruct,Alibaba,80.0,3.0,262,7.85,Apache 2.0,,True
+DiffusionGemma 26B A4B,Google,25.2,3.8,256,7.59,Apache 2.0,"vision,reasoning",True
+Gemma 4 12B (Non-reasoning),Google,12.0,12.0,262,7.34,Apache 2.0,"vision,audio",False
+Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,6.61,NVIDIA Open Model License Agreement,reasoning,False
+K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,6.61,Apache 2.0,reasoning,False
+Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,6.56,Apache 2.0,vision,True
+Tri-21B-Think,Trillion Labs,21.0,21.0,32,6.55,Apache 2.0,reasoning,False
+Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,6.41,Apache 2.0,"vision,audio,reasoning",True
+MiniCPM5-1B (Reasoning),OpenBMB,1.0,1.0,128,6.17,Apache 2.0,reasoning,False
+Sarvam 105B (high),Sarvam,106.0,10.3,128,6.15,Apache 2.0,reasoning,True
+MiniCPM5-1B (Non-reasoning),OpenBMB,1.0,1.0,128,5.96,apache-2.0,,False
+Magistral Small 1.2,Mistral,24.0,24.0,128,5.75,Apache 2.0,"vision,reasoning",False
+Ministral 3 14B,Mistral,14.0,14.0,256,5.55,Apache 2.0,vision,False
+Nanbeige4.1-3B,Nanbeige,3.93,3.93,256,5.34,Apache 2.0,reasoning,False
+LFM2.5-2.6B,Liquid AI,2.7,2.7,128,5.31,lfm 1.0,reasoning,False
+EXAONE 4.0 32B (Reasoning),LG AI Research,32.0,32.0,131,4.87,EXAONE AI Model License Agreement 1.2 - NC,reasoning,False
+Llama 4 Scout,Meta,109.0,17.0,10000,4.64,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True
+Hermes 4 - Llama-3.1 70B (Reasoning),Nous Research,70.6,70.6,128,4.27,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
+Falcon-H1R-7B,TII UAE,7.0,7.0,256,4.1,Falcon Mamba 7B TII License Version 1.0,reasoning,False
+Gemma 4 E2B (Reasoning),Google,5.1,2.3,128,3.98,Apache 2.0,"vision,audio,reasoning",True
+Qwen3 Omni 30B A3B (Reasoning),Alibaba,35.3,3.0,66,3.95,Apache 2.0,"vision,audio,reasoning",True
+Step3 VL 10B,StepFun,10.2,10.2,66,3.8,Apache 2.0,"vision,reasoning",False
+Llama 3.3 Instruct 70B,Meta,70.0,70.0,128,3.73,LLAMA 3.3 COMMUNITY LICENSE AGREEMENT,,False
+Ministral 3 8B,Mistral,8.0,8.0,256,3.47,Apache 2.0,vision,False
+Llama 3.1 Nemotron Ultra 253B v1 (Reasoning),NVIDIA,253.0,253.0,128,3.42,NVIDIA Open Model License Agreement,reasoning,False
+ERNIE 4.5 300B A47B,Baidu,300.0,47.0,131,3.37,Apache 2.0,,True
+Hermes 4 - Llama-3.1 405B (Reasoning),Nous Research,406.0,406.0,128,3.35,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,reasoning,False
+NVIDIA Nemotron Nano 12B v2 VL (Reasoning),NVIDIA,13.2,13.2,128,3.31,Nvidia Open Model License,"vision,reasoning",False
+Gemma 4 E4B (Non-reasoning),Google,8.0,4.5,128,3.26,Apache 2.0,"vision,audio",True
+Granite 4.1 30B,IBM,30.0,30.0,131,3.22,Apache 2.0,,False
+NVIDIA Nemotron Nano 9B V2 (Reasoning),NVIDIA,9.0,9.0,131,3.2,NVIDIA Open Model License Agreement,reasoning,False
+Hermes 4 - Llama-3.1 405B (Non-reasoning),Nous Research,406.0,406.0,128,3.16,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+NVIDIA Nemotron 3 Nano 4B,NVIDIA,3.97,3.97,262,3.09,Nvidia Nemotron Open Model License,reasoning,False
+Llama Nemotron Super 49B v1.5 (Non-reasoning),NVIDIA,49.0,49.0,128,3.05,NVIDIA Open Model License Agreement,,False
+K2-V2 (low),MBZUAI Institute of Foundation Models,70.0,70.0,512,2.93,Apache 2.0,reasoning,False
+Kimi Linear 48B A3B Instruct,Kimi,49.1,3.0,1000,2.9,MIT,,True
+Llama 3.1 Instruct 405B,Meta,405.0,405.0,128,2.87,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
+LFM2.5-8B-A1B,Liquid AI,8.3,1.5,33,2.7,lfm 1.0,reasoning,True
+Ring-flash-2.0,InclusionAI,103.0,6.1,128,2.55,MIT,reasoning,True
+Olmo 3.1 32B Think,Allen Institute for AI,32.2,32.2,66,2.48,Apache 2.0,reasoning,False
+Command A,Cohere,111.0,111.0,256,2.09,CC-BY-NC 4.0 License with Acceptable Use Addendum,,False
+Llama 3.1 Nemotron Instruct 70B,NVIDIA,70.0,70.0,128,2.05,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
+Qwen3.5 2B (Reasoning),Alibaba,2.27,2.27,262,2.05,Apache 2.0,"vision,reasoning",False
+NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),NVIDIA,31.6,3.6,1000,1.82,Nvidia Nemotron Open Model License,,True
+NVIDIA Nemotron Nano 9B V2 (Non-reasoning),NVIDIA,9.0,9.0,131,1.81,NVIDIA Open Model License Agreement,,False
+Ministral 3 3B,Mistral,3.0,3.0,256,1.73,Apache 2.0,vision,False
+Hermes 4 - Llama-3.1 70B (Non-reasoning),Nous Research,70.6,70.6,128,1.35,META LLAMA 3 COMMUNITY LICENSE AGREEMENT,,False
+Granite 4.1 8B,IBM,8.0,8.0,131,1.13,Apache 2.0,,False
+Sarvam 30B (high),Sarvam,32.2,2.4,66,1.1,Apache 2.0,reasoning,True
+Qwen3.5 0.8B (Non-reasoning),Alibaba,0.873,0.873,262,1.0,Apache 2.0,vision,False
+LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,1.0,lfm 1.0,,False
 LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,1.0,lfm 1.0,vision,False
+MiniCPM-V 4.6 1.3B,OpenBMB,1.3,1.3,262,1.0,Apache 2.0,vision,False
+Qwen3 Omni 30B A3B Instruct,Alibaba,35.3,3.0,66,1.0,Apache 2.0,"vision,audio",True
+Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,1.0,Apache 2.0,vision,False
+Granite 4.0 Micro,IBM,3.0,3.0,128,1.0,Apache 2.0,,False
+Gemma 3 270M,Google,0.268,0.268,32,1.0,Gemma license,,False
+Phi-4 Multimodal Instruct,Microsoft,5.6,5.6,128,1.0,MIT,"vision,audio",False
+Molmo2-8B,Allen Institute for AI,8.66,8.66,37,1.0,Apache 2.0,vision,False
+Olmo 3 7B Think,Allen Institute for AI,7.0,7.0,66,1.0,Apache 2.0,reasoning,False
+EXAONE 4.0 32B (Non-reasoning),LG AI Research,32.0,32.0,131,1.0,EXAONE AI Model License Agreement 1.2 - NC,,False
+Apertus 70B Instruct,Swiss AI Initiative,70.0,70.0,66,1.0,Apache 2.0,,False
+R1 1776,Perplexity,671.0,37.0,128,1.0,MIT,reasoning,True
+Granite 4.1 3B,IBM,3.0,3.0,131,1.0,Apache 2.0,,False
+Olmo 3.1 32B Instruct,Allen Institute for AI,32.2,32.2,66,1.0,Apache 2.0,,False
 Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,1.0,Apache 2.0,,False
-Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
+Gemma 4 E2B (Non-reasoning),Google,5.1,2.3,128,1.0,Apache 2.0,"vision,audio",True
+Exaone 4.0 1.2B (Non-reasoning),LG AI Research,1.28,1.28,64,1.0,EXAONE AI Model License Agreement 1.2 - NC,,False
+Olmo 3 7B Instruct,Allen Institute for AI,7.0,7.0,66,1.0,Apache 2.0,,False
+Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,1.0,Jamba Open Model License Agreement,,True
+Granite 4.0 H Small,IBM,32.0,9.0,128,1.0,Apache 2.0,,True
 Granite 4.0 350M,IBM,0.35,0.35,33,1.0,Apache 2.0,,False
+LFM2.5-1.2B-Thinking,Liquid AI,1.17,1.17,32,1.0,lfm 1.0,reasoning,False
+Llama 3.2 Instruct 11B (Vision),Meta,11.0,11.0,128,1.0,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
+LFM2 2.6B,Liquid AI,2.57,2.57,33,1.0,lfm 1.0,,False
+LFM2 8B A1B,Liquid AI,8.34,1.5,33,1.0,lfm 1.0,,True
+Tiny Aya Global,Cohere,3.35,3.35,8,1.0,Cc By Nc 4.0,,False
+Jamba 1.7 Mini,AI21 Labs,52.0,12.0,258,1.0,Jamba Open Model License Agreement,,True
+Molmo 7B-D,Allen Institute for AI,8.02,8.02,4,1.0,Apache 2.0,vision,False
+DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning),Nous Research,8.0,8.0,128,1.0,LLAMA 3.1 COMMUNITY LICENSE AGREEMENT,,False
+Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,1.0,MIT,,False
+Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,1.0,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False
 Granite 4.0 H 350M,IBM,0.34,0.34,33,1.0,Apache 2.0,,False
+NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning),NVIDIA,13.2,13.2,128,1.0,Nvidia Open Model License,vision,False
+DeepHermes 3 - Mistral 24B Preview (Non-reasoning),Nous Research,24.0,24.0,32,1.0,Apache 2.0,,False
+Granite 4.0 1B,IBM,1.6,1.6,128,1.0,Apache 2.0,,False
+Qwen3.5 0.8B (Reasoning),Alibaba,0.873,0.873,262,1.0,Apache 2.0,"vision,reasoning",False
+Exaone 4.0 1.2B (Reasoning),LG AI Research,1.28,1.28,64,1.0,EXAONE AI Model License Agreement 1.2 - NC,reasoning,False
+Granite 4.0 H 1B,IBM,1.5,1.5,128,1.0,Apache 2.0,,False
+Reka Flash 3,Reka AI,21.0,21.0,128,1.0,Apache 2.0,reasoning,False
+Phi-4,Microsoft,14.0,14.0,16,1.0,MIT,,False
+Jamba Reasoning 3B,AI21 Labs,3.0,3.0,262,1.0,Apache 2.0,reasoning,False
+LFM2 24B A2B,Liquid AI,23.8,2.3,33,1.0,lfm 1.0,,True
