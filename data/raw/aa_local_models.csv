@@ -4,27 +4,27 @@ GLM-5.3 (max),Z AI,753.0,40.0,1000,48.58,GLM-5.3 License,reasoning,True
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,46.74,Qwen3.8-Max License,reasoning,True
 GLM-5.3-Flash,Z AI,320.0,18.0,1000,46.22,Mit,"vision,reasoning",True
 Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,45.58,Qwen Community License 1.0,"vision,reasoning",True
-GLM-5.2 (max),Z AI,753.0,40.0,1000,42.54,Mit,reasoning,True
 "DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,42.11,Mit,reasoning,True
+GLM-5.2 (max),Z AI,753.0,40.0,1000,42.08,Mit,reasoning,True
 Qwen3.8 27B (xhigh),Alibaba,27.0,27.0,256,41.41,Apache 2.0,"vision,reasoning",False
 "DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",DeepSeek,284.0,13.0,1000,40.84,Mit,reasoning,True
 Kimi K3 (low),Kimi,2780.0,104.0,1049,38.81,Kimi K3,"vision,reasoning",True
 Motif 3,Motif Technologies,314.0,13.2,262,37.98,Unknown,reasoning,True
 K2 Horizon 375B A23B,MBZUAI Institute of Foundation Models,375.0,23.0,524,37.75,Apache 2.0,reasoning,True
 MiniMax-M3,MiniMax,428.0,23.0,1000,35.75,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True
-"DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,35.75,MIT,reasoning,True
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,35.18,Apache 2.0,"vision,reasoning",False
 "DeepSeek V4 Pro (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,34.65,MIT,reasoning,True
+"DeepSeek V4 Pro (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,34.55,MIT,reasoning,True
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,33.86,Modified MIT License,"vision,reasoning,code",True
 Qwen3.8 27B (low),Alibaba,27.0,27.0,256,33.76,Apache 2.0,"vision,reasoning",False
 Hy3,Tencent,299.0,21.0,256,33.25,Apache 2.0,reasoning,True
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,32.73,Apache 2.0,"vision,reasoning",True
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,32.59,Mit,reasoning,True
-Inkling Small,Thinking Machines,266.0,12.0,1000,32.3,Apache 2.0,"vision,audio,reasoning",True
+Inkling Small,Thinking Machines,266.0,12.0,1000,32.23,Apache 2.0,"vision,audio,reasoning",True
 Inkling (xhigh),Thinking Machines,975.0,41.0,1000,32.17,Apache 2.0,"vision,audio,reasoning",True
 Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,31.25,Apache 2.0,"vision,reasoning",True
-Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,29.55,OpenMDW,reasoning,True
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,29.53,Mit,"vision,reasoning",True
+Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,29.33,OpenMDW,reasoning,True
 Solar Open2 250B,Upstage,250.0,15.0,1049,29.05,Upstage Solar License,reasoning,True
 Qwen3.6 27B (Reasoning),Alibaba,27.8,27.8,262,29.0,Apache 2.0,"vision,reasoning",False
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,27.36,Unknown,reasoning,True
