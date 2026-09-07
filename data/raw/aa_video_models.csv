@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1332.48,12.0,1358.67,12.0,True,12.0,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,1323.73,6.0,1362.51,6.0,True,6.0,,
-MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.06,7.8,1346.78,7.8,True,7.8,32.9206963975004,Prodia
+MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.06,7.8,1346.78,7.8,True,7.8,34.028429573,Prodia
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1281.95,13.2,1287.76,13.2,True,13.2,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,1267.12,9.07,1338.33,9.07,True,9.07,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1261.02,9.9,1305.19,9.9,True,9.9,,
@@ -17,7 +17,7 @@ LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,1212.7,7.8,1210.34
 Kling 3.0 720p (Standard),kling-3-0-standard,KlingAI,Kling,2026-02-04,True,False,1212.18,10.08,1263.27,10.08,True,15.12,,
 Runway Gen-4.5,runway-gen-4-5,Runway,Runway,2025-12-01,True,False,1211.84,,1257.55,,False,,,
 Veo 3,veo-3-no-audio,Google,Google Veo,2025-07-29,True,False,1211.34,12.0,1222.37,12.0,False,,,
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,1211.14,6.0,1279.26,9.6,True,9.6,127.443474739501,Replicate
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,1211.14,6.0,1279.26,9.6,True,9.6,128.026520498,Replicate
 Veo 3 Preview,veo-3-preview,Google,Google Veo,2025-05-21,False,False,1211.12,30.0,1220.85,30.0,False,,,
 PixVerse V5.6,pixverse-v5-6,PixVerse,PixVerse,2026-02-25,True,False,1210.78,9.0,1274.72,9.0,True,,,
 PixVerse V6,pixverse-v6,PixVerse,PixVerse,2026-03-23,True,False,1209.16,5.4,1325.14,5.4,True,6.9,,
@@ -52,12 +52,12 @@ Hailuo 02 Pro,hailuo-02-pro,MiniMax,Hailuo AI (MiniMax),2025-06-18,True,False,11
 Seedance 1.0,seedance-10,ByteDance Seed,Seedance,2025-06-09,True,False,1133.99,7.32,1229.0,7.32,False,,,
 PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False,False,1130.19,9.0,1237.77,9.0,True,14.62,,
 Kling 2.1 Master,kling-2-1-master,KlingAI,Kling,2025-05-29,True,False,1128.86,16.8,1200.05,16.8,False,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.37,2.4,1158.99,2.4,True,2.4,27.9596843844997,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.37,2.4,1158.99,2.4,True,2.4,28.0868426235,Lightricks
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1120.34,3.6,1187.18,3.6,True,3.6,,
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1119.11,2.4,1183.09,2.4,True,2.4,,
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1113.86,30.0,1091.65,30.0,False,,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1105.81,4.8,1104.7,4.8,False,,269.69328073,DeepInfra
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1104.2,4.8,1153.01,4.8,True,4.8,68.0900022020001,Lightricks
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1105.81,4.8,1104.7,4.8,False,,269.710577179,DeepInfra
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1104.2,4.8,1153.01,4.8,True,4.8,68.1870742155002,Lightricks
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1099.96,3.9,1224.08,3.9,True,3.9,,
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,1083.95,16.8,1173.32,16.8,False,,,
 Seedance 1.0 Mini,seedance-1-0-mini,ByteDance Seed,Seedance,2025-06-10,True,False,1079.68,2.22,1139.77,,False,,,
