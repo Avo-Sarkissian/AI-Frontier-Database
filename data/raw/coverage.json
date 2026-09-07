@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 643,
-  "distinct_upstream_models": 298,
+  "upstream_host_model_rows": 644,
+  "distinct_upstream_models": 299,
   "kept": 199,
   "skipped_no_score": [
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
@@ -80,6 +80,7 @@
     "MiniCPM-V 4.6 1.3B",
     "MiniCPM5-1B (Non-reasoning)",
     "MiniCPM5-1B (Reasoning)",
+    "MiniCPM5-2B",
     "Molmo 7B-D",
     "Molmo2-8B",
     "Motif 3",
