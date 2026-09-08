@@ -57,8 +57,8 @@ Granite 4.2 30B,IBM,30.0,30.0,131,14.83,Apache 2.0,reasoning,False,True,29.92,,-
 K-EXAONE (Reasoning),LG AI Research,236.0,23.0,256,14.37,K Exaone,reasoning,True,True,32.11,,-57.97
 MiniCPM5-2B,OpenBMB,2.6,2.6,131,14.28,Apache 2.0,reasoning,False,True,14.5,8.95,-11.65
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,14.18,Apache 2.0,"vision,audio,reasoning",False,True,30.96,,-52.72
-Command A+,Cohere,218.0,25.0,192,13.92,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-4.02
 Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,13.92,Apache 2.0,vision,False,True,33.17,,-51.68
+Command A+,Cohere,218.0,25.0,192,13.92,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-4.02
 Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,13.65,Apache 2.0,"vision,reasoning",False,True,28.66,,-53.47
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,13.64,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-17.72
 Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,13.55,Nvidia Nemotron Open Model License,reasoning,True,False,37.72,4.13,-41.5
@@ -99,8 +99,8 @@ Granite 4.2 3B,IBM,3.0,3.0,131,9.06,Apache 2.0,reasoning,False,False,17.53,0.93,
 gpt-oss-20b (high),OpenAI,21.0,3.6,131,9.04,Apache 2.0,reasoning,True,False,20.7,1.4,-63.05
 K2-V2 (medium),MBZUAI Institute of Foundation Models,70.0,70.0,512,9.02,Apache 2.0,reasoning,False,True,,,-49.0
 Llama Nemotron Super 49B v1.5 (Reasoning),NVIDIA,49.0,49.0,128,9.01,NVIDIA Open Model License Agreement,reasoning,False,True,,,-47.6
-Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,8.99,Apache 2.0,vision,True,True,,,-48.52
 Tri-21B-Think,Trillion Labs,21.0,21.0,32,8.99,Apache 2.0,reasoning,False,True,,,-62.55
+Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,8.99,Apache 2.0,vision,True,True,,,-48.52
 Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,8.91,Apache 2.0,"vision,audio,reasoning",True,True,9.39,,-19.7
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,8.9,Nvidia Nemotron Open Model License,reasoning,True,False,14.37,1.0,-51.57
 MiniCPM5-1B (Reasoning),OpenBMB,1.0,1.0,128,8.8,Apache 2.0,reasoning,False,True,,,-14.62
@@ -146,8 +146,8 @@ Gemma 4 E2B (Non-reasoning),Google,5.1,2.3,128,6.48,Apache 2.0,"vision,audio",Tr
 Llama 4 Scout,Meta,109.0,17.0,10000,6.45,LLAMA 4 COMMUNITY LICENSE AGREEMENT,vision,True,False,8.17,0.55,-52.15
 R1 1776,Perplexity,671.0,37.0,128,6.44,MIT,reasoning,True,True,,,
 Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,6.41,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False,True,,,
-Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.33,MIT,,False,True,3.84,,-61.08
 EXAONE 4.0 32B (Non-reasoning),LG AI Research,32.0,32.0,131,6.33,EXAONE AI Model License Agreement 1.2 - NC,,False,True,,,-62.77
+Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.33,MIT,,False,True,3.84,,-61.08
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,6.19,Apache 2.0,vision,False,True,2.39,,-83.13
 Qwen3.5 0.8B (Reasoning),Alibaba,0.873,0.873,262,6.13,Apache 2.0,"vision,reasoning",False,True,0.0,,-54.52
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,6.07,Jamba Open Model License Agreement,,True,True,,,-54.92
@@ -173,8 +173,8 @@ Olmo 3 7B Instruct,Allen Institute for AI,7.0,7.0,66,5.24,Apache 2.0,,False,True
 Exaone 4.0 1.2B (Non-reasoning),LG AI Research,1.28,1.28,64,5.23,EXAONE AI Model License Agreement 1.2 - NC,,False,True,,,-82.15
 Jamba 1.7 Mini,AI21 Labs,52.0,12.0,258,5.22,Jamba Open Model License Agreement,,True,True,,,-73.12
 LFM2.5-1.2B-Thinking,Liquid AI,1.17,1.17,32,5.22,lfm 1.0,reasoning,False,True,,,-79.95
-LFM2 2.6B,Liquid AI,2.57,2.57,33,5.21,lfm 1.0,,False,True,,,-54.07
 LFM2.5-1.2B-Instruct,Liquid AI,1.17,1.17,32,5.21,lfm 1.0,,False,True,,,-72.1
+LFM2 2.6B,Liquid AI,2.57,2.57,33,5.21,lfm 1.0,,False,True,,,-54.07
 Granite 4.0 H 1B,IBM,1.5,1.5,128,5.19,Apache 2.0,,False,True,,,-72.27
 Gemma 3 270M,Google,0.268,0.268,32,5.12,Gemma license,,False,True,,,-29.27
 Granite 4.0 Micro,IBM,3.0,3.0,128,5.11,Apache 2.0,,False,True,,,-77.53
@@ -184,8 +184,8 @@ Granite 4.0 1B,IBM,1.6,1.6,128,5.01,Apache 2.0,,False,True,,,-81.62
 Molmo2-8B,Allen Institute for AI,8.66,8.66,37,5.0,Apache 2.0,vision,False,True,,,-69.22
 LFM2 8B A1B,Liquid AI,8.34,1.5,33,4.93,lfm 1.0,,True,True,,,-76.5
 Ministral 3 3B,Mistral,3.0,3.0,256,4.84,Apache 2.0,vision,False,False,4.78,0.79,-64.0
+LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,4.83,lfm 1.0,vision,False,True,,,-84.42
 Granite 4.0 350M,IBM,0.35,0.35,33,4.83,Apache 2.0,,False,True,,,-69.35
+Tiny Aya Global,Cohere,3.35,3.35,8,4.83,Cc By Nc 4.0,,False,True,,,-84.3
 Apertus 8B Instruct,Swiss AI Initiative,8.0,8.0,66,4.83,Apache 2.0,,False,True,,,-77.22
 Granite 4.0 H 350M,IBM,0.34,0.34,33,4.83,Apache 2.0,,False,True,,,-80.92
-LFM2.5-VL-1.6B,Liquid AI,1.6,1.6,32,4.83,lfm 1.0,vision,False,True,,,-84.42
-Tiny Aya Global,Cohere,3.35,3.35,8,4.83,Cc By Nc 4.0,,False,True,,,-84.3
