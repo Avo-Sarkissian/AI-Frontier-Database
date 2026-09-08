@@ -334,3 +334,30 @@ def effort_options() -> list[dict]:
          {"label": "Best available", "value": "best"}]
         + [{"label": label, "value": slug} for slug, label in EFFORT_LEVELS]
     )
+
+
+def index_label(v) -> str:
+    """One of AA's sibling indices (Coding / Agentic / Omniscience), or "not scored".
+
+    Added with AA's 2026-09 intelligence overhaul. AA publishes Coding for 144
+    of our 198 hosted models and Agentic for 107, so the absent case is the
+    common one and has to read as absent. "0.0" would be wrong twice over: it
+    is a real score on these scales, and AA-Omniscience is negative for most of
+    the catalogue (live range -88.6 to +43.7) because it penalises
+    hallucination — so a fabricated 0 would rank an unscored model above a
+    genuinely bad one.
+
+    Lives here because app.py (Dash) and static_api.py (the Pyodide bridge that
+    serves the published site) must say the same thing about the same model,
+    and this module is the one both already import and build_static vendors.
+    """
+    import pandas as _pd
+
+    if v is None:
+        return "not scored"
+    try:
+        if _pd.isna(v):
+            return "not scored"
+        return f"{float(v):.1f}"
+    except (TypeError, ValueError):
+        return "not scored"

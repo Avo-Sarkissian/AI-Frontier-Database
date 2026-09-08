@@ -396,3 +396,171 @@ def test_the_live_image_columns_are_still_health_checked():
     broken = pd.DataFrame([{"model": f"m{i}", "provider": "", "elo": 1000.0}
                            for i in range(20)])
     assert _column_violations(broken), "an all-blank provider column published"
+
+
+# ── 1.7 — AA's intelligence overhaul (2026-09) ───────────────────────────────
+#
+# AA rebuilt the Intelligence Index onto a new eval suite (GDPval-AA v2,
+# tau3-Banking, Terminal-Bench v2.1, SciCode, AA-Omniscience, HLE, GPQA Diamond,
+# CritPt, IFBench, MMMU-Pro, ITBench-SRE) and shipped three changes that matter
+# here. Measured against the live payload on 2026-09-08:
+#
+#   * The SCALE did not move. Max intelligenceIndex is 53.37 upstream and 53.37
+#     in the committed cache, and all 198 published rows match live to the
+#     hundredth — so QUALITY_INDEX_MAX, the MIN SCORE ladder and the tier
+#     quality floors stay calibrated. Pinned below so a future rescale is loud.
+#   * `intelligenceIndexIsEstimated` is new and true for 503 of 644 upstream
+#     records — 105 of our 198 hosted rows and 147 of our 190 open-weight rows.
+#     AA sets it when it has not run the full suite: those records average 6.0
+#     of 12 sub-evals against 10.3 for measured ones, and carry codingIndex on
+#     25% of rows against 91%. Publishing an extrapolation as a measurement is
+#     the same class of error as printing "free" for an unpublished price.
+#   * codingIndex / agenticIndex / omniscience are new sibling scores.
+
+def _overhaul_record(i=0, estimated=False, coding=70.0, agentic=27.0, omni=-2.0):
+    rec = {
+        "name": f"Model {i}", "slug": f"m{i}", "modelCreatorName": "Lab",
+        "intelligenceIndex": 32.98, "intelligenceIndexIsEstimated": estimated,
+        "contextWindowTokens": 128_000, "deprecated": False,
+        "price1mInputTokens": 1.0, "price1mOutputTokens": 4.0,
+        "medianOutputTokensPerSecond": 50, "medianTimeToFirstTokenSeconds": 0.5,
+        "codingIndex": coding, "agenticIndex": agentic, "omniscience": omni,
+    }
+    return rec
+
+
+def test_an_estimated_intelligence_score_is_recorded_as_estimated():
+    """The flag must survive the scrape. Without it every consumer — the axis,
+    the leaderboard, the detail panel, the CSV a reader opens — presents an
+    extrapolation and a measurement as the same kind of number."""
+    df = load_from_raw(_parse_api_response([_overhaul_record(0, estimated=True)]))
+    assert not df.empty, "the record did not survive the parse at all"
+    assert "quality_estimated" in df.columns, "the scrape dropped AA's estimated flag"
+    assert bool(df.iloc[0]["quality_estimated"]) is True
+
+
+def test_a_measured_intelligence_score_is_not_marked_estimated():
+    df = load_from_raw(_parse_api_response([_overhaul_record(0, estimated=False)]))
+    assert bool(df.iloc[0]["quality_estimated"]) is False
+
+
+def test_the_new_sibling_indices_are_carried():
+    """Coding, Agentic and Omniscience are separate AA scores, not derivable
+    from the Intelligence Index."""
+    df = load_from_raw(_parse_api_response([_overhaul_record(0)]))
+    for col, want in (("coding", 70.0), ("agentic", 27.0), ("omniscience", -2.0)):
+        assert col in df.columns, f"{col} was not carried through the scrape"
+        assert df.iloc[0][col] == pytest.approx(want)
+
+
+def test_a_missing_sibling_index_is_empty_not_zero():
+    """AA scores Coding on 144 of our 198 models and Agentic on 107. Zero is a
+    real score on these scales — omniscience is genuinely negative for most
+    models — so an unscored model must be blank, never 0."""
+    rec = _overhaul_record(0)
+    rec["codingIndex"] = None
+    rec["agenticIndex"] = None
+    df = load_from_raw(_parse_api_response([rec]))
+    assert pd.isna(df.iloc[0]["coding"]), "an unscored model was given coding 0"
+    assert pd.isna(df.iloc[0]["agentic"]), "an unscored model was given agentic 0"
+
+
+def test_omniscience_survives_being_negative():
+    """AA-Omniscience is hallucination-penalised and runs from -88.6 to +43.7 in
+    the live payload; a >0 guard copied from the price/quality columns would
+    silently drop the majority of the catalogue."""
+    df = load_from_raw(_parse_api_response([_overhaul_record(0, omni=-55.58)]))
+    assert df.iloc[0]["omniscience"] == pytest.approx(-55.58)
+
+
+def test_the_estimated_flag_is_not_health_checked_like_a_dense_column():
+    """quality_estimated is a boolean and coding/agentic are legitimately sparse.
+    Registering them in _COLUMN_HEALTH would make a healthy scrape fail."""
+    from data.scraper import _COLUMN_HEALTH
+    for col in ("quality_estimated", "coding", "agentic", "omniscience"):
+        assert col not in _COLUMN_HEALTH, (
+            f"{col} is sparse or boolean upstream; a density floor would cry wolf"
+        )
+
+
+def test_the_intelligence_scale_has_not_been_rescaled():
+    """AA rebuilt the index's eval suite in 2026-09 WITHOUT moving the scale.
+    QUALITY_INDEX_MAX, the MIN SCORE ladder (up to 50) and the Agent Stack
+    quality floors (28.0 / 30.0) are all absolute numbers on this scale, so a
+    silent rescale would miscalibrate every one of them at once."""
+    from components.charts.constants import QUALITY_INDEX_MAX
+
+    peak = DF["quality"].max()
+    assert 45.0 <= peak <= QUALITY_INDEX_MAX, (
+        f"peak intelligence is {peak:.2f}. Below 45 or above {QUALITY_INDEX_MAX} "
+        f"means AA moved the scale: recheck the MIN SCORE options in app.py and "
+        f"docs/app.js, _API_TIERS min_quality, and static_helpers' >=40/>=50 rules"
+    )
+
+
+def _local_record(estimated=False, coding=44.0, agentic=None, omni=-13.1):
+    return {
+        "name": "Qwen3.5 122B", "modelCreatorName": "Alibaba",
+        "isOpenWeights": True, "deprecated": False,
+        "intelligenceIndex": 20.38, "intelligenceIndexIsEstimated": estimated,
+        "totalParameters": 122.0, "activeParameters": 10.0,
+        "contextWindowTokens": 256_000, "licenseName": "Apache 2.0",
+        "codingIndex": coding, "agenticIndex": agentic, "omniscience": omni,
+    }
+
+
+def test_the_open_weight_catalogue_records_the_estimated_flag_too():
+    """77% of the open-weight catalogue (147 of 190) carries an estimated
+    index — a higher share than the hosted side, because AA re-runs the full
+    suite on frontier API models first. The tab that says "what can I run"
+    must not present those as measured."""
+    from data.local_scraper import _parse as _local_parse
+
+    df = _local_parse([_local_record(estimated=True)])
+    assert df is not None and not df.empty
+    assert "quality_estimated" in df.columns, "the open-weight scrape drops the flag"
+    assert bool(df.iloc[0]["quality_estimated"]) is True
+
+    measured = _local_parse([_local_record(estimated=False)])
+    assert bool(measured.iloc[0]["quality_estimated"]) is False
+
+
+def test_the_open_weight_catalogue_carries_the_sibling_indices():
+    from data.local_scraper import _parse as _local_parse
+
+    df = _local_parse([_local_record()])
+    assert df.iloc[0]["coding"] == pytest.approx(44.0)
+    assert df.iloc[0]["omniscience"] == pytest.approx(-13.1)
+    assert pd.isna(df.iloc[0]["agentic"]), "an unscored agentic index became a number"
+
+
+def test_the_local_export_carries_the_overhaul_columns_too():
+    """`export_frame_for_tab` comments that the export "is where someone checks
+    the dashboard's work, so it must carry more than the screen does, not less".
+    data/local_models._load_models_raw rebuilds each row as an explicit dict, so
+    any column not named there is silently dropped on the way to the Run Local
+    tab and its ↓CSV — which is how the open-weight export ended up without the
+    estimated flag while the hosted one had it."""
+    from data.local_models import get_local_df
+
+    df = get_local_df()
+    for col in ("quality_estimated", "coding", "agentic", "omniscience"):
+        assert col in df.columns, f"the open-weight frame drops {col}"
+    scored = df["quality_estimated"].eq(True)
+    assert scored.any(), "no open-weight model is flagged estimated (147 of 190 are)"
+    assert not scored.all(), "every open-weight model is flagged estimated"
+
+
+def test_a_curated_model_aa_has_not_benchmarked_is_not_marked_estimated():
+    """The curated pending list carries no AA score at all, so it must not be
+    labelled with AA's estimation flag either — 'AA estimated this' and 'AA has
+    never seen this' are different claims."""
+    from data.local_models import get_local_df
+
+    df = get_local_df()
+    if "pending" not in df.columns or not df["pending"].eq(True).any():
+        pytest.skip("no pending curated models in this catalogue")
+    pend = df[df["pending"].eq(True)]
+    assert not pend["quality_estimated"].eq(True).any(), (
+        "a model AA has never benchmarked is flagged as AA-estimated"
+    )

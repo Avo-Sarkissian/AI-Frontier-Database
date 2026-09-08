@@ -108,6 +108,7 @@ def _reload_if_stale():
 
 from captions import CAPTIONS
 from static_helpers import (
+    index_label,
     apply_filters,
     coerce_number as _coerce_number,
     cap_compare_selection as _cap_compare_selection,
@@ -1377,6 +1378,10 @@ def toggle_detail_panel(pareto_click, _close):
     n_below = int((df["quality"] < quality).sum())
     pct     = round(n_below / n_total * 100) if n_total else 0
 
+    # AA's 2026-09 overhaul. Mirrors static_api._detail_html — the Dash app and
+    # the published static site must state the same thing about the same model.
+    estimated = bool(row.get("quality_estimated", False))
+
     def _metric(lbl, val, accent=False):
         return html.Div([
             html.Span(lbl, className="detail-metric-label"),
@@ -1391,7 +1396,7 @@ def toggle_detail_panel(pareto_click, _close):
         html.Div([
             html.Div([
                 html.Span("INTELLIGENCE", className="detail-metric-label"),
-                html.Span(f"{quality:.0f}  ·  {qlabel}",
+                html.Span(f"{quality:.0f}  ·  {qlabel}{'  ·  est.' if estimated else ''}",
                           className="detail-metric-value accent"),
             ], style={"display": "flex", "justifyContent": "space-between",
                       "alignItems": "baseline", "marginBottom": "6px"}),
@@ -1410,7 +1415,8 @@ def toggle_detail_panel(pareto_click, _close):
                     "marginBottom": "4px",
                 },
             ),
-            html.Div(f"Top {100 - pct}% of all models",
+            html.Div(("AA estimated this score — not the full evaluation suite"
+                      if estimated else f"Top {100 - pct}% of all models"),
                      style={"fontSize": "10px", "color": "var(--text-3)",
                             "marginBottom": "16px"}),
         ]),
@@ -1420,6 +1426,10 @@ def toggle_detail_panel(pareto_click, _close):
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
         _metric("Context", str(row.get("context", "N/A")) or "N/A"),
+        html.Div(className="detail-panel-divider"),
+        _metric("Coding",      index_label(row.get("coding"))),
+        _metric("Agentic",     index_label(row.get("agentic"))),
+        _metric("Omniscience", index_label(row.get("omniscience"))),
     ]
 
     return "detail-panel open", body, model_name

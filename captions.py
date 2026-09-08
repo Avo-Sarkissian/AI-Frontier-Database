@@ -34,7 +34,10 @@ CAPTIONS: dict[str, str] = {
         "Intelligence = AA Intelligence Index (composite benchmark). Value = "
         "Intelligence ÷ Price (higher = more score per dollar). Speed = throughput "
         "in tokens/second. Models within ±2 points of each other are effectively "
-        "tied — small deltas are within measurement variance."
+        "tied — small deltas are within measurement variance. About half these "
+        "scores are estimated by Artificial Analysis rather than measured: since "
+        "its 2026-09 rebuild it extrapolates the index for models it has not yet "
+        "run the full evaluation suite on. Click any model for which it is."
     ),
     'rankings_value': (
         "Top 15 models ranked by intelligence per dollar (quality score ÷ price per "
@@ -60,9 +63,10 @@ CAPTIONS: dict[str, str] = {
     ),
     'table': (
         "Full sortable model table. Score = AA Intelligence Index (composite "
-        "benchmark, higher = better). Value = Score ÷ Price (quality per dollar). "
-        "Price = blended $/M tokens (3:1 output/input). Latency = "
-        "time-to-first-token (TTFT) in seconds."
+        "benchmark, higher = better) — about half are estimated by Artificial "
+        "Analysis rather than measured, which the ↓CSV export marks per row. "
+        "Value = Score ÷ Price (quality per dollar). Price = blended $/M tokens "
+        "(3:1 output/input). Latency = time-to-first-token (TTFT) in seconds."
     ),
     'local': (
         "Model specs come from Artificial Analysis, plus a short curated list of "

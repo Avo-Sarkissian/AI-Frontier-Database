@@ -452,3 +452,50 @@ def test_the_readme_screenshots_are_reproducible():
     assert "capture_screenshots.py" in README, (
         "the README does not say how to regenerate them"
     )
+
+
+# ── AA's 2026-09 intelligence overhaul: what the reader is told ──────────────
+
+def _estimated_share(df, col="quality_estimated") -> float:
+    if col not in df.columns or df.empty:
+        return 0.0
+    return float(df[col].eq(True).mean())
+
+
+def test_the_captions_that_define_the_score_disclose_aa_estimation():
+    """AA's 2026-09 overhaul added `intelligenceIndexIsEstimated`, true for 105
+    of our 198 hosted models: AA sets it when it has not run the full new eval
+    suite and is extrapolating the index instead.
+
+    A reader told only "Score = AA Intelligence Index (composite benchmark)"
+    reasonably concludes every number was measured. Where a majority were not,
+    the captions that DEFINE the metric have to say so — the same standard the
+    overview caption already meets by disclosing that the 3:1 price blend is
+    ours and not AA's.
+
+    Keyed to the data, not to a date: if AA re-runs the suite and the share
+    falls below 10%, this stops demanding the sentence."""
+    share = _estimated_share(DF)
+    if share < 0.10:
+        pytest.skip(f"only {share:.0%} of the catalogue is AA-estimated")
+    for key in ("rankings_intelligence", "table"):
+        cap = CAPTIONS[key].lower()
+        assert "estimat" in cap, (
+            f"{share:.0%} of published scores are AA estimates and the "
+            f"{key!r} caption, which defines the metric, does not say so"
+        )
+
+
+def test_the_detail_panel_is_where_the_estimate_is_named_per_model():
+    """The captions carry the aggregate caveat; the per-model claim belongs
+    where a single number is stated as this model's intelligence."""
+    import static_api as _api
+
+    est = DF[DF.get("quality_estimated", pd.Series(False, index=DF.index)).eq(True)]
+    if est.empty:
+        pytest.skip("no estimated scores in the catalogue")
+    row = est.iloc[0]
+    out = _api._detail_html(row, str(row["provider"]))
+    assert "estimated" in out.lower(), (
+        f"{row['model']} carries an AA-estimated score the panel does not mark"
+    )

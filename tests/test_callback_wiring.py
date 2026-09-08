@@ -99,3 +99,55 @@ def test_every_callback_dependency_resolves_to_a_real_component():
         "raises a runtime ReferenceError and the feature silently does nothing:\n"
         + "\n".join(f"  {k}\n      missing: {v}" for k, v in dangling.items())
     )
+
+
+# ── The callback BODY, not just its wiring ───────────────────────────────────
+
+def test_the_detail_panel_callback_body_actually_runs(monkeypatch):
+    """This file proves every callback points at a component that exists. It
+    does not prove the callback RUNS — and on 2026-09-08 the Overview detail
+    panel was wired correctly while its body called `_index_label`, a name that
+    existed only under a different spelling after the helper moved to
+    static_helpers. Dash resolves that at click time, in the browser, as a
+    console error nobody sees: the same silence this file was written for, one
+    layer in.
+
+    So: drive the real callback with a real row and let a NameError be a test
+    failure rather than a dead panel."""
+    class _Ctx:
+        triggered_id = "pareto-chart"
+
+    monkeypatch.setattr(app_module, "ctx", _Ctx)
+    row = app_module.df.iloc[0]
+    click = {"points": [{"customdata": [row["model"], row["provider"]]}]}
+
+    class_name, body, name = app_module.toggle_detail_panel(click, None)
+
+    assert class_name == "detail-panel open"
+    assert name == row["model"]
+    rendered = str(body)
+    for label in ("INTELLIGENCE", "Price", "Coding", "Agentic", "Omniscience"):
+        assert label in rendered, f"the panel body never rendered {label}"
+
+
+def test_the_dash_and_static_panels_agree_about_an_estimated_score(monkeypatch):
+    """app.py renders the Dash panel and static_api renders the published site's.
+    Two implementations of one claim drift; this pins that they still agree on
+    the claim that matters most — whether AA measured this score or guessed it."""
+    import static_api as api
+
+    est = app_module.df[app_module.df["quality_estimated"].eq(True)]
+    if est.empty:
+        pytest.skip("no AA-estimated scores in the catalogue")
+    row = est.iloc[0]
+
+    class _Ctx:
+        triggered_id = "pareto-chart"
+
+    monkeypatch.setattr(app_module, "ctx", _Ctx)
+    click = {"points": [{"customdata": [row["model"], row["provider"]]}]}
+    _, dash_body, _ = app_module.toggle_detail_panel(click, None)
+
+    static_html = api._detail_html(row, str(row["provider"]))
+    assert "est" in str(dash_body).lower(), "the Dash panel does not mark the estimate"
+    assert "estimated" in static_html.lower(), "the static panel does not mark the estimate"

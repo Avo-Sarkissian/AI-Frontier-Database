@@ -231,3 +231,50 @@ def test_blended_price_is_consistent_with_the_two_sides():
     assert len(df) > 50
     expected = (3 * df["price_out"] + df["price_in"]) / 4
     assert ((df["price"] - expected).abs() < 0.01).mean() > 0.9
+
+
+# ── AA's 2026-09 intelligence overhaul in the detail panel ───────────────────
+
+def _overhaul_row(estimated=False, coding=70.14, agentic=27.25, omni=-2.17):
+    r = _row("Gemini 3.1 Flash", "Google", "1M")
+    r.update({"quality_estimated": estimated, "coding": coding,
+              "agentic": agentic, "omniscience": omni})
+    return r
+
+
+def test_the_detail_panel_marks_an_estimated_intelligence_score():
+    """105 of 198 hosted models carry an AA-estimated index. The panel is the
+    surface that states a single number as this model's intelligence, so it is
+    the one place that must not imply the number was measured."""
+    out = api._detail_html(pd.Series(_overhaul_row(estimated=True)), "Google")
+    assert "estimated" in out.lower(), (
+        "an AA-estimated intelligence score is presented as measured"
+    )
+
+
+def test_the_detail_panel_does_not_cry_estimated_on_a_measured_score():
+    out = api._detail_html(pd.Series(_overhaul_row(estimated=False)), "Google")
+    assert "estimated" not in out.lower(), "a measured score was labelled estimated"
+
+
+def test_the_detail_panel_shows_the_sibling_indices():
+    out = api._detail_html(pd.Series(_overhaul_row()), "Google")
+    for label in ("Coding", "Agentic", "Omniscience"):
+        assert label in out, f"the panel does not surface {label}"
+    assert "70.1" in out and "27.2" in out and "-2.2" in out
+
+
+def test_the_detail_panel_shows_a_dash_for_an_unscored_index():
+    """AA scores Coding on 144 of 198 and Agentic on 107. An unscored model must
+    read as "not scored", not as a zero it would be ranked on."""
+    out = api._detail_html(
+        pd.Series(_overhaul_row(coding=float("nan"), agentic=float("nan"))), "Google")
+    assert "0.0" not in out.split("Coding")[1][:80], "an unscored index rendered as 0"
+
+
+def test_the_detail_panel_survives_a_row_without_the_overhaul_columns():
+    """Every history snapshot predates these columns, and _with_price_sides
+    materialises them — but the panel must not explode if handed an older row
+    directly."""
+    out = api._detail_html(pd.Series(_row("Old Model", "Google", "128k")), "Google")
+    assert "Old Model" in out

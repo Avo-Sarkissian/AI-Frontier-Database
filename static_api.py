@@ -36,6 +36,7 @@ from components.charts.bump_chart import build_value_leaders
 from components.charts.radar import build_radar
 from components.charts.cost_calc import build_cost_calc, cheapest_above
 from static_helpers import (
+    index_label,
     apply_filters,
     coerce_number,
     cap_compare_selection,
@@ -183,18 +184,31 @@ def _detail_html(row: pd.Series, provider: str) -> str:
         'background:linear-gradient(90deg,#00d4ff,#4c9eff);'
         'border-radius:2px;transition:width 0.4s ease;"'
     )
+    # AA's 2026-09 overhaul flags an index it extrapolated rather than measured
+    # — true for 105 of the 198 models this catalogue publishes. The panel
+    # states one number as "this model's intelligence", so it is the surface
+    # that must say which kind of number it is.
+    estimated = bool(row.get("quality_estimated", False))
+    est_mark = (
+        f'<span style="font-size:9px;color:#7a7a7a;font-family:{_FONT};"> · est.</span>'
+        if estimated else ""
+    )
     intel_row = (
         f'<div style="display:flex;justify-content:space-between;'
         f'align-items:baseline;margin-bottom:6px;">'
         f'<span style="font-size:9px;letter-spacing:0.08em;color:#555;'
         f'font-family:{_FONT};text-transform:uppercase;">INTELLIGENCE</span>'
         f'<span style="font-size:11px;color:#00d4ff;font-family:{_FONT};">'
-        f'{quality:.0f}  ·  {qlabel}</span>'
+        f'{quality:.0f}  ·  {qlabel}{est_mark}</span>'
         f'</div>'
+    )
+    percentile_note = (
+        "AA estimated this score — not the full evaluation suite"
+        if estimated else f"Top {100 - pct}% of all models"
     )
     percentile_div = (
         f'<div style="font-size:10px;color:var(--text-3);margin-bottom:16px;">'
-        f'Top {100 - pct}% of all models</div>'
+        f'{percentile_note}</div>'
     )
     intel_section = (
         f'<div>{intel_row}'
@@ -227,6 +241,10 @@ def _detail_html(row: pd.Series, provider: str) -> str:
         + _metric("Speed", speed_str)
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)
+        + divider
+        + _metric("Coding", index_label(row.get("coding")))
+        + _metric("Agentic", index_label(row.get("agentic")))
+        + _metric("Omniscience", index_label(row.get("omniscience")))
     )
 
 

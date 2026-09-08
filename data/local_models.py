@@ -1809,6 +1809,14 @@ def total_throughput_tps(sessions: int, **kw) -> float:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+def _opt_float(v) -> float:
+    """A sibling index, or NaN — never 0, which is a real score on these scales."""
+    try:
+        return float(v) if v is not None and pd.notna(v) else float("nan")
+    except (TypeError, ValueError):
+        return float("nan")
+
+
 def _load_models_raw() -> list[dict]:
     """
     Load open-weight model specs from the scraped CSV cache.
@@ -1830,6 +1838,23 @@ def _load_models_raw() -> list[dict]:
                 "license":   str(row["license"]),
                 "tags":      tags,
                 "moe":       bool(row["moe"]),
+                # AA's 2026-09 intelligence overhaul. Named explicitly because
+                # this loop rebuilds each row as a dict: a column the scrape
+                # writes but this list omits is dropped silently on the way to
+                # the tab and its CSV export. 147 of 190 open-weight models
+                # carry an AA-estimated index, so dropping the flag republished
+                # every one of them as measured.
+                #
+                # A curated model in _MODELS_RAW below has no AA score at all
+                # and gets no flag: "AA estimated this" and "AA has never seen
+                # this" are different claims, and the tab already draws the
+                # latter as an outlined bar with no score.
+                "quality_estimated": bool(row["quality_estimated"])
+                    if "quality_estimated" in df.columns and pd.notna(row.get("quality_estimated"))
+                    else False,
+                "coding":      _opt_float(row.get("coding")),
+                "agentic":     _opt_float(row.get("agentic")),
+                "omniscience": _opt_float(row.get("omniscience")),
             })
         return rows
     return _MODELS_RAW
@@ -1954,6 +1979,7 @@ def get_local_df(
             "weights_gb", "kv_gb", "overhead_gb", "kv_bytes_tok", "kv_source", "ctx_used",
             "bound", "sessions", "per_session_tps", "total_tps",
             "concurrency_bound",
+            "quality_estimated", "coding", "agentic", "omniscience",
         ])
     df["family_color"] = df["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR)
     return df

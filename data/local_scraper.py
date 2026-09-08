@@ -144,6 +144,25 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
 
         license_name = (m.get("licenseName") or "").strip() or "Unknown"
 
+        # AA's 2026-09 intelligence overhaul — same three sibling indices and
+        # the same estimated flag as the hosted catalogue (data/scraper.py).
+        # The share is HIGHER here: 147 of 190 open-weight models carry an
+        # estimated index against 105 of 198 hosted, because AA re-runs the
+        # full eval suite on frontier API models first. NaN, never 0: 0 is a
+        # real score on all three scales, and AA-Omniscience is negative for
+        # most of the catalogue by construction.
+        from data.scraper import _real as _aa_real
+
+        def _idx(v):
+            # Rounded like `quality` above: this CSV is committed hourly, and
+            # full float precision (74.757248...) churns lines on noise.
+            if not _aa_real(v) or isinstance(v, bool):
+                return float("nan")
+            try:
+                return round(float(v), 2)
+            except (TypeError, ValueError):
+                return float("nan")
+
         rows.append({
             "name":      name,
             "family":    family,
@@ -154,6 +173,10 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
             "license":   license_name,
             "tags":      ",".join(tags),
             "moe":       moe,
+            "quality_estimated": m.get("intelligenceIndexIsEstimated") is True,
+            "coding":      _idx(m.get("codingIndex")),
+            "agentic":     _idx(m.get("agenticIndex")),
+            "omniscience": _idx(m.get("omniscience")),
         })
 
     if not rows:
@@ -169,6 +192,8 @@ MAX_SHRINK_PCT = 20.0
 # Share of rows each critical column must actually carry. A rename degrades to a
 # constant rather than raising, so without this a schema change publishes a full
 # row count with an all-zero column — see data/scraper.py for the hosted case.
+# The overhaul columns are absent on purpose — see the note in data/scraper.py:
+# quality_estimated is boolean and coding/agentic are sparse upstream.
 _COLUMN_HEALTH = {"name": 0.95, "family": 0.90, "params_b": 0.90, "quality": 0.80}
 
 

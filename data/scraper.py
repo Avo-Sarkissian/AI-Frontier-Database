@@ -63,6 +63,23 @@ def _real(v):
     return v is not None and v != "$undefined"
 
 
+def _index_str(v) -> str:
+    """One of AA's sibling indices as a CSV field, or "" when it has no score.
+
+    Empty, never 0. AA scores Coding on 144 of our 198 models and Agentic on
+    107, and 0 is a REAL value on these scales — AA-Omniscience is negative for
+    most of the catalogue (live range -88.6 to +43.7) precisely because it
+    penalises hallucination. Writing 0 for "not scored" would put an unscored
+    model above a genuinely bad one.
+    """
+    if not _real(v) or isinstance(v, bool):
+        return ""
+    try:
+        return str(round(float(v), 2))
+    except (TypeError, ValueError):
+        return ""
+
+
 def _extract_models(html: str) -> list[dict]:
     """The leaderboard's metrics records.
 
@@ -150,6 +167,17 @@ def _parse_api_response(models: list[dict]) -> list[list]:
         speed   = float(speed) if _real(speed) else 0
         latency = float(latency) if _real(latency) else 0
 
+        # AA's 2026-09 intelligence overhaul. `intelligenceIndexIsEstimated` is
+        # true on 105 of the 198 models this catalogue publishes: AA sets it
+        # when it has not run the full new eval suite and is extrapolating the
+        # index. Presenting that as a measurement is the error _price_label()
+        # exists to prevent for price, one column over.
+        #
+        # Appended rather than inserted after `quality`: load_from_raw reads
+        # this list POSITIONALLY, and the history snapshots under
+        # data/raw/history/ were written with the 9-field shape.
+        estimated = "1" if m.get("intelligenceIndexIsEstimated") is True else "0"
+
         kept.add(model_name)
         rows.append([
             model_name,
@@ -161,6 +189,10 @@ def _parse_api_response(models: list[dict]) -> list[list]:
             str(latency),
             str(p_in),
             str(p_out),
+            estimated,
+            _index_str(m.get("codingIndex")),
+            _index_str(m.get("agenticIndex")),
+            _index_str(m.get("omniscience")),
         ])
 
     dropped_no_score = sorted(n for n in skipped["no_score"] if n and n not in kept)
@@ -211,6 +243,12 @@ def _save_coverage() -> None:
 # Thresholds are deliberately loose: they catch a column that has *collapsed*,
 # not one with a few genuine gaps. Speed and latency are absent for a handful of
 # real models, so 0.80 leaves room without letting a wholesale zeroing through.
+# quality_estimated / coding / agentic / omniscience are deliberately NOT here.
+# The first is a boolean (a healthy scrape can legitimately be all-False), and
+# AA scores Coding on 144 of 198 models and Agentic on 107 — a density floor on
+# a column upstream only partially populates is a guard that cries wolf every
+# hour. test_the_estimated_flag_is_not_health_checked_like_a_dense_column pins
+# this so nobody "completes" the table later.
 _COLUMN_HEALTH = {
     "provider": 0.95,
     "quality":  0.95,

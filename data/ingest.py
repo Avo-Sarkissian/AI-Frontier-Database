@@ -54,6 +54,17 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
         # sides are carried through for display. Older rows have only 7 fields.
         price_in  = _parse_price(row[7]) if len(row) > 7 else float("nan")
         price_out = _parse_price(row[8]) if len(row) > 8 else float("nan")
+        # AA's 2026-09 intelligence overhaul, appended at 9..12 so the 7- and
+        # 9-field rows already on disk keep parsing. quality_estimated defaults
+        # to False for those: a cache written before AA published the flag says
+        # nothing about estimation, and False is what every consumer already
+        # assumed. The three sibling indices default to NaN, never 0 — 0 is a
+        # real score on all three scales.
+        quality_estimated = str(row[9]).strip() in ("1", "True", "true") \
+            if len(row) > 9 else False
+        coding      = _parse_numeric(row[10]) if len(row) > 10 else float("nan")
+        agentic     = _parse_numeric(row[11]) if len(row) > 11 else float("nan")
+        omniscience = _parse_numeric(row[12]) if len(row) > 12 else float("nan")
 
         # Skip rows with no useful data
         if pd.isna(quality) or model == "":
@@ -69,6 +80,10 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
             "latency":   latency,
             "price_in":  price_in,
             "price_out": price_out,
+            "quality_estimated": quality_estimated,
+            "coding":      coding,
+            "agentic":     agentic,
+            "omniscience": omniscience,
         })
 
     df = pd.DataFrame(records)
@@ -85,17 +100,34 @@ def load_cached() -> pd.DataFrame:
     raise FileNotFoundError("No cached data found. Run scrape first.")
 
 
-def _with_price_sides(df: pd.DataFrame) -> pd.DataFrame:
-    """Guarantee price_in / price_out exist.
+# Columns added after the first cache was written, with the value that means
+# "we do not know" for each. Every archived history snapshot under
+# data/raw/history/ predates all of them.
+_LATE_COLUMNS: dict[str, object] = {
+    "price_in":   float("nan"),
+    "price_out":  float("nan"),
+    # AA's 2026-09 overhaul. False, not NaN: "not flagged as estimated" is what
+    # every pre-overhaul row meant and what every consumer already assumed, and
+    # a NaN here would make `if row["quality_estimated"]` truthy.
+    "quality_estimated": False,
+    # NaN, not 0 — 0 is a real score on all three of these scales.
+    "coding":      float("nan"),
+    "agentic":     float("nan"),
+    "omniscience": float("nan"),
+}
 
-    A cache written before those columns existed — and every one of the archived
-    history snapshots — has only the blended `price`. Charts read these columns
-    unconditionally, so materialise them as NaN rather than making every caller
-    test for them; a missing rate renders as "—", never as a wrong number.
+
+def _with_price_sides(df: pd.DataFrame) -> pd.DataFrame:
+    """Guarantee the late-added columns exist.
+
+    A cache written before they existed — and every archived history snapshot —
+    has only the older shape. Charts and the detail panel read these columns
+    unconditionally, so materialise them rather than making every caller test
+    for them; a missing value renders as "—", never as a wrong number.
     """
-    for col in ("price_in", "price_out"):
+    for col, missing in _LATE_COLUMNS.items():
         if col not in df.columns:
-            df[col] = float("nan")
+            df[col] = missing
     return df
 
 
