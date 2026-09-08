@@ -164,13 +164,42 @@ def test_video_frontier_membership_does_not_grow_under_a_filter(mode):
 def test_fast_tier_score_is_invariant_under_provider_selection():
     """The composite Fast score divides quality, value and speed by three
     separate pool-dependent maxima, so ticking an unrelated provider box changes
-    the weighting and flips the rendered order."""
-    tier = {**next(t for t in _API_TIERS if t["key"] == "fast"), "n": 10_000}
-    full = _pick_api_tier(DF, tier, full_df=DF).set_index("model")["_score"]
+    the weighting and flips the rendered order.
 
-    for providers in (["SpaceXAI"], ["Alibaba"], ["Anthropic", "Google"]):
+    The provider selections are DERIVED, not named. They used to be hardcoded
+    as SpaceXAI / Alibaba / Anthropic+Google, and on 2026-09-08 an AA refresh
+    priced Grok 4.6 at $5.00/M against the tier's $3.00 cap and left Grok 4.3 at
+    24.8 quality against its 28.0 floor — so SpaceXAI fielded no Fast candidate,
+    _pick_api_tier returned an empty frame, and the test died on
+    ``KeyError: '_score'`` without ever testing invariance. A test that names
+    providers is pinned to a price list; the property here is about the scoring
+    arithmetic, so it has to run against whoever currently clears the gate.
+    """
+    from components.stack_recommender import _tier_pool
+
+    tier = {**next(t for t in _API_TIERS if t["key"] == "fast"), "n": 10_000}
+    pool = _tier_pool(DF, tier)
+    assert not pool.empty, "no model in the catalogue clears the Fast tier gate"
+
+    fielding = sorted({
+        p for p in pool["provider"].unique()
+        if not _tier_pool(DF[DF["provider"] == p], tier).empty
+    })
+    assert len(fielding) >= 2, (
+        f"only {len(fielding)} provider(s) field a Fast model — too few to tell "
+        f"a pool-dependent maximum from a stable one"
+    )
+
+    full = _pick_api_tier(DF, tier, full_df=DF).set_index("model")["_score"]
+    selections = [[fielding[0]], [fielding[-1]], fielding[:2]]
+
+    for providers in selections:
         sub = DF[DF["provider"].isin(providers)]
-        scored = _pick_api_tier(sub, tier, full_df=DF).set_index("model")["_score"]
+        picked = _pick_api_tier(sub, tier, full_df=DF)
+        assert "_score" in picked.columns and not picked.empty, (
+            f"{providers} field a Fast model but _pick_api_tier scored nothing"
+        )
+        scored = picked.set_index("model")["_score"]
         shared = scored.index.intersection(full.index)
         assert len(shared) > 0
         for model in shared:

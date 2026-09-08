@@ -472,9 +472,57 @@ def test_the_effort_setting_actually_moves_the_score():
         f"only {moved} models scored lower at low effort than at max — the "
         f"selector is not picking different variants"
     )
-    assert (strong.loc[shared, "quality"] >= weak.loc[shared, "quality"]).all(), (
-        "a model scored HIGHER at low effort than at max"
+    # The invariant is about the SELECTION, not the scores. This used to assert
+    # strong >= weak on quality, which is a claim about AA's numbers rather than
+    # about this code, and it went red on 2026-09-08: AA measures gpt-oss-20b at
+    # 9.95 (low) and 9.04 (high). That is not a scrape error — a 20B model made
+    # to think longer really can score worse, and at ~9 points the two tiers are
+    # inside each other's noise. select_effort picked correctly both times (high
+    # is the nearest published tier to max), so the code was right and the
+    # assertion was wrong.
+    #
+    # What must never happen is asking for MAX and being handed a WEAKER
+    # published tier than asking for LOW. Rank 0 is the strongest tier, and an
+    # unlabelled row sorts last, exactly as select_effort ranks it.
+    from components.charts.constants import _EFFORT_RANK, EFFORT_LEVELS, effort_of
+
+    unlabelled = len(EFFORT_LEVELS) + 1
+
+    def _rank(name):
+        return _EFFORT_RANK.get(effort_of(name) or "", unlabelled)
+
+    inverted = [
+        base for base in shared
+        if _rank(strong.loc[base, "model"]) > _rank(weak.loc[base, "model"])
+    ]
+    assert not inverted, (
+        "asking for max effort returned a weaker published tier than asking "
+        f"for low, for: {[(b, strong.loc[b, 'model'], weak.loc[b, 'model']) for b in inverted[:5]]}"
     )
+
+
+def test_the_effort_selector_ignores_quality_when_picking_a_tier():
+    """select_effort answers "which variant represents this model at effort X",
+    and the answer is the nearest PUBLISHED tier — never the highest-scoring one.
+
+    Pinned on synthetic rows because the real catalogue only sometimes contains
+    an inverted ladder. It contained none until 2026-09-08, when gpt-oss-20b
+    (low) 9.95 / (high) 9.04 arrived and took out the test above; a model whose
+    quality falls as effort rises must still answer "max" with its strongest
+    published tier."""
+    import pandas as _pd
+    from components.charts.constants import select_effort
+
+    df = _pd.DataFrame([
+        {"model": "Toy (low)",  "quality": 9.95, "provider": "T"},
+        {"model": "Toy (high)", "quality": 9.04, "provider": "T"},
+    ])
+    assert select_effort(df, "max").iloc[0]["model"] == "Toy (high)", (
+        "max effort answered with the weaker tier because it scored higher"
+    )
+    assert select_effort(df, "low").iloc[0]["model"] == "Toy (low)"
+    # effort=None keeps the documented "highest quality wins" behaviour.
+    assert select_effort(df, None).iloc[0]["model"] == "Toy (low)"
 
 
 def test_the_default_leaves_the_catalogue_exactly_as_it_was():
