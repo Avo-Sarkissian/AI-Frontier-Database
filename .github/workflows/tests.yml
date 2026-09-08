@@ -1,0 +1,55 @@
+name: Tests
+
+# WHY THIS EXISTS
+# ---------------
+# Until 2026-09-08 this repository had exactly one workflow — refresh.yml — and
+# it does not run pytest. It runs data_guard.py, which checks row counts and
+# shrink, so the 437-test suite ran only on a laptop and CI could not see a
+# broken invariant at all.
+#
+# That is not hypothetical. Two tests sat red on main and nobody knew:
+#   * an AA refresh priced Grok 4.6 above the Fast tier's cap, so a test that
+#     named SpaceXAI by hand died on KeyError '_score'
+#   * AA published gpt-oss-20b scoring HIGHER at low effort than at high, which
+#     broke a test asserting quality is monotonic in effort
+# Both arrived with *data*, not code, which is exactly why `on: push` is the
+# right trigger here: the hourly bot commits data to main, so its commits get
+# tested like any other. A pull_request-only workflow would still be blind.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only. refresh.yml needs contents:write because it publishes; this job
+# only ever reports, and a test runner that cannot write cannot rewrite the
+# branch GitHub Pages serves.
+permissions:
+  contents: read
+
+# The bot can push several data commits while a run is in flight. Only the tip
+# matters, so supersede rather than queue — but never cancel a PR mid-review.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      # SHA-pinned, matching refresh.yml: a moving tag is a dependency on
+      # whatever someone else points it at today.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      # Both locks are hash-pinned. requirements.lock is the runtime set the
+      # publishing job installs; requirements-dev.lock adds pytest and nothing
+      # else, and is kept separate so a test runner never enters the set that
+      # gets vendored into pybundle.zip.
+      - run: pip install --require-hashes -r requirements.lock
+      - run: pip install --require-hashes -r requirements-dev.lock
+      - name: pytest
+        run: python -m pytest -q

@@ -1,0 +1,11 @@
+# Test-only dependencies, kept OUT of requirements.txt because nothing here is
+# installed on the runtime path: requirements.lock is what the publishing job
+# resolves, and every package in it is vendored decision-by-decision (plotly is
+# executed by the browser out of pybundle.zip, pandas is pinned to what Pyodide
+# ships). A test runner has no business in that set.
+#
+# Range-pinned by hand like requirements.txt; requirements-dev.lock is what CI
+# resolves, with a sha256 per artifact. Regenerate after editing:
+#   .venv/bin/python -m piptools compile --generate-hashes --strip-extras \
+#       --allow-unsafe --output-file=requirements-dev.lock requirements-dev.txt
+pytest>=9.1,<10
