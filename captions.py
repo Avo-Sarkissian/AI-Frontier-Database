@@ -103,8 +103,13 @@ CAPTIONS: dict[str, str] = {
     ),
     'image': (
         "Compare image generation models by quality and style. ELO scores from "
-        "Artificial Analysis Image Arena — blind human comparisons. Each column "
-        "shows the best models for that style. Annotations show generation time."
+        "the Artificial Analysis Image Arena — blind pairwise human votes, so "
+        "they rank models against each other and have no meaningful zero. "
+        "Overall ELO and price refresh hourly. The per-style scores each column "
+        "ranks on do not: Artificial Analysis retired its public per-category "
+        "breakdown on 2026-09-07 and now publishes it only to API-key holders, "
+        "so those are the last published figures and a model released since "
+        "then carries none. Annotations show price per 1,000 images."
     ),
     'video': (
         "Compare video generation models on quality and cost, scraped hourly from the "

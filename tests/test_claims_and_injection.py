@@ -116,6 +116,45 @@ def test_the_overview_caption_does_not_say_one_bubble_per_model():
     assert "family" in CAPTIONS["overview_price"].lower()
 
 
+def test_the_image_caption_does_not_promise_generation_time_it_has_none_of():
+    """The Image Gen caption ended "Annotations show generation time." while
+    get_image_df() fills gen_time_s with 0 on all 158 rows — AA's arena payload
+    has never carried it — so image_scatter's annotation correctly prints the
+    price alone. The code was right; the sentence beside it was not.
+
+    Skips if AA ever starts publishing it: the annotation already has a branch
+    for that, and then the sentence becomes true again rather than wrong."""
+    df = get_image_df()
+    if (df["gen_time_s"] != 0).any():
+        pytest.skip("the image catalogue now carries generation time")
+    assert "generation time" not in CAPTIONS["image"].lower(), (
+        "the caption promises generation-time annotations the data cannot fill"
+    )
+
+
+def test_the_image_caption_does_not_call_the_style_scores_current():
+    """Since 2026-09-07 AA publishes no per-category image ELOs on any public
+    page (they are behind the key-gated arena API), so the elo_* columns are
+    carried forward from the committed CSV by image_scraper and are frozen. The
+    global ELO and price beside them ARE refreshed hourly, which is exactly why
+    the caption must not let the reader generalise from one to the other."""
+    live_cols = {"model", "provider", "elo", "price_per_1k"}
+    df = get_image_df()
+    category_cols = [c for c in df.columns if c.startswith("elo_")]
+    if not category_cols:
+        pytest.skip("no per-category columns in this catalogue")
+    assert live_cols <= set(df.columns)
+    cap = CAPTIONS["image"].lower()
+    for overclaim in ("updated hourly", "scraped hourly", "refreshed hourly"):
+        assert overclaim not in cap, (
+            f"the caption says style ELOs are {overclaim!r}, but "
+            f"{len(category_cols)} elo_* columns are carried forward, not scraped"
+        )
+    assert "no longer" in cap or "frozen" in cap or "retired" in cap, (
+        "the caption does not tell the reader the style scores stopped updating"
+    )
+
+
 def test_the_manifest_does_not_publish_host_rows_as_a_model_count():
     """`upstream_records: 428` sat beside `kept: 148` in the same JSON. 428 is
     host x model rows; the distinct-model figure is 162."""
