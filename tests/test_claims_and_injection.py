@@ -14,6 +14,7 @@ are cheap to close, and impossible to close reactively.
 """
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -345,6 +346,27 @@ def test_the_other_two_scrapers_sanitise_their_caches_too():
         assert "csv_safe" in (ROOT / rel).read_text(), f"{rel} writes raw text"
 
 
+def _last_commit_epoch(path: Path) -> int | None:
+    """When ``path`` was last changed, per git. None if git cannot say.
+
+    Read from history rather than the filesystem because **git does not record
+    mtimes**: a fresh clone stamps every file with its checkout time, in an
+    order nobody controls. This test compared ``st_mtime`` and so passed on the
+    laptop where the PDF happened to be written last and failed on the runner
+    where it was not — the first red build after CI was introduced, and a
+    property of the checkout rather than of the report.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "log", "-1", "--format=%ct", "--", str(path)],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    stamp = out.stdout.strip()
+    return int(stamp) if out.returncode == 0 and stamp.isdigit() else None
+
+
 def test_the_compiled_report_is_not_silently_stale():
     """report.tex was corrected in place; the tracked PDF/DOCX beside it were
     compiled from the older revision and still print the retired claims. No
@@ -354,7 +376,21 @@ def test_the_compiled_report_is_not_silently_stale():
     tex = ROOT / "report.tex"
     if not (pdf.exists() and tex.exists()):
         pytest.skip("no compiled report in this checkout")
-    if pdf.stat().st_mtime < tex.stat().st_mtime:
+
+    pdf_at, tex_at = _last_commit_epoch(pdf), _last_commit_epoch(tex)
+    if pdf_at is None or tex_at is None:
+        pytest.skip("no git history here — cannot date the compiled report "
+                    "against its source")
+
+    # Where this really bites: actions/checkout clones at depth 1, and in a
+    # one-commit history git attributes BOTH paths to the tip, so the two dates
+    # come back equal and the check below is vacuous rather than wrong. That is
+    # the deliberate trade. Full history is ~158 MiB here (an hourly 4 MB
+    # pybundle.zip, forever), which is not worth re-fetching every run to date a
+    # report that changes a few times a semester — and a vacuous check is far
+    # cheaper than the false failure the mtime version produced.
+
+    if pdf_at < tex_at:
         assert "Recompile `report.tex`" in README, (
             "the compiled report is older than its source and nothing says so"
         )
