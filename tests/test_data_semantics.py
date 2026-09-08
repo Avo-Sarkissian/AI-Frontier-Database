@@ -287,3 +287,112 @@ def test_data_guard_still_passes_on_the_real_tree():
     proc = subprocess.run([sys.executable, "data_guard.py"],
                           cwd=ROOT, capture_output=True, text=True)
     assert proc.returncode == 0, f"data_guard failed on real data:\n{proc.stdout}\n{proc.stderr}"
+
+
+# ── 1.6 — the image arena's flat schema (2026-09-07) ─────────────────────────
+#
+# AA rebuilt /text-to-image between 00:00Z and 04:52Z on 2026-09-07. Each
+# textToImage record lost its nested `elos[]` array — the `tag: null` entry the
+# parser read the global ELO from, plus ~34 tagged per-category entries — and
+# gained flat `elo` / `lower95ci` / `upper95ci` fields. `pricePer1kImages`
+# became `price` (same unit); `openWeightsUrl` disappeared with no replacement.
+#
+# The parser looked for `elos[]`, found none, skipped every model, and returned
+# no rows. That is the loud failure the workflow is built to surface, and it
+# worked: 7 consecutive runs went red instead of republishing frozen numbers.
+# These tests pin the shape so the next rebuild is caught by a test rather than
+# by a day of red cron mail.
+
+def _flat_image_record(name="GPT Image 2 (high)", elo=1178.11, price=211):
+    """One record in the schema AA serves today."""
+    return {"id": "9570e1d0", "slug": "gpt-image-2", "name": name,
+            "url": "/image/model-families/openai-gpt", "elo": elo,
+            "lower95ci": elo - 10, "upper95ci": elo + 10,
+            "creator": {"name": "OpenAI", "logo": "/img/logos/openai_small.svg"},
+            "isDefault": True, "price": price}
+
+
+def _nested_image_record(name="FLUX.1 [dev]", elo=842.77, price=24):
+    """One record in the pre-2026-09-07 schema, kept for an upstream revert."""
+    return {"name": name, "creator": {"name": "Black Forest Labs"},
+            "pricePer1kImages": price, "openWeightsUrl": "https://hf.co/x",
+            "elos": [{"tag": None, "elo": elo},
+                     {"tag": {"displayName": "Anime"}, "elo": elo + 5}]}
+
+
+def test_the_image_parser_reads_the_flat_arena_schema():
+    """The regression itself: today's payload must produce rows."""
+    from data.image_scraper import _parse
+
+    df = _parse([_flat_image_record()])
+    assert df is not None and len(df) == 1, "today's AA schema still parses to nothing"
+    row = df.iloc[0]
+    assert row["model"] == "GPT Image 2 (high)"
+    assert row["provider"] == "OpenAI"
+    assert row["elo"] == 1178.11
+    assert row["price_per_1k"] == 211, "price/pricePer1kImages share a unit"
+
+
+def test_the_image_parser_still_reads_the_nested_arena_schema():
+    """AA has reverted a redesign before. The old shape must not bit-rot."""
+    from data.image_scraper import _parse
+
+    df = _parse([_nested_image_record()])
+    assert df is not None and len(df) == 1
+    row = df.iloc[0]
+    assert row["elo"] == 842.77
+    assert row["price_per_1k"] == 24
+    assert bool(row["open_weights"]) is True
+    assert row["elo_anime"] == 847.77, "tagged per-category ELOs were dropped"
+
+
+def test_image_open_weights_is_not_asserted_false_when_upstream_stops_saying():
+    """51 of 158 image models are open-weights. The flat schema carries no
+    openWeightsUrl, and defaulting the column to False would publish a false
+    commercial fact for all 51 and silently empty the Open Weights filter —
+    the same error _price_label() exists to prevent for price."""
+    from data.image_scraper import _parse
+
+    df = _parse([_flat_image_record()])
+    assert df["open_weights"].isna().all(), (
+        "an absent openWeightsUrl was recorded as 'not open weights'"
+    )
+
+
+def test_image_columns_upstream_dropped_are_carried_forward_not_erased():
+    """open_weights and the per-category ELOs are still only published behind
+    AA's key-gated arena API. Writing the flat payload straight out would empty
+    34 populated columns while the row count stayed at 158 — a full-length CSV
+    with dead columns, which is the exact shape this file exists to catch."""
+    from data.image_scraper import _merge_cached_columns
+
+    live = pd.DataFrame([{"model": "GPT Image 2 (high)", "provider": "OpenAI",
+                          "elo": 1178.11, "price_per_1k": 211.0,
+                          "open_weights": None},
+                         {"model": "Brand New Model", "provider": "OpenAI",
+                          "elo": 900.0, "price_per_1k": 5.0,
+                          "open_weights": None}])
+    cached = pd.DataFrame([{"model": "GPT Image 2 (high)", "provider": "OpenAI",
+                            "elo": 1170.0, "price_per_1k": 200.0,
+                            "open_weights": True, "elo_anime": 1201.38}])
+
+    out = _merge_cached_columns(live, cached)
+    assert len(out) == 2, "the merge changed the row count"
+    known = out[out["model"] == "GPT Image 2 (high)"].iloc[0]
+    fresh = out[out["model"] == "Brand New Model"].iloc[0]
+
+    assert known["elo"] == 1178.11, "a carried column overwrote a live one"
+    assert known["price_per_1k"] == 211.0, "a carried column overwrote a live one"
+    assert bool(known["open_weights"]) is True, "open_weights was not carried forward"
+    assert known["elo_anime"] == 1201.38, "the category ELO was not carried forward"
+    assert pd.isna(fresh["elo_anime"]), "a model AA never scored got invented data"
+
+
+def test_the_live_image_columns_are_still_health_checked():
+    """Carrying columns forward must not make the guard blind to the columns
+    that ARE live: a provider rename still has to stop the publish."""
+    from data.image_scraper import _column_violations
+
+    broken = pd.DataFrame([{"model": f"m{i}", "provider": "", "elo": 1000.0}
+                           for i in range(20)])
+    assert _column_violations(broken), "an all-blank provider column published"

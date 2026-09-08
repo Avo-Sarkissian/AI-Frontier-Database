@@ -11,10 +11,36 @@ cache for 29 days (2026-07-11 → 2026-08-09) while the Image Gen tab served
 frozen numbers.
 
 The comparison page renders the same data server-side, so we read it from the
-React Server Components payload the page ships instead. Each model carries:
-  - global ELO (the ``tag: null`` entry in ``elos[]``)
-  - ~34 per-category ELOs (``tag.displayName``; this was ``tag.label`` under the
-    old API, another reason the old parser could not have survived)
+React Server Components payload the page ships instead.
+
+SCHEMA HISTORY — two shapes, both parsed
+----------------------------------------
+Until 2026-09-07 each ``textToImage`` record nested its scores in ``elos[]``:
+  - global ELO (the ``tag: null`` entry)
+  - ~34 per-category ELOs (``tag.displayName``; ``tag.label`` under the old API)
+
+Between 00:00Z and 04:52Z on 2026-09-07 AA rebuilt the page and flattened it:
+
+  ``elos[]``            -> ``elo`` + ``lower95ci`` / ``upper95ci``
+  ``pricePer1kImages``  -> ``price``            (same unit, per 1k images)
+  ``openWeightsUrl``    -> gone, no replacement
+  ~34 per-category ELOs -> gone from every public page
+
+The parser looked for ``elos[]``, found none, dropped all 158 models and
+returned no rows — so the run went red rather than republishing frozen numbers,
+which is exactly what the 2026-08-09 rework of this file was for. Both shapes
+are read now, because AA has reverted a redesign before.
+
+The two columns AA stopped publishing are still real: 51 of 158 models are
+open-weights, and the per-category ELOs drive the Image Gen tab's three facets.
+They survive only behind the key-gated ``/api/text-to-image/arena/preferences``
+endpoint (still ``400 {"error":"User key is required"}``), and no public page
+carries them — ``/image/arena`` renders the voting UI, not the leaderboard.
+``_merge_cached_columns`` therefore carries them forward from the committed CSV
+instead of overwriting 34 populated columns with blanks. Open-weights status is
+a durable property of a model, so carrying it is retention, not staleness; the
+category ELOs are a retired metric AA no longer scores, and a model AA has
+never scored keeps an empty cell rather than an invented one.
 
 Saves to data/raw/aa_image_models.csv. Returns False on any failure.
 
@@ -78,35 +104,19 @@ def _tag_label(tag: dict) -> str | None:
     return tag.get("displayName") or tag.get("label") or tag.get("slug")
 
 
-def _parse(models: list[dict]) -> pd.DataFrame | None:
-    if not models:
-        return None
+def _model_scores(m: dict) -> tuple[float | None, dict[str, float]]:
+    """(global ELO, {category label: ELO}) from either payload shape.
 
-    # Collect all category labels across all models
-    all_labels: list[str] = []
-    seen: set[str] = set()
-    for m in models:
-        for elo_obj in m.get("elos", []):
-            tag = elo_obj.get("tag")
-            if isinstance(tag, dict):
-                lbl = _tag_label(tag)
-                if lbl and lbl not in seen:
-                    seen.add(lbl)
-                    all_labels.append(lbl)
-
-    rows = []
-    for m in models:
-        name = (m.get("name") or "").strip()
-        if not name:
-            continue
-        creator  = m.get("creator") or {}
-        provider = _canonical_image_provider((creator.get("name") or "").strip())
-        price    = m.get("pricePer1kImages")   # float or None
-        ow       = bool(m.get("openWeightsUrl"))
-
+    The flat shape carries one score and no categories; the nested shape puts
+    the global score under ``tag: null`` alongside the tagged ones.
+    """
+    elos = m.get("elos")
+    if isinstance(elos, list) and elos:
         global_elo: float | None = None
-        cat_elos: dict[str, float] = {}
-        for elo_obj in m.get("elos", []):
+        cats: dict[str, float] = {}
+        for elo_obj in elos:
+            if not isinstance(elo_obj, dict):
+                continue
             tag = elo_obj.get("tag")
             val = elo_obj.get("elo")
             if val is None:
@@ -116,8 +126,60 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
             elif isinstance(tag, dict):
                 lbl = _tag_label(tag)
                 if lbl:
-                    cat_elos[lbl] = float(val)
+                    cats[lbl] = float(val)
+        return global_elo, cats
 
+    val = m.get("elo")
+    return (float(val) if val is not None else None), {}
+
+
+def _model_price(m: dict):
+    """Price per 1k images. Renamed pricePer1kImages -> price on 2026-09-07.
+
+    Read by presence of the key, not by truthiness: a genuine 0 and an absent
+    field are different facts, and `or` collapses them.
+    """
+    for key in ("pricePer1kImages", "price"):
+        if key in m:
+            return m[key]
+    return None
+
+
+def _model_open_weights(m: dict):
+    """True/False when AA says, None when AA no longer publishes it.
+
+    Defaulting to False would assert that FLUX, Qwen and Stable Diffusion are
+    closed — a false fact about 51 of 158 models, and one that silently empties
+    the Open Weights filter. None means "unknown", and _merge_cached_columns
+    fills it from what we last knew.
+    """
+    if "openWeightsUrl" in m:
+        return bool(m.get("openWeightsUrl"))
+    return None
+
+
+def _parse(models: list[dict]) -> pd.DataFrame | None:
+    if not models:
+        return None
+
+    # Collect all category labels across all models, in first-seen order.
+    all_labels: list[str] = []
+    seen: set[str] = set()
+    for m in models:
+        for lbl in _model_scores(m)[1]:
+            if lbl not in seen:
+                seen.add(lbl)
+                all_labels.append(lbl)
+
+    rows = []
+    for m in models:
+        name = (m.get("name") or "").strip()
+        if not name:
+            continue
+        creator  = m.get("creator") or {}
+        provider = _canonical_image_provider((creator.get("name") or "").strip())
+
+        global_elo, cat_elos = _model_scores(m)
         if global_elo is None:
             continue
 
@@ -125,8 +187,8 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
             "model":        name,
             "provider":     provider,
             "elo":          global_elo,
-            "price_per_1k": price,
-            "open_weights": ow,
+            "price_per_1k": _model_price(m),
+            "open_weights": _model_open_weights(m),
         }
         for lbl in all_labels:
             row[_col(lbl)] = cat_elos.get(lbl)
@@ -136,9 +198,65 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
         return None
 
     df = pd.DataFrame(rows)
-    df = df.sort_values("elo", ascending=False).reset_index(drop=True)
+    # Model name breaks ELO ties. Without it the order of two models on the same
+    # ELO follows AA's payload order, so a tie could swap on any refresh and
+    # rewrite a line in a CSV that is committed hourly — the change guard in
+    # .github/workflows/refresh.yml would read that as "data moved" and publish.
+    df = df.sort_values(["elo", "model"], ascending=[False, True],
+                        kind="mergesort").reset_index(drop=True)
     return df
 
+
+# Columns the live payload is authoritative for. A cached value must never win
+# over one AA just published, or the scrape would pin itself to its own history.
+_LIVE_COLUMNS = frozenset({"model", "provider", "elo", "price_per_1k"})
+
+
+def _merge_cached_columns(df: pd.DataFrame,
+                          cached: pd.DataFrame | None) -> pd.DataFrame:
+    """Fill columns the live payload no longer carries from the committed CSV.
+
+    Joins on model name and touches only holes: a column AA still publishes is
+    left exactly as scraped, and a model absent from the cache keeps empty
+    cells rather than being handed another model's numbers.
+    """
+    if cached is None or cached.empty or "model" not in cached.columns:
+        return df
+    if "model" not in df.columns or df.empty:
+        return df
+
+    lookup = cached.drop_duplicates(subset="model").set_index("model")
+    carried: list[str] = []
+
+    for col in lookup.columns:
+        if col in _LIVE_COLUMNS:
+            continue
+        prior = pd.Series(lookup[col].reindex(df["model"]).to_numpy(),
+                          index=df.index)
+        if col in df.columns:
+            live = df[col]
+            # Nothing live to protect only when the column is entirely empty.
+            if not live.notna().any() and prior.notna().any():
+                carried.append(col)
+            df[col] = live.where(live.notna(), prior)
+        else:
+            df[col] = prior
+            if prior.notna().any():
+                carried.append(col)
+
+    if carried:
+        filled = int(df[carried].notna().any(axis=1).sum())
+        print(f"[image_scraper] {len(carried)} column(s) carried forward from "
+              f"cache for {filled}/{len(df)} models — upstream stopped "
+              f"publishing them (see module docstring): "
+              f"{', '.join(carried[:4])}"
+              f"{f' +{len(carried) - 4} more' if len(carried) > 4 else ''}")
+
+    # Cache order first, new columns appended: this CSV is committed hourly and
+    # a reshuffled header would rewrite all 158 lines in every diff.
+    ordered = [c for c in cached.columns if c in df.columns]
+    ordered += [c for c in df.columns if c not in ordered]
+    return df[ordered]
 
 
 MAX_SHRINK_PCT = 20.0
@@ -213,6 +331,12 @@ def _scrape_and_save() -> bool:
     if df is None or df.empty:
         print("[image_scraper] No valid rows parsed")
         return False
+
+    try:
+        cached = load_cached()
+    except Exception:
+        cached = None
+    df = _merge_cached_columns(df, cached)
 
     violations = _shrink_violations(df) + _column_violations(df)
     if violations:
