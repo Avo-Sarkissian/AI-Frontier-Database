@@ -55,16 +55,16 @@ Qwen3.5 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,15.12,Apache 2.0,vision,Tru
 Mistral Medium 3.5,Mistral,128.0,128.0,256,14.89,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-36.8
 Granite 4.2 30B,IBM,30.0,30.0,131,14.83,Apache 2.0,reasoning,False,True,29.92,,-12.92
 K-EXAONE (Reasoning),LG AI Research,236.0,23.0,256,14.37,K Exaone,reasoning,True,True,32.11,,-57.97
-MiniCPM5-2B,OpenBMB,2.6,2.6,131,14.28,Apache 2.0,reasoning,False,True,14.5,8.95,-11.65
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,14.18,Apache 2.0,"vision,audio,reasoning",False,True,30.96,,-52.72
-Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,13.92,Apache 2.0,vision,False,True,33.17,,-51.68
 Command A+,Cohere,218.0,25.0,192,13.92,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-4.02
+Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,13.92,Apache 2.0,vision,False,True,33.17,,-51.68
 Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,13.65,Apache 2.0,"vision,reasoning",False,True,28.66,,-53.47
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,13.64,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-17.72
 Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,13.55,Nvidia Nemotron Open Model License,reasoning,True,False,37.72,4.13,-41.5
 Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,13.4,MIT,"vision,reasoning",False,True,,,-59.37
 Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,13.27,Apache 2.0,vision,False,True,23.46,,-70.7
 EXAONE 4.5 33B,LG AI Research,34.4,34.4,262,13.21,EXAONE AI Model License Agreement 1.2 - NC,"vision,reasoning",False,True,23.57,,-50.72
+MiniCPM5-2B,OpenBMB,2.6,2.6,131,13.14,Apache 2.0,reasoning,False,False,14.5,8.95,-11.65
 Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,13.13,Apache 2.0,vision,True,True,,,-62.32
 Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,13.12,Apache 2.0,"vision,reasoning",False,True,22.6,,-58.35
 North Mini Code,Cohere,30.0,3.0,256,12.84,Apache 2.0,"reasoning,code",True,True,36.45,1.07,-48.58
