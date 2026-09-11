@@ -144,3 +144,8 @@ K-EXAONE (Non-reasoning),LGAI-EXAONE/K-EXAONE-236B-A23B,gqa,48,,,8.0,128.0,128.0
 Mistral Small 4 (Non-reasoning),mistralai/Mistral-Small-4-119B-2603,mla,36,256.0,64.0,,,,,119.401,2026-09-04,
 Tiny Aya Global,mlx-community/tiny-aya-global-8bit-mlx,gqa,36,,,4.0,128.0,4096.0,9.0,3.349,2026-09-04,sliding
 MiniCPM5-2B,openbmb/MiniCPM5-2B,gqa,42,,,2.0,128.0,,,2.517,2026-09-07,
+Nemotron 3 Ultra 550B A55B (Reasoning),mlx-community/Nemotron-3-Ultra-550B-A55B,gqa,108,,,2.0,128.0,,,549.309,2026-09-11,
+K2-V2 (high),IFM/K2-Think-V2,gqa,80,,,8.0,128.0,,,72.55,2026-09-11,
+K2-V2 (medium),IFM/K2-Think-V2,gqa,80,,,8.0,128.0,,,72.55,2026-09-11,
+K2-V2 (low),IFM/K2-Think-V2,gqa,80,,,8.0,128.0,,,72.55,2026-09-11,
+Command A,TheDrummer/Fallen-Command-A-111B-v1,gqa,64,,,8.0,128.0,4096,16,111.058,2026-09-11,sliding
