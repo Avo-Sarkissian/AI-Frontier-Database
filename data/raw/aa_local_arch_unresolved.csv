@@ -1,6 +1,7 @@
 name,params_b,attempts,last_tried,reason
 Apriel-v1.6-15B-Thinker,15.0,3,2026-09-11,no repo cleared the parameter guard
 Command A+,218.0,3,2026-09-11,no repo cleared the parameter guard
+"DeepSeek V4.1 Flash (Reasoning, Max Effort)",552.0,1,2026-09-11,no repo cleared the parameter guard
 Falcon-H1R-7B,7.0,3,2026-09-11,no repo cleared the parameter guard
 Granite 4.1 3B,3.0,3,2026-09-11,no repo cleared the parameter guard
 Granite 4.2 3B,3.0,3,2026-09-11,no repo cleared the parameter guard
