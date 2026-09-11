@@ -499,11 +499,20 @@ def test_the_intelligence_scale_has_not_been_rescaled():
 
 
 def _local_record(estimated=False, coding=44.0, agentic=None, omni=-13.1):
+    """One open-weight record in the shape /models/<slug> ships.
+
+    Re-keyed on 2026-09-10 with the source: totalParameters -> parameters,
+    activeParameters -> inferenceParametersActiveBillions, modelCreatorName ->
+    a nested creator object. codingIndex and agenticIndex are kept here on
+    purpose even though AA has stopped sending them — the scrape must still
+    prefer a live score to the carried-forward one if they ever come back.
+    """
     return {
-        "name": "Qwen3.5 122B", "modelCreatorName": "Alibaba",
+        "name": "Qwen3.5 122B",
+        "creator": {"id": "alibaba", "name": "Alibaba", "logo": "a.svg"},
         "isOpenWeights": True, "deprecated": False,
         "intelligenceIndex": 20.38, "intelligenceIndexIsEstimated": estimated,
-        "totalParameters": 122.0, "activeParameters": 10.0,
+        "parameters": 122.0, "inferenceParametersActiveBillions": 10.0,
         "contextWindowTokens": 256_000, "licenseName": "Apache 2.0",
         "codingIndex": coding, "agenticIndex": agentic, "omniscience": omni,
     }
@@ -564,3 +573,253 @@ def test_a_curated_model_aa_has_not_benchmarked_is_not_marked_estimated():
     assert not pend["quality_estimated"].eq(True).any(), (
         "a model AA has never benchmarked is flagged as AA-estimated"
     )
+
+
+# ── 1.6 — AA's 2026-09-10 leaderboard restructure ────────────────────────────
+#
+# The fourth AA schema break this project has outlived. /leaderboards/models
+# split its single 94-field records array in two: a picker index that now owns
+# `name`, and a slimmed 50-field metrics array where `name` became `shortName`
+# and the parameter, modality and coding/agentic keys were dropped outright.
+#
+# Both scrapers read `m.get("name")`, so every one of the 646 rows failed the
+# empty-name check and the hourly refresh exited 1 for two days while serving a
+# frozen cache. The row-dropping WAS loud — the failure mode this codebase
+# actually fears is the silent one — but a catalogue that cannot parse at all is
+# still a catalogue nobody can refresh.
+#
+# `shortName` is not a substitute for `name`: it matched only 144 of the 198
+# cached models, so taking it would have renamed 54 models, orphaned their
+# history snapshots and broken the spotlight colour mapping.
+
+def _rsc_html(payload: str) -> str:
+    """One AA page's flight payload, wrapped the way Next.js ships it."""
+    return (
+        "<html><body><script>self.__next_f.push([1,"
+        + json.dumps(payload)
+        + "])</script></body></html>"
+    )
+
+
+def _restructured_pair(n: int = 4):
+    """The two arrays /leaderboards/models has served since 2026-09-10."""
+    picker = [{
+        "slug": f"m{i}",
+        "name": f"Model {i} (Adaptive Reasoning, High Effort)",
+        "deprecated": False,
+        "isReasoning": True,
+        "releaseDate": "2026-09-01",
+        "creator": {"id": f"c{i}", "name": f"Lab{i % 5}", "logo": "x.svg"},
+    } for i in range(n)]
+    metrics = [{
+        "slug": f"m{i}",
+        "shortName": f"Model {i} (high)",          # NOT the name we publish
+        "modelCreatorName": f"Lab{i % 5}",
+        "intelligenceIndex": 40.0 + i % 20,
+        "intelligenceIndexIsEstimated": bool(i % 2),
+        "omniscience": -10.0 - i,
+        "contextWindowTokens": 128_000,
+        "deprecated": False,
+        "isOpenWeights": bool(i % 2),
+        "price1mInputTokens": 1.0 + i % 3,
+        "price1mOutputTokens": 4.0 + i % 5,
+        "medianOutputTokensPerSecond": 50 + i,
+        "medianTimeToFirstTokenSeconds": 0.5 + (i % 4),
+    } for i in range(n)]
+    return picker, metrics
+
+
+def _restructured_html(n: int = 4) -> str:
+    picker, metrics = _restructured_pair(n)
+    return _rsc_html(
+        '{"models":' + json.dumps(picker)
+        + ',"label":"Models","models":' + json.dumps(metrics) + "}"
+    )
+
+
+def test_the_restructured_leaderboard_still_yields_rows():
+    """The regression itself: 646 upstream rows parsed to zero."""
+    from data.scraper import _extract_models
+
+    rows = _parse_api_response(_extract_models(_restructured_html(4)))
+    assert len(rows) == 4, (
+        f"the 2026-09-10 payload parsed to {len(rows)} rows — the scrape is dead"
+    )
+
+
+def test_the_published_name_is_the_pickers_not_shortname():
+    """shortName matched only 144 of 198 cached models. Publishing it would
+    rename 54 of them and orphan their history."""
+    from data.scraper import _extract_models
+
+    df = load_from_raw(_parse_api_response(_extract_models(_restructured_html(4))))
+    names = set(df["model"])
+    assert "Model 0 (Adaptive Reasoning, High Effort)" in names, (
+        f"the picker's name was not used; got {sorted(names)[:3]}"
+    )
+    assert not any(n.endswith("(high)") for n in names), (
+        "shortName leaked into the published catalogue"
+    )
+
+
+def test_a_metrics_row_missing_from_the_picker_is_not_silently_dropped():
+    """A slug the picker does not carry still has a shortName. Dropping the row
+    would shrink the catalogue invisibly; falling back keeps it, and the name is
+    the only thing that degrades."""
+    from data.scraper import _extract_models
+
+    picker, metrics = _restructured_pair(4)
+    picker = [p for p in picker if p["slug"] != "m2"]        # m2 only in metrics
+    html = _rsc_html('{"models":' + json.dumps(picker)
+                     + ',"models":' + json.dumps(metrics) + "}")
+    names = {r[0] for r in _parse_api_response(_extract_models(html))}
+    assert "Model 2 (high)" in names, "a picker-less row vanished from the scrape"
+
+
+def test_the_picker_index_is_not_mistaken_for_the_metrics_array():
+    """The picker now carries `name`, which is exactly what the metrics array
+    lost — so a name-based predicate would select the wrong one and publish a
+    full row count with every metric empty."""
+    from data.scraper import _extract_models
+
+    models = _extract_models(_restructured_html(4))
+    assert all("intelligenceIndex" in m for m in models), (
+        "picked the picker index — every metric column would publish empty"
+    )
+
+
+def test_coding_and_agentic_are_carried_forward_not_blanked():
+    """The same restructure dropped codingIndex and agenticIndex outright.
+
+    AA replaced the two composites with the raw component benchmarks
+    (terminalbench*, tau2, scicode, ifbench ...) rather than renaming them, so
+    there is no key to re-point at. Blanking two columns of real measurements
+    because upstream stopped recomputing them is the data loss the image arena
+    already taught this project to avoid — carry, and say so.
+    """
+    from data.scraper import _carry_dropped_columns
+
+    live = pd.DataFrame({
+        "model":   ["A", "B"],
+        "coding":  [float("nan"), float("nan")],
+        "agentic": [float("nan"), float("nan")],
+    })
+    cached = pd.DataFrame({"model": ["A"], "coding": [70.0], "agentic": [50.0]})
+    out = _carry_dropped_columns(live, cached)
+
+    assert out.loc[0, "coding"] == 70.0, "the cached coding score was dropped"
+    assert out.loc[0, "agentic"] == 50.0, "the cached agentic score was dropped"
+    assert pd.isna(out.loc[1, "coding"]), (
+        "a model absent from the cache inherited another model's score"
+    )
+
+
+def test_a_live_index_always_beats_the_cached_one():
+    """If AA ever publishes these again, the cache must not pin the scrape to
+    its own history."""
+    from data.scraper import _carry_dropped_columns
+
+    live = pd.DataFrame({"model": ["A"], "coding": [80.0], "agentic": [float("nan")]})
+    cached = pd.DataFrame({"model": ["A"], "coding": [70.0], "agentic": [50.0]})
+    out = _carry_dropped_columns(live, cached)
+
+    assert out.loc[0, "coding"] == 80.0, "a stale cached score overwrote a live one"
+    assert out.loc[0, "agentic"] == 50.0, "the hole was not filled"
+
+
+# ── 1.7 — the open-weight catalogue after the same restructure ───────────────
+#
+# The Run Local tab needs total and active parameter counts to size a model
+# against a card's VRAM and bandwidth. The slimmed leaderboard dropped
+# totalParameters, activeParameters and every inputModality flag — `paramClass`
+# ("small"/"medium"/"large") is all that is left, which cannot drive a roofline.
+#
+# Those fields still exist, on the per-model pages under /models/<slug>, which
+# ship the full 88-field catalogue for all 646 models rather than just the one
+# in the URL. `totalParameters` is now `parameters`, `activeParameters` is
+# `inferenceParametersActiveBillions`, and `modelCreatorName` became a nested
+# `creator` object.
+
+def _detail_record(i: int = 0, **over) -> dict:
+    """One record as /models/<slug> ships it since 2026-09-10."""
+    rec = {
+        "slug": f"ow{i}",
+        "name": f"Open Model {i}",
+        "shortName": f"OM{i}",
+        "creator": {"id": f"c{i}", "name": "LabX", "logo": "x.svg"},
+        "isOpenWeights": True,
+        "deprecated": False,
+        "isReasoning": True,
+        "intelligenceIndex": 40.0 + i,
+        "intelligenceIndexIsEstimated": True,
+        "omniscience": -12.0,
+        "contextWindowTokens": 256_000,
+        "parameters": 120.0,
+        "inferenceParametersActiveBillions": 12.0,
+        "licenseName": "Apache 2.0",
+        "inputModalityImage": True,
+        "inputModalitySpeech": False,
+    }
+    rec.update(over)
+    return rec
+
+
+def test_the_local_catalogue_reads_the_renamed_parameter_keys():
+    """params_b and active_b are what the roofline is computed from. Reading
+    the retired key names yields None and drops every row."""
+    from data.local_scraper import _parse
+
+    df = _parse([_detail_record(0)])
+    assert df is not None and len(df) == 1, "the detail-page record did not parse"
+    row = df.iloc[0]
+    assert row["params_b"] == 120.0, f"params_b came through as {row['params_b']}"
+    assert row["active_b"] == 12.0, f"active_b came through as {row['active_b']}"
+    assert row["family"] == "LabX", (
+        f"the nested creator object was not read; family={row['family']!r}"
+    )
+    assert row["context_k"] == 256, f"context_k came through as {row['context_k']}"
+    assert row["license"] == "Apache 2.0"
+    assert row["moe"], "120B total against 12B active is an MoE"
+
+
+def test_a_dense_model_falls_back_to_its_total_parameters():
+    """AA leaves the active count null on dense models — 98 of 193 open-weight
+    rows. Dropping them would halve the tab."""
+    from data.local_scraper import _parse
+
+    df = _parse([_detail_record(0, parameters=27.0,
+                                inferenceParametersActiveBillions=None)])
+    assert df is not None and len(df) == 1, "a dense model was dropped"
+    row = df.iloc[0]
+    assert row["active_b"] == 27.0, "a dense model did not fall back to its total"
+    assert not row["moe"], "a dense model was labelled MoE"
+
+
+def test_the_detail_page_catalogue_is_told_apart_from_the_slim_leaderboard():
+    """/models/<slug> carries more than one array under "models". Picking the
+    slim one would lose the parameter counts this page was fetched for."""
+    from data.local_scraper import _extract_models
+
+    slim = [{"slug": "ow0", "shortName": "OM0", "intelligenceIndex": 40.0}]
+    full = [_detail_record(0), _detail_record(1)]
+    html = _rsc_html('{"models":' + json.dumps(slim)
+                     + ',"models":' + json.dumps(full) + "}")
+    got = _extract_models(html)
+    assert all("parameters" in m for m in got), (
+        "picked an array with no parameter counts"
+    )
+    assert len(got) == 2
+
+
+def test_the_catalogue_page_slug_is_discovered_not_hardcoded():
+    """Any model's page serves the whole catalogue, so the entry point is just
+    a slug that exists. Pinning one means the scrape dies the day that model is
+    deprecated — which is how this project lost three endpoints already."""
+    from data.local_scraper import _entry_slug
+
+    picker = [
+        {"slug": "gone", "name": "Retired", "deprecated": True},
+        {"slug": "alive", "name": "Current", "deprecated": False},
+    ]
+    payload = '{"models":' + json.dumps(picker) + "}"
+    assert _entry_slug(payload) == "alive", "picked a deprecated model's page"

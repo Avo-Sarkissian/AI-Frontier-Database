@@ -2,7 +2,7 @@
 Scrapes open-weight model specs from the AA leaderboard and saves to
 aa_local_models.csv. This powers the Run Local tab's model catalog.
 
-Source: https://artificialanalysis.ai/leaderboards/models
+Source: https://artificialanalysis.ai/models/<slug>  (entry point: /leaderboards/models)
 
 WHY NOT THE API ENDPOINT
 ------------------------
@@ -23,16 +23,34 @@ carrying it as an unbenchmarked curated entry for days after AA scored it,
 because the self-expiry check compares against a scrape that structurally could
 not see it.
 
-The leaderboard page carries every model AA tracks with its metrics attached,
-including the unhosted ones, and everything this catalogue needs: total and
-active parameters, context window, Intelligence Index, licence, creator and the
+The page carries every model AA tracks with its metrics attached, including the
+unhosted ones, and everything this catalogue needs: total and active
+parameters, context window, Intelligence Index, licence, creator and the
 modality flags the tags are built from. Nothing was lost in the move — the new
 catalogue is a strict superset of the old one.
 
-A second benefit: data/scraper.py and this module used to hit the byte-identical
-URL, so the hosted and local datasets always failed together and the freshness
-badge could never distinguish them (see data/scrape_status.py). They now read
-different pages and fail independently.
+WHY A MODEL PAGE AND NOT THE LEADERBOARD
+---------------------------------------
+AA restructured /leaderboards/models on 2026-09-10 (see data/scraper.py for the
+full account) and the slimmed records it now serves dropped totalParameters,
+activeParameters and every inputModality flag. What is left of model size is
+`paramClass` — "small" / "medium" / "large" — which cannot size a model against
+a card's VRAM or drive the roofline in data/run_local.py. This tab exists to
+answer "what can I run on my hardware"; a coarse bucket does not answer it.
+
+Those fields were not deleted, only moved. Every page under /models/<slug>
+ships the full 88-field catalogue for ALL models, not just the one named in the
+URL, with totalParameters renamed to `parameters`, activeParameters to
+`inferenceParametersActiveBillions` and modelCreatorName to a nested `creator`
+object. So this module makes two hops: the leaderboard names a live model, and
+that model's page carries the catalogue. The slug is read at run time rather
+than pinned, because a pinned slug dies the day AA deprecates that model — the
+failure mode that has already cost this project three endpoints.
+
+A second benefit, restored: data/scraper.py and this module used to hit the
+byte-identical URL, so the hosted and local datasets always failed together and
+the freshness badge could never distinguish them (see data/scrape_status.py).
+The catalogue each one parses now comes from a different page again.
 
 Fields pulled per model:
   name, family, params_b (total), active_b (active/forward-pass), context_k,
@@ -51,6 +69,7 @@ import pandas as pd
 
 from data import scrape_status
 from data.rsc import find_array, payload_from_html
+from data.scraper import _real as _aa_real
 from static_helpers import csv_safe
 
 _HEADERS = {
@@ -63,29 +82,85 @@ _HEADERS = {
     "Referer": "https://artificialanalysis.ai/",
 }
 _PAGE_URL = "https://artificialanalysis.ai/leaderboards/models"
-_TIMEOUT = 45          # the page is ~4.9 MB of HTML
+# Any model's own page ships the FULL catalogue, not just the model in the URL,
+# so this is an entry point rather than a lookup — the slug is discovered at
+# run time (see _entry_slug) because pinning one means the scrape dies the day
+# that model is deprecated.
+_CATALOGUE_URL = "https://artificialanalysis.ai/models/{slug}"
+_TIMEOUT = 45          # the leaderboard is ~2.8 MB, a model page ~3.6 MB
 _CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
-def _extract_models(html: str) -> list[dict]:
-    """The leaderboard's metrics records.
+def _entry_slug(payload: str) -> str:
+    """Any live model's slug, taken from the leaderboard's picker index.
 
-    ``models`` appears TWICE in this payload, both 609 long: first the
-    lightweight picker index (6 fields), then the records carrying every metric
-    (94 fields). Selecting on the presence of ``isOpenWeights`` takes the right
-    one — without the predicate the scrape publishes a full row count with every
-    metric column empty.
+    Every /models/<slug> page serves the same 646-model catalogue, so this only
+    has to name a page that exists. Deprecated models are skipped because their
+    pages are the ones AA eventually removes.
+    """
+    index = find_array(
+        payload, "models",
+        where=lambda a: bool(a) and isinstance(a[0], dict) and "slug" in a[0],
+    )
+    if not index:
+        raise ValueError("no model index found for 'models' in RSC payload")
+    for entry in index:
+        if isinstance(entry, dict) and entry.get("slug") and not entry.get("deprecated"):
+            return entry["slug"]
+    raise ValueError("model index carries no live slug")
+
+
+def _extract_models(html: str) -> list[dict]:
+    """The full catalogue records from a /models/<slug> page.
+
+    ``models`` appears more than once in this payload. The one wanted is the
+    88-field catalogue: it is the only array carrying ``parameters``, which is
+    also the reason this module reads a model page at all. The slimmed
+    leaderboard array would satisfy an ``isOpenWeights`` predicate and publish a
+    full row count with no parameter counts behind it — the silent-degradation
+    shape this project keeps paying for.
     """
     models = find_array(
         payload_from_html(html), "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "isOpenWeights" in a[0],
+        where=lambda a: bool(a) and isinstance(a[0], dict) and "parameters" in a[0],
     )
     if models is None:
-        raise ValueError("no metrics array found for 'models' in RSC payload")
-    return models
+        raise ValueError("no catalogue array found for 'models' in RSC payload")
+    return [m for m in models if isinstance(m, dict)]
+
+
+def _creator_name(m: dict) -> str:
+    """The lab, from whichever shape the page ships.
+
+    /models/<slug> nests it as a ``creator`` object; the leaderboard's slim
+    array still uses the flat ``modelCreatorName``. Reading only one of them is
+    how a rename published blank providers before.
+    """
+    creator = m.get("creator")
+    if isinstance(creator, dict):
+        name = (creator.get("name") or "").strip()
+        if name:
+            return name
+    elif isinstance(creator, str) and creator.strip() and creator != "$undefined":
+        return creator.strip()
+    return (m.get("modelCreatorName") or "").strip() or "Other"
+
+
+def _num(v) -> float | None:
+    """A real number from an RSC field, or None.
+
+    Guards the "$undefined" string and JSON null alike; bools are rejected
+    because `True` would otherwise arrive as a 1-billion-parameter model.
+    """
+    if not _aa_real(v) or isinstance(v, bool):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
 
 
 def _parse(models: list[dict]) -> pd.DataFrame | None:
@@ -100,31 +175,38 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
         if m.get("deprecated"):
             continue
 
+        # _real() first: RSC encodes JS undefined as the STRING "$undefined",
+        # so an unpublished score arrives truthy and `<= 0` raises TypeError
+        # against a str, taking the whole catalogue down with it.
         quality = m.get("intelligenceIndex")
-        if not quality or quality <= 0:
+        if not _aa_real(quality) or not isinstance(quality, (int, float)) \
+                or isinstance(quality, bool) or quality <= 0:
             continue
 
         name = (m.get("name") or "").strip()
         if not name:
             continue
 
-        family = (m.get("modelCreatorName") or "").strip() or "Other"
+        family = _creator_name(m)
 
         key = (name, family)
         if key in seen:
             continue
         seen.add(key)
 
-        params_b = m.get("totalParameters")
-        active_b = m.get("activeParameters")
+        # Renamed by AA's 2026-09-10 restructure: totalParameters ->
+        # parameters, activeParameters -> inferenceParametersActiveBillions.
+        # Both are still billions, so nothing downstream rescales.
+        params_b = _num(m.get("parameters"))
+        active_b = _num(m.get("inferenceParametersActiveBillions"))
         if params_b is None or params_b <= 0:
             continue
-        # Dense models report the same figure for both; a null active count
-        # falls back to total rather than dropping the row.
+        # Dense models report no active count at all — 98 of 193 open-weight
+        # rows — so a null falls back to total rather than dropping the row.
         if active_b is None or active_b <= 0:
             active_b = params_b
 
-        ctx_tokens = m.get("contextWindowTokens") or 0
+        ctx_tokens = _num(m.get("contextWindowTokens")) or 0
         context_k  = max(1, round(ctx_tokens / 1000)) if ctx_tokens else 128
 
         # Tags derived from modality + model type flags
@@ -151,8 +233,6 @@ def _parse(models: list[dict]) -> pd.DataFrame | None:
         # full eval suite on frontier API models first. NaN, never 0: 0 is a
         # real score on all three scales, and AA-Omniscience is negative for
         # most of the catalogue by construction.
-        from data.scraper import _real as _aa_real
-
         def _idx(v):
             # Rounded like `quality` above: this CSV is committed hourly, and
             # full float precision (74.757248...) churns lines on noise.
@@ -230,9 +310,16 @@ def _shrink_violations(df) -> list[str]:
 def _scrape_and_save() -> bool:
     """Fetch open-weight model specs and write to cache CSV. Returns True on success."""
     try:
-        resp = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
-        resp.raise_for_status()
-        models = _extract_models(resp.text)
+        # Two hops. The leaderboard names a live model; that model's own page
+        # carries the catalogue with the parameter counts this tab is built on.
+        index = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
+        index.raise_for_status()
+        slug = _entry_slug(payload_from_html(index.text))
+
+        page = requests.get(_CATALOGUE_URL.format(slug=slug),
+                            headers=_HEADERS, timeout=_TIMEOUT)
+        page.raise_for_status()
+        models = _extract_models(page.text)
     except Exception as exc:
         print(f"[local_scraper] Fetch error: {exc}")
         return False
@@ -241,6 +328,11 @@ def _scrape_and_save() -> bool:
     if df is None or df.empty:
         print("[local_scraper] No valid open-weight model rows parsed")
         return False
+
+    # AA dropped codingIndex and agenticIndex on 2026-09-10 — see the note in
+    # data/scraper.py. Same treatment here, joined on this CSV's name column.
+    from data.scraper import _carry_dropped_columns
+    df = _carry_dropped_columns(df, load_cached(), key="name", tag="local_scraper")
 
     violations = _shrink_violations(df) + _column_violations(df)
     if violations:

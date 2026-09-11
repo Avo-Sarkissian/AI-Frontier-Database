@@ -22,6 +22,27 @@ meaning, not a like-for-like swap, and it is why the catalogue grew from 155 to
 
 The 3:1 output-weighted blend below is unchanged and remains OURS, not AA's.
 
+THE PAGE RESTRUCTURED, 2026-09-10.
+AA split the single 94-field records array in two and slimmed the half this
+module reads to 50 fields. `name` went with the other half — the picker index,
+which until then carried nothing worth reading — so every row failed the
+empty-name check and the hourly refresh published nothing for two days while
+exiting 1. The records are joined back to the picker on `slug` (unique across
+all 646 rows) in _extract_models before anything reads them.
+
+`shortName` survives in the metrics array and looks like a drop-in replacement.
+It is not: it differs from `name` for 54 of the 198 models published here
+("Claude Opus 5 (low)" against "Claude Opus 5 (Adaptive Reasoning, Low
+Effort)"), so taking it would rename those rows, orphan their snapshots under
+data/raw/history/ and break the spotlight colour mapping — with a healthy row
+count the whole way. Hence the hard failure in _extract_models when the picker
+index is missing: a dead scrape keeps the cache and turns the run red, which is
+recoverable, and a silent mass rename is not.
+
+The same restructure dropped codingIndex and agenticIndex outright, replacing
+the composites with their raw component benchmarks rather than renaming them.
+See _CARRIED_COLUMNS for why those two are carried from the committed CSV.
+
 Falls back to the existing cache on any failure.
 
 Run standalone:  python -m data.scraper
@@ -80,20 +101,82 @@ def _index_str(v) -> str:
         return ""
 
 
-def _extract_models(html: str) -> list[dict]:
-    """The leaderboard's metrics records.
+def _names_by_slug(payload: str) -> dict[str, str]:
+    """The published name for every slug, read from the picker index.
 
-    "models" appears TWICE in this payload: the lightweight picker index first
-    (6 fields), then the metrics records (94). Selecting on a metrics-only field
-    takes the right one — without the predicate the scrape publishes a full row
-    count with every metric column empty.
+    AA's 2026-09-10 restructure moved `name` OUT of the metrics records and into
+    this array, which until then carried nothing this scrape wanted. It is now
+    the only place the published name exists.
+
+    The metrics array kept a `shortName`, and reaching for it is the obvious
+    shortcut — but it is a different string for 54 of the 198 models we publish
+    ("Claude Opus 5 (low)" against "Claude Opus 5 (Adaptive Reasoning, Low
+    Effort)"). Swapping to it would rename those rows, orphan their history
+    snapshots under data/raw/history/ and break the spotlight colour mapping,
+    all while the row count stayed healthy.
     """
+    index = find_array(
+        payload, "models",
+        where=lambda a: bool(a) and isinstance(a[0], dict)
+        and "name" in a[0] and "intelligenceIndex" not in a[0],
+    )
+    if index is None:
+        return {}
+    out: dict[str, str] = {}
+    for entry in index:
+        if not isinstance(entry, dict):
+            continue
+        slug = entry.get("slug")
+        name = (entry.get("name") or "").strip()
+        if slug and name:
+            out[slug] = name
+    return out
+
+
+def _extract_models(html: str) -> list[dict]:
+    """The leaderboard's metrics records, each carrying the name it publishes under.
+
+    "models" appears TWICE in this payload: the lightweight picker index first,
+    then the metrics records. Selecting on a metrics-only field takes the right
+    one — without the predicate the scrape publishes a full row count with every
+    metric column empty.
+
+    Both halves are needed since 2026-09-10. The metrics array was slimmed from
+    94 fields to 50 and `name` went with it, so the records are joined back to
+    the picker on `slug` (unique across all 646 rows) before anything reads them.
+    """
+    payload = payload_from_html(html)
     models = find_array(
-        payload_from_html(html), "models",
+        payload, "models",
         where=lambda a: bool(a) and isinstance(a[0], dict) and "intelligenceIndex" in a[0],
     )
     if models is None:
         raise ValueError("no metrics array found for 'models' in RSC payload")
+    models = [m for m in models if isinstance(m, dict)]
+
+    names = _names_by_slug(payload)
+    if not names:
+        # Falling back to shortName for the whole catalogue would rename 54 of
+        # 198 models at once. A dead scrape keeps the cache and turns the run
+        # red, which is recoverable; a silent mass rename is not.
+        raise ValueError(
+            "no picker index found for 'models' in RSC payload — "
+            "cannot resolve published model names"
+        )
+
+    fell_back = 0
+    for m in models:
+        name = names.get(m.get("slug"), "")
+        if not name:
+            # One slug the picker does not list is a new model mid-publish, not
+            # a schema change. Keep the row under the name AA does give it.
+            name = (m.get("shortName") or "").strip()
+            if name:
+                fell_back += 1
+        m["name"] = name
+    if fell_back:
+        print(f"[scraper] {fell_back} model(s) absent from the picker index — "
+              f"published under shortName")
     return models
 
 
@@ -288,6 +371,54 @@ def column_health_violations(df, thresholds: dict | None = None) -> list[str]:
     return out
 
 
+# Columns AA's 2026-09-10 restructure removed from the leaderboard. It replaced
+# the two composites with the raw component benchmarks (terminalbenchHard, tau2,
+# scicode, ifbench, critpt ...) rather than renaming them, so there is no key
+# left to re-point at. They are carried from the committed CSV the way the image
+# arena's 35 frozen columns are: AA has stopped recomputing these scores, but it
+# did measure them, and blanking the columns would throw real numbers away.
+_CARRIED_COLUMNS = ("coding", "agentic")
+
+
+def _carry_dropped_columns(df, cached, key: str = "model", tag: str = "scraper"):
+    """Fill coding/agentic from the committed CSV — upstream no longer sends them.
+
+    Joins on the model-name column (`model` in the hosted catalogue, `name` in
+    the open-weight one) and fills only holes, so a value AA does publish always
+    wins, and a model absent from the cache keeps an empty cell rather than
+    inheriting the row above it.
+    """
+    import pandas as pd
+
+    if cached is None or getattr(cached, "empty", True):
+        return df
+    if df is None or df.empty or key not in df.columns \
+            or key not in cached.columns:
+        return df
+
+    lookup = cached.drop_duplicates(subset=key).set_index(key)
+    carried: list[str] = []
+    for col in _CARRIED_COLUMNS:
+        if col not in lookup.columns:
+            continue
+        prior = pd.Series(lookup[col].reindex(df[key]).to_numpy(),
+                          index=df.index)
+        live = df[col] if col in df.columns else pd.Series(float("nan"),
+                                                           index=df.index)
+        # Only a wholly empty column counts as carried; a few genuine gaps in a
+        # live column are not an upstream outage worth announcing.
+        if not live.notna().any() and prior.notna().any():
+            carried.append(col)
+        df[col] = live.where(live.notna(), prior)
+
+    if carried:
+        filled = int(df[carried].notna().any(axis=1).sum())
+        print(f"[{tag}] {', '.join(carried)} carried forward from cache for "
+              f"{filled}/{len(df)} models — AA stopped publishing them on "
+              f"2026-09-10 (see module docstring)")
+    return df
+
+
 MAX_SHRINK_PCT = 20.0
 
 
@@ -334,6 +465,8 @@ def _scrape_and_save() -> bool:
         if df.empty:
             print("[scraper] Parsed DataFrame is empty — skipping cache update")
             return False
+
+        df = _carry_dropped_columns(df, load_cached())
 
         violations = column_health_violations(df)
         violations += _shrink_violations(df)
