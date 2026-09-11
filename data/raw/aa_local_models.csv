@@ -17,7 +17,7 @@ Motif 3,Motif Technologies,314.0,13.2,262,33.57,Unknown,reasoning,True,True,63.4
 MiniMax-M3,MiniMax,428.0,23.0,1000,29.61,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,58.57,30.84,1.35
 Nex-N2-Pro,Nex AGI,397.0,17.0,262,28.2,Apache 2.0,"vision,reasoning",True,True,59.12,,-27.05
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,27.81,Apache 2.0,"vision,reasoning",False,False,56.14,,-36.15
-Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,26.77,Apache 2.0,"vision,reasoning",True,True,58.78,29.41,-25.1
+Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,27.8,Apache 2.0,"vision,reasoning",True,False,58.78,29.41,-25.1
 Qwen3.8 27B (low),Alibaba,27.0,27.0,256,26.49,Apache 2.0,"vision,reasoning",False,False,58.22,39.86,-26.67
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,26.41,Mit,reasoning,True,False,60.19,22.67,3.25
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,26.27,Modified MIT License,"vision,reasoning,code",True,False,60.76,22.49,-10.22
