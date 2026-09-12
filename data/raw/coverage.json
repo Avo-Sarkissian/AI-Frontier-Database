@@ -1,6 +1,6 @@
 {
   "upstream_host_model_rows": 647,
-  "distinct_upstream_models": 302,
+  "distinct_upstream_models": 301,
   "kept": 201,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
@@ -27,7 +27,6 @@
     "Falcon-H1R-7B",
     "G9v3-39A5B",
     "G9v3-3B",
-    "GPT-6 Astra (Non-reasoning)",
     "Gemma 3 270M",
     "Gemma 4 31B (Reasoning)",
     "Gemma 4 E2B (Non-reasoning)",
