@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1333.84,12.0,1361.33,12.0,True,12.0,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,1325.0,6.0,1365.5,6.0,True,6.0,,
-MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1303.84,7.8,1350.48,7.8,True,7.8,117.248503578,MiniMax
+MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1303.84,7.8,1350.48,7.8,True,7.8,117.247850607,MiniMax
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1284.23,13.2,1292.61,13.2,True,13.2,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,1269.01,9.07,1341.71,9.07,True,9.07,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1262.41,9.9,1306.64,9.9,True,9.9,,
@@ -48,12 +48,12 @@ Hailuo 02 Pro,hailuo-02-pro,MiniMax,Hailuo AI (MiniMax),2025-06-18,True,False,11
 Seedance 1.0,seedance-10,ByteDance Seed,Seedance,2025-06-09,True,False,1137.82,7.32,1233.14,7.32,False,,,
 PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False,False,1131.81,9.0,1241.14,9.0,True,14.62,,
 Kling 2.1 Master,kling-2-1-master,KlingAI,Kling,2025-05-29,True,False,1130.04,16.8,1201.97,16.8,False,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1124.44,2.4,1161.49,2.4,True,2.4,27.818159645,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1124.44,2.4,1161.49,2.4,True,2.4,27.3913539804999,Lightricks
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1123.87,2.4,1185.75,2.4,True,2.4,,
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1122.64,3.6,1194.39,3.6,True,3.6,,
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1112.1,30.0,1095.04,30.0,False,,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1109.84,4.8,1108.65,4.8,False,,270.4084610345,DeepInfra
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1108.05,4.8,1158.34,4.8,True,4.8,68.9460432144999,Lightricks
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1109.84,4.8,1108.65,4.8,False,,270.38286168,DeepInfra
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1108.05,4.8,1158.34,4.8,True,4.8,68.9146292299999,Lightricks
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1102.55,3.9,1228.43,3.9,True,3.9,59.6316867785001,Vidu
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,1088.72,16.8,1177.13,16.8,False,,,
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,1078.61,12.8,1194.16,12.8,False,,,
