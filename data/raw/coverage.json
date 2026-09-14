@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 646,
-  "distinct_upstream_models": 301,
+  "upstream_host_model_rows": 650,
+  "distinct_upstream_models": 305,
   "kept": 201,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
@@ -51,7 +51,11 @@
     "K-EXAONE (Non-reasoning)",
     "K-EXAONE (Reasoning)",
     "K-EXAONE 2.0",
+    "K2 Horizon 0.9B",
+    "K2 Horizon 3.7B",
     "K2 Horizon 375B A23B",
+    "K2 Horizon 7B",
+    "K2 Horizon MoVA 36B A4B",
     "K2 Think V2",
     "K2-V2 (high)",
     "K2-V2 (low)",
