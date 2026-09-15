@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 650,
   "distinct_upstream_models": 305,
-  "kept": 201,
+  "kept": 200,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -93,6 +93,7 @@
     "NVIDIA Nemotron 3 Nano 4B",
     "Nanbeige4.1-3B",
     "Nemotron Cascade 2 30B A3B",
+    "Nex-N2-Pro",
     "North Mini Code",
     "Olmo 3 7B Think",
     "Olmo 3.1 32B Instruct",
