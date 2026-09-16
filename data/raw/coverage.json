@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 652,
   "distinct_upstream_models": 307,
-  "kept": 201,
+  "kept": 200,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -41,6 +41,7 @@
     "Hermes 4 - Llama-3.1 70B (Non-reasoning)",
     "Hermes 4 - Llama-3.1 70B (Reasoning)",
     "HyperCLOVA X SEED Think (32B)",
+    "HyperNova 60B 2605 (high, based on gpt-oss-120b)",
     "INTELLECT-3",
     "JT-35B-Flash",
     "JT-4.1 Flash 236B A21B",
