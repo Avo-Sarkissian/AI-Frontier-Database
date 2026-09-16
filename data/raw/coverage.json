@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 651,
-  "distinct_upstream_models": 306,
+  "upstream_host_model_rows": 652,
+  "distinct_upstream_models": 307,
   "kept": 201,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
@@ -70,6 +70,7 @@
     "LFM2.5-8B-A1B",
     "LFM2.5-VL-1.6B",
     "Ling 3.0 Tiny",
+    "Ling-3.0-flash-Fin",
     "Ling-3.0-flash-VL",
     "Llama 3.1 Instruct 405B",
     "Llama 3.1 Nemotron Ultra 253B v1 (Reasoning)",
