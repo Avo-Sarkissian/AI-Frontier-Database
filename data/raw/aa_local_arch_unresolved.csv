@@ -33,6 +33,7 @@ Mistral Large 3,675.0,3,2026-09-11,no repo cleared the parameter guard
 NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning),13.2,3,2026-09-11,no repo cleared the parameter guard
 NVIDIA Nemotron Nano 12B v2 VL (Reasoning),13.2,3,2026-09-11,no repo cleared the parameter guard
 Nemotron 3 Nano Omni 30B A3B Reasoning,30.0,3,2026-09-11,no repo cleared the parameter guard
+Nex-N2-Pro (based on Qwen3.5-397B-A17B),397.0,1,2026-09-17,no repo cleared the parameter guard
 Qwen3 Omni 30B A3B (Reasoning),35.3,3,2026-09-11,no repo cleared the parameter guard
 Qwen3 Omni 30B A3B Instruct,35.3,3,2026-09-11,no repo cleared the parameter guard
 R1 1776,671.0,3,2026-09-11,no repo cleared the parameter guard

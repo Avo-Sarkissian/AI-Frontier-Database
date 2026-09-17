@@ -12,7 +12,7 @@ K2 Horizon 375B A23B,Institute of Foundation Models,375.0,23.0,524,30.79,Apache 
 Kimi K3 (low),Kimi,2780.0,104.0,1049,30.48,Kimi K3,"vision,reasoning",True,False,71.98,30.71,3.92
 "DeepSeek V4 Pro 0424 (Reasoning, High Effort)",DeepSeek,1600.0,49.0,1000,30.11,MIT,reasoning,True,True,,,-10.57
 MiniMax-M3,MiniMax,428.0,23.0,1000,29.61,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,58.57,30.84,1.35
-Nex-N2-Pro,Nex AGI,397.0,17.0,262,28.2,Apache 2.0,"vision,reasoning",True,True,59.12,,-27.05
+Nex-N2-Pro (based on Qwen3.5-397B-A17B),Nex AGI,397.0,17.0,262,28.2,Apache 2.0,"vision,reasoning",True,True,,,-27.05
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,27.81,Apache 2.0,"vision,reasoning",False,False,56.14,,-36.15
 Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,27.8,Apache 2.0,"vision,reasoning",True,False,58.78,29.41,-25.1
 Qwen3.8 27B (low),Alibaba,27.0,27.0,256,26.49,Apache 2.0,"vision,reasoning",False,False,58.22,39.86,-26.67
