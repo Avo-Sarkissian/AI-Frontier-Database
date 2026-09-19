@@ -26,7 +26,6 @@ Ling 3.0 Flash,InclusionAI,124.0,5.1,262,24.94,Unknown,reasoning,True,True,50.65
 Solar Open2 250B,Upstage,250.0,15.0,1049,24.74,Upstage Solar License,reasoning,True,True,45.01,,-1.77
 Ling-3.0-flash-VL,InclusionAI,124.0,5.5,262,24.57,MIT,"vision,reasoning",True,False,,,-4.53
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,22.93,OpenMDW,reasoning,True,False,49.27,21.68,-0.4
-Muse Glimmer (high),Meta,30.0,30.0,131,22.79,Apache 2.0,"vision,reasoning",False,True,49.0,10.46,-32.85
 A.X-K2,SK Telecom,692.0,33.0,262,22.7,Apache 2.0,reasoning,True,True,38.81,,-8.23
 Ling-3.0-flash-Fin,InclusionAI,124.0,5.1,262,22.6,MIT,reasoning,True,False,,,-14.58
 MiMo-V2-Flash (Feb 2026),Xiaomi,309.0,15.0,256,22.44,MIT,reasoning,True,True,,,-19.05
@@ -42,6 +41,7 @@ Qwen3.5 397B A17B (Reasoning),Alibaba,397.0,17.0,262,18.42,Apache 2.0,"vision,re
 MiMo-V2.5-Pro (Non-reasoning),Xiaomi,1023.0,42.0,1000,18.29,MIT,,True,True,,,-37.8
 Qwen3.6 35B A3B (Reasoning),Alibaba,36.0,3.0,262,18.23,Apache 2.0,"vision,reasoning",True,False,41.88,15.02,-22.18
 Qwen3.5 122B A10B (Non-reasoning),Alibaba,125.0,10.0,262,17.75,Apache 2.0,vision,True,True,43.34,,-54.97
+Muse Glimmer (high),Meta,30.0,30.0,131,17.48,Apache 2.0,"vision,reasoning",False,False,49.0,10.46,-32.85
 Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,16.67,Apache 2.0,"vision,reasoning",True,True,39.32,,-50.83
 Ring-2.6-1T,InclusionAI,1000.0,63.0,262,16.62,MIT,reasoning,True,False,42.83,12.9,-37.7
 K2 Horizon 3.7B,Institute of Foundation Models,3.7,3.7,524,15.61,Apache 2.0,reasoning,False,False,,,-28.62
