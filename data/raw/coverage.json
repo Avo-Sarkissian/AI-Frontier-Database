@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 656,
-  "distinct_upstream_models": 275,
-  "kept": 179,
+  "upstream_host_model_rows": 661,
+  "distinct_upstream_models": 280,
+  "kept": 183,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -86,6 +86,7 @@
     "Nemotron Cascade 2 30B A3B",
     "Nex-N2-Pro (based on Qwen3.5-397B-A17B)",
     "North Mini Code",
+    "Nova Premier",
     "Olmo 3 7B Think",
     "Olmo 3.1 32B Instruct",
     "Olmo 3.1 32B Think",
