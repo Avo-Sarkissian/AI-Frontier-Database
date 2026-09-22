@@ -99,18 +99,33 @@ service has been dropping cron runs outright — no run is created, nothing
 fails — and this repo fell from 21–23 scheduled runs a day to 2–8, with gaps of
 up to 13 hours ([community discussion #206019](https://github.com/orgs/community/discussions/206019),
 [#207346](https://github.com/orgs/community/discussions/207346); unanswered by
-GitHub). The four cron entries are four chances an hour instead of one, and the
-change guard makes the surplus free. When a model has just been released and
-the site has not caught up, `gh workflow run refresh.yml` publishes it in about
-two minutes. The only workaround reported as reliable is an external scheduler
-(cron-job.org, a Cloudflare Worker cron) calling the `workflow_dispatch`
-endpoint with a fine-grained token scoped to *Actions: write* on this repo:
+GitHub). Four cron entries did not help: on 2026-09-22 GitHub skipped seven
+consecutive slots. When a model has just been released and the site has not
+caught up, `gh workflow run refresh.yml` publishes it in about two minutes.
 
-```bash
-curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/Avo-Sarkissian/AI-Frontier-Database/actions/workflows/refresh.yml/dispatches \
-  -d '{"ref":"main"}'
-```
+**The reliable trigger is an external scheduler calling `workflow_dispatch`** —
+the only workaround other affected users report working. Setup, once:
+
+1. Create a fine-grained personal access token at
+   <https://github.com/settings/personal-access-tokens/new>: repository access
+   **only this repository**, repository permission **Actions: Read and write**
+   (Metadata: read is added automatically), nothing else. Note the expiry —
+   the site stops refreshing the day it lapses.
+2. Smoke-test it from a terminal. `HTTP 204` means a run was created; it shows
+   up in the Actions tab as a `workflow_dispatch` run within seconds.
+   ```bash
+   GITHUB_TOKEN=github_pat_... scripts/dispatch_refresh.sh
+   ```
+3. Add a job at a free cron service such as [cron-job.org](https://cron-job.org):
+   every hour (or every 30 minutes — the change guard makes a run with nothing
+   new a 35-second no-op), method **POST**, URL
+   `https://api.github.com/repos/Avo-Sarkissian/AI-Frontier-Database/actions/workflows/refresh.yml/dispatches`,
+   headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`
+   and `X-GitHub-Api-Version: 2022-11-28`, body `{"ref":"main"}`. Run it once
+   from the service and confirm a `workflow_dispatch` run appears.
+
+The GitHub cron entries stay as a backstop, and the workflow's concurrency
+group serialises overlapping triggers.
 
 **The freshness badge reports data age, not build age.** Each scraper records
 whether it actually fetched, when, and how many rows (`data/raw/scrape_status.json`),

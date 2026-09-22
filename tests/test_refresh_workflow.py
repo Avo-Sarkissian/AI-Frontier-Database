@@ -62,6 +62,21 @@ def test_schedule_buys_several_chances_an_hour():
     )
 
 
+def test_external_dispatch_script_is_wired():
+    """GitHub's cron drops runs, so the reliable trigger is an external
+    scheduler POSTing workflow_dispatch. The script is the smoke test for that
+    token, and the README is where the setup steps live."""
+    script = ROOT / "scripts" / "dispatch_refresh.sh"
+    assert script.exists(), "scripts/dispatch_refresh.sh missing"
+    assert os.access(script, os.X_OK), "scripts/dispatch_refresh.sh is not executable"
+    txt = script.read_text()
+    assert "/actions/workflows/refresh.yml/dispatches" in txt
+    assert '\\"ref\\"' in txt, "dispatch body must name the ref"
+    assert "dispatch_refresh.sh" in (ROOT / "README.md").read_text(), (
+        "README does not point at the smoke-test script"
+    )
+
+
 def test_scrape_failures_are_not_swallowed():
     """`|| echo "::warning::"` kept the job green while the image endpoint
     400'd for 29 days and stale ELOs were republished every hour."""
