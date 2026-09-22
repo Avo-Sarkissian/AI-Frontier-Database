@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 673,
-  "distinct_upstream_models": 292,
-  "kept": 195,
+  "distinct_upstream_models": 275,
+  "kept": 178,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
