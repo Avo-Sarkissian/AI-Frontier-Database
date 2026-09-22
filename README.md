@@ -84,7 +84,7 @@ The LLM dataset currently covers **155 models** across **31 providers**. Counts 
 
 ## Live Data Refresh
 
-An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the sole source of truth for the deployed site — browsers can't call the Artificial Analysis API directly (CORS), so a cron job (`23 * * * *`, plus manual `workflow_dispatch`) does it server-side:
+An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the sole source of truth for the deployed site — browsers can't call the Artificial Analysis API directly (CORS), so a scheduled job does it server-side (four cron entries an hour — `:08`, `:23`, `:38`, `:53` — plus manual `workflow_dispatch`):
 
 1. Runs all four scrapers, falling back to the last-known-good cache per source if a fetch fails.
 2. Sanity-checks row counts, per-column health, and per-column medians before proceeding — a rename that zeroes a column, or a units change that leaves the row count intact, both fail the build.
@@ -94,11 +94,29 @@ An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the s
 
 The live site auto-loads the latest published snapshot on open.
 
+**GitHub does not honour the schedule.** Since 2026-08-26 GitHub's schedule
+service has been dropping cron runs outright — no run is created, nothing
+fails — and this repo fell from 21–23 scheduled runs a day to 2–8, with gaps of
+up to 13 hours ([community discussion #206019](https://github.com/orgs/community/discussions/206019),
+[#207346](https://github.com/orgs/community/discussions/207346); unanswered by
+GitHub). The four cron entries are four chances an hour instead of one, and the
+change guard makes the surplus free. When a model has just been released and
+the site has not caught up, `gh workflow run refresh.yml` publishes it in about
+two minutes. The only workaround reported as reliable is an external scheduler
+(cron-job.org, a Cloudflare Worker cron) calling the `workflow_dispatch`
+endpoint with a fine-grained token scoped to *Actions: write* on this repo:
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/Avo-Sarkissian/AI-Frontier-Database/actions/workflows/refresh.yml/dispatches \
+  -d '{"ref":"main"}'
+```
+
 **The freshness badge reports data age, not build age.** Each scraper records
 whether it actually fetched, when, and how many rows (`data/raw/scrape_status.json`),
 and the badge shows the **oldest** successful fetch across all four datasets —
 because a dashboard is only as fresh as its stalest panel. If any dataset is
-failing or older than three hours the badge turns amber and adds a ⚠; hover it
+failing or older than twelve hours the badge turns amber and adds a ⚠; hover it
 for a per-dataset breakdown. Staleness is recomputed in the browser, so a page
 left open ages honestly even if the hourly job stops.
 

@@ -1,7 +1,20 @@
 name: Refresh model data
 on:
   schedule:
-    - cron: "23 * * * *"        # hourly at :23 (off the top of the hour)
+    # Hourly is the intent. Since 2026-08-26 GitHub's schedule service has
+    # been dropping cron runs outright — no run created, no error, nothing in
+    # the Actions tab. This repo went from 21-23 scheduled runs a day to 2-8,
+    # and github.com/orgs/community/discussions/206019 and /207346 report the
+    # same onset with no fix from GitHub. Each expression below is queued as
+    # its own job, so four of them are four chances an hour instead of one;
+    # the change guard turns the surplus into 35-second no-ops. Off-peak
+    # minutes are kept because the top of the hour is GitHub's documented
+    # peak. The only workaround reported as reliable is an external scheduler
+    # calling the workflow_dispatch endpoint (README, "Live Data Refresh").
+    - cron: "8 * * * *"
+    - cron: "23 * * * *"
+    - cron: "38 * * * *"
+    - cron: "53 * * * *"
   workflow_dispatch:
     inputs:
       allow_shrink:

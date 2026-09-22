@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -40,6 +41,25 @@ def test_workflow_present_and_wired():
         "git push",
     ]:
         assert needle in txt, f"workflow missing: {needle}"
+
+
+def test_schedule_buys_several_chances_an_hour():
+    """GitHub's schedule service has dropped cron runs since 2026-08-26: this
+    repo fell from 21-23 scheduled runs a day to 2-8 (community discussions
+    #206019 and #207346 report the same onset, unanswered). Every cron
+    expression is queued as its own job, so several per hour raise the odds
+    that at least one fires; the change guard makes the surplus free. The top
+    of the hour is GitHub's documented peak-load minute, so no entry sits on it."""
+    txt = WF.read_text()
+    crons = re.findall(r'^\s*-\s*cron:\s*"([^"]+)"', txt, flags=re.M)
+    assert len(crons) >= 4, f"only {len(crons)} schedule entries: {crons}"
+    minutes = [int(c.split()[0]) for c in crons]
+    assert all(c.split()[1:] == ["*"] * 4 for c in crons), f"every entry must be hourly: {crons}"
+    assert 0 not in minutes, "an entry sits on the top of the hour, GitHub's peak"
+    assert len(set(minutes)) == len(minutes), f"duplicate minutes are wasted chances: {minutes}"
+    assert max(b - a for a, b in zip(minutes, minutes[1:])) <= 20, (
+        f"entries bunch up, leaving a long gap in the hour: {sorted(minutes)}"
+    )
 
 
 def test_scrape_failures_are_not_swallowed():
