@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1336.28,12.0,1360.63,12.0,True,12.0,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,1330.41,6.0,1369.08,6.0,True,6.0,,
-MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.19,7.8,1353.89,7.8,True,7.8,111.7793533845,MiniMax
+MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.19,7.8,1353.89,7.8,True,7.8,111.0280740835,MiniMax
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1286.62,13.2,1293.0,13.2,True,13.2,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1271.64,9.9,1312.47,9.9,True,9.9,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,1258.76,9.07,1336.04,9.07,True,9.07,,
@@ -50,9 +50,9 @@ PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1127.36,3.6,1200.83,3.6,True,3.6,,
 Kling 2.1 Master,kling-2-1-master,KlingAI,Kling,2025-05-29,True,False,1126.78,16.8,1206.09,16.8,False,,,
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1125.13,2.4,1188.76,2.4,True,2.4,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.59,4.8,1156.84,4.8,True,4.8,50.7593115309999,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.59,4.8,1156.84,4.8,True,4.8,50.5728217304998,Lightricks
 LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1121.23,2.4,1147.37,2.4,True,2.4,26.0364842965,Lightricks
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1115.53,4.8,1105.58,4.8,False,,269.507558684,DeepInfra
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1115.53,4.8,1105.58,4.8,False,,269.516717374,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1108.26,30.0,1097.71,30.0,False,,,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1105.98,3.9,1229.22,3.9,True,3.9,,
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,1091.96,16.8,1180.08,16.8,False,,,
