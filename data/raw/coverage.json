@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 674,
-  "distinct_upstream_models": 273,
-  "kept": 179,
+  "distinct_upstream_models": 270,
+  "kept": 175,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -79,6 +79,7 @@
     "Motif 3 (Beta)",
     "Motif-2-12.7B-Reasoning",
     "NVIDIA Nemotron 3 Nano 4B",
+    "NVIDIA Nemotron Nano 12B v2 VL (Reasoning)",
     "Nanbeige4.1-3B",
     "Nemotron Cascade 2 30B A3B",
     "Nex-N2-Pro (based on Qwen3.5-397B-A17B)",
