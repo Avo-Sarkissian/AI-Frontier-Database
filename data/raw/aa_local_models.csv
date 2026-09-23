@@ -15,7 +15,7 @@ MiniMax-M3,MiniMax,428.0,23.0,1000,29.22,MINIMAX COMMUNITY LICENSE,"vision,reaso
 Nex-N2-Pro (based on Qwen3.5-397B-A17B),Nex AGI,397.0,17.0,262,28.2,Apache 2.0,"vision,reasoning",True,True,,,-27.05
 Inkling Small,Thinking Machines,266.0,12.0,1000,27.78,Apache 2.0,"vision,audio,reasoning",True,True,52.95,24.95,-8.93
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,27.55,Apache 2.0,"vision,reasoning",False,False,56.14,,-36.15
-Agnes 2.5 Pro Alpha,Sapiens AI,397.0,17.0,1000,26.77,Apache 2.0,"vision,reasoning",True,True,58.78,29.41,-25.1
+Agnes 2.5 Pro Alpha (based on Qwen3.5 397B A17B),Sapiens AI,397.0,17.0,1000,26.77,Apache 2.0,"vision,reasoning",True,True,,,-25.1
 Qwen3.8 27B (low),Alibaba,27.0,27.0,256,26.2,Apache 2.0,"vision,reasoning",False,False,58.22,39.86,-26.67
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,25.99,MIT,reasoning,True,False,60.19,22.67,3.25
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,25.81,Modified MIT License,"vision,reasoning,code",True,False,60.76,22.49,-10.22
