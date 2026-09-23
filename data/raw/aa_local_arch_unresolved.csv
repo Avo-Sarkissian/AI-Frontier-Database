@@ -13,6 +13,7 @@ Granite 4.2 3B,3.0,4,2026-09-18,no repo cleared the parameter guard
 Granite 4.2 8B,8.0,4,2026-09-18,no repo cleared the parameter guard
 HyperCLOVA X SEED Think (32B),32.0,4,2026-09-18,no repo cleared the parameter guard
 INTELLECT-3    (based on GLM-4.5-Air),107.0,1,2026-09-23,no repo cleared the parameter guard
+INTELLECT-3 (based on GLM-4.5-Air),107.0,1,2026-09-23,no repo cleared the parameter guard
 Jamba 1.7 Large,398.0,4,2026-09-18,no repo cleared the parameter guard
 Jamba 1.7 Mini,52.0,4,2026-09-18,no repo cleared the parameter guard
 K-EXAONE 2.0 0803,750.0,2,2026-09-17,no repo cleared the parameter guard
