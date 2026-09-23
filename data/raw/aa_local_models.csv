@@ -75,7 +75,7 @@ Granite 4.2 8B,IBM,8.0,8.0,131,11.08,Apache 2.0,reasoning,False,False,22.38,3.71
 G9v3-3B,AI9Stars,3.0,3.0,131,10.84,Apache 2.0,reasoning,False,True,9.9,,-4.37
 Trinity Large Thinking,Arcee AI,399.0,13.0,512,10.82,Apache 2.0,reasoning,True,False,25.77,1.16,-44.07
 Qwen3.5 4B (Non-reasoning),Alibaba,4.66,4.66,262,10.81,Apache 2.0,vision,False,True,20.33,,-74.73
-INTELLECT-3,Prime Intellect,107.0,12.0,131,10.61,MIT,reasoning,True,True,,,-50.85
+INTELLECT-3    (based on GLM-4.5-Air),Prime Intellect,107.0,12.0,131,10.61,MIT,reasoning,True,True,,,-50.85
 Solar Open 100B (Reasoning),Upstage,102.0,12.0,128,10.36,Upstage Solar License,reasoning,True,True,,,-54.5
 Nemotron 3 Nano Omni 30B A3B Reasoning,NVIDIA,30.0,3.0,256,10.25,NVIDIA Open Model License Agreement,"vision,audio,reasoning",True,True,13.75,,-57.43
 gpt-oss-120b (low),OpenAI,117.0,5.1,131,10.21,Apache 2.0,reasoning,True,True,21.24,,-53.5
