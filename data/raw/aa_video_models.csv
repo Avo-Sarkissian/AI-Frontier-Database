@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1334.57,12.0,1360.63,12.0,True,12.0,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,1331.93,6.0,1369.08,6.0,True,6.0,,
-MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.29,7.8,1353.89,7.8,True,7.8,118.0912722985,MiniMax
+MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.29,7.8,1353.89,7.8,True,7.8,119.36190095,MiniMax
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1286.12,13.2,1293.0,13.2,True,13.2,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1271.9,9.9,1312.47,9.9,True,9.9,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,1258.76,9.07,1336.05,9.07,True,9.07,,
@@ -48,10 +48,9 @@ Hailuo 02 Pro,hailuo-02-pro,MiniMax,Hailuo AI (MiniMax),2025-06-18,True,False,11
 Seedance 1.0,seedance-10,ByteDance Seed,Seedance,2025-06-09,True,False,1135.63,7.32,1233.39,7.32,False,,,
 PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False,False,1131.34,9.0,1242.22,9.0,True,14.62,,
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1127.36,3.6,1200.69,3.6,True,3.6,,
-Kling 2.1 Master,kling-2-1-master,KlingAI,Kling,2025-05-29,True,False,1126.79,16.8,1206.29,16.8,False,,,
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1125.13,2.4,1188.76,2.4,True,2.4,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1156.84,4.8,True,4.8,50.5981832389989,Lightricks
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1147.37,2.4,True,2.4,25.3466727665,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1156.84,4.8,True,4.8,50.5839694049996,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1147.37,2.4,True,2.4,25.2348719400001,Lightricks
 Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1116.09,4.8,1105.59,4.8,False,,269.801949014,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1108.27,30.0,1097.71,30.0,False,,,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1105.34,3.9,1229.22,3.9,True,3.9,,
@@ -72,7 +71,6 @@ Kling 1.6 Pro,kling-1-6-pro,KlingAI,Kling,2024-12-19,True,False,1018.01,5.88,113
 Wan 2.1 14B,wan-2-1-14b,Alibaba,Wan,2025-02-25,True,True,1017.66,4.8,1000.0,4.8,False,,,
 Kling 1.6 Standard,kling-1-6-standard,KlingAI,Kling,2024-12-19,True,False,1009.95,2.7,,,False,,,
 Vidu Q1,vidu-q1,Vidu,Vidu,2025-04-21,True,False,1002.44,4.8,1030.61,4.8,False,,,
-Motion 2.0,motion-2-0,Leonardo.Ai,Motion,2025-07-30,True,False,1002.32,5.38,1024.98,5.38,False,,,
 Mochi 1,mochi-1,Genmo,Mochi,2024-10-22,True,True,1000.0,4.8,,,False,,,
 Hunyuan Video (Fal),hunyuan-video-open-source-,Tencent,Hunyuan Video,2024-12-03,True,True,991.6,4.8,918.8,4.8,False,,,
 Runway Gen 3 Alpha,runway-gen-3-alpha,Runway,Runway,2024-06-17,True,False,985.6,,1012.49,,False,,,
@@ -96,6 +94,7 @@ Cosmos3-Super-Image2Video,cosmos3-super-image2video,NVIDIA,Cosmos,2026-05-31,Tru
 Avenger 0.5,avenger-0-5,Video Rebirth,Video Rebirth,2025-07-14,False,False,,,1240.04,,False,,,
 Vidu Q2 Turbo,vidu-q2-turbo,Vidu,Vidu,2025-09-29,True,False,,,1235.69,4.0,False,,,
 Vidu Q2 Pro,vidu-q2-pro,Vidu,Vidu,2025-09-29,True,False,,,1232.46,6.1,False,,,
+Kling 2.1 Master,kling-2-1-master,KlingAI,Kling,2025-05-29,True,False,,,1206.29,16.8,False,,,
 Hailuo 02 Fast,hailuo-02-fast,MiniMax,Hailuo AI (MiniMax),2025-06-18,True,False,,,1205.97,1.0,False,,,
 Kling 2.1 Pro,kling-2-1-pro,KlingAI,Kling,2025-05-29,True,False,,,1183.96,5.88,False,,,
 Vivago 2.0,vivago-2-0,HiDream,Vivago,2025-06-20,True,False,,,1175.12,,False,,,
@@ -104,4 +103,5 @@ Midjourney V1,midjourney-v1,Midjourney,Midjourney Video,2025-06-19,True,False,,,
 Runway Gen 4,runway-gen-4,Runway,Runway,2025-03-31,True,False,,,1086.51,9.0,False,,,
 I2V-01-Director,i2v-01-director,MiniMax,Video-01,2025-02-22,True,False,,,1046.53,4.3,False,,,
 LTX Video v0.9.7 13B,ltx-video-v0-9-7-13b,Lightricks,LTX,2025-05-07,True,True,,,1030.03,1.2,False,,,
+Motion 2.0,motion-2-0,Leonardo.Ai,Motion,2025-07-30,True,False,,,1024.98,5.38,False,,,
 Runway Gen 3 Alpha Turbo,runway-gen-3-alpha-turbo,Runway,Runway,2024-08-15,True,False,,,1002.05,,False,,,
