@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1334.57,12.0,1362.03,12.0,True,12.0,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,1331.93,6.0,1369.43,6.0,True,6.0,,
-MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.29,7.8,1355.31,7.8,True,7.8,121.299416241,MiniMax
+MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,1302.29,7.8,1355.31,7.8,True,7.8,,
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1286.12,13.2,1294.69,13.2,True,13.2,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1271.9,9.9,1314.66,9.9,True,9.9,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,1258.76,9.07,1338.32,9.07,True,9.07,,
@@ -49,9 +49,9 @@ Seedance 1.0,seedance-10,ByteDance Seed,Seedance,2025-06-09,True,False,1135.63,7
 PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False,False,1131.34,9.0,1243.93,9.0,True,14.62,,
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1127.36,3.6,1201.13,3.6,True,3.6,,
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1125.13,2.4,1190.61,2.4,True,2.4,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1158.36,4.8,True,4.8,50.9636025110003,Lightricks
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1149.39,2.4,True,2.4,25.5859886090002,Lightricks
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1116.09,4.8,1107.15,4.8,False,,269.742388979,DeepInfra
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1158.36,4.8,True,4.8,50.5981832389989,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1149.39,2.4,True,2.4,25.4249917880002,Lightricks
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1116.09,4.8,1107.15,4.8,False,,269.675723343,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1108.27,30.0,1099.5,30.0,False,,,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1105.34,3.9,1230.58,3.9,True,3.9,,
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,1091.96,16.8,1180.18,16.8,False,,,
