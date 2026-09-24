@@ -15,12 +15,11 @@ MiniMax-M3,MiniMax,428.0,23.0,1000,29.22,MINIMAX COMMUNITY LICENSE,"vision,reaso
 Nex-N2-Pro (based on Qwen3.5-397B-A17B),Nex AGI,397.0,17.0,262,28.2,Apache 2.0,"vision,reasoning",True,True,,,-27.05
 Inkling Small,Thinking Machines,266.0,12.0,1000,27.78,Apache 2.0,"vision,audio,reasoning",True,True,52.95,24.95,-8.93
 Qwen3.8 27B (medium),Alibaba,27.0,27.0,256,27.55,Apache 2.0,"vision,reasoning",False,False,56.14,,-36.15
-Agnes 2.5 Pro Alpha (based on Qwen3.5 397B A17B),Sapiens AI,397.0,17.0,1000,26.77,Apache 2.0,"vision,reasoning",True,True,,,-25.1
 Qwen3.8 27B (low),Alibaba,27.0,27.0,256,26.2,Apache 2.0,"vision,reasoning",False,False,58.22,39.86,-26.67
 MiMo-V2.5-Pro,Xiaomi,1023.0,42.0,1000,25.99,MIT,reasoning,True,False,60.19,22.67,3.25
 Kimi K2.7 Code,Kimi,1000.0,32.0,256,25.81,Modified MIT License,"vision,reasoning,code",True,False,60.76,22.49,-10.22
-K2 Horizon MoVA 36B A4B,Institute of Foundation Models,36.0,4.0,524,25.3,Apache 2.0,reasoning,True,False,,,-10.95
 Hy3,Tencent,299.0,21.0,256,25.3,Apache 2.0,reasoning,True,False,58.8,25.64,-18.47
+K2 Horizon MoVA 36B A4B,Institute of Foundation Models,36.0,4.0,524,25.3,Apache 2.0,reasoning,True,False,,,-10.95
 MiMo-V2.5,Xiaomi,310.0,15.0,1000,25.17,MIT,"vision,reasoning",True,True,56.8,17.36,-9.83
 Inkling (xhigh),Thinking Machines,975.0,41.0,1000,24.98,Apache 2.0,"vision,audio,reasoning",True,False,52.06,24.32,2.0
 Ling 3.0 Flash,InclusionAI,124.0,5.1,262,24.94,Unknown,reasoning,True,True,50.65,20.97,-17.88
@@ -57,8 +56,8 @@ Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,13.65,Apache 2.0,"vision,reasoning"
 Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,13.4,MIT,"vision,reasoning",False,True,,,-59.37
 Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,13.27,Apache 2.0,vision,False,True,23.46,,-70.7
 EXAONE 4.5 33B,LG AI Research,34.4,34.4,262,13.21,EXAONE AI Model License Agreement 1.2 - NC,"vision,reasoning",False,True,23.57,,-50.72
-Command A+,Cohere,218.0,25.0,192,13.13,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-4.02
 Gemma 4 26B A4B (Non-reasoning),Google,25.2,3.8,256,13.13,Apache 2.0,vision,True,True,,,-62.32
+Command A+,Cohere,218.0,25.0,192,13.13,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-4.02
 Qwen3.5 4B (Reasoning),Alibaba,4.66,4.66,262,13.12,Apache 2.0,"vision,reasoning",False,True,22.6,,-58.35
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,12.86,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-17.72
 Nemotron 3 Super 120B A12B (Reasoning),NVIDIA,120.6,12.7,1000,12.83,Nvidia Nemotron Open Model License,reasoning,True,False,37.72,4.13,-41.5
@@ -90,8 +89,8 @@ Mistral Large 3,Mistral,675.0,41.0,256,9.27,Apache 2.0,vision,True,False,20.07,2
 Qwen3 Coder Next,Alibaba,79.7,3.0,256,9.24,Apache 2.0,code,True,False,36.23,3.63,-62.4
 Granite 4.2 3B,IBM,3.0,3.0,131,9.06,Apache 2.0,reasoning,False,False,17.53,0.93,-14.72
 K2-V2 (medium),Institute of Foundation Models,70.0,70.0,512,9.02,Apache 2.0,reasoning,False,True,,,-49.0
-Tri-21B-Think,Trillion Labs,21.0,21.0,32,8.99,Apache 2.0,reasoning,False,True,,,-62.55
 Mistral Small 4 (Non-reasoning),Mistral,119.0,6.5,256,8.99,Apache 2.0,vision,True,True,,,-48.52
+Tri-21B-Think,Trillion Labs,21.0,21.0,32,8.99,Apache 2.0,reasoning,False,True,,,-62.55
 gpt-oss-20b (high),OpenAI,21.0,3.6,131,8.97,Apache 2.0,reasoning,True,False,20.7,1.4,-63.05
 Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,8.91,Apache 2.0,"vision,audio,reasoning",True,True,9.39,,-19.7
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),NVIDIA,31.6,3.6,1000,8.9,Nvidia Nemotron Open Model License,reasoning,True,False,14.37,1.0,-51.57
@@ -133,8 +132,8 @@ Olmo 3.1 32B Instruct,Allen Institute for AI,32.2,32.2,66,6.5,Apache 2.0,,False,
 Gemma 4 E2B (Non-reasoning),Google,5.1,2.3,128,6.48,Apache 2.0,"vision,audio",True,True,,,-60.18
 R1 1776,Perplexity,671.0,37.0,128,6.44,MIT,reasoning,True,True,,,
 Llama 3.2 Instruct 90B (Vision),Meta,90.0,90.0,128,6.41,LLAMA 3.2 COMMUNITY LICENSE AGREEMENT,vision,False,True,,,
-Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.33,MIT,,False,True,3.84,,-61.08
 EXAONE 4.0 32B (Non-reasoning),LG AI Research,32.0,32.0,131,6.33,EXAONE AI Model License Agreement 1.2 - NC,,False,True,,,-62.77
+Phi-4 Mini Instruct,Microsoft,3.84,3.84,128,6.33,MIT,,False,True,3.84,,-61.08
 Qwen3.5 2B (Non-reasoning),Alibaba,2.27,2.27,262,6.19,Apache 2.0,vision,False,True,2.39,,-83.13
 Qwen3.5 0.8B (Reasoning),Alibaba,0.873,0.873,262,6.13,Apache 2.0,"vision,reasoning",False,True,0.0,,-54.52
 Jamba 1.7 Large,AI21 Labs,398.0,94.0,256,6.07,Jamba Open Model License Agreement,,True,True,,,-54.92
