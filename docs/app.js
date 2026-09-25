@@ -287,6 +287,7 @@ async function loadManifest() {
   const m = await (await fetch("figures/manifest.json", { cache: "no-store" })).json();
   window.AF.manifest = m;
   window.AF.version = m.version || "";
+  window.AF.codeVersion = m.code_version || "";
   window.AF.generatedIso = m.generated_iso || null;
   document.getElementById("stat-model-count").textContent = m.model_count;
   renderCoverageNote(m.coverage);
@@ -504,7 +505,8 @@ function bootPyodide() {
     setStatus("interactivity unavailable: " + (err.message || "worker error"));
   };
 
-  worker.postMessage({ type: "boot", version: window.AF.version || "" });
+  worker.postMessage({ type: "boot", version: window.AF.version || "",
+                       codeVersion: window.AF.codeVersion || "" });
 }
 
 // Write a preset's VRAM into a box. `userChange` is true only for a preset the
@@ -637,7 +639,7 @@ async function doRefresh() {
     if (m.version && m.version !== window.AF.version) {
       const u = new URL(location.href);
       u.searchParams.set("v", m.version);
-      location.replace(u.toString());   // fresh figures + pybundle + Pyodide reboot
+      location.replace(u.toString());   // fresh figures + bundles + Pyodide reboot
       return;                            // navigating away; leave spinner on
     }
     toast("Already up to date — updated " + relativeTime(window.AF.generatedIso));

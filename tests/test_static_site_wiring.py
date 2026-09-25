@@ -13,10 +13,23 @@ def test_manifest_fetched_no_store_and_version_captured():
 
 def test_data_assets_are_version_busted():
     assert "figures/${figId}.json?v=" in APP
-    # The bundle is fetched by the Pyodide worker, and the app hands it the
-    # manifest version so a refresh still busts the cache.
-    assert "pybundle.zip?v=" in WORKER
+    # The bundles are fetched by the Pyodide worker. The data zip is keyed by
+    # the manifest version so an hourly refresh busts it; the code zip is keyed
+    # by its content hash so a refresh does not.
+    assert "pydata.zip?v=${version" in WORKER
+    assert "pycode.zip?v=${codeVersion}" in WORKER
     assert 'worker.postMessage({ type: "boot", version: window.AF.version' in APP
+    assert "codeVersion: window.AF.codeVersion" in APP
+    assert "window.AF.codeVersion = m.code_version" in APP
+
+
+def test_the_code_zip_is_cached_by_content_hash():
+    """Pages serves max-age=600 with an mtime ETag that every deploy resets, so
+    only CacheStorage keeps the 4 MB code zip across hourly refreshes."""
+    assert "caches.open(CODE_CACHE)" in WORKER
+    assert "cache.put(url" in WORKER
+    # a corrupt cached copy must fall back to the network, not brick the boot
+    assert "dropCachedCode()" in WORKER and "skipCache: true" in WORKER
 
 def test_pyodide_runs_off_the_main_thread():
     """Booting Pyodide inline blocked the UI for ~3.8s of a 4.7s startup, so

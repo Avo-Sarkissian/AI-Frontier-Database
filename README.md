@@ -210,7 +210,7 @@ python build_static.py --data-only
 git add docs && git commit -m "rebuild static site" && git push   # Pages auto-deploys (~1 min)
 ```
 
-How it works: `build_static.py` pre-renders every chart's default state to JSON and zips the project's Python (chart builders, data loaders, `static_api.py`) plus `plotly` into `docs/pybundle.zip`. The page loads the pre-rendered figures instantly, then boots Pyodide in the background and calls the **same** Python chart code in the browser for live filtering — so the static site is faithful to the Dash app with zero hosting cost. In normal operation the [hourly GitHub Actions bot](#live-data-refresh) handles the refresh + rebuild + deploy automatically; the manual commands above are only needed for local iteration or a full rebuild.
+How it works: `build_static.py` pre-renders every chart's default state to JSON and zips the project's Python (chart builders, data loaders, `static_api.py`) plus `plotly` into `docs/pycode.zip`, and the data CSVs into `docs/pydata.zip`. The page loads the pre-rendered figures instantly, then boots Pyodide in the background and calls the **same** Python chart code in the browser for live filtering — so the static site is faithful to the Dash app with zero hosting cost. In normal operation the [hourly GitHub Actions bot](#live-data-refresh) handles the refresh + rebuild + deploy automatically; the manual commands above are only needed for local iteration or a full rebuild.
 
 ---
 
@@ -238,7 +238,7 @@ static_helpers.py          # Pure dash-free helpers shared by app.py + the stati
 static_api.py              # Browser bridge — Dash callbacks as JSON-returning functions (Pyodide)
 build_static.py            # Pre-renders figures + bundles Python into docs/ for GitHub Pages
 data_guard.py              # Row-loss, cumulative-drain and per-column median checks
-docs/                      # The static GitHub Pages site (index.html, app.js, figures/, pybundle.zip)
+docs/                      # The static GitHub Pages site (index.html, app.js, figures/, pycode.zip, pydata.zip)
 scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
   build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
@@ -256,10 +256,14 @@ browser in `docs/figures/manifest.json`. That is not tidiness: the recurring
 defect in this codebase has been two copies of one fact drifting apart, so the
 rule is **derive, never synchronise**, and tests assert the two sides agree.
 
-The deployed site executes the Python **inside `docs/pybundle.zip`**, not the
-repo's `.py` files. The hourly bot only swaps data CSVs into that zip, so a code
-change needs a full `build_static.py` to reach visitors —
-`tests/test_pybundle_freshness.py` fails if the two ever diverge.
+The deployed site executes the Python **inside `docs/pycode.zip`**, not the
+repo's `.py` files. The hourly bot only rebuilds `docs/pydata.zip` (the CSVs),
+so a code change needs a full `build_static.py` to reach visitors —
+`tests/test_pybundle_freshness.py` fails if the two ever diverge. The code zip
+is split from the data so the browser can keep it: the worker caches it in
+CacheStorage under `manifest.code_version` (a hash of its contents), and a
+returning visitor downloads its ~4 MB again only when the code changes, not on
+every hourly refresh.
 
 ---
 

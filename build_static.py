@@ -1,5 +1,5 @@
 """Pre-render default figures + bundle Python for the static Pyodide site."""
-import json, shutil, sys, zipfile
+import hashlib, json, shutil, sys, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,6 +51,14 @@ def _load_coverage() -> dict:
 ROOT = Path(__file__).resolve().parent
 DOCS = ROOT / "docs"
 FIG  = DOCS / "figures"
+
+# The browser's Python arrives as two zips. pycode.zip (project modules plus
+# vendored plotly, ~4 MB) changes only when code does, so it is keyed by a hash
+# of its contents and cached by the worker. pydata.zip (the CSVs, ~100 KB) is
+# rebuilt by every hourly refresh. One zip used to carry both, and the hourly
+# version bump made every returning visitor re-download 4 MB of unchanged code.
+CODE_BUNDLE = "pycode.zip"
+DATA_BUNDLE = "pydata.zip"
 
 DATA_CSVS = [
     "data/raw/aa_models.csv",
@@ -188,7 +196,7 @@ def copy_css(docs: Path | None = None):
     )
 
 
-# Every visitor downloads pybundle.zip before the dashboard becomes interactive,
+# A first-time visitor downloads pycode.zip before the dashboard becomes interactive,
 # so its size is a user-facing latency budget, not an implementation detail.
 MAX_BUNDLE_MB = 6.0
 _MAX_VALIDATOR_FILES = 500
@@ -237,19 +245,22 @@ def _assert_lean_plotly(pkg_dir: Path) -> None:
     if n > _MAX_VALIDATOR_FILES:
         raise RuntimeError(
             f"plotly at {pkg_dir} ships {n} generated validator modules "
-            f"(>{_MAX_VALIDATOR_FILES}), which would bloat pybundle.zip to ~11MB "
+            f"(>{_MAX_VALIDATOR_FILES}), which would bloat the code bundle to ~11MB "
             f"and slow every page load. Build against plotly>=6.1 instead:\n"
             f"    pip install 'plotly>=6.1'"
         )
 
 
 def build_pybundle(docs: Path | None = None):
-    """Build pybundle.zip: project Python + plotly/tenacity vendored from venv."""
+    """Build pycode.zip: project Python + plotly/tenacity vendored from venv.
+
+    The data CSVs are NOT in here; build_data_bundle ships them separately.
+    """
     import importlib.util, site
 
     docs = DOCS if docs is None else docs
     docs.mkdir(parents=True, exist_ok=True)
-    bundle = docs / "pybundle.zip"
+    bundle = docs / CODE_BUNDLE
     include = [
         "static_api.py", "static_helpers.py", "captions.py",
         "components/__init__.py", "components/stack_recommender.py",
@@ -267,9 +278,6 @@ def build_pybundle(docs: Path | None = None):
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
-        "data/raw/aa_models.csv", "data/raw/aa_local_models.csv",
-        "data/raw/aa_local_arch.csv", "data/raw/aa_image_models.csv",
-        "data/raw/aa_video_models.csv",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity
@@ -339,51 +347,77 @@ def build_pybundle(docs: Path | None = None):
                     z.write(f, str(arc))
 
     size_mb = staged.stat().st_size / 1e6
-    print(f"pybundle.zip: {size_mb:.1f} MB")
+    print(f"{CODE_BUNDLE}: {size_mb:.1f} MB")
     if size_mb > MAX_BUNDLE_MB:
         staged.unlink(missing_ok=True)      # reject BEFORE publishing
         raise RuntimeError(
-            f"pybundle.zip would be {size_mb:.1f}MB, over the {MAX_BUNDLE_MB}MB budget — "
+            f"{CODE_BUNDLE} would be {size_mb:.1f}MB, over the {MAX_BUNDLE_MB}MB budget — "
             f"every visitor downloads this before the dashboard goes interactive. "
             f"Check what got vendored before publishing."
         )
     staged.replace(bundle)
 
 
-def swap_bundle_csvs(docs: Path | None = None):
-    """Replace the 3 data CSVs inside docs/pybundle.zip without re-vendoring plotly."""
+def build_data_bundle(docs: Path | None = None):
+    """Build pydata.zip from the data CSVs, staged and swapped like the code zip.
+
+    Built from scratch every time, so unlike the old in-place CSV swap it needs
+    no existing bundle and cannot carry a stale member forward.
+    """
     docs = DOCS if docs is None else docs
-    bundle = docs / "pybundle.zip"
-    if not bundle.exists():
-        raise RuntimeError("pybundle.zip missing — run a full `python build_static.py` first.")
-    tmp = bundle.with_suffix(".zip.tmp")
+    docs.mkdir(parents=True, exist_ok=True)
+    bundle = docs / DATA_BUNDLE
+    staged = bundle.with_suffix(".zip.tmp")
     try:
-        with zipfile.ZipFile(bundle) as zin, \
-             zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                if item.filename in DATA_CSVS:
-                    continue                                    # drop stale copy
-                zout.writestr(item, zin.read(item.filename))    # pass everything else through
+        with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as z:
             for rel in DATA_CSVS:
-                zout.write(ROOT / rel, rel)                     # add fresh copy
-        tmp.replace(bundle)
+                z.write(ROOT / rel, rel)
+        staged.replace(bundle)
     except Exception:
-        tmp.unlink(missing_ok=True)
+        staged.unlink(missing_ok=True)
         raise
-    print("swapped CSVs into pybundle.zip")
+    print(f"{DATA_BUNDLE}: {bundle.stat().st_size / 1e3:.0f} KB")
+
+
+def code_version(docs: Path | None = None) -> str:
+    """Content hash of pycode.zip, the key the worker caches it under.
+
+    Hashes member names, CRCs and sizes rather than the zip's bytes, because
+    zip headers carry mtimes: two builds of identical code must share a key or
+    every full build would evict every visitor's cached copy for nothing.
+    """
+    docs = DOCS if docs is None else docs
+    h = hashlib.sha256()
+    with zipfile.ZipFile(docs / CODE_BUNDLE) as z:
+        for info in sorted(z.infolist(), key=lambda i: i.filename):
+            h.update(f"{info.filename}\0{info.CRC:08x}\0{info.file_size}\n".encode())
+    return h.hexdigest()[:16]
+
+
+def stamp_code_version(docs: Path | None = None) -> str:
+    """Write code_version into the manifest the browser reads at boot.
+
+    export_default_figures rewrites the manifest on every build, data-only
+    included, so this runs after it each time rather than living in it.
+    """
+    docs = DOCS if docs is None else docs
+    path = docs / "figures" / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["code_version"] = code_version(docs)
+    path.write_text(json.dumps(manifest))
+    return manifest["code_version"]
 
 
 def stale_bundle_modules(docs: Path | None = None) -> list[str]:
-    """Project .py members of pybundle.zip that differ from the working tree.
+    """Project .py members of pycode.zip that differ from the working tree.
 
     export_default_figures imports the chart builders from the TREE, while
-    swap_bundle_csvs passes every .py member through byte-for-byte — so a
-    data-only refresh publishes figures built from new code against a bundle
-    still running the old code. A chart fix pushed without a full build looks
+    a data-only refresh never rebuilds pycode.zip — so it would publish figures
+    built from new code against a bundle still running the old code. A chart fix pushed without a full build looks
     right on load and visibly reverts the moment a visitor touches a filter.
     """
     docs = DOCS if docs is None else docs
-    bundle = docs / "pybundle.zip"
+    bundle = docs / CODE_BUNDLE
     if not bundle.exists():
         return []
     vendored = ("plotly/", "_plotly_utils/", "tenacity/")
@@ -399,23 +433,28 @@ def stale_bundle_modules(docs: Path | None = None) -> list[str]:
 
 
 def rebuild_data_only(docs: Path | None = None):
-    """Data-only refresh for the hourly bot: figures + manifest + CSV swap.
+    """Data-only refresh for the hourly bot: figures + manifest + pydata.zip.
 
-    Escalates to a full build when the bundle's code has fallen behind the
-    tree, because shipping figures from new code beside old in-browser code is
-    a site that contradicts itself on first interaction.
+    Escalates to a full build when the code bundle is missing or has fallen
+    behind the tree, because shipping figures from new code beside old
+    in-browser code is a site that contradicts itself on first interaction.
     """
     docs = DOCS if docs is None else docs
+    if not (docs / CODE_BUNDLE).exists():
+        print(f"{CODE_BUNDLE} missing — escalating to a full build")
+        main(docs)
+        return
     stale = stale_bundle_modules(docs)
     if stale:
-        print(f"pybundle.zip is behind the tree ({len(stale)} modules: "
+        print(f"{CODE_BUNDLE} is behind the tree ({len(stale)} modules: "
               f"{', '.join(stale[:4])}{'…' if len(stale) > 4 else ''})")
         print("escalating to a full build so the browser runs the same code as the figures")
         main(docs)
         return
     export_default_figures(docs / "figures")
     copy_css(docs)
-    swap_bundle_csvs(docs)
+    build_data_bundle(docs)
+    stamp_code_version(docs)
     print("Data-only rebuild complete →", docs)
 
 
@@ -432,6 +471,8 @@ def main(docs: Path | None = None):
     copy_css(docs)
     (docs / ".nojekyll").write_text("")
     build_pybundle(docs)
+    build_data_bundle(docs)
+    stamp_code_version(docs)
     print("Static build complete →", docs)
 
 

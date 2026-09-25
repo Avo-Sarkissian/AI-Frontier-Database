@@ -8,10 +8,6 @@ import build_static
 
 ROOT = Path(__file__).resolve().parent.parent
 
-DATA_CSVS = ["data/raw/aa_models.csv", "data/raw/aa_local_models.csv",
-             "data/raw/aa_image_models.csv", "data/raw/aa_video_models.csv"]
-
-
 def _tree_digest(root: Path) -> dict[str, str]:
     """sha256 per file, so a test can prove it did not touch the published site."""
     return {
@@ -49,7 +45,8 @@ def test_build_writes_only_into_the_out_dir(tmp_path):
     subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
                    cwd=ROOT, check=True)
     assert (tmp_path / "figures" / "manifest.json").exists()
-    assert (tmp_path / "pybundle.zip").exists()
+    assert (tmp_path / build_static.CODE_BUNDLE).exists()
+    assert (tmp_path / build_static.DATA_BUNDLE).exists()
     assert _tree_digest(ROOT / "docs") == before, "build mutated docs/ despite --out"
 
 
@@ -78,34 +75,74 @@ def test_manifest_has_version_and_iso(tmp_path):
     datetime.fromisoformat(manifest["generated_iso"])
 
 @needs_lean_plotly
-def test_data_only_swaps_csvs_and_preserves_plotly(tmp_path):
-    # Full build first so a bundle exists.
+def test_data_only_rebuilds_the_data_zip_and_leaves_the_code_zip_alone(tmp_path):
+    """The split exists so the hourly refresh does not touch pycode.zip: a
+    byte-identical code zip and an unchanged code_version are what let a
+    returning visitor's cached copy survive the refresh."""
     subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
                    cwd=ROOT, check=True)
-    bundle = tmp_path / "pybundle.zip"
-    with zipfile.ZipFile(bundle) as z:
-        before = {i.filename: z.read(i.filename) for i in z.infolist()}
-    sample_py = next(n for n in before if n.endswith(".py") and not n.startswith("data/raw/"))
+    code = tmp_path / build_static.CODE_BUNDLE
+    code_before = code.read_bytes()
+    version_before = json.loads(
+        (tmp_path / "figures" / "manifest.json").read_text())["code_version"]
 
-    # Data-only rebuild.
     subprocess.run([sys.executable, "build_static.py", "--data-only", "--out", str(tmp_path)],
                    cwd=ROOT, check=True)
-    with zipfile.ZipFile(bundle) as z:
-        after = set(z.namelist())
-        # membership unchanged
-        assert after == set(before)
-        # a plotly/source member is byte-identical (no re-vendor drift)
-        assert z.read(sample_py) == before[sample_py]
-        # the 3 CSVs match the live data/raw files
-        for csv in DATA_CSVS:
-            assert csv in after
+    assert code.read_bytes() == code_before, "a data-only rebuild rewrote pycode.zip"
+    manifest = json.loads((tmp_path / "figures" / "manifest.json").read_text())
+    assert manifest["code_version"] == version_before == build_static.code_version(tmp_path)
+    with zipfile.ZipFile(tmp_path / build_static.DATA_BUNDLE) as z:
+        assert sorted(z.namelist()) == sorted(build_static.DATA_CSVS)
+        for csv in build_static.DATA_CSVS:
             assert z.read(csv) == (ROOT / csv).read_bytes()
 
-def test_swap_raises_if_bundle_missing(tmp_path, monkeypatch):
-    # Point the module's DOCS at an empty dir so pybundle.zip is absent.
-    monkeypatch.setattr(build_static, "DOCS", tmp_path)
-    with pytest.raises(RuntimeError, match="pybundle.zip missing"):
-        build_static.swap_bundle_csvs()
+
+@needs_lean_plotly
+def test_the_code_zip_carries_no_data(tmp_path):
+    """Data inside pycode.zip would change its hash every hour and defeat the
+    cache the split was made for."""
+    subprocess.run([sys.executable, "build_static.py", "--out", str(tmp_path)],
+                   cwd=ROOT, check=True)
+    with zipfile.ZipFile(tmp_path / build_static.CODE_BUNDLE) as z:
+        leaked = [n for n in z.namelist() if n.startswith("data/raw/")]
+    assert not leaked, f"data files leaked into the code zip: {leaked}"
+
+
+def test_the_data_zip_builds_without_a_code_zip(tmp_path):
+    build_static.build_data_bundle(tmp_path)
+    assert not (tmp_path / build_static.CODE_BUNDLE).exists()
+    with zipfile.ZipFile(tmp_path / build_static.DATA_BUNDLE) as z:
+        assert sorted(z.namelist()) == sorted(build_static.DATA_CSVS)
+    assert not (tmp_path / "pydata.zip.tmp").exists()
+
+
+def _zip_with(path: Path, members: dict[str, bytes], mtime: tuple) -> None:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in members.items():
+            z.writestr(zipfile.ZipInfo(name, date_time=mtime), data)
+
+
+def test_code_version_follows_content_not_zip_timestamps(tmp_path):
+    """Zip headers carry mtimes. Hashing the raw bytes would give identical
+    code a new key on every full build and evict every visitor's cache."""
+    a, b, c = (tmp_path / d for d in ("a", "b", "c"))
+    for d in (a, b, c):
+        d.mkdir()
+    members = {"static_api.py": b"x = 1\n", "plotly/__init__.py": b""}
+    _zip_with(a / "pycode.zip", members, (2026, 1, 1, 0, 0, 0))
+    _zip_with(b / "pycode.zip", members, (2026, 9, 25, 12, 0, 0))
+    _zip_with(c / "pycode.zip", {**members, "static_api.py": b"x = 2\n"}, (2026, 1, 1, 0, 0, 0))
+    assert build_static.code_version(a) == build_static.code_version(b)
+    assert build_static.code_version(a) != build_static.code_version(c)
+
+
+def test_a_data_only_rebuild_without_a_code_zip_escalates(tmp_path, monkeypatch):
+    """A fresh --out directory has no pycode.zip; publishing figures and data
+    with nothing to run them would boot to "interactivity unavailable"."""
+    calls = []
+    monkeypatch.setattr(build_static, "main", lambda docs=None: calls.append(docs))
+    build_static.rebuild_data_only(tmp_path)
+    assert calls == [tmp_path]
 
 
 # ── Coverage: what the scraper could not carry ───────────────────────────────

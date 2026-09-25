@@ -50,7 +50,72 @@ _im.version = _version_shim
 import static_api
 `;
 
-async function boot(version) {
+// pycode.zip (project modules + vendored plotly, ~4 MB) is keyed by a hash of
+// its contents and kept in CacheStorage, so a returning visitor downloads it
+// once per code change instead of once per hourly data refresh. The HTTP cache
+// cannot do this on its own: Pages serves max-age=600 with an mtime-based ETag,
+// and every deploy resets the mtime, so a revalidation always re-downloads.
+const CODE_CACHE = "af-pycode";
+
+async function openCodeCache() {
+  // CacheStorage is absent outside secure contexts and throws in some private
+  // modes; without it the zip is simply fetched every time, as before.
+  try { return self.caches ? await self.caches.open(CODE_CACHE) : null; }
+  catch (_) { return null; }
+}
+
+async function fetchZip(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url.split("?")[0]} ${res.status}`);
+  return res.arrayBuffer();
+}
+
+async function fetchCode(codeVersion, { skipCache = false } = {}) {
+  const url = `pycode.zip?v=${codeVersion}`;
+  const cache = await openCodeCache();
+  if (cache && !skipCache) {
+    try {
+      const hit = await cache.match(url);
+      if (hit) return { buf: await hit.arrayBuffer(), fromCache: true };
+    } catch (_) { /* fall through to the network */ }
+  }
+  const buf = await fetchZip(url);
+  if (cache) {
+    try {
+      const keep = new URL(url, self.location.href).href;
+      await cache.put(url, new Response(buf.slice(0), {
+        headers: { "Content-Type": "application/zip" },
+      }));
+      // One version at a time: an old build's 4 MB is dead weight once replaced.
+      for (const req of await cache.keys()) {
+        if (req.url !== keep) await cache.delete(req);
+      }
+    } catch (_) { /* quota or eviction: the fetched copy still boots */ }
+  }
+  return { buf, fromCache: false };
+}
+
+async function dropCachedCode() {
+  const cache = await openCodeCache();
+  if (!cache) return;
+  try {
+    for (const req of await cache.keys()) await cache.delete(req);
+  } catch (_) { /* nothing to clean */ }
+}
+
+async function boot(version, codeVersion) {
+  // Both zips are started before the runtime: they need nothing from Pyodide,
+  // and fetching them after loadPackage put ~4 MB behind the runtime download.
+  // An old app.js (cached for up to 10 minutes across a deploy) sends no
+  // codeVersion; keying on the data version then just skips the cache.
+  const codeKey = codeVersion || version || "";
+  const codeP = fetchCode(codeKey);
+  const dataP = fetchZip(`pydata.zip?v=${version || ""}`);
+  // Awaited below; this only keeps a rejection that lands while the runtime is
+  // still loading from being reported as unhandled.
+  codeP.catch(() => {});
+  dataP.catch(() => {});
+
   post("status", { text: "loading runtime…" });
   self.importScripts(PYODIDE_INDEX + "pyodide.js");
   pyodide = await self.loadPyodide({ indexURL: PYODIDE_INDEX });
@@ -59,9 +124,18 @@ async function boot(version) {
   await pyodide.loadPackage(["pandas", "numpy", "narwhals"]);
 
   post("status", { text: "loading bundle…" });
-  const res = await fetch(`pybundle.zip?v=${version || ""}`);
-  if (!res.ok) throw new Error(`pybundle.zip ${res.status}`);
-  pyodide.unpackArchive(await res.arrayBuffer(), "zip", { extractDir: "/bundle" });
+  const code = await codeP;
+  try {
+    pyodide.unpackArchive(code.buf, "zip", { extractDir: "/bundle" });
+  } catch (err) {
+    // A cached copy can be truncated by an eviction mid-write. Drop it and
+    // take the network copy once; a network copy that fails is a real error.
+    if (!code.fromCache) throw err;
+    await dropCachedCode();
+    const fresh = await fetchCode(codeKey, { skipCache: true });
+    pyodide.unpackArchive(fresh.buf, "zip", { extractDir: "/bundle" });
+  }
+  pyodide.unpackArchive(await dataP, "zip", { extractDir: "/bundle" });
 
   post("status", { text: "starting analysis engine…" });
   await pyodide.runPythonAsync(BOOTSTRAP);
@@ -102,7 +176,7 @@ self.onmessage = async (ev) => {
 
   if (msg.type === "boot") {
     try {
-      await boot(msg.version);
+      await boot(msg.version, msg.codeVersion);
     } catch (err) {
       post("bootError", { message: String((err && err.message) || err) });
     }

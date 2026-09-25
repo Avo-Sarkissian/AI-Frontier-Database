@@ -1,4 +1,4 @@
-"""The deployed site runs the Python inside docs/pybundle.zip, not the repo.
+"""The deployed site runs the Python inside docs/pycode.zip, not the repo.
 
 Editing a .py file is not shipping it. GitHub Pages serves docs/ verbatim, and
 everything Pyodide imports comes out of that zip, so the repo and the artifact
@@ -11,10 +11,11 @@ commit titled "fix" changed nothing a visitor could see. Nothing said so,
 because the failing artifact is a binary blob nobody reads.
 
 Why it can drift at all: the hourly refresh workflow runs
-`build_static.py --data-only`, whose `swap_bundle_csvs()` replaces the three data
-CSVs *inside* the zip and copies every .py member through untouched. Only a full
-`python build_static.py` re-vendors the modules, and that is a manual step. So
-the bundle goes stale by default, silently, on every code change.
+`build_static.py --data-only`, which rebuilds docs/pydata.zip (the CSVs) and
+never touches docs/pycode.zip. Only a full `python build_static.py` re-vendors
+the modules. (The data-only path now escalates to a full build when it sees
+stale modules, but a code change pushed by hand with no build at all is still
+caught only here.)
 
 If this test fails, the fix is not to edit the test: run a full build
 (`python build_static.py`, needs plotly>=6.1) and commit docs/.
@@ -28,7 +29,8 @@ import pytest
 import build_static
 
 ROOT = Path(__file__).resolve().parent.parent
-BUNDLE = ROOT / "docs" / "pybundle.zip"
+BUNDLE = ROOT / "docs" / build_static.CODE_BUNDLE
+DATA_BUNDLE = ROOT / "docs" / build_static.DATA_BUNDLE
 
 
 def _bundled_python_members() -> list[str]:
@@ -47,7 +49,7 @@ def _bundled_python_members() -> list[str]:
         ]
 
 
-@pytest.mark.skipif(not BUNDLE.exists(), reason="no pybundle.zip in this checkout")
+@pytest.mark.skipif(not BUNDLE.exists(), reason="no pycode.zip in this checkout")
 def test_every_python_module_in_the_bundle_matches_the_repo():
     stale, missing = [], []
     with zipfile.ZipFile(BUNDLE) as z:
@@ -63,7 +65,7 @@ def test_every_python_module_in_the_bundle_matches_the_repo():
         f"bundle ships modules that no longer exist in the repo: {missing}"
     )
     assert not stale, (
-        "docs/pybundle.zip is stale — the deployed site is running different "
+        "docs/pycode.zip is stale — the deployed site is running different "
         f"code from this checkout: {stale}. Run a full `python build_static.py` "
         "(needs plotly>=6.1) and commit docs/."
     )
@@ -86,7 +88,7 @@ def _declared_includes() -> list[str]:
     pytest.fail("could not find build_pybundle's `include` list in build_static.py")
 
 
-@pytest.mark.skipif(not BUNDLE.exists(), reason="no pybundle.zip in this checkout")
+@pytest.mark.skipif(not BUNDLE.exists(), reason="no pycode.zip in this checkout")
 def test_the_bundle_ships_every_module_the_build_promises():
     """A module dropped from the zip fails at import time in the browser only —
     the suite imports from the repo and would never notice."""
@@ -99,21 +101,39 @@ def test_the_bundle_ships_every_module_the_build_promises():
     )
 
 
-@pytest.mark.skipif(not BUNDLE.exists(), reason="no pybundle.zip in this checkout")
+@pytest.mark.skipif(not DATA_BUNDLE.exists(), reason="no pydata.zip in this checkout")
 def test_the_bundled_data_csvs_match_the_repo():
-    """`--data-only` swaps exactly these three, hourly. If they drift, the site
-    is serving a catalogue the freshness badge does not describe."""
-    stale = []
-    with zipfile.ZipFile(BUNDLE) as z:
+    """`--data-only` rebuilds this zip hourly. If it drifts, the site is
+    serving a catalogue the freshness badge does not describe."""
+    with zipfile.ZipFile(DATA_BUNDLE) as z:
         names = set(z.namelist())
-        for rel in build_static.DATA_CSVS:
-            if rel in names and (ROOT / rel).exists():
-                if z.read(rel) != (ROOT / rel).read_bytes():
-                    stale.append(rel)
+        missing = [rel for rel in build_static.DATA_CSVS if rel not in names]
+        stale = [rel for rel in build_static.DATA_CSVS
+                 if rel in names and (ROOT / rel).exists()
+                 and z.read(rel) != (ROOT / rel).read_bytes()]
+    assert not missing, f"pydata.zip does not carry: {missing}"
     assert not stale, f"bundled data CSVs differ from the repo: {stale}"
 
 
-@pytest.mark.skipif(not BUNDLE.exists(), reason="no pybundle.zip in this checkout")
+@pytest.mark.skipif(not BUNDLE.exists(), reason="no pycode.zip in this checkout")
+def test_the_manifest_names_the_code_zip_it_was_built_with():
+    """The worker caches pycode.zip under manifest.code_version. A manifest
+    naming a different version would serve a returning visitor the cached old
+    code indefinitely."""
+    import json
+    manifest = json.loads((ROOT / "docs" / "figures" / "manifest.json").read_text())
+    assert manifest.get("code_version") == build_static.code_version(), (
+        "manifest.code_version does not match docs/pycode.zip — run a full build"
+    )
+
+
+def test_the_retired_single_bundle_is_gone():
+    """Nothing fetches pybundle.zip any more; left in docs/ it is 4 MB of stale
+    code and data served to nobody, and a trap for the next reader."""
+    assert not (ROOT / "docs" / "pybundle.zip").exists()
+
+
+@pytest.mark.skipif(not BUNDLE.exists(), reason="no pycode.zip in this checkout")
 def test_every_first_party_import_inside_the_bundle_is_also_bundled():
     """A bundled module importing an unbundled one is a site that boots to
     "interactivity unavailable" — and nothing else catches it, because the test

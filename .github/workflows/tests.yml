@@ -76,7 +76,7 @@ jobs:
       # Both locks are hash-pinned. requirements.lock is the runtime set the
       # publishing job installs; requirements-dev.lock adds pytest and nothing
       # else, and is kept separate so a test runner never enters the set that
-      # gets vendored into pybundle.zip.
+      # gets vendored into pycode.zip.
       - run: pip install --require-hashes -r requirements.lock
       - run: pip install --require-hashes -r requirements-dev.lock
       - name: pytest

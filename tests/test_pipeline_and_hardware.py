@@ -168,12 +168,12 @@ def test_provider_ordering_is_total_so_both_pandas_versions_agree():
 
 def test_a_data_only_rebuild_refuses_to_ship_figures_ahead_of_the_bundle(tmp_path):
     """export_default_figures imports the builders from the TREE while
-    swap_bundle_csvs passes .py members through byte-for-byte, so a chart fix
+    a data-only rebuild never touches pycode.zip, so a chart fix
     pushed without a full build looks right on load and visibly reverts the
     first time a visitor touches a filter."""
     assert hasattr(build_static, "stale_bundle_modules")
     assert build_static.stale_bundle_modules() == [], (
-        "docs/pybundle.zip is behind the tree — run a full build"
+        "docs/pycode.zip is behind the tree — run a full build"
     )
 
 
@@ -557,7 +557,8 @@ def test_the_bundle_is_written_atomically():
     staged_check = body.index("staged.stat().st_size")
     publish = body.index("staged.replace(bundle)")
     assert staged_check < publish, "the size budget is enforced after publishing"
-    assert not (ROOT / "docs" / "pybundle.zip.tmp").exists(), "a staged bundle was left behind"
+    for name in ("pycode.zip.tmp", "pydata.zip.tmp"):
+        assert not (ROOT / "docs" / name).exists(), f"a staged {name} was left behind"
 
 
 def test_the_badge_recomputes_staleness_in_the_browser():
