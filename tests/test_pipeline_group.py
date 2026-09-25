@@ -135,6 +135,12 @@ def test_the_committed_sidecars_hold_every_score_ever_published():
 
 
 def test_backfill_reads_history_and_never_drops_a_score(tmp_path):
+    # CI's checkout is shallow, so git log sees only the tip commit and the
+    # rebuild is "behind" by construction rather than by a real loss.
+    shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                             cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    if shallow == "true":
+        pytest.skip("shallow checkout: full history needed to rebuild the sidecar")
     out = tmp_path / "hosted.csv"
     stats = carried.backfill_from_git("scraper", path=out, include_worktree=False)
     if stats["versions_read"] == 0:
