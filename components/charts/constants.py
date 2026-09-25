@@ -158,8 +158,10 @@ def select_effort(df: _pd.DataFrame, effort: str | None = None) -> _pd.DataFrame
 
     want = _EFFORT_RANK.get(str(effort).lower()) if effort else None
     if want is None:
+        # Stable, so two variants tied on quality resolve by catalogue order
+        # the same way in every pandas build rather than by quicksort's whim.
         return (
-            working.sort_values("quality", ascending=False)
+            working.sort_values("quality", ascending=False, kind="mergesort")
             .drop_duplicates("_base_model", keep="first")
             .drop(columns="_base_model")
         )
@@ -191,7 +193,8 @@ def select_effort(df: _pd.DataFrame, effort: str | None = None) -> _pd.DataFrame
     working["_eff_side"] = [d[1] for d in dist]
     return (
         working.sort_values(
-            ["_eff_gap", "_eff_side", "quality"], ascending=[True, True, False]
+            ["_eff_gap", "_eff_side", "quality"], ascending=[True, True, False],
+            kind="mergesort",
         )
         .drop_duplicates("_base_model", keep="first")
         .drop(columns=["_base_model", "_eff_gap", "_eff_side"])
@@ -343,7 +346,10 @@ AA_CREATOR_COLORS: dict[str, str] = {
     "Liquid AI":                             "#000000",
     "LongCat":                               "#2adb65",
     "Luma Labs":                             "#3face6",
-    "MBZUAI Institute of Foundation Models": "#1521a9",
+    # AA dropped the "MBZUAI " prefix from this creator on 2026-09-17 (the
+    # hourly refresh 8d693e4). Keyed by the name AA publishes today, because a
+    # palette keyed by the retired spelling matches no row.
+    "Institute of Foundation Models":        "#1521a9",
     "Meituan":                               "#f8d103",
     "Meta":                                  "#0089f4",
     "Microsoft":                             "#0078d5",

@@ -136,6 +136,14 @@ html, body {
   background: var(--bg);
 }
 
+/* Agent Stack, Run Local, Image Gen and Video Gen read none of the global
+   filters, so the bar hides them there — but not ↓CSV, which lives in it and
+   exports those tabs' own datasets. Hiding the whole bar left the export
+   unreachable on exactly the tabs whose export had just been fixed. */
+.filters.export-only > :not(.export-btn) {
+  display: none !important;   /* beats a dcc wrapper's inline style */
+}
+
 .filter-label {
   font-size: 10px;
   font-weight: 600;

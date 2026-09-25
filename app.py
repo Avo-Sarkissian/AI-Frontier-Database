@@ -56,28 +56,54 @@ df = get_models()
 # 23,742 rows, ~7 MB — with no consumer anywhere in the app. The history
 # directory is still written by the scraper; nothing reads it yet.
 
-# Kick off background scrapers — run immediately, then every hour.
-# Guard: in Werkzeug debug-reload mode two Python processes exist — the
-# watchdog (WERKZEUG_RUN_MAIN not set) and the real worker child
-# (WERKZEUG_RUN_MAIN=true). Without this check both processes start a
-# scraper thread and race to write the cache on every file-save reload.
+# ── Background scrapers — started by the SERVER, never by an import ──────────
+# `import app` used to start four live AA scrapes as a side effect. Anything
+# that imported the module for a layout check or a one-off call — two review
+# verifiers, a REPL, a build script — rewrote data/raw/ and froze a history
+# snapshot, leaving uncommitted scrape output behind. Importing is now inert;
+# the scrapers start when something is actually going to serve the app:
 #
-# Also skipped under pytest. Importing this module for a layout or callback
-# assertion used to fire three real network scrapes in a daemon thread, which
-# the short test process then killed mid-flight — and once each scraper started
-# recording its outcome, a plain `pytest` run wrote ok=false for all three into
+#   * `python app.py`          — the __main__ block below;
+#   * gunicorn (`app:server`)  — detected at import, since a gunicorn worker
+#                                imports this module precisely to serve it;
+#   * any other WSGI server    — the first request it handles;
+#   * AI_FRONTIER_SCRAPE=1     — forces a start at import; =0 disables them.
+#
+# Werkzeug's debug reloader runs two processes — the watchdog
+# (WERKZEUG_RUN_MAIN unset) and the worker child (WERKZEUG_RUN_MAIN=true). Only
+# the child serves, so only the child starts them; both used to race to write
+# the cache on every file-save reload.
+#
+# Never under pytest: a short test process killed the daemon threads
+# mid-flight and wrote ok=false for every scraper into
 # data/raw/scrape_status.json, so the live freshness badge showed a warning
 # because someone had run the tests.
-_debug_mode       = os.getenv("DEBUG", "false").lower() == "true"
-_is_worker_child  = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
-_under_pytest     = "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
-if _under_pytest:
-    pass
-elif not _debug_mode or _is_worker_child:
+_SCRAPE_FLAG      = os.environ.get("AI_FRONTIER_SCRAPE", "").strip().lower()
+_scrapers_lock    = threading.Lock()
+_scrapers_started = False
+
+
+def _scrapers_allowed() -> bool:
+    if _SCRAPE_FLAG in ("0", "false", "no", "off"):
+        return False
+    return not ("PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules)
+
+
+def start_scrapers() -> bool:
+    """Start the four hourly scrapers once per process. True if this call did."""
+    global _scrapers_started
+    if not _scrapers_allowed():
+        return False
+    with _scrapers_lock:
+        if _scrapers_started:
+            return False
+        _scrapers_started = True
     start_background_scraper(interval_s=3600)
     start_background_image_scraper(interval_s=3600)
     start_background_local_scraper(interval_s=3600)
     start_background_video_scraper(interval_s=3600)
+    return True
+
 
 _CACHE_PATH  = Path(__file__).parent / "data" / "raw" / "aa_models.csv"
 _data_lock   = threading.Lock()
@@ -149,6 +175,17 @@ app = dash.Dash(
 server = app.server
 
 
+@server.before_request
+def _start_scrapers_on_first_request():
+    # A flag read, then nothing, on every request after the first.
+    if not _scrapers_started:
+        start_scrapers()
+
+
+if _SCRAPE_FLAG in ("1", "true", "yes", "on") or "gunicorn" in sys.modules:
+    start_scrapers()
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _stat(value: str, label: str, accent: bool = False) -> html.Div:
     return html.Div([
@@ -163,8 +200,10 @@ def _apply_filters(providers, min_quality, search: str = "",
     return apply_filters(df, providers, min_quality, search, effort)
 
 
-def _export_frame_for_tab(tab, providers, min_quality, search):
-    return _export_frame_for_tab_shared(tab, df, providers, min_quality, search)
+def _export_frame_for_tab(tab, providers, min_quality, search,
+                          effort=None, local_args=None):
+    return _export_frame_for_tab_shared(tab, df, providers, min_quality, search,
+                                        effort=effort, local_args=local_args)
 
 
 def _desc(text: str) -> html.Div:
@@ -203,7 +242,7 @@ def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str]) -> htm
     ])
 
     table_rows = []
-    for _, r in rows.sort_values("quality", ascending=False).iterrows():
+    for _, r in rows.sort_values("quality", ascending=False, kind="mergesort").iterrows():
         pcolor    = PROVIDER_COLORS.get(r["provider"], DEFAULT_COLOR)
         price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
         speed_str = f"{int(r['speed']):,}" if pd.notna(r["speed"]) and r["speed"] > 0 else "—"
@@ -269,7 +308,7 @@ app.layout = html.Div([
     dcc.Store(id="resize-sink"),
     dcc.Store(id="table-data-store", data=(lambda _df: _df.assign(
         value=_df.apply(lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1)
-    ).sort_values("quality", ascending=False)[
+    ).sort_values("quality", ascending=False, kind="mergesort")[
         ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     ].to_dict("records"))(df)),
     dcc.Store(id="data-version",      data=0),
@@ -1194,6 +1233,24 @@ def update_rankings(providers, min_quality, effort, search, sort_by, _v):
     return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
 
 
+@callback(
+    Output("value-leaders-chart", "figure"),
+    Input("filter-provider", "value"),
+    Input("filter-quality",  "value"),
+    Input("filter-effort",   "value"),
+    Input("model-search",    "value"),
+    Input("data-version",    "data"),
+    prevent_initial_call=True,
+)
+def update_value_leaders(providers, min_quality, effort, search, _v):
+    # Value Leaders sits under the same visible filter bar as the Rankings chart
+    # above it, and was the one chart there with no callback: PROVIDER=Anthropic
+    # narrowed Rankings and left this listing every provider, and the hourly
+    # data-version bump never reached it, so its prices were frozen at boot.
+    # The hosted frame, not ranking_frame: the score divides by price.
+    return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort))
+
+
 
 @callback(
     Output("provider-leaderboard-chart", "figure"),
@@ -1354,8 +1411,12 @@ def toggle_detail_panel(pareto_click, _close):
     if not customdata or len(customdata) < 2:
         return no_update, no_update, no_update
 
-    model_name = customdata[0]
-    provider   = customdata[1]
+    # customdata[0] and [1] are HTML-escaped for Plotly's hover text; [5] and
+    # [6] carry the raw strings. Looking up the escaped name meant a model
+    # called "R&D Coder" matched no row and its panel silently never opened,
+    # and a provider with "&" printed as a literal "&amp;".
+    model_name = customdata[5] if len(customdata) > 6 else customdata[0]
+    provider   = customdata[6] if len(customdata) > 6 else customdata[1]
 
     rows = df[df["model"] == model_name]
     if rows.empty:
@@ -1478,9 +1539,11 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir):
     asc = (sort_dir or "desc") == "asc"
     if col == "context":
         filtered["_ctx_k"] = filtered["context"].map(_ctx_to_k)
-        filtered = filtered.sort_values("_ctx_k", ascending=asc, na_position="last")
+        filtered = filtered.sort_values("_ctx_k", ascending=asc, na_position="last",
+                                        kind="mergesort")
     else:
-        filtered = filtered.sort_values(col, ascending=asc, na_position="last")
+        filtered = filtered.sort_values(col, ascending=asc, na_position="last",
+                                        kind="mergesort")
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
     return filtered[cols].to_dict("records")
 
@@ -1493,9 +1556,18 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir):
     State("filter-provider", "value"),
     State("filter-quality",  "value"),
     State("model-search",    "value"),
+    State("filter-effort",   "value"),
+    State("local-vram",      "value"),
+    State("local-num-gpus",  "value"),
+    State("local-quant",     "value"),
+    State("local-context",   "value"),
+    State("local-hw-meta",   "data"),
+    State("local-tags",      "value"),
     prevent_initial_call=True,
 )
-def export_csv(n_clicks, tab, providers, min_quality, search):
+def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
+               vram_per_gpu=None, num_gpus=None, quant=None, ctx_tokens=None,
+               hw_meta=None, tags=None):
     """Export what is on screen, not always the hosted-LLM table.
 
     The global filter bar sits outside dcc.Tabs and four tabs consume none of
@@ -1506,21 +1578,36 @@ def export_csv(n_clicks, tab, providers, min_quality, search):
     """
     if not n_clicks:
         return no_update
-    frame, name = _export_frame_for_tab(tab, providers, min_quality, search)
+    # EFFORT and the Run Local hardware ride along too: the LLM export ignored
+    # EFFORT (195 rows exported against 113 on screen), and the Run Local one
+    # described the default 32 GB / Q4 card whatever hardware was picked.
+    hw = hw_meta or {}
+    local_args = {
+        "vram_per_gpu": vram_per_gpu, "num_gpus": num_gpus, "quant": quant,
+        "bandwidth_gbps": hw.get("bandwidth_gbps"), "hw_type": hw.get("hw_type"),
+        "tags": tags or None, "ctx_tokens": ctx_tokens,
+        "fp16_tflops": hw.get("fp16_tflops"),
+    }
+    frame, name = _export_frame_for_tab(tab, providers, min_quality, search,
+                                        effort=effort, local_args=local_args)
     return dcc.send_data_frame(_csv_safe(frame).to_csv, name, index=False)
 
 
 # ── Hide the global filter bar where it does nothing ──────────────────────────
 @callback(
-    Output("global-filters", "style"),
+    Output("global-filters", "className"),
     Input("tabs", "value"),
 )
 def toggle_global_filters(tab):
     """Agent Stack, Run Local, Image Gen and Video Gen read none of PROVIDER /
     MIN SCORE / SEARCH. Leaving the bar visible and live on those tabs meant it
     displayed "Anthropic / >= 45" over a chart plotting 72 models from a dozen
-    other providers."""
-    return {"display": "none"} if tab in _TABS_WITHOUT_GLOBAL_FILTERS else {}
+    other providers.
+
+    Only the filters are hidden (.export-only in assets/style.css): ↓CSV lives
+    in the same bar, and hiding all of it left those tabs' exports — each its
+    own dataset — with no button to reach them."""
+    return "filters export-only" if tab in _TABS_WITHOUT_GLOBAL_FILTERS else "filters"
 
 
 # ── Auto data refresh — drives ALL stat bar values and data-version ───────────
@@ -1602,4 +1689,6 @@ def update_video_charts(mode, providers, tags):
 # ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     debug = os.getenv("DEBUG", "false").lower() == "true"
+    if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        start_scrapers()
     app.run(debug=debug, port=8050)

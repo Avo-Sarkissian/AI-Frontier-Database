@@ -1,0 +1,145 @@
+model,coding,agentic
+Agnes 2.5 Pro Alpha,58.78,29.41
+Agnes 2.5 Pro Beta,62.3,
+Apodex 1.1,60.76,
+Celeris-1,14.4,0.65
+Claude 4.5 Haiku (Reasoning),43.89,10.31
+"Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",76.49,50.96
+"Claude Fable 5.1 (Adaptive Reasoning, High Effort, Default Fallback)",79.14,53.3
+"Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)",75.24,47.82
+"Claude Fable 5.1 (Adaptive Reasoning, Max Effort, Default Fallback)",81.6,57.97
+"Claude Fable 5.1 (Adaptive Reasoning, Medium Effort, Default Fallback)",77.12,50.61
+"Claude Fable 5.1 (Adaptive Reasoning, Xhigh Effort, Default Fallback)",80.7,57.14
+"Claude Opus 5 (Adaptive Reasoning, High Effort)",76.52,52.69
+"Claude Opus 5 (Adaptive Reasoning, Low Effort)",66.95,37.47
+"Claude Opus 5 (Adaptive Reasoning, Max Effort)",77.98,56.22
+"Claude Opus 5 (Adaptive Reasoning, Medium Effort)",74.33,46.98
+"Claude Opus 5 (Adaptive Reasoning, Xhigh Effort)",77.0,55.47
+"Claude Sonnet 5 (Adaptive Reasoning, Max Effort)",71.55,44.28
+"Claude Sonnet 5 (Non-reasoning, High Effort)",66.39,
+"DeepSeek V4 Flash 0731 (Reasoning, Max Effort)",69.06,41.68
+"DeepSeek V4 Flash Vision (Reasoning, Max Effort)",64.99,48.1
+"DeepSeek V4 Pro (Reasoning, High Effort)",58.67,
+"DeepSeek V4 Pro (Reasoning, Max Effort)",59.36,27.69
+"DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",68.83,42.27
+GLM-5.2 (Non-reasoning),46.49,
+GLM-5.2 (max),68.76,39.42
+GLM-5.3 (max),74.76,53.38
+GLM-5.3-Flash,71.53,51.23
+GPT-5.5 Instant (June 2026),39.42,19.2
+GPT-5.6 Luna (Non-reasoning),39.28,15.17
+GPT-5.6 Luna (high),63.34,35.62
+GPT-5.6 Luna (low),44.16,17.88
+GPT-5.6 Luna (max),71.45,42.66
+GPT-5.6 Luna (medium),50.73,25.42
+GPT-5.6 Luna (xhigh),68.6,39.45
+GPT-5.6 Sol (Non-reasoning),65.14,29.41
+GPT-5.6 Sol (high),77.16,44.7
+GPT-5.6 Sol (low),69.67,32.65
+GPT-5.6 Sol (max),77.39,50.5
+GPT-5.6 Sol (medium),76.26,40.52
+GPT-5.6 Sol (xhigh),78.35,47.82
+GPT-5.6 Terra (Non-reasoning),52.31,24.92
+GPT-5.6 Terra (high),67.14,37.57
+GPT-5.6 Terra (low),58.09,27.3
+GPT-5.6 Terra (max),76.66,43.73
+GPT-5.6 Terra (medium),64.74,31.44
+GPT-5.6 Terra (xhigh),70.64,42.19
+GPT-6 Astra (Non-reasoning),76.25,47.85
+GPT-6 Astra (high),77.13,48.68
+GPT-6 Astra (low),75.69,39.48
+GPT-6 Astra (max),76.94,51.46
+GPT-6 Astra (medium),76.69,46.35
+GPT-6 Astra (xhigh),75.94,50.61
+Gemini 3.1 Pro Preview,68.83,10.31
+Gemini 3.5 Flash-Lite,49.32,15.94
+Gemini 3.6 Flash (high),69.24,30.15
+Gemini 3.7 Flash (high),76.12,36.41
+Gemini 3.7 Flash (low),71.05,
+Gemini 3.7 Flash (medium),71.47,
+Gemini 3.8 Flash (high),76.29,41.1
+Gemini 3.8 Flash (low),73.52,33.73
+Gemini 3.8 Flash (medium),74.06,40.47
+Gemma 4 12B (Reasoning),30.96,
+Gemma 4 26B A4B (Reasoning),39.32,
+Gemma 4 31B (Non-reasoning),33.17,
+Gemma 4 E4B (Reasoning),9.39,
+Granite 4.1 8B,9.5,
+Granite 4.2 30B,29.92,
+Granite 4.2 3B,17.53,0.93
+Granite 4.2 8B,22.38,3.71
+Grok 4.3 (Non-reasoning),35.18,15.8
+Grok 4.5 (high),72.45,42.09
+Grok 4.6 (high),76.79,53.36
+Grok 4.6 (low),66.31,42.21
+Grok 4.6 (medium),74.39,51.2
+Grok 4.6 (xhigh),75.88,52.73
+Hy3,58.8,25.64
+"HyperNova 60B 2605 (high, based on gpt-oss-120b)",23.23,2.66
+Inkling (xhigh),52.06,24.32
+Inkling Small,52.95,24.95
+KAT Coder Pro V2,59.46,
+Kimi K2.7 Code,60.76,22.49
+Kimi K3 (low),71.98,30.71
+Kimi K3 (max),76.24,50.65
+Ling 3.0 Flash,50.65,20.97
+Llama 3.3 Instruct 70B,11.93,
+Llama 4 Maverick,16.28,0.62
+Llama 4 Scout,8.17,0.55
+LongCat 2.0,45.26,15.92
+Magistral Small 1.2,14.72,
+Mercury 2,31.11,4.02
+MiMo-V2.5,56.8,17.36
+MiMo-V2.5-Pro,60.19,22.67
+MiniMax-M3,58.57,30.84
+Ministral 3 14B,14.36,1.1
+Ministral 3 3B,4.78,0.79
+Ministral 3 8B,9.69,0.62
+Mistral Large 3,20.07,2.44
+Mistral Medium 3.5,46.9,9.35
+Mistral Small 4 (Reasoning),26.64,1.44
+Muse Glimmer (high),49.0,10.46
+Muse Spark 1.2 (xhigh),72.22,43.96
+Muse Spark 1.3 (max),75.78,55.71
+Muse Spark 1.3 (xhigh),76.45,51.83
+NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),14.37,1.0
+Nemotron 3 Nano Omni 30B A3B Reasoning,13.75,
+Nemotron 3 Super 120B A12B (Reasoning),37.72,4.13
+Nemotron 3 Ultra 550B A55B (Reasoning),49.27,21.68
+Nemotron 3.5 Lightning,26.76,6.14
+Nex-N2-Pro,59.12,
+Nova 2.0 Lite (high),23.04,
+Nova 2.0 Pro Preview (Non-reasoning),20.86,
+Nova 2.0 Pro Preview (low),25.87,
+Nova 2.0 Pro Preview (medium),33.96,
+"Quasar 438B (max, based on GLM-5.2)",61.2,32.68
+Qwen3 Coder Next,36.23,3.63
+Qwen3 Next 80B A3B (Reasoning),17.42,
+Qwen3.5 122B A10B (Non-reasoning),43.34,
+Qwen3.5 122B A10B (Reasoning),45.71,9.63
+Qwen3.5 35B A3B (Non-reasoning),36.98,
+Qwen3.5 397B A17B (Reasoning),48.21,10.56
+Qwen3.5 4B (Non-reasoning),20.33,
+Qwen3.5 4B (Reasoning),22.6,
+Qwen3.5 9B (Non-reasoning),23.46,
+Qwen3.5 9B (Reasoning),28.66,
+Qwen3.6 27B (Non-reasoning),46.63,
+Qwen3.6 27B (Reasoning),53.72,20.07
+Qwen3.6 35B A3B (Non-reasoning),28.14,
+Qwen3.6 35B A3B (Reasoning),41.88,15.02
+Qwen3.7 Plus,55.86,19.67
+Qwen3.8 2.4T A95B,71.89,50.44
+Qwen3.8 27B (Non-reasoning),44.59,
+Qwen3.8 27B (low),58.22,39.86
+Qwen3.8 27B (medium),56.14,
+Qwen3.8 27B (xhigh),68.08,46.51
+Qwen3.8 Max,71.81,49.59
+Qwen3.8-Flash-Next,73.05,
+Ring-2.6-1T,42.83,12.9
+Solar Pro 3,16.21,1.44
+Solar Pro 4,52.75,
+Step 3.7 Flash,39.57,
+Trinity Large Thinking,25.77,1.16
+gpt-oss-120b (high),30.44,6.21
+gpt-oss-120b (low),21.24,
+gpt-oss-20b (high),20.7,1.4

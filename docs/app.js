@@ -31,8 +31,12 @@ const TAB_CAPTIONS = {
 
 // window.AF.state contract: { providers: string[], minQuality: number, search: string, tab: string }
 const COMPARE_MAX = 5;   // mirrors static_helpers.COMPARE_MAX
+// gpuMeta: preset name -> {vram_gb, bandwidth_gbps, hw_type, fp16_tflops},
+// shipped with gpu_options at boot so a preset change resolves in-tick.
+// drawn: chart div id -> "static" | "py", so a late pre-rendered figure can
+// never paint over a live Python render.
 window.AF = { pyReady: false, figCache: {}, manifest: null, localHwMeta: null,
-  compareOrder: [], state: {
+  gpuMeta: {}, drawn: {}, compareOrder: [], state: {
   providers: [], minQuality: 0, search: "", tab: "overview" } };
 
 const PLOT_CONFIG = { displaylogo: false, responsive: true,
@@ -160,10 +164,12 @@ function showTabControls(id) {
   // The global filter bar lives outside #tab-panels, so nothing hid it on the
   // four tabs that ignore it: ?tab=image&p=Anthropic&q=45 showed
   // "Anthropic · ≥ 45" over a chart plotting 72 models from a dozen providers.
+  // Only the filters go (.export-only, assets/style.css): ↓CSV sits in the
+  // same bar, and hiding all of it made those tabs' exports unreachable.
   const globalFilters = document.querySelector(".filters");
   if (globalFilters) {
-    globalFilters.style.display =
-      TABS_WITHOUT_GLOBAL_FILTERS.includes(id) ? "none" : "";
+    globalFilters.classList.toggle("export-only",
+      TABS_WITHOUT_GLOBAL_FILTERS.includes(id));
   }
   // Hide all tab control rows first
   document.querySelectorAll('[id^="tab-controls-"]').forEach(el => {
@@ -175,8 +181,13 @@ function showTabControls(id) {
   if (provRow) provRow.style.display = "none";
   if (hwRow) hwRow.style.display = "none";
   // The budget answer block lives outside #tab-panels, so it needs hiding too
+  // Coming back to Budget with unchanged inputs skips the re-render (the
+  // per-tab memo), so the card is re-shown here rather than by the render.
   const budgetAnswer = document.getElementById("budget-answer");
-  if (budgetAnswer && id !== "budget") budgetAnswer.style.display = "none";
+  if (budgetAnswer) {
+    budgetAnswer.style.display =
+      id === "budget" && budgetAnswer.hasChildNodes() ? "block" : "none";
+  }
 
   // Show controls for the active tab
   const ctrl = document.getElementById("tab-controls-" + id);
@@ -212,11 +223,48 @@ function switchTab(id) {
     document.getElementById("panel-" + t.id).style.display = t.id === id ? "block" : "none";
   });
   showTabControls(id);
-  // Plotly needs a resize when a hidden plot becomes visible.
-  setTimeout(() => document.querySelectorAll("#panel-" + id + " .js-plotly-plot")
-    .forEach(el => { try { Plotly.Plots.resize(el); } catch (e) { console.warn("resize:", e); } }), 60);
-  // Re-render active tab with current filters once Pyodide is ready
+  // First visit: draw the pre-rendered figures now, into a panel that is
+  // already visible, so Plotly measures the real width. Drawing all twelve
+  // into display:none panels at init laid every one out at Plotly's 700 px
+  // default and jumped to full width 60 ms after each tab switch.
+  loadStaticFigures(id);
+  // A plot drawn while hidden (a Python answer that landed after the user left
+  // its tab) still needs a resize. Next frame, once layout has the width —
+  // not a 60 ms timer, which showed the 700 px chart for four frames.
+  requestAnimationFrame(() => fitPlotsIn(id));
+  // Re-render active tab with current filters once Pyodide is ready. This also
+  // writes the tab into the URL (syncUrl).
   rerenderActiveFilterCharts();
+}
+
+// Resize every drawn plot in a panel whose width no longer matches its box.
+// Plotly.Plots.resize defers its work by 100 ms; relayout({autosize}) does the
+// same thing now. A plot that already fits is left alone, so an ordinary tab
+// switch costs nothing.
+function fitPlotsIn(tabId) {
+  document.querySelectorAll("#panel-" + tabId + " .js-plotly-plot").forEach(el => {
+    const box = el.clientWidth;
+    const drawn = el._fullLayout && el._fullLayout.width;
+    if (!box || (drawn && Math.abs(drawn - box) < 2)) return;
+    if (el.layout && el.layout.width) return;          // a fixed-width figure
+    try { Plotly.relayout(el, { autosize: true }); } catch (e) { console.warn("resize:", e); }
+  });
+}
+
+// Draw a tab's pre-rendered figures, once. Nothing is fetched for tabs the
+// visitor never opens.
+function loadStaticFigures(tabId) {
+  const tab = TABS.find(t => t.id === tabId);
+  if (!tab) return Promise.resolve();
+  return Promise.all(tab.charts
+    .filter(c => !window.AF.drawn["chart-" + c])
+    .map(c => {
+      window.AF.drawn["chart-" + c] = "loading";     // one fetch per chart
+      return renderFigure("chart-" + c, c).catch(e => {
+        if (window.AF.drawn["chart-" + c] === "loading") delete window.AF.drawn["chart-" + c];
+        console.error(`figure ${c} failed:`, e);
+      });
+    }));
 }
 
 async function renderFigure(divId, figId) {
@@ -226,7 +274,13 @@ async function renderFigure(divId, figId) {
     fig = await r.json();
     window.AF.figCache[figId] = fig;
   }
-  Plotly.react(divId, fig.data, fig.layout, PLOT_CONFIG);
+  // The fetch can outlive a Python render of the same div; the live answer wins.
+  if (window.AF.drawn[divId] === "py") return;
+  window.AF.drawn[divId] = "static";
+  await Plotly.react(divId, fig.data, fig.layout, PLOT_CONFIG);
+  // react() drops event handlers, and the Python render that re-attaches the
+  // click may be skipped by its memo.
+  if (divId === "chart-pareto") attachParetoClickHandler();
 }
 
 async function loadManifest() {
@@ -419,8 +473,10 @@ function bootPyodide() {
     if (msg.type === "ready") {
       window.AF.pyReady = true;
       setStatus("", false);
-      setExportPending(false);
-      populateDynamicSelects()
+      // Boot now starts before the controls are wired (it only needs the
+      // manifest version), so wait for init() to finish before touching them.
+      (window.AF.uiReady || Promise.resolve())
+        .then(() => { setExportPending(false); return populateDynamicSelects(); })
         .then(rerenderActiveFilterCharts)
         .catch((e) => console.error("post-boot refresh failed:", e));
       return;
@@ -451,6 +507,16 @@ function bootPyodide() {
   worker.postMessage({ type: "boot", version: window.AF.version || "" });
 }
 
+// Write a preset's VRAM into a box. `userChange` is true only for a preset the
+// visitor picked; the boot default must not clobber a figure they typed.
+function setVramFromPreset(inputId, hw, userChange) {
+  const el = document.getElementById(inputId);
+  if (!el || !hw || hw.vram_gb == null) return;
+  if (!userChange && el.dataset.userTyped === "1") return;
+  el.value = hw.vram_gb;
+  delete el.dataset.userTyped;
+}
+
 // ---- Populate selects that need data from Python ----
 async function populateDynamicSelects() {
   try {
@@ -458,6 +524,16 @@ async function populateDynamicSelects() {
     const quantLevels = await window.AF.callPy("quant_options");
     const DEFAULT_GPU = "NVIDIA RTX 5090";
     const DEFAULT_QUANT = "Q4";
+    // Every option carries its preset's hardware. Both preset handlers resolve
+    // a change from this table in the same tick; the old per-change
+    // local_hw_for_gpu call queued behind a running update_local for 1.2 s+.
+    window.AF.gpuMeta = {};
+    gpuOptions.forEach(o => {
+      window.AF.gpuMeta[o.value] = {
+        vram_gb: o.vram_gb, bandwidth_gbps: o.bandwidth_gbps,
+        hw_type: o.hw_type, fp16_tflops: o.fp16_tflops ?? null,
+      };
+    });
 
     // local-gpu-preset
     const localGpu = document.getElementById("local-gpu-preset");
@@ -505,18 +581,16 @@ async function populateDynamicSelects() {
       fillQuantSelect("local-speed-mode", speedOpts, null);
     } catch (e) { console.warn("context/slo options:", e); }
 
-    // Set default local HW meta for RTX 5090
-    try {
-      const hw = await window.AF.callPy("local_hw_for_gpu", DEFAULT_GPU);
-      if (hw) {
-        window.AF.localHwMeta = hw;
-        const vramInput = document.getElementById("local-vram");
-        if (vramInput) vramInput.value = hw.vram_gb;
-        // Same default preset feeds the Agent Stack tab's VRAM cap.
-        const recVramInput = document.getElementById("recommend-vram");
-        if (recVramInput) recVramInput.value = hw.vram_gb;
-      }
-    } catch (e) { console.warn("local_hw_for_gpu init:", e); }
+    // Default local HW meta, from the same table. A VRAM figure the visitor
+    // typed while Python was still loading is theirs: only an actual preset
+    // change may overwrite it.
+    const hw = window.AF.gpuMeta[DEFAULT_GPU];
+    if (hw) {
+      window.AF.localHwMeta = hw;
+      setVramFromPreset("local-vram", hw, false);
+      // Same default preset feeds the Agent Stack tab's VRAM cap.
+      setVramFromPreset("recommend-vram", hw, false);
+    }
 
   } catch (e) {
     console.error("populateDynamicSelects failed:", e);
@@ -525,6 +599,8 @@ async function populateDynamicSelects() {
 
 // ---- Debounce helper ----
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+// Settle time for the per-tab controls (Run Local, Image, Video, Agent Stack).
+const LOCAL_DEBOUNCE_MS = 150;
 
 // ---- Relative time + freshness badge ----
 function relativeTime(iso) {
@@ -635,7 +711,77 @@ function readGlobalFilters() {
   return [providers, minQuality, search, effort];
 }
 
-async function renderJsonFig(divId, figObj) { Plotly.react(divId, figObj.data, figObj.layout, PLOT_CONFIG); }
+async function renderJsonFig(divId, figObj) {
+  window.AF.drawn[divId] = "py";
+  return Plotly.react(divId, figObj.data, figObj.layout, PLOT_CONFIG);
+}
+
+// ---- Coalescing refresher: one per tab ----
+//
+// Every control change used to post its own worker call, and the single
+// Pyodide worker ran them strictly first-in-first-out. Five GPU presets picked
+// 150 ms apart gave ten renders and settled 6.3 s after the last click, showing
+// cards that were no longer selected for 3.5 s of it; a tab switch behind three
+// queued QUANT changes waited 8.6 s.
+//
+// makeRefresher(name, readArgs, call, draw) returns refresh(), which:
+//   - keeps at most ONE call in flight for its tab;
+//   - when the inputs moved while the call ran, drops the answer unrendered
+//     and runs once more with the LATEST inputs read from the DOM — never the
+//     intermediate ones. It compares the DOM, not a request count: every
+//     control reaches refresh() through a 150 ms debounce, so the inputs can
+//     move before a newer request is counted;
+//   - remembers the arguments of its last successful render and does nothing
+//     when asked again with the same ones, so a tab switch with unchanged
+//     inputs skips both Python and Plotly.react (Run Local: 1.3-3.4 s).
+// readArgs() reads the controls and returns a JSON-able list; call(...args)
+// asks Python and resolves to its answer; draw(out, args) puts it on screen.
+// refresh.invalidate() forgets the memo.
+function makeRefresher(name, readArgs, call, draw) {
+  let busy = false;          // a loop is running
+  let again = false;         // a request arrived while it ran
+  let lastKey = null;        // JSON of the args last rendered
+  let current = Promise.resolve();
+
+  async function loop() {
+    try {
+      do {
+        again = false;
+        const args = readArgs();
+        const key = JSON.stringify(args);
+        if (key === lastKey) continue;
+        let out;
+        try {
+          out = await call(...args);
+        } catch (e) { console.error(`${name} failed:`, e); continue; }
+        // Superseded: the inputs are no longer the ones this answer was
+        // computed for, whether or not the debounced refresh() has fired yet.
+        // Rendering it would flash a state the user has already left; when
+        // that refresh() does fire it finds the loop busy or hits the memo.
+        if (JSON.stringify(readArgs()) !== key) {
+          again = true;
+          continue;
+        }
+        try {
+          await draw(out, args);
+          lastKey = key;
+        } catch (e) { console.error(`${name} render failed:`, e); }
+      } while (again);
+    } finally {
+      busy = false;
+    }
+  }
+
+  const refresh = () => {
+    if (!window.AF.pyReady) return Promise.resolve();
+    if (busy) { again = true; return current; }
+    busy = true;
+    current = loop();
+    return current;
+  };
+  refresh.invalidate = () => { lastKey = null; };
+  return refresh;
+}
 
 // ---- Helper: read multiselect values ----
 function multiVals(id) {
@@ -646,7 +792,13 @@ function multiVals(id) {
 
 // ---- Per-tab refresh functions ----
 
-async function refreshCompare(triggered) {
+// Args of the last successful Compare render, for the tab-switch memo.
+let lastCompareKey = null;
+
+// `wanted`, when given, is the selection to chart even if some of it has no
+// <option> yet: "Add to Compare" can name a model the list dropped under an
+// earlier, narrower filter, and reading only the DOM silently lost it.
+async function refreshCompare(triggered, wanted) {
   if (!window.AF.pyReady) return;
   const [p, q, s, e] = readGlobalFilters();
   const sel = document.getElementById("radar-model-select");
@@ -654,7 +806,12 @@ async function refreshCompare(triggered) {
   // Prefer the recency order the onchange handler maintains; fall back to
   // document order for the paths that set .selected programmatically.
   const tracked = (window.AF.compareOrder || []).filter(v => inDom.includes(v));
-  let selected = tracked.concat(inDom.filter(v => !tracked.includes(v)));
+  let selected = Array.isArray(wanted) ? wanted.slice()
+    : tracked.concat(inDom.filter(v => !tracked.includes(v)));
+  // A tab switch with the same filters and picks as the last render has
+  // nothing new to draw; skip Python and Plotly.react.
+  const key = JSON.stringify([p, q, s, e, selected]);
+  if (triggered === "tab-switch" && key === lastCompareKey) return;
   if (selected.length > COMPARE_MAX) {
     // Shift-selecting 9 left 8 highlighted while 5 were charted, and the
     // <select> was never corrected — the control disagreed with the chart.
@@ -678,6 +835,8 @@ async function refreshCompare(triggered) {
       }));
       Array.from(sel.options).forEach(o => { o.selected = out.value.includes(o.value); });
     }
+    window.AF.compareOrder = out.value.slice();
+    lastCompareKey = JSON.stringify([p, q, s, e, out.value]);
   } catch (e) { console.error("refreshCompare failed:", e); }
 }
 
@@ -689,7 +848,9 @@ function renderBudgetAnswer(best, floor) {
   if (!host) return;
   host.replaceChildren();
   if (!floor) { host.style.display = "none"; return; }
-  host.style.display = "block";
+  // A late answer must not appear over another tab; showTabControls re-shows
+  // the card when Budget is opened again.
+  host.style.display = window.AF.state.tab === "budget" ? "block" : "none";
 
   const card = document.createElement("div");
   card.style.cssText =
@@ -740,28 +901,9 @@ function renderBudgetAnswer(best, floor) {
   host.appendChild(card);
 }
 
-async function refreshBudget() {
-  if (!window.AF.pyReady) return;
-  const [p, q, s, e] = readGlobalFilters();
-  const tok = Number(document.getElementById("budget-tokens")?.value || 1);
-  const floor = Number(document.getElementById("budget-min-intelligence")?.value || 0);
-  try {
-    const out = await window.AF.callPy("update_cost_calc", tok, p, q, s, floor, e);
-    renderJsonFig("chart-cost_calc", out.figure);
-    renderBudgetAnswer(out.best, out.floor);
-  } catch (e) { console.error("budget render failed:", e); }
-}
+async function refreshBudget() { return refreshers.budget(); }
 
-async function refreshTable() {
-  if (!window.AF.pyReady) return;
-  const [p, q, s, e] = readGlobalFilters();
-  const col = document.getElementById("table-sort-col").value;
-  const dir = document.getElementById("table-sort-dir").value;
-  try {
-    const rows = await window.AF.callPy("update_table", p, q, s, col, dir, e);
-    renderTableRows(rows);
-  } catch (e) { console.error("refreshTable failed:", e); }
-}
+async function refreshTable() { return refreshers.table(); }
 
 // Send a blank box through as null and let Python apply the shared default
 // (data/local_models.DEFAULT_VRAM_GB). The old `Number(el.value || 32)` did not
@@ -778,73 +920,155 @@ function numOrNull(id) {
   return Number.isFinite(n) ? n : null;
 }
 
-async function refreshLocal() {
-  if (!window.AF.pyReady) return;
+// The Run Local hardware, in static_helpers.LOCAL_ARG_NAMES order. One
+// builder feeds both update_local and the tab's ↓CSV, so the export describes
+// the hardware on screen rather than the default card.
+function localArgs() {
   // Same rule as the numeric boxes: send nothing and let Python own the
   // fallback (DEFAULT_BANDWIDTH_GBPS / "nvidia"). A literal bandwidth figure
   // here is a second copy of a constant that lives in data/local_models.py.
   const hw = window.AF.localHwMeta || {};
   const vram = numOrNull("local-vram");
   const gpus = numOrNull("local-num-gpus");
-  const quant = document.getElementById("local-quant").value || "Q4";
+  const quant = document.getElementById("local-quant")?.value || "Q4";
   // numOrNull, never `|| 8192`: a literal numeric fallback on a local-* box is
   // a second copy of a constant that lives in data/local_models.py, and
   // test_neither_rendering_declares_its_own_hardware_default greps for exactly
   // that shape.
   const ctx = numOrNull("local-context");
-  const speedMode = document.getElementById("local-speed-mode")?.value || null;
   const tags = multiVals("local-tags");
-  try {
-    // The three new args are APPENDED. pyworker.js spreads this list straight
-    // into the Python function with no arity check, so an argument inserted
-    // mid-list shifts every one after it and fails silently.
-    const out = await window.AF.callPy("update_local", vram, gpus, quant,
-      hw.bandwidth_gbps ?? null, hw.hw_type ?? null, tags.length ? tags : null,
-      ctx, speedMode, hw.fp16_tflops ?? null);
-    renderJsonFig("chart-local_scatter", out.scatter);
-    renderJsonFig("chart-local_compat", out.compat);
-  } catch (e) { console.error("refreshLocal failed:", e); }
+  return [vram, gpus, quant, hw.bandwidth_gbps ?? null, hw.hw_type ?? null,
+    tags.length ? tags : null, ctx, hw.fp16_tflops ?? null];
 }
 
-async function refreshImage() {
-  if (!window.AF.pyReady) return;
-  const providers = multiVals("image-provider-filter");
-  const tags = multiVals("image-tag-filter");
-  try {
-    renderJsonFig("chart-image_faceted", await window.AF.callPy("update_image", providers.length ? providers : null, tags.length ? tags : null));
-  } catch (e) { console.error("refreshImage failed:", e); }
-}
+async function refreshLocal() { return refreshers.local(); }
+async function refreshImage() { return refreshers.image(); }
+async function refreshVideo() { return refreshers.video(); }
+async function refreshRecommend() { return refreshers.recommend(); }
 
-async function refreshVideo() {
-  if (!window.AF.pyReady) return;
-  const providers = multiVals("video-provider-filter");
-  const tags = multiVals("video-tag-filter");
-  const modeSel = document.getElementById("video-mode-filter");
-  const mode = modeSel && modeSel.value ? modeSel.value : null;
-  try {
-    const out = await window.AF.callPy("update_video", providers.length ? providers : null, tags.length ? tags : null, mode);
-    renderJsonFig("chart-video_rankings", out.rankings);
-    renderJsonFig("chart-video_scatter", out.scatter);
-  } catch (e) { console.error("refreshVideo failed:", e); }
-}
+// One coalescing refresher per tab (see makeRefresher). Compare is not here:
+// its trigger decides how Python treats the selection, so it keeps its own
+// function with a tab-switch memo.
+const refreshers = {
+  overview: makeRefresher("overview",
+    () => {
+      const [p, q, s, e] = readGlobalFilters();
+      const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
+      return [p, q, s, x, e];
+    },
+    (p, q, s, x, e) => window.AF.callPy("update_overview", p, q, s, x, e),
+    async (fig) => { await renderJsonFig("chart-pareto", fig); attachParetoClickHandler(); }),
 
-async function refreshRecommend() {
-  if (!window.AF.pyReady) return;
-  const mode = document.querySelector('input[name="recommend-mode"]:checked')?.value || "api";
-  const providers = Array.from(document.querySelectorAll('input[name="recommend-providers"]:checked')).map(c => c.value);
-  const gpu = document.getElementById("recommend-gpu-preset")?.value || "NVIDIA RTX 5090";
-  const vram = numOrNull("recommend-vram");
-  const gpus = numOrNull("recommend-num-gpus");
-  const quant = document.getElementById("recommend-quant")?.value || "Q4";
-  try {
-    const out = await window.AF.callPy("update_recommend", providers, mode, gpu, vram, gpus, quant);
-    document.getElementById("recommend-cards").innerHTML = out.cards_html;
-    const provRow = document.getElementById("recommend-providers-row");
-    const hwRow = document.getElementById("recommend-hw-row");
-    if (provRow) provRow.style.display = out.show_providers ? "flex" : "none";
-    if (hwRow) hwRow.style.display = out.show_hw ? "flex" : "none";
-  } catch (e) { console.error("refreshRecommend failed:", e); }
-}
+  landscape: makeRefresher("landscape",
+    () => readGlobalFilters(),
+    async (p, q, s, e) => ({
+      treemap: await window.AF.callPy("update_treemap", p, q, s, e),
+      leaderboard: await window.AF.callPy("update_provider_leaderboard", p, q, s, e),
+    }),
+    (out) => {
+      renderJsonFig("chart-treemap", out.treemap);
+      return renderJsonFig("chart-provider_leaderboard", out.leaderboard);
+    }),
+
+  rankings: makeRefresher("rankings",
+    () => {
+      const [p, q, s, e] = readGlobalFilters();
+      const sort = document.querySelector('input[name="rankings-sort"]:checked')?.value || "intelligence";
+      return [p, q, s, sort, e];
+    },
+    // Value Leaders follows the same global filters (Dash's update_value_leaders);
+    // the sort toggle does not touch it, but both share one coalesced refresh.
+    async (p, q, s, sort, e) => ({
+      rankings: await window.AF.callPy("update_rankings", p, q, s, sort, e),
+      leaders: await window.AF.callPy("update_value_leaders", p, q, s, e),
+    }),
+    (out) => {
+      renderJsonFig("chart-value_leaders", out.leaders);
+      return renderJsonFig("chart-rankings", out.rankings);
+    }),
+
+  budget: makeRefresher("budget",
+    () => {
+      const [p, q, s, e] = readGlobalFilters();
+      const tok = Number(document.getElementById("budget-tokens")?.value || 1);
+      const floor = Number(document.getElementById("budget-min-intelligence")?.value || 0);
+      return [tok, p, q, s, floor, e];
+    },
+    (tok, p, q, s, floor, e) => window.AF.callPy("update_cost_calc", tok, p, q, s, floor, e),
+    (out) => {
+      renderBudgetAnswer(out.best, out.floor);
+      return renderJsonFig("chart-cost_calc", out.figure);
+    }),
+
+  table: makeRefresher("table",
+    () => {
+      const [p, q, s, e] = readGlobalFilters();
+      const col = document.getElementById("table-sort-col").value;
+      const dir = document.getElementById("table-sort-dir").value;
+      return [p, q, s, col, dir, e];
+    },
+    (p, q, s, col, dir, e) => window.AF.callPy("update_table", p, q, s, col, dir, e),
+    (rows) => renderTableRows(rows)),
+
+  local: makeRefresher("refreshLocal",
+    () => [...localArgs(), document.getElementById("local-speed-mode")?.value || null],
+    // update_local's late arguments were APPENDED (ctx, speed mode, fp16).
+    // pyworker.js spreads this list straight into the Python function with no
+    // arity check, so an argument inserted mid-list shifts every one after it
+    // and fails silently.
+    (vram, gpus, quant, bw, hwType, tags, ctx, fp16, speedMode) =>
+      window.AF.callPy("update_local", vram, gpus, quant, bw, hwType, tags, ctx, speedMode, fp16),
+    (out) => {
+      renderJsonFig("chart-local_scatter", out.scatter);
+      return renderJsonFig("chart-local_compat", out.compat);
+    }),
+
+  image: makeRefresher("refreshImage",
+    () => {
+      const providers = multiVals("image-provider-filter");
+      const tags = multiVals("image-tag-filter");
+      return [providers.length ? providers : null, tags.length ? tags : null];
+    },
+    (providers, tags) => window.AF.callPy("update_image", providers, tags),
+    (fig) => renderJsonFig("chart-image_faceted", fig)),
+
+  video: makeRefresher("refreshVideo",
+    () => {
+      const providers = multiVals("video-provider-filter");
+      const tags = multiVals("video-tag-filter");
+      const modeSel = document.getElementById("video-mode-filter");
+      return [providers.length ? providers : null, tags.length ? tags : null,
+        modeSel && modeSel.value ? modeSel.value : null];
+    },
+    (providers, tags, mode) => window.AF.callPy("update_video", providers, tags, mode),
+    (out) => {
+      renderJsonFig("chart-video_rankings", out.rankings);
+      return renderJsonFig("chart-video_scatter", out.scatter);
+    }),
+
+  recommend: makeRefresher("refreshRecommend",
+    () => {
+      const mode = document.querySelector('input[name="recommend-mode"]:checked')?.value || "api";
+      const providers = Array.from(document.querySelectorAll('input[name="recommend-providers"]:checked')).map(c => c.value);
+      const gpu = document.getElementById("recommend-gpu-preset")?.value || "NVIDIA RTX 5090";
+      const vram = numOrNull("recommend-vram");
+      const gpus = numOrNull("recommend-num-gpus");
+      const quant = document.getElementById("recommend-quant")?.value || "Q4";
+      return [providers, mode, gpu, vram, gpus, quant];
+    },
+    (providers, mode, gpu, vram, gpus, quant) =>
+      window.AF.callPy("update_recommend", providers, mode, gpu, vram, gpus, quant),
+    (out) => {
+      document.getElementById("recommend-cards").innerHTML = out.cards_html;
+      // Only while Agent Stack is showing: a late answer must not reveal its
+      // rows over another tab.
+      if (window.AF.state.tab !== "recommend") return;
+      const provRow = document.getElementById("recommend-providers-row");
+      const hwRow = document.getElementById("recommend-hw-row");
+      if (provRow) provRow.style.display = out.show_providers ? "flex" : "none";
+      if (hwRow) hwRow.style.display = out.show_hw ? "flex" : "none";
+    }),
+};
 
 // ---- Build model-table HTML from records ----
 function renderTableRows(records) {
@@ -913,47 +1137,25 @@ async function rerenderActiveFilterCharts() {
   // state said {providers: [], minQuality: 0} while the DOM said Anthropic /
   // >= 40, and Share copied a filter-less link AND rewrote the address bar
   // with it. Pyodide is CDN-loaded, so a cold cache widens that window.
-  const [p, q, s, e] = readGlobalFilters();
+  readGlobalFilters();
+  // Every tab switch and filter change lands here, so this is where the
+  // address bar follows the state — pre-boot included.
+  syncUrl();
   if (!window.AF.pyReady) return;
   const tab = window.AF.state.tab;
-  if (tab === "overview") {
-    const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
-    try {
-      await renderJsonFig("chart-pareto", await window.AF.callPy("update_overview", p, q, s, x, e));
-      attachParetoClickHandler();
-    } catch (e) { console.error("overview render failed:", e); }
-  } else if (tab === "landscape") {
-    try {
-      renderJsonFig("chart-treemap", await window.AF.callPy("update_treemap", p, q, s, e));
-      renderJsonFig("chart-provider_leaderboard", await window.AF.callPy("update_provider_leaderboard", p, q, s, e));
-    } catch (e) { console.error("landscape render failed:", e); }
-  } else if (tab === "rankings") {
-    const sort = document.querySelector('input[name="rankings-sort"]:checked')?.value || "intelligence";
-    try {
-      renderJsonFig("chart-rankings", await window.AF.callPy("update_rankings", p, q, s, sort, e));
-      // Value Leaders is built once on the full dataset (matches Dash app — no callback).
-      // Do NOT re-render it here; it keeps the pre-loaded figures/value_leaders.json figure.
-    } catch (e) { console.error("rankings render failed:", e); }
-  } else if (tab === "compare") {
+  if (tab === "compare") {
     // "tab-switch", not "filter-provider": this path runs on every tab change,
     // and passing a filter trigger made Python discard the user's picks and
     // substitute the diverse-5 defaults. Go to Table and back and a curated
     // comparison was gone. Dash has no tabs input on this callback and never
     // did this — the static site drifted.
-    await refreshCompare(window.AF._compareTrigger || "tab-switch");
+    const trigger = window.AF._compareTrigger || "tab-switch";
+    const wanted = window.AF._compareWanted;
     window.AF._compareTrigger = null;
-  } else if (tab === "budget") {
-    await refreshBudget();
-  } else if (tab === "table") {
-    await refreshTable();
-  } else if (tab === "local") {
-    await refreshLocal();
-  } else if (tab === "image") {
-    await refreshImage();
-  } else if (tab === "video") {
-    await refreshVideo();
-  } else if (tab === "recommend") {
-    await refreshRecommend();
+    window.AF._compareWanted = null;
+    await refreshCompare(trigger, wanted || undefined);
+  } else if (refreshers[tab]) {
+    await refreshers[tab]();
   }
 }
 
@@ -1031,8 +1233,12 @@ function wireGlobalControls() {
       // Export what is on screen. This always sent the hosted-LLM catalogue
       // through the global filters, so ↓CSV on Image Gen handed back the LLM
       // header and seven text models — a different dataset from the chart.
+      // EFFORT and the Run Local hardware ride along too: the effort was read
+      // and dropped (113 rows on screen, 195 in the file), and Run Local
+      // exported "fits" for the default 32 GB card whatever was selected.
       const tab = window.AF.state.tab;
-      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab);
+      const local = tab === "local" ? localArgs() : null;
+      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab, e, local);
       const name = await window.AF.callPyRaw("export_csv_filename", tab);
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
@@ -1040,19 +1246,39 @@ function wireGlobalControls() {
     } catch (e) { console.error("export_csv failed:", e); }
   };
 
-  // Share — copy URL with ?tab=&p=&q=
+  // Share — copy the current state's URL (?tab=&p=&q=&e=)
   document.getElementById("btn-share").onclick = () => {
-    const { tab, providers, minQuality } = window.AF.state;
-    const params = new URLSearchParams();
-    if (tab) params.set("tab", tab);
-    if (providers && providers.length) params.set("p", providers.join(","));
-    if (minQuality > 0) params.set("q", minQuality);
-    const url = location.origin + location.pathname + (params.toString() ? "?" + params : "");
+    readGlobalFilters();
+    const url = syncUrl();
     navigator.clipboard?.writeText(url);
-    history.replaceState(null, "", url);
   };
 
   document.getElementById("btn-refresh").onclick = doRefresh;
+}
+
+// ---- Keep the URL in step with the state ----
+// Mirrors Dash's url-sync clientside callback: tab, p, q and e. The URL used to
+// change only on Share, so ⟳ (which navigates to location.href) and a plain
+// reload both dropped the tab and every filter, and EFFORT was never written.
+// Parameters this function does not own (the ⟳ cache-buster `v`) are kept.
+function stateUrl() {
+  const { tab, providers, minQuality, effort } = window.AF.state;
+  const params = new URLSearchParams(location.search);
+  ["tab", "p", "q", "e"].forEach(k => params.delete(k));
+  if (tab) params.set("tab", tab);
+  if (providers && providers.length) params.set("p", providers.join(","));
+  if (minQuality > 0) params.set("q", minQuality);
+  if (effort) params.set("e", effort);
+  const qs = params.toString();
+  return location.origin + location.pathname + (qs ? "?" + qs : "");
+}
+
+function syncUrl() {
+  const url = stateUrl();
+  if (url !== location.href) {
+    try { history.replaceState(null, "", url); } catch (e) { console.warn("url sync:", e); }
+  }
+  return url;
 }
 
 // ---- Restore state from URL on page load ----
@@ -1078,6 +1304,16 @@ function applyUrlState() {
     const pEl = document.getElementById("filter-provider");
     if (pEl) Array.from(pEl.options).forEach(o => { o.selected = set.has(o.value); });
   }
+  if (u.has("e")) {
+    // A URL is user input: only an effort the control offers is applied, and
+    // anything else falls back to "All variants" — the same rule as Dash's
+    // init_from_url.
+    const effEl = document.getElementById("filter-effort");
+    const valid = ((window.AF.manifest && window.AF.manifest.effort_options) || []).map(o => o.value);
+    const want = u.get("e");
+    if (effEl) effEl.value = valid.includes(want) ? want : "";
+  }
+  readGlobalFilters();
   if (u.get("tab")) switchTab(u.get("tab"));   // switchTab validates
 }
 
@@ -1089,23 +1325,22 @@ function wireDetailPanel() {
     const m = window.AF.detailModel; if (!m) return;
     const sel = document.getElementById("radar-model-select");
     const chosen = Array.from(sel.selectedOptions).map(o => o.value);
-    if (!chosen.includes(m)) {
-      // Evict the oldest pick rather than refusing the new one. Both renderings
-      // default to exactly 5 models, so on a fresh page load this button — the
-      // detail panel's only call to action — was a silent no-op that still
-      // switched tabs.
-      const ordered = (window.AF.compareOrder || []).filter(v => chosen.includes(v));
-      const base = ordered.length ? ordered : chosen;
-      const keep = base.slice(-(COMPARE_MAX - 1)).concat([m]);
-      window.AF.compareOrder = keep;
-      Array.from(sel.options).forEach(o => { o.selected = keep.includes(o.value); });
-    }
-    // Switch to compare tab without triggering auto-rerender, then refresh with correct selection.
-    window.AF.state.tab = "compare";
-    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("tab--selected", b.dataset.tab === "compare"));
-    TABS.forEach(t => { document.getElementById("panel-" + t.id).style.display = t.id === "compare" ? "block" : "none"; });
-    showTabControls("compare");
-    await refreshCompare("radar-model-select");
+    const ordered = (window.AF.compareOrder || []).filter(v => chosen.includes(v));
+    const base = ordered.length ? ordered : chosen;
+    // Evict the oldest pick rather than refusing the new one. Both renderings
+    // default to exactly 5 models, so on a fresh page load this button — the
+    // detail panel's only call to action — was a silent no-op that still
+    // switched tabs.
+    const keep = base.includes(m) ? base : base.slice(-(COMPARE_MAX - 1)).concat([m]);
+    window.AF.compareOrder = keep;
+    // Hand the selection over explicitly and go through switchTab. Only
+    // setting .selected did nothing when the option list was stale (built
+    // under a narrower filter, so `m` had no <option>) while still evicting a
+    // pick; and toggling panels by hand skipped switchTab's resize, leaving
+    // the radar at 700 px with the detail panel still open over it. The
+    // tab-switch trigger re-syncs the options from the current filters.
+    window.AF._compareWanted = keep;
+    switchTab("compare");
   };
   attachParetoClickHandler();
 }
@@ -1120,9 +1355,11 @@ function attachParetoClickHandler() {
     if (!window.AF.pyReady) return;
     const cd = ev.points?.[0]?.customdata;
     if (!cd) return;
-    // customdata is [model, provider] array
-    const model = Array.isArray(cd) ? cd[0] : cd;
-    const provider = Array.isArray(cd) ? cd[1] : "";
+    // cd[0]/cd[1] are HTML-escaped for the hover template; the raw model and
+    // provider ride at cd[5]/cd[6], and model_detail looks up by the raw name
+    // ("A&B" escaped to "A&amp;B" matches nothing). Older figures lack them.
+    const model = Array.isArray(cd) ? (cd[5] ?? cd[0]) : cd;
+    const provider = Array.isArray(cd) ? (cd[6] ?? cd[1]) : "";
     try {
       const html = await window.AF.callPyRaw("model_detail", model, provider);
       if (!html) return;
@@ -1215,74 +1452,77 @@ function wireTabControls() {
   if (tableSortCol) tableSortCol.onchange = () => refreshTable();
   if (tableSortDir) tableSortDir.onchange = () => refreshTable();
 
-  // Local GPU preset
+  // Every Run Local control goes through ONE 150 ms debounce into the
+  // coalescing refresher, so arrowing through a select or ctrl-clicking three
+  // tags is one update_local, not one per change.
+  const scheduleLocal = debounce(() => refreshLocal(), LOCAL_DEBOUNCE_MS);
+
+  // Local GPU preset — resolved from the table gpu_options shipped at boot, in
+  // this tick: localHwMeta and the VRAM box change together with the dropdown,
+  // before any refresh can read them. This is a real preset change, so it is
+  // the one place allowed to overwrite a typed VRAM figure.
   const localGpu = document.getElementById("local-gpu-preset");
   if (localGpu) {
-    localGpu.onchange = async () => {
-      try {
-        const hw = await window.AF.callPy("local_hw_for_gpu", localGpu.value);
-        if (hw) {
-          window.AF.localHwMeta = hw;
-          const vramInput = document.getElementById("local-vram");
-          if (vramInput) vramInput.value = hw.vram_gb;
-        }
-        refreshLocal();
-      } catch (e) { console.error("local_hw_for_gpu change:", e); }
+    localGpu.onchange = () => {
+      const hw = window.AF.gpuMeta[localGpu.value];
+      if (hw) {
+        window.AF.localHwMeta = hw;
+        setVramFromPreset("local-vram", hw, true);
+      }
+      scheduleLocal();
     };
   }
-  // Local VRAM, num GPUs, quant, tags
+  // Local VRAM, num GPUs, quant, context, speed, tags
   const localVram = document.getElementById("local-vram");
-  const localNumGpus = document.getElementById("local-num-gpus");
-  const localQuant = document.getElementById("local-quant");
-  const localContext = document.getElementById("local-context");
-  const localSpeedMode = document.getElementById("local-speed-mode");
-  const localTags = document.getElementById("local-tags");
-  if (localVram) localVram.oninput = debounce(() => refreshLocal(), 300);
-  if (localNumGpus) localNumGpus.onchange = () => refreshLocal();
-  if (localQuant) localQuant.onchange = () => refreshLocal();
-  if (localContext) localContext.onchange = () => refreshLocal();
-  if (localSpeedMode) localSpeedMode.onchange = () => refreshLocal();
-  if (localTags) localTags.onchange = () => refreshLocal();
+  if (localVram) {
+    localVram.oninput = () => { localVram.dataset.userTyped = "1"; scheduleLocal(); };
+  }
+  ["local-num-gpus", "local-quant", "local-context", "local-speed-mode", "local-tags"]
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.onchange = scheduleLocal;
+    });
 
   // Image Gen filters
-  const imgProvider = document.getElementById("image-provider-filter");
-  const imgTags = document.getElementById("image-tag-filter");
-  if (imgProvider) imgProvider.onchange = () => refreshImage();
-  if (imgTags) imgTags.onchange = () => refreshImage();
+  const scheduleImage = debounce(() => refreshImage(), LOCAL_DEBOUNCE_MS);
+  ["image-provider-filter", "image-tag-filter"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.onchange = scheduleImage;
+  });
 
   // Video Gen filters
-  const vidMode = document.getElementById("video-mode-filter");
-  const vidProvider = document.getElementById("video-provider-filter");
-  const vidTags = document.getElementById("video-tag-filter");
-  if (vidMode) vidMode.onchange = () => refreshVideo();
-  if (vidProvider) vidProvider.onchange = () => refreshVideo();
-  if (vidTags) vidTags.onchange = () => refreshVideo();
+  const scheduleVideo = debounce(() => refreshVideo(), LOCAL_DEBOUNCE_MS);
+  ["video-mode-filter", "video-provider-filter", "video-tag-filter"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.onchange = scheduleVideo;
+  });
 
   // Agent Stack mode radios — update row visibility immediately (pre-boot), then refresh data
+  const scheduleRecommend = debounce(() => refreshRecommend(), LOCAL_DEBOUNCE_MS);
   document.querySelectorAll('input[name="recommend-mode"]').forEach(r => {
-    r.onchange = () => { showTabControls("recommend"); refreshRecommend(); };
+    r.onchange = () => { showTabControls("recommend"); scheduleRecommend(); };
   });
   // Agent Stack providers checkboxes
   document.querySelectorAll('input[name="recommend-providers"]').forEach(c => {
-    c.onchange = () => refreshRecommend();
+    c.onchange = scheduleRecommend;
   });
   // Agent Stack hardware controls
   const recGpu = document.getElementById("recommend-gpu-preset");
   const recVram = document.getElementById("recommend-vram");
   const recNumGpus = document.getElementById("recommend-num-gpus");
   const recQuant = document.getElementById("recommend-quant");
-  if (recGpu) recGpu.onchange = async () => {
+  if (recGpu) recGpu.onchange = () => {
     // Sync VRAM to the selected preset so the 'fits' filter uses the real
     // hardware capacity (mirrors the Local tab + Dash update_recommend_hw).
-    try {
-      const hw = await window.AF.callPy("local_hw_for_gpu", recGpu.value);
-      if (hw && recVram) recVram.value = hw.vram_gb;
-    } catch (e) { console.error("recommend gpu preset sync:", e); }
-    refreshRecommend();
+    // Same in-tick table lookup as the Local preset.
+    setVramFromPreset("recommend-vram", window.AF.gpuMeta[recGpu.value], true);
+    scheduleRecommend();
   };
-  if (recVram) recVram.oninput = debounce(() => refreshRecommend(), 300);
-  if (recNumGpus) recNumGpus.onchange = () => refreshRecommend();
-  if (recQuant) recQuant.onchange = () => refreshRecommend();
+  if (recVram) {
+    recVram.oninput = () => { recVram.dataset.userTyped = "1"; scheduleRecommend(); };
+  }
+  if (recNumGpus) recNumGpus.onchange = scheduleRecommend;
+  if (recQuant) recQuant.onchange = scheduleRecommend;
 }
 
 async function init() {
@@ -1296,20 +1536,29 @@ async function init() {
     overviewPanel.insertBefore(cap, overviewPanel.firstChild);
   }
   await loadManifest();
-  renderFreshness();
-  setInterval(renderFreshness, 60000);
-  // Show controls for the initial tab
-  showTabControls("overview");
-  // Load static figures for all chart tabs
-  const chartLoads = TABS.flatMap(t => t.charts.map(c => renderFigure("chart-" + c, c)));
-  await Promise.all(chartLoads);
-  wireGlobalControls();
-  setExportPending(!window.AF.pyReady);
-  wireTabControls();
-  updateOverviewCaption();  // set caption for initial price x-axis
-  wireDetailPanel();  // wires close/add-compare immediately; pareto click re-attached after each render
-  applyUrlState();    // restore tab + filters from URL params (pure JS, no Pyodide needed)
+  // Pyodide first: its boot only needs the manifest version, and it used to
+  // wait for all twelve figures to be fetched and drawn. The worker's "ready"
+  // handler waits on uiReady before touching any control.
+  let markUiReady;
+  window.AF.uiReady = new Promise(r => { markUiReady = r; });
   bootPyodide();      // fire-and-forget; pyReady gate protects filter calls
+  try {
+    renderFreshness();
+    setInterval(renderFreshness, 60000);
+    // Show controls for the initial tab
+    showTabControls("overview");
+    wireGlobalControls();
+    setExportPending(!window.AF.pyReady);
+    wireTabControls();
+    updateOverviewCaption();  // set caption for initial price x-axis
+    wireDetailPanel();  // wires close/add-compare immediately; pareto click re-attached after each render
+    applyUrlState();    // restore tab + filters from URL params (pure JS, no Pyodide needed)
+  } finally {
+    markUiReady();      // never strand the worker's ready handler
+  }
+  // Only the visible tab's pre-rendered figures; the rest load on first visit
+  // (switchTab), into a panel that is visible and so measured correctly.
+  await loadStaticFigures(window.AF.state.tab);
 }
 init().catch(err => {
   const s = document.getElementById("py-status");

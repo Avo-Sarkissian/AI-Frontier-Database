@@ -34,7 +34,10 @@
        visitors act on — the CSP only says WHERE a script may come from, never
        WHICH script. Regenerate on any version bump:
          curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
-  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"
+  <!-- defer on both tags: the 4.65 MB bundle no longer blocks first paint,
+       and deferred scripts still run in document order, so Plotly is defined
+       before app.js executes. -->
+  <script defer src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"
           integrity="sha384-8cEu0XVLh4s92OG4Ua4ZS75MN//b+0KqyCrhQqaXgHMVHnKC3DNVhwUyH5spa1J2"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -299,6 +302,6 @@
 
   <div id="py-status" class="py-status">warming up interactivity…</div>
   <div id="toast" class="toast"></div>
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

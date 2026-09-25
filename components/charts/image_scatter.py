@@ -110,6 +110,11 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         subplot_titles=[c["label"] for c in _CATEGORIES],
     )
 
+    # Price labels for all three facets, collected as plain dicts and appended
+    # in one assignment after the loop: one fig.add_annotation per row
+    # re-validates the whole annotations tuple on every call, which makes the
+    # build quadratic in rows.
+    annotations = []
     for col_idx, (cat, cdf) in enumerate(zip(_CATEGORIES, col_dfs), start=1):
         if cdf.empty:
             continue
@@ -161,7 +166,7 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
                 if has_gen_time and row.get("gen_time_s", 0) > 0
                 else price_str
             )
-            fig.add_annotation(
+            annotations.append(dict(
                 x=row["_elo_display"] + (max_elo * 0.015),
                 y=short_name[idx],
                 text=ann_text,
@@ -170,7 +175,11 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
                 font=dict(size=10, family=FONT, color=color),
                 xref=f"x{col_idx}" if col_idx > 1 else "x",
                 yref=f"y{col_idx}" if col_idx > 1 else "y",
-            )
+            ))
+
+    # APPENDED to the subplot titles make_subplots already placed there;
+    # update_layout(annotations=...) would replace them.
+    fig.layout.annotations = tuple(fig.layout.annotations) + tuple(annotations)
 
     height = max(480, n_rows * 32 + 120)
 
@@ -288,6 +297,10 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
         showlegend=False,
     ))
 
+    # Collected as plain dicts and set once in update_layout below: one
+    # fig.add_annotation per row re-validates the whole annotations tuple on
+    # every call, which makes the build quadratic in rows (2 s for 161 rows).
+    annotations = []
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         price_str = _price_label(row["price_per_1k"], short=True)
@@ -296,14 +309,14 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             if has_gen_time and row.get("gen_time_s", 0) > 0
             else price_str
         )
-        fig.add_annotation(
+        annotations.append(dict(
             x=max_elo + 2,
             y=short_name[i],
             text=ann_text,
             showarrow=False, xanchor="left",
             font=dict(size=10, family=FONT, color=color),
             xref="x", yref="y",
-        )
+        ))
 
     height = max(400, len(plot_df) * 22 + 80)
 
@@ -314,12 +327,13 @@ def build_image_rankings(df: pd.DataFrame) -> go.Figure:
             text=(
                 "All Models — Ranked by Quality"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  ELO from AA Image Arena blind comparisons  ·  {len(ref_df)} models</span>"
+                f"  ·  ELO from AA Image Arena blind comparisons  ·  {len(plot_df)} models</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
             pad=dict(l=20, t=16),
         ),
+        annotations=annotations,
         xaxis=dict(
             title=dict(text="ELO Score", font=dict(color=AXIS, size=12), standoff=12),
             range=[min(plot_df["elo"]) - 20, max_elo * 1.25],

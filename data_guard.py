@@ -15,6 +15,7 @@ threshold. A genuine upstream pruning is then a deliberate act: re-run the
 workflow with allow_shrink, or commit the smaller file by hand.
 
 Run standalone:  python data_guard.py [--max-drop 20] [--allow-shrink]
+                                     [--require-baseline]
 """
 from __future__ import annotations
 
@@ -89,6 +90,38 @@ def _medians(text: str, columns: list[str]) -> dict[str, float]:
         if len(s):
             out[col] = float(s.median())
     return out
+
+
+def _is_shallow() -> bool:
+    """True in a shallow clone — actions/checkout's default of depth 1."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+    return out == "true"
+
+
+def baseline_problem(hours: int = CUMULATIVE_BASELINE_HOURS) -> str | None:
+    """Why the cumulative check cannot run here, or None when it can.
+
+    The refresh workflow checked out at depth 1 until 2026-09-24, so the only
+    commit present was HEAD — always under 24h old on an hourly bot —
+    _baseline_rev returned None, and _cumulative_violations returned [] without
+    a word. The slow-drain case this guard was written for was never checked
+    in the one place it runs. Saying so is the minimum; --require-baseline
+    turns it into a failure.
+    """
+    if _baseline_rev(hours) is not None:
+        return None
+    if _is_shallow():
+        return (f"shallow checkout: no commit {hours}h old is present, so the "
+                f"{hours}h cumulative row-loss check cannot run — check out with "
+                f"fetch-depth: 0")
+    return (f"no commit at least {hours}h old in this history — the "
+            f"cumulative row-loss check has no baseline")
 
 
 def _baseline_rev(hours: int) -> str | None:
@@ -228,10 +261,24 @@ def main() -> int:
     ap.add_argument("--allow-shrink", action="store_true",
                     help="report the deltas but never fail (deliberate pruning)")
     ap.add_argument("--rev", default="HEAD", help="baseline revision")
+    ap.add_argument("--require-baseline", action="store_true",
+                    help="fail when the 24h cumulative check has no baseline "
+                         "(a shallow CI checkout) instead of warning")
     args = ap.parse_args()
 
     print(f"Comparing data/raw against {args.rev} (max drop {args.max_drop:.0f}%)")
     problems = check(max_drop_pct=args.max_drop, rev=args.rev)
+
+    # Not folded into check(): the suite calls check() from shallow CI
+    # checkouts too, and a missing baseline is a property of the checkout, not
+    # of the data. It is never waived by --allow-shrink, which is about
+    # accepting a real drop, not about running blind.
+    missing = baseline_problem()
+    if missing:
+        if args.require_baseline:
+            print(f"::error::{missing}")
+            return 1
+        print(f"::warning::{missing}")
 
     if not problems:
         print("data guard OK")

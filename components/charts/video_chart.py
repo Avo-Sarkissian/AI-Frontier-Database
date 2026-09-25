@@ -186,8 +186,11 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
 
     texts = [_annotation(r) for _, r in plot_df.iterrows()]
     _gutter = right_gutter(texts)
-    for i, text in enumerate(texts):
-        fig.add_annotation(
+    # Collected as plain dicts and set once in update_layout below: one
+    # fig.add_annotation per row re-validates the whole annotations tuple on
+    # every call, which makes the build quadratic in rows.
+    annotations = [
+        dict(
             x=1.01, y=short_name[i],
             text=fit_text(text, _gutter),
             showarrow=False, xanchor="left",
@@ -196,6 +199,8 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
                                                 DEFAULT_COLOR)),
             xref="paper", yref="y",
         )
+        for i, text in enumerate(texts)
+    ]
 
     shown = len(plot_df)
     scope = f"top {shown} of {total}" if shown < total else f"all {total}"
@@ -230,6 +235,7 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             showgrid=True, gridcolor="rgba(255,255,255,0.04)",
             showline=False, ticks="", automargin=True,
         ),
+        annotations=annotations,
         margin=dict(l=20, r=_gutter, t=52, b=36),
         height=max(380, shown * 22 + 90),
         hovermode="closest",

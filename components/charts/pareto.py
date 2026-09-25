@@ -86,7 +86,10 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
         pdf = plot_df[plot_df["display_provider"] == provider]
         # Draw the biggest bubbles first so small ones land on top and stay
         # visible (and clickable) instead of disappearing underneath.
-        pdf = pdf.sort_values("size", ascending=False)
+        # Name breaks size ties: an unstable sort drew equal bubbles in a
+        # different stacking order in the CI build and in the browser.
+        pdf = pdf.sort_values(["size", "model"], ascending=[False, True],
+                              kind="mergesort")
         color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
         symbol = PROVIDER_SHAPES.get(provider, DEFAULT_SHAPE)
 
@@ -120,9 +123,12 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
                 opacity=0.8,
                 line=marker_outline(),
             ),
+            # [5] and [6] are the RAW model and provider for the click
+            # handler's lookup; [0] and [1] are escaped for the hover text.
             customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
                                 speed_str, latency_str,
-                                _rate_pair(pdf))),
+                                _rate_pair(pdf),
+                                pdf["model"].astype(str), pdf["provider"].astype(str))),
             hovertemplate=hover,
         ))
 

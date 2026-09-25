@@ -41,7 +41,15 @@ recoverable, and a silent mass rename is not.
 
 The same restructure dropped codingIndex and agenticIndex outright, replacing
 the composites with their raw component benchmarks rather than renaming them.
-See _CARRIED_COLUMNS for why those two are carried from the committed CSV.
+See _CARRIED_COLUMNS for why those two are carried — from the committed CSV
+and, since 2026-09-24, from the sidecar in data/carried/ (data/carried.py).
+
+AA'S `deprecated` FLAG FLAPS.
+Since ~2026-09-17 AA flags superseded-but-still-sold models deprecated, and on
+2026-09-22 it toggled the flag hourly for 17 models, so the catalogue went
+196 -> 180 -> 196 -> 180 rows. A model this catalogue already publishes is now
+dropped only after several consecutive deprecated scrapes (see
+data/carried.deprecation_hysteresis), and coverage.json counts the drops.
 
 Falls back to the existing cache on any failure.
 
@@ -61,7 +69,7 @@ from data.rsc import find_array, payload_from_html
 from pathlib import Path
 
 from data.ingest import load_from_raw, save_cache, load_cached
-from data import scrape_status
+from data import carried, scrape_status
 
 _HEADERS = {
     "User-Agent": (
@@ -180,12 +188,18 @@ def _extract_models(html: str) -> list[dict]:
     return models
 
 
-def _parse_api_response(models: list[dict]) -> list[list]:
+def _parse_api_response(models: list[dict],
+                        hold_deprecated: set[str] | frozenset = frozenset()) -> list[list]:
     """
     Convert leaderboard records into raw_rows format:
       [model, context, provider, quality, price, speed, latency, price_in, price_out]
 
     provider = the AI lab / model creator (e.g. Google, Anthropic, OpenAI).
+
+    `hold_deprecated` names deprecated models to keep anyway, because their
+    deprecated streak is still too short to trust (data/carried.py). It is
+    computed by the caller so this stays a pure function of its inputs; the
+    default holds nothing, which is the pre-hysteresis behaviour.
     """
     rows = []
     # Models the catalog cannot carry. Counting them is the point: "148 tracked"
@@ -193,17 +207,31 @@ def _parse_api_response(models: list[dict]) -> list[list]:
     # drop is how this project has been bitten before.
     skipped: dict[str, set] = {"no_score": set(), "no_price": set()}
     kept: set = set()
+    deprecated: set = set()
+    held: set = set()
+
+    def _skip(reason: str, name: str) -> None:
+        # A held model is still a deprecated one. If AA pulls its price or
+        # score in the same breath as flagging it, the drop is the flag's, not
+        # a gap in coverage: counting it under no_price folded it into
+        # distinct_upstream_models and the site called it "not carried —
+        # no published price", the misattribution skipped_deprecated exists
+        # to prevent.
+        (deprecated if name in held else skipped[reason]).add(name)
 
     for m in models:
-        if m.get("deprecated"):
-            continue
         model_name = (m.get("name") or "").strip()
         if not model_name:
             continue
+        if m.get("deprecated"):
+            if model_name not in hold_deprecated:
+                deprecated.add(model_name)
+                continue
+            held.add(model_name)
 
         quality = m.get("intelligenceIndex")
         if not _real(quality) or quality <= 0:
-            skipped["no_score"].add(model_name)
+            _skip("no_score", model_name)
             continue
 
         provider = (m.get("modelCreatorName") or "").strip()
@@ -238,11 +266,11 @@ def _parse_api_response(models: list[dict]) -> list[list]:
         p_in  = m.get("price1mInputTokens")
         p_out = m.get("price1mOutputTokens")
         if not _real(p_in) or not _real(p_out) or p_in < 0 or p_out < 0:
-            skipped["no_price"].add(model_name)
+            _skip("no_price", model_name)
             continue
         price = (3 * p_out + 1 * p_in) / 4
         if price <= 0:
-            skipped["no_price"].add(model_name)
+            _skip("no_price", model_name)
             continue
 
         speed   = m.get("medianOutputTokensPerSecond")
@@ -280,6 +308,12 @@ def _parse_api_response(models: list[dict]) -> list[list]:
 
     dropped_no_score = sorted(n for n in skipped["no_score"] if n and n not in kept)
     dropped_no_price = sorted(n for n in skipped["no_price"] if n and n not in kept)
+    # Deprecated drops are listed on their own and deliberately NOT folded into
+    # distinct_upstream_models: that figure is the denominator the site quotes
+    # ("N of M models"), and a superseded model is not one it failed to carry.
+    # Counting them here is what makes a flapping flag visible at all — before
+    # this, 17 rows came and went hourly and coverage.json never moved.
+    dropped_deprecated = sorted(n for n in deprecated if n not in kept)
     _last_coverage.clear()
     _last_coverage.update({
         # One record per model now, not per host x model, so this is a real
@@ -290,6 +324,10 @@ def _parse_api_response(models: list[dict]) -> list[list]:
         "kept": len(kept),
         "skipped_no_score": dropped_no_score,
         "skipped_no_price": dropped_no_price,
+        "skipped_deprecated": dropped_deprecated,
+        # Flagged deprecated upstream but still published, because the streak
+        # is shorter than data/carried.DEPRECATED_DROP_AFTER_SCRAPES.
+        "held_deprecated": sorted(n for n in held if n in kept),
     })
     return rows
 
@@ -374,46 +412,70 @@ def column_health_violations(df, thresholds: dict | None = None) -> list[str]:
 # Columns AA's 2026-09-10 restructure removed from the leaderboard. It replaced
 # the two composites with the raw component benchmarks (terminalbenchHard, tau2,
 # scicode, ifbench, critpt ...) rather than renaming them, so there is no key
-# left to re-point at. They are carried from the committed CSV the way the image
-# arena's 35 frozen columns are: AA has stopped recomputing these scores, but it
-# did measure them, and blanking the columns would throw real numbers away.
-_CARRIED_COLUMNS = ("coding", "agentic")
+# left to re-point at. They are carried the way the image arena's 35 frozen
+# columns are: AA has stopped recomputing these scores, but it did measure them,
+# and blanking the columns would throw real numbers away.
+#
+# The committed CSV alone was not enough memory. A model missing from one
+# published scrape lost its scores from that CSV, and nothing could bring them
+# back — 43 of 143 hosted coding scores went that way. The sidecar in
+# data/carried/ only ever gains rows, so it is the second source.
+_CARRIED_COLUMNS = carried.FROZEN_COLUMNS
+
+_BY_TAG = object()   # sentinel: resolve the sidecar from `tag`
 
 
-def _carry_dropped_columns(df, cached, key: str = "model", tag: str = "scraper"):
-    """Fill coding/agentic from the committed CSV — upstream no longer sends them.
+def _carry_dropped_columns(df, cached, key: str = "model", tag: str = "scraper",
+                           sidecar=_BY_TAG):
+    """Fill coding/agentic from the committed CSV, then from the sidecar.
 
     Joins on the model-name column (`model` in the hosted catalogue, `name` in
-    the open-weight one) and fills only holes, so a value AA does publish always
-    wins, and a model absent from the cache keeps an empty cell rather than
-    inheriting the row above it.
+    the open-weight one) and fills only holes, in order live > cached CSV >
+    sidecar: a value AA does publish always wins, and a model absent from both
+    keeps an empty cell rather than inheriting the row above it.
+
+    `sidecar` defaults to the file data/carried.py assigns to `tag`; pass a
+    path to use another, or None for none. Reading never writes — the caller
+    folds the result back with carried.remember() once the scrape publishes.
     """
     import pandas as pd
 
-    if cached is None or getattr(cached, "empty", True):
-        return df
-    if df is None or df.empty or key not in df.columns \
-            or key not in cached.columns:
+    if df is None or df.empty or key not in df.columns:
         return df
 
-    lookup = cached.drop_duplicates(subset=key).set_index(key)
-    carried: list[str] = []
+    sources = []
+    if cached is not None and not getattr(cached, "empty", True) \
+            and key in cached.columns:
+        sources.append(cached.drop_duplicates(subset=key).set_index(key))
+    if sidecar is _BY_TAG:
+        sidecar = carried.sidecar_path(tag)
+    if sidecar is not None:
+        side = carried.load_sidecar(sidecar, key)
+        if not side.empty:
+            sources.append(side.set_index(key))
+    if not sources:
+        return df
+
+    filled_cols: list[str] = []
     for col in _CARRIED_COLUMNS:
-        if col not in lookup.columns:
-            continue
-        prior = pd.Series(lookup[col].reindex(df[key]).to_numpy(),
-                          index=df.index)
         live = df[col] if col in df.columns else pd.Series(float("nan"),
                                                            index=df.index)
+        out = live.copy()
+        for lookup in sources:
+            if col not in lookup.columns:
+                continue
+            prior = pd.Series(pd.to_numeric(lookup[col], errors="coerce")
+                              .reindex(df[key]).to_numpy(), index=df.index)
+            out = out.where(out.notna(), prior)
         # Only a wholly empty column counts as carried; a few genuine gaps in a
         # live column are not an upstream outage worth announcing.
-        if not live.notna().any() and prior.notna().any():
-            carried.append(col)
-        df[col] = live.where(live.notna(), prior)
+        if not live.notna().any() and out.notna().any():
+            filled_cols.append(col)
+        df[col] = out
 
-    if carried:
-        filled = int(df[carried].notna().any(axis=1).sum())
-        print(f"[{tag}] {', '.join(carried)} carried forward from cache for "
+    if filled_cols:
+        filled = int(df[filled_cols].notna().any(axis=1).sum())
+        print(f"[{tag}] {', '.join(filled_cols)} carried forward from cache for "
               f"{filled}/{len(df)} models — AA stopped publishing them on "
               f"2026-09-10 (see module docstring)")
     return df
@@ -456,7 +518,23 @@ def _scrape_and_save() -> bool:
         resp = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
 
-        rows = _parse_api_response(_extract_models(resp.text))
+        models = _extract_models(resp.text)
+
+        # Deprecation hysteresis: which flagged models to keep for now. The
+        # state is only persisted below, once this scrape actually publishes,
+        # so a refused scrape does not advance anyone's streak.
+        try:
+            prior = load_cached()
+            published = set(prior["model"].astype(str)) if prior is not None \
+                and "model" in prior.columns else set()
+        except Exception:
+            published = set()
+        flagged = {(m.get("name") or "").strip() for m in models
+                   if m.get("deprecated")} - {""}
+        hold, dep_state = carried.deprecation_hysteresis(
+            carried.load_deprecation_state(), flagged, published)
+
+        rows = _parse_api_response(models, hold_deprecated=hold)
         if not rows:
             print("[scraper] No valid model rows parsed from API response")
             return False
@@ -478,6 +556,12 @@ def _scrape_and_save() -> bool:
 
         save_cache(df)
         _save_coverage()
+        carried.save_deprecation_state(dep_state)
+        carried.remember(df, "scraper")
+        if hold:
+            print(f"[scraper] {len(hold)} deprecated model(s) held until their "
+                  f"streak reaches {carried.DEPRECATED_DROP_AFTER_SCRAPES} scrapes "
+                  f"/ {carried.DEPRECATED_DROP_AFTER_HOURS:g}h: {', '.join(sorted(hold))}")
         n_skipped = (len(_last_coverage.get("skipped_no_score", []))
                      + len(_last_coverage.get("skipped_no_price", [])))
         print(f"[scraper] Updated cache with {len(df)} models "

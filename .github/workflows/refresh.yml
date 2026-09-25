@@ -34,6 +34,15 @@ jobs:
       # on the branch GitHub Pages publishes, so "whatever v4 points at today"
       # is a write-access dependency on someone else's tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        # Full commit history. data_guard.py compares against the newest commit
+        # at least 24h old to catch a slow drain (five ~19% drops that each pass
+        # the per-run check). At the default depth of 1 only HEAD was present,
+        # so that baseline never existed and the check skipped itself silently
+        # on every run. blob:none keeps it cheap: every commit, but file
+        # contents are fetched only for the few revisions the guard reads.
+        with:
+          fetch-depth: 0
+          filter: blob:none
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.11"
@@ -77,8 +86,14 @@ jobs:
           # when no dataset moved — turning a guard that exists to prevent
           # pointless commits into one that guarantees them. The status file is
           # still committed alongside real changes (git add -- data/raw below).
-          if git diff --quiet -- data/raw/ ':(exclude)data/raw/scrape_status.json' \
-             && [ -z "$(git ls-files --others --exclude-standard -- data/raw/ | grep -v scrape_status.json)" ]; then
+          #
+          # data/carried/ is the scrapers' memory between runs (frozen coding/
+          # agentic scores and the deprecated-flag streaks, see data/carried.py).
+          # It lives outside data/raw/ so an hourly overwrite cannot erase it,
+          # and it must be committed when it moves: a runner starts from a fresh
+          # checkout, so an uncommitted streak count is a count of one forever.
+          if git diff --quiet -- data/raw/ data/carried/ ':(exclude)data/raw/scrape_status.json' \
+             && [ -z "$(git ls-files --others --exclude-standard -- data/raw/ data/carried/ | grep -v scrape_status.json)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No data change — skipping rebuild and commit."
           else
@@ -108,7 +123,7 @@ jobs:
       # a 53% contraction (329 -> 155 rows on 2026-07-24) sailed straight past.
       - name: Sanity check — absolute floor and row-loss guard
         if: steps.guard.outputs.changed == 'true'
-        run: python data_guard.py ${{ inputs.allow_shrink && '--allow-shrink' || '' }}
+        run: python data_guard.py --require-baseline ${{ inputs.allow_shrink && '--allow-shrink' || '' }}
       - name: Rebuild static site (data-only)
         if: steps.guard.outputs.changed == 'true' || steps.heartbeat.outputs.due == 'true'
         run: python build_static.py --data-only
@@ -117,7 +132,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/raw docs
+          git add -- data/raw data/carried docs
           if [ "${{ steps.guard.outputs.changed }}" = "true" ]; then
             msg="data: hourly AA refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
           else

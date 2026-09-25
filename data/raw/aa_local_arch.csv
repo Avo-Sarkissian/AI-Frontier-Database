@@ -70,7 +70,6 @@ Qwen3.5 4B (Non-reasoning),Qwen/Qwen3.5-4B,gqa,32,,,4.0,256.0,,8.0,4.66,2026-08-
 INTELLECT-3,PrimeIntellect/INTELLECT-3,gqa,46,,,8.0,128.0,,,106.852,2026-08-27,
 Solar Open 100B (Reasoning),upstage/Solar-Open-100B,gqa,48,,,8.0,128.0,,,102.652,2026-08-27,
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,gqa,52,,,2.0,128.0,,,31.578,2026-08-27,
-Llama 4 Maverick,unsloth/Llama-4-Maverick-17B-128E,gqa,48,,,8.0,128.0,,,401.584,2026-08-27,
 Qwen3 Next 80B A3B Instruct,Qwen/Qwen3-Next-80B-A3B-Instruct,gqa,48,,,2.0,256.0,,,81.325,2026-08-27,
 DiffusionGemma 26B A4B,google/diffusiongemma-26B-A4B-it,gqa,30,,,8.0,256.0,1024.0,5.0,25.824,2026-08-27,sliding
 Gemma 4 12B (Non-reasoning),google/gemma-4-12B,gqa,48,,,8.0,256.0,1024.0,8.0,11.96,2026-08-27,sliding
@@ -111,7 +110,6 @@ Granite 4.0 H Small,ibm-granite/granite-4.0-h-small,gqa,40,,,8.0,128.0,,,32.207,
 LFM2 24B A2B,LiquidAI/LFM2-24B-A2B-MLX-bf16,gqa,40,,,8.0,64.0,,10.0,23.844,2026-08-27,
 Phi-4,microsoft/phi-4,gqa,40,,,10.0,128.0,,,14.66,2026-08-27,
 Phi-4 Multimodal Instruct,microsoft/Phi-4-multimodal-instruct,gqa,32,,,8.0,128.0,,,5.574,2026-08-27,
-Jamba Reasoning 3B,mlx-community/AI21-Jamba-Reasoning-3B-bf16,gqa,28,,,1.0,128.0,,,3.027,2026-08-27,
 Reka Flash 3,RekaAI/reka-flash-3,gqa,44,,,8.0,96.0,,,20.905,2026-08-27,
 Olmo 3 7B Think,allenai/Olmo-3-7B-Think,gqa,32,,,32.0,128.0,4096.0,8.0,7.298,2026-08-27,sliding
 Molmo 7B-D,allenai/Molmo-7B-D-0924,gqa,28,,,4.0,128.0,,,8.021,2026-08-27,

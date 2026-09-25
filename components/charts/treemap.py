@@ -21,7 +21,11 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
         )
         .reset_index()
     )
-    agg = agg[agg["model_count"] >= 1].sort_values("model_count", ascending=False)
+    # Provider name breaks count ties, so equal-sized tiles keep one order in
+    # the CI-built figure and the in-browser re-render instead of reshuffling.
+    agg = agg[agg["model_count"] >= 1].sort_values(
+        ["model_count", "provider"], ascending=[False, True], kind="mergesort"
+    )
 
     hover = (
         "<b>%{label}</b><br>"

@@ -21,6 +21,9 @@ from components.charts.constants import (
     bubble_size, legend_below, QUALITY_INDEX_MAX, LOCAL_SPEED_REF,
     LOCAL_THROUGHPUT_REF,
 )
+from components.charts.local_compat import (
+    KV_NOTE, ESTIMATED_KV_NOTE, ctx_labels, speed_notes,
+)
 from data.local_models import (
     FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
 )
@@ -72,35 +75,14 @@ def build_local_scatter(
                   else LOCAL_SPEED_REF)
 
     # Whether the KV figure in the hover came from a published config or the
-    # fitted estimator. The reader has to be able to tell — see the same note
-    # in local_compat.py.
-    # "config" is the hand-curated table, "hf" the model's own config.json off
-    # HuggingFace. Both are published facts, so they read the same; only the
-    # fitted estimate carries a warning, because it is the only guess.
-    _KV_NOTE = {"config": "published architecture",
-                "hf": "published architecture",
-                "estimated": "architecture estimated, ±30%",
-                "none": "no context priced"}
+    # fitted estimator, the per-row context actually priced, and the speed
+    # line. All three are shared with local_compat.py so the two hovers say the
+    # same thing about the same row — see the notes there.
     df = df.copy()
     df["kv_note"] = (df["kv_source"] if "kv_source" in df else "none") \
-        .map(_KV_NOTE).fillna("architecture estimated, ±30%")
-    df["ctx_label"] = _ctx_label(ctx_tokens)
-    # See the same note in local_compat.py: never render "×0 concurrent".
-    # Leads with the metric the reader chose and offers the other underneath —
-    # see the same note in local_compat.py.
-    _s, _t, _n = df.get("speed_tps", 0), df.get("total_tps", 0), df.get("sessions", 0)
-    if speed_mode == "throughput":
-        df["speed_note"] = [
-            (f"Speed: {t:,.0f} tok/s across {int(n)} sessions<br>"
-             f"       {s:,.0f} tok/s if you run one")
-            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
-            for s, t, n in zip(_s, _t, _n)]
-    else:
-        df["speed_note"] = [
-            (f"Speed: {s:,.0f} tok/s single stream<br>"
-             f"       {t:,.0f} tok/s across {int(n)} sessions")
-            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
-            for s, t, n in zip(_s, _t, _n)]
+        .map(KV_NOTE).fillna(ESTIMATED_KV_NOTE)
+    df["ctx_label"], _n_capped = ctx_labels(df, ctx_tokens)
+    df["speed_note"] = speed_notes(df, speed_mode)
     for _c in ("weights_gb", "kv_gb", "sessions", "total_tps"):
         if _c not in df:
             df[_c] = 0
@@ -220,9 +202,18 @@ def build_local_scatter(
     x_log_max = math.log10(x_max)
     x_log_min = math.log10(0.08)   # ~0.08 GB minimum so tiny models show
 
-    # Build sensible tick positions within the visible range
-    all_tick_vals  = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-    all_tick_texts = ["0.1", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"]
+    # Build sensible tick positions within the visible range. The doubling
+    # ladder runs as far as the axis does: it used to stop at a fixed 512, while
+    # x_max reaches ~1.8 TB at the default and more on pooled GPUs, so the VRAM
+    # line and the 600B-class models sat in an unlabelled last eighth of the
+    # axis. Doubling until the axis end keeps the final gap no wider than the
+    # others.
+    all_tick_vals = [0.1, 0.25, 0.5]
+    _v = 1
+    while _v <= x_max * 1.05:
+        all_tick_vals.append(_v)
+        _v *= 2
+    all_tick_texts = [f"{v:g}" for v in all_tick_vals]
     tick_pairs = [(v, t) for v, t in zip(all_tick_vals, all_tick_texts) if v <= x_max * 1.05]
     tick_vals  = [p[0] for p in tick_pairs]
     tick_texts = [p[1] for p in tick_pairs]
@@ -236,7 +227,9 @@ def build_local_scatter(
                 "VRAM Requirement vs Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {quant} at {_ctx_label(ctx_tokens)} context"
-                f"  ·  left of line = runnable  ·  bubble = {_speed_label} tok/s"
+                + (f" ({_n_capped} priced at their own shorter max)" if _n_capped else "")
+                + "  ·  left of line = runnable  ·  bubble = "
+                f"{_speed_label} tok/s"
                 + (f"  ·  {_pending_n} newer model{'s' if _pending_n != 1 else ''} "
                    f"not yet scored — see the ranking below" if _pending_n else "")
                 + "</span>"
@@ -274,19 +267,22 @@ def build_local_scatter(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
-        # Legend annotation for size = speed
-        annotations=[
-            dict(
-                x=1.0, y=1.04, xref="paper", yref="paper",
-                xanchor="right",
-                text=(f"● dense   ◆ mixture-of-experts"
-                      f"<br>bubble size = {_speed_label} tok/s"
-                      f"<br>colour = lab"),
-                showarrow=False,
-                font=dict(color="#666666", size=10, family=_FONT),
-                align="left",
-            ),
-        ],
+    )
+    # Legend annotation for size = speed. ADDED, not passed to update_layout:
+    # update_layout(annotations=[...]) replaces the tuple, which silently wiped
+    # the "N GB" label add_vline had attached to the VRAM line above, so the
+    # runnable boundary was drawn with no value on it.
+    # yanchor="top" is explicit because the old replace merged it in from the
+    # VRAM label it overwrote; the key has always rendered top-anchored.
+    fig.add_annotation(
+        x=1.0, y=1.04, xref="paper", yref="paper",
+        xanchor="right", yanchor="top",
+        text=(f"● dense   ◆ mixture-of-experts"
+              f"<br>bubble size = {_speed_label} tok/s"
+              f"<br>colour = lab"),
+        showarrow=False,
+        font=dict(color="#666666", size=10, family=_FONT),
+        align="left",
     )
 
     return fig

@@ -47,6 +47,23 @@ def _log_norm(value: float, lo: float, hi: float, invert: bool = False) -> float
     return 1.0 - frac if invert else frac
 
 
+def _measured(value) -> float | None:
+    """The value as a float, or None when the catalogue has no measurement.
+
+    AA publishes 0 (or nothing) for a speed, latency or price it has not
+    measured. _log_norm maps that to 0.0 before its invert branch, so an
+    unmeasured latency drew as the SLOWEST possible spoke and an unmeasured
+    speed as the slowest throughput — 21 of 195 hosted rows, including the top
+    model, read as the worst in the catalogue on exactly the axes where the
+    raw-values table beneath printed "—".
+    """
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    return v if np.isfinite(v) and v > 0 else None
+
+
 def radar_reference(full_df: pd.DataFrame) -> dict:
     """The five axis endpoints, derived from the population rather than guessed.
 
@@ -103,7 +120,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
         # Default: top-5 by quality
         selected_models = (
             df[df["quality"] > 0]
-            .sort_values("quality", ascending=False)
+            .sort_values(["quality", "model"], ascending=[False, True], kind="mergesort")
             .head(5)["model"]
             .tolist()
         )
@@ -124,6 +141,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
     ref = radar_reference(full_df if full_df is not None and not full_df.empty else df)
 
     fig = go.Figure()
+    any_missing = False
 
     for idx, model_name in enumerate(selected_models):
         rows = plot_df[plot_df["model"] == model_name]
@@ -131,24 +149,37 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
             continue
         row = rows.iloc[0]
 
+        # A metric the catalogue does not have is MISSING, not a score: its
+        # vertex is None, which Plotly draws as a gap in the outline, and the
+        # hover says "not measured" instead of printing 0%.
+        quality = _measured(row["quality"])
+        speed   = _measured(row["speed"])
+        price   = _measured(row["price"])
+        ctx_k   = _measured(_context_k(row.get("context", "")))
+        latency = _measured(row.get("latency"))
+
         # Intelligence is the one axis that is already roughly uniform, so it
         # stays linear against the population max — the best model reads 100%.
-        q_norm = row["quality"] / ref["quality_max"] if ref["quality_max"] else 0
-        s_norm = _log_norm(row["speed"], ref["speed_lo"], ref["speed_hi"])
-        # Affordability: cheap is good, so the price axis is inverted.
-        p_norm = _log_norm(row["price"], ref["price_lo"], ref["price_hi"], invert=True)
-        ctx_k  = _context_k(row.get("context", ""))
-        c_norm = _log_norm(ctx_k, ref["ctx_lo"], ref["ctx_hi"])
-        # Latency: lower is better — inverted.
-        lat = row.get("latency", 0)
-        l_norm = _log_norm(float(lat) if pd.notna(lat) else 0.0,
-                           ref["lat_lo"], ref["lat_hi"], invert=True)
-
-        # Clamp to [0, 1]. _log_norm already clamps, but quality is linear and
-        # a model above the reference max would otherwise exceed the ring — a
-        # negative radius is drawn straight through the centre of the polar plot.
-        values = [min(1.0, max(0.0, v)) for v in (q_norm, s_norm, p_norm, c_norm, l_norm)]
-        values_pct = [round(v * 100) for v in values]
+        # Clamped to [0, 1]: a model above the reference max would otherwise
+        # exceed the ring, and a negative radius is drawn straight through the
+        # centre of the polar plot.
+        values = [
+            (min(1.0, max(0.0, quality / ref["quality_max"]))
+             if quality is not None and ref["quality_max"] else None),
+            (_log_norm(speed, ref["speed_lo"], ref["speed_hi"])
+             if speed is not None else None),
+            # Affordability: cheap is good, so the price axis is inverted.
+            (_log_norm(price, ref["price_lo"], ref["price_hi"], invert=True)
+             if price is not None else None),
+            (_log_norm(ctx_k, ref["ctx_lo"], ref["ctx_hi"])
+             if ctx_k is not None else None),
+            # Latency: lower is better — inverted.
+            (_log_norm(latency, ref["lat_lo"], ref["lat_hi"], invert=True)
+             if latency is not None else None),
+        ]
+        values_txt = ["not measured" if v is None else f"{round(v * 100)}%"
+                      for v in values]
+        any_missing = any_missing or any(v is None for v in values)
 
         # One trace per MODEL, so colour must vary per model. Keying it on the
         # provider drew two Anthropic models in the identical hue and fill,
@@ -156,26 +187,54 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
         # them apart. _PALETTE is indexed by trace instead, which is also what
         # its per-index design was always for.
         color = _PALETTE[idx % len(_PALETTE)]
+        fillcolor = f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.18)"
+        gapped = any(v is None for v in values)
 
+        # fill="toself" closes EACH gap-separated segment into its own shape,
+        # so on a gapped outline it drew a chord across the missing spoke
+        # (implying ~31% where nothing was measured) and, with two gaps, left
+        # nothing but zero-area slivers. A gapped model therefore gets an
+        # unfilled outline with markers — so a lone measured vertex between
+        # two gaps is still visible — and its area comes from the separate
+        # fill trace below, which pins each missing vertex to the centre.
         fig.add_trace(go.Scatterpolar(
             r=values + [values[0]],
             theta=DIMS + [DIMS[0]],
-            fill="toself",
-            fillcolor=f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.18)",
+            connectgaps=False,
+            mode="lines+markers" if gapped else "lines",
+            marker=dict(color=color, size=5),
+            fill="none" if gapped else "toself",
+            fillcolor=fillcolor,
             line=dict(color=color, width=1.5),
+            legendgroup=f"radar-{idx}",
             # Escaped: Plotly renders legend text as markup, and a poisoned
             # model name produced a live <a> styled as a legend entry.
             name=plot_text(model_name[:28] + ("…" if len(model_name) > 28 else "")),
             hovertemplate=(
                 f"<b>{plot_text(model_name)}</b><br>"
-                f"Intelligence: {values_pct[0]}%<br>"
-                f"Speed: {values_pct[1]}%<br>"
-                f"Affordability: {values_pct[2]}%<br>"
-                f"Context: {values_pct[3]}%<br>"
-                f"Latency: {values_pct[4]}%<br>"
+                f"Intelligence: {values_txt[0]}<br>"
+                f"Speed: {values_txt[1]}<br>"
+                f"Affordability: {values_txt[2]}<br>"
+                f"Context: {values_txt[3]}<br>"
+                f"Latency: {values_txt[4]}<br>"
                 "<extra></extra>"
             ),
         ))
+        if gapped:
+            # Area only: unnamed, out of the legend and the hover, and grouped
+            # with its outline so a legend click hides both.
+            filled = [0.0 if v is None else v for v in values]
+            fig.add_trace(go.Scatterpolar(
+                r=filled + [filled[0]],
+                theta=DIMS + [DIMS[0]],
+                mode="lines",
+                fill="toself",
+                fillcolor=fillcolor,
+                line=dict(width=0, color=color),
+                hoverinfo="skip",
+                showlegend=False,
+                legendgroup=f"radar-{idx}",
+            ))
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -186,7 +245,9 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
                 "Model Comparison"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  0–100% against the full catalogue; speed, price, context "
-                "and latency on a log scale</span>"
+                "and latency on a log scale"
+                f"{'  ·  a gap in an outline = not measured' if any_missing else ''}"
+                "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

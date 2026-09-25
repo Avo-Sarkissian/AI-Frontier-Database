@@ -67,7 +67,7 @@ from pathlib import Path
 import requests
 import pandas as pd
 
-from data import scrape_status
+from data import carried, scrape_status
 from data.rsc import find_array, payload_from_html
 from data.scraper import _real as _aa_real
 from static_helpers import csv_safe
@@ -89,6 +89,9 @@ _PAGE_URL = "https://artificialanalysis.ai/leaderboards/models"
 _CATALOGUE_URL = "https://artificialanalysis.ai/models/{slug}"
 _TIMEOUT = 45          # the leaderboard is ~2.8 MB, a model page ~3.6 MB
 _CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
+# Under data/carried/ beside the hosted scraper's deprecation_state.json, and
+# separate from it — see _scrape_and_save.
+_DEPRECATION_STATE_FILE = "local_deprecation_state.json"
 
 
 
@@ -163,16 +166,20 @@ def _num(v) -> float | None:
         return None
 
 
-def _parse(models: list[dict]) -> pd.DataFrame | None:
+def _parse(models: list[dict], hold_deprecated: set[str] | None = None) -> pd.DataFrame | None:
     seen: set[tuple] = set()
     rows = []
+    hold_deprecated = hold_deprecated or set()
 
     for m in models:
         if not m.get("isOpenWeights"):
             continue
         # Deprecated models stay on the leaderboard for history. The tab answers
-        # "what can I run today", so they are dropped here rather than ranked.
-        if m.get("deprecated"):
+        # "what can I run today", so they are dropped here rather than ranked —
+        # unless this catalogue already publishes them and their deprecated
+        # streak is still too short to trust (data/carried.py): AA's flag
+        # flapped hourly on 2026-09-22, and each flap dropped then re-added rows.
+        if m.get("deprecated") and (m.get("name") or "").strip() not in hold_deprecated:
             continue
 
         # _real() first: RSC encodes JS undefined as the STRING "$undefined",
@@ -324,7 +331,24 @@ def _scrape_and_save() -> bool:
         print(f"[local_scraper] Fetch error: {exc}")
         return False
 
-    df = _parse(models)
+    # Deprecation hysteresis, as in data/scraper.py, with its OWN state file:
+    # deprecation_hysteresis keeps only names in `published`, so sharing the
+    # hosted scraper's file would let each run erase the other's streaks.
+    # Persisted only once this scrape publishes, so a refused scrape does not
+    # advance anyone's streak.
+    try:
+        prior = load_cached()
+        published = set(prior["name"].astype(str)) if prior is not None \
+            and "name" in prior.columns else set()
+    except Exception:
+        published = set()
+    flagged = {(m.get("name") or "").strip() for m in models
+               if m.get("isOpenWeights") and m.get("deprecated")} - {""}
+    state_path = carried.CARRIED_DIR / _DEPRECATION_STATE_FILE
+    hold, dep_state = carried.deprecation_hysteresis(
+        carried.load_deprecation_state(state_path), flagged, published)
+
+    df = _parse(models, hold_deprecated=hold)
     if df is None or df.empty:
         print("[local_scraper] No valid open-weight model rows parsed")
         return False
@@ -345,6 +369,16 @@ def _scrape_and_save() -> bool:
     # Sanitised like the hosted catalogue — these files are committed
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
+    carried.save_deprecation_state(dep_state, state_path)
+    # Fold this scrape's frozen coding/agentic scores into the sidecar that
+    # _carry_dropped_columns reads back — without this the local sidecar only
+    # ever held what backfill_from_git found, and a new score was one bad
+    # hour from being lost.
+    carried.remember(df, "local_scraper")
+    if hold:
+        print(f"[local_scraper] {len(hold)} deprecated model(s) held until their "
+              f"streak reaches {carried.DEPRECATED_DROP_AFTER_SCRAPES} scrapes "
+              f"/ {carried.DEPRECATED_DROP_AFTER_HOURS:g}h: {', '.join(sorted(hold))}")
     print(f"[local_scraper] Saved {len(df)} open-weight models")
     return True
 

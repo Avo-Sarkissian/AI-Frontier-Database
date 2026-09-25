@@ -174,7 +174,12 @@ def get_image_df() -> pd.DataFrame:
     """Load image model data. Uses live CSV cache when available."""
     if _CACHE.exists():
         df = pd.read_csv(_CACHE)
-        df["open_weights"]  = df["open_weights"].fillna(False).astype(bool)
+        # A column with blanks reads as object (True/False/NaN), and fillna on
+        # it warned on every update_image call (pandas' downcasting
+        # deprecation). Mapped instead: NaN is "not known open", and a
+        # "False" string must not become True the way astype(bool) makes it.
+        df["open_weights"]  = df["open_weights"].map(
+            lambda v: v is True or str(v).strip().lower() == "true").astype(bool)
         df["price_per_1k"]  = df["price_per_1k"].fillna(0.0)
         df["tags"]          = _derive_tags(df)
         df["tags_str"]      = df["tags"].apply(", ".join)

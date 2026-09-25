@@ -219,9 +219,25 @@ def test_price_side_columns_are_always_present():
 
 
 def test_detail_panel_shows_both_rates():
-    detail = api.model_detail("Claude Opus 5 (Adaptive Reasoning, Max Effort)", "Anthropic")
-    assert "in" in detail and "out" in detail
-    assert "$5.00 in" in detail and "$25.00 out" in detail
+    """The row is picked from the live catalogue, never named by hand.
+
+    This test used to hard-code "Claude Opus 5 (Adaptive Reasoning, Max
+    Effort)". AA flagged Opus 5 deprecated on 2026-09-22, the hourly scrape
+    dropped it, and model_detail() returned "" — so the test went red on a data
+    commit that changed no code, and nothing reported it because bot pushes did
+    not trigger the Tests workflow. Any priced model exercises the same path.
+    """
+    df = api._DF.dropna(subset=["price_in", "price_out"])
+    df = df[(df["price_out"] > 0) & (df["price_in"] != df["price_out"])]
+    # A name shared by two rows would make model_detail() pick either one.
+    df = df[~df["model"].duplicated(keep=False)]
+    assert len(df), "no model in the catalogue has distinct input and output rates"
+    row = df.sort_values(["quality", "model"], ascending=[False, True]).iloc[0]
+
+    detail = api.model_detail(row["model"], row["provider"])
+    assert detail, f"model_detail({row['model']!r}) rendered nothing"
+    assert f"${row['price_in']:,.2f} in" in detail
+    assert f"${row['price_out']:,.2f} out" in detail
 
 
 def test_blended_price_is_consistent_with_the_two_sides():

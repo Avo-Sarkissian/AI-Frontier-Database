@@ -289,6 +289,38 @@ def _geometry(cfg: dict) -> dict | None:
     window = t.get("sliding_window")
     layer_types = t.get("layer_types")
     global_layers, local_kind = None, ""
+    # CHUNKED attention (Llama 4's iRoPE) caps the cache exactly as a sliding
+    # window does -- a chunked layer never looks past its own
+    # attention_chunk_size block -- but publishes neither sliding_window nor,
+    # in the configs Meta shipped, layer_types. Its global layers are the NoPE
+    # ones: no_rope_layers[i] == 0. Maverick ships no_rope_layers as [], which
+    # transformers' Llama4TextConfig expands as
+    #   [int((i + 1) % no_rope_layer_interval != 0) for i in range(n_layers)]
+    # with no_rope_layer_interval defaulting to 4, so that expansion is
+    # reproduced here rather than read as "no global layers". Missing this
+    # priced Scout and Maverick as 48 full layers: 24.0 GiB at 128k against 7.1.
+    chunk = t.get("attention_chunk_size")
+    if chunk and not window:
+        window = chunk
+    if chunk and not layer_types:
+        nope = t.get("no_rope_layers") or [
+            int((i + 1) % int(t.get("no_rope_layer_interval") or 4) != 0)
+            for i in range(int(n_layers))
+        ]
+        layer_types = ["chunked_attention" if x else "full_attention"
+                       for x in nope]
+    # MAMBA HYBRIDS (Jamba) publish the layout as a period and an offset: layer
+    # i is attention iff i % attn_layer_period == attn_layer_offset, and every
+    # other layer is a Mamba block with a fixed-size state. Older Jamba configs
+    # spell the same list out as layers_block_type.
+    if not layer_types and t.get("layers_block_type"):
+        layer_types = ["full_attention" if "attention" in str(x).lower()
+                       else "mamba" for x in t["layers_block_type"]]
+    period = t.get("attn_layer_period")
+    if not layer_types and period:
+        offset = int(t.get("attn_layer_offset") or 0)
+        layer_types = ["full_attention" if i % int(period) == offset else "mamba"
+                       for i in range(int(n_layers))]
     if layer_types:
         n_full = sum(1 for x in layer_types if "full" in str(x).lower())
         if 0 < n_full < len(layer_types):

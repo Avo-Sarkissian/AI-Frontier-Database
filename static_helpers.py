@@ -159,16 +159,101 @@ _TAB_EXPORTS = {
 }
 
 
-def export_frame_for_tab(tab, full_df, providers, min_quality, search):
+# The positional order of update_local's hardware arguments. docs/app.js builds
+# ONE list in this order (localArgs) and sends it to both update_local and the
+# Run Local ↓CSV, so the export can never describe different hardware from the
+# chart beside it.
+LOCAL_ARG_NAMES = ("vram_per_gpu", "num_gpus", "quant", "bandwidth_gbps",
+                   "hw_type", "tags", "ctx_tokens", "fp16_tflops")
+
+
+def gpu_hw_meta(gpu_name) -> dict | None:
+    """The hardware a GPU preset stands for, or None for an unknown name.
+
+    fp16_tflops travels with the other three: a dict without it makes the
+    published site compute bandwidth-only speeds while Dash computes roofline
+    speeds for the same card.
+    """
+    from data.local_models import GPU_BY_NAME, tflops_for_gpu
+
+    g = GPU_BY_NAME.get(gpu_name or "")
+    if not g:
+        return None
+    return {"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"],
+            "hw_type": g["hw_type"], "fp16_tflops": tflops_for_gpu(gpu_name)}
+
+
+def gpu_preset_options() -> list[dict]:
+    """GPU preset options with each preset's hardware riding along.
+
+    The browser used to resolve a preset with a second worker call
+    (local_hw_for_gpu) on every change. That call is a dictionary lookup, but
+    the worker is single-threaded, so it queued behind whatever update_local
+    was running — 1.2 s and more — while the VRAM box and the bandwidth the
+    next chart used still belonged to the previous card. Shipping the table
+    once at boot lets the change handler resolve it in the same tick.
+    """
+    from data.local_models import get_gpu_options
+
+    return [{**o, **(gpu_hw_meta(o["value"]) or {})} for o in get_gpu_options()]
+
+
+def local_frame(vram_per_gpu=None, num_gpus=None, quant=None, bandwidth_gbps=None,
+                hw_type=None, tags=None, ctx_tokens=None, fp16_tflops=None):
+    """(local_df, total_vram_gb, ctx_tokens, quant) for the Run Local controls.
+
+    One place turns the raw control values into a frame, shared by the chart
+    (static_api.update_local) and the ↓CSV. The export used a bare
+    get_local_df(), so its "fits" and speed columns described the default 32 GB
+    card at Q4 whatever hardware was on screen.
+    """
+    from data.local_models import (
+        get_local_df, DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
+        DEFAULT_CONTEXT_TOKENS, effective_bandwidth,
+    )
+
+    gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
+    vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
+    bw = coerce_number(bandwidth_gbps, default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
+    ctx = int(coerce_number(ctx_tokens, default=DEFAULT_CONTEXT_TOKENS, minimum=0))
+    quant = quant or "Q4"
+    ldf = get_local_df(
+        quant=quant,
+        vram_gb=vram_gb,
+        bandwidth_gbps=effective_bandwidth(bw, gpu_count),
+        hw_type=hw_type or "nvidia",
+        tags=list(tags) if tags else None,
+        ctx_tokens=ctx,
+        # None stays None: decode_roofline drops the compute roof and reports
+        # bound="memory?" rather than implying a ceiling was checked.
+        fp16_tflops=fp16_tflops,
+        gpu_count=gpu_count,
+    )
+    return ldf, vram_gb, ctx, quant
+
+
+def _local_kwargs(local_args) -> dict:
+    """Accept the browser's positional list or a keyword dict (Dash)."""
+    if not local_args:
+        return {}
+    if isinstance(local_args, dict):
+        return {k: v for k, v in local_args.items() if k in LOCAL_ARG_NAMES}
+    return dict(zip(LOCAL_ARG_NAMES, list(local_args)))
+
+
+def export_frame_for_tab(tab, full_df, providers, min_quality, search,
+                         effort=None, local_args=None):
     """(DataFrame, filename) for the dataset the given tab is showing.
 
-    The three non-LLM tabs export their own catalogue unfiltered, because the
-    global filters they would otherwise be filtered by are hidden there.
+    The three non-LLM tabs export their own catalogue, because the global
+    filters they would otherwise be filtered by are hidden there. Run Local is
+    computed for `local_args` — the hardware the user picked, in
+    LOCAL_ARG_NAMES order or as a dict — and the LLM tabs honour EFFORT, which
+    used to be dropped: 113 rows on screen exported as 195.
     """
     name, kind = _TAB_EXPORTS.get(tab or "", ("ai_frontier_export.csv", "llm"))
     if kind == "local":
-        from data.local_models import get_local_df
-        return get_local_df(), name
+        return local_frame(**_local_kwargs(local_args))[0], name
     if kind == "image":
         from data.image_models import get_image_df
         return get_image_df(), name
@@ -180,7 +265,13 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search):
         from data.video_models import get_video_df, load_raw
         raw = load_raw()
         return (get_video_df() if raw is None or raw.empty else raw), name
-    return apply_filters(full_df, providers, min_quality, search or ""), name
+    if tab in TABS_WITHOUT_GLOBAL_FILTERS:
+        # Agent Stack: ↓CSV stays on screen there, but the filters beside it
+        # are hidden, so applying them would shape the file by values the user
+        # cannot see — a leftover "Anthropic · ≥ 45" from another tab. Export
+        # the whole hosted catalogue the stack picks from.
+        return apply_filters(full_df, None, 0, ""), name
+    return apply_filters(full_df, providers, min_quality, search or "", effort), name
 
 
 def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[str]:
@@ -284,7 +375,11 @@ def provider_options(dataframe: pd.DataFrame) -> list:
 
 
 def model_options(dataframe: pd.DataFrame) -> list:
-    top = dataframe[dataframe["quality"] > 0].sort_values("quality", ascending=False)
+    # Stable secondary key on the name: ties in quality are common (AA rounds to
+    # 0.1), and an unordered tie makes the dropdown reshuffle between the Dash
+    # app and the Pyodide build, which run different pandas sort defaults.
+    top = dataframe[dataframe["quality"] > 0].sort_values(
+        ["quality", "model"], ascending=[False, True], kind="mergesort")
     return [{"label": f"{r['model']} ({r['provider']})", "value": r["model"]}
             for _, r in top.iterrows()]
 

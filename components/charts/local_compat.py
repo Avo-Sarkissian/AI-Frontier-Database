@@ -12,8 +12,22 @@ import plotly.graph_objects as go
 
 from components.charts.constants import BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT, unique_labels, right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM
 from data.local_models import (
-    FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
+    FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, DEFAULT_SLO,
+    SLO_FLOORS_TPS, speed_columns,
 )
+
+
+# The fitted estimator's OUT-OF-SAMPLE error, as documented beside it in
+# data/local_models.py ("mean 89%, median 33%, p90 272%, max 885%"). The hover
+# said "±30%", which is roughly its median — the tail is where it goes wrong,
+# and 3.5-10x misses on MLA and Mamba-hybrid rows were being presented as
+# within a third. Quote the documented band, not a flattering midpoint.
+# Shared with local_scatter.py so the two hovers cannot drift apart again.
+ESTIMATED_KV_NOTE = "architecture estimated: median error 33%, p90 272%"
+KV_NOTE = {"config": "published architecture",
+           "hf": "published architecture",
+           "estimated": ESTIMATED_KV_NOTE,
+           "none": "no context priced"}
 
 
 def _vram_note(vram_gb) -> str:
@@ -42,6 +56,88 @@ def _ctx_label(ctx_tokens) -> str:
     return f"{n // 1024}k" if n >= 1024 else str(n)
 
 
+def ctx_labels(df: pd.DataFrame, ctx_tokens) -> tuple[list[str], int]:
+    """Per-row context label, and how many rows were priced below the selection.
+
+    vram_breakdown caps each row's context at the model's own maximum, so on a
+    128k selection Molmo 7B-D is priced at 4k — while the hover said "VRAM
+    needed: 6.2 GB at 128k context" about a model that cannot take 5k tokens.
+    The label now says what was priced: "4k (model max)".
+
+    A row counts as capped only when its own figure reads smaller than the
+    dropdown's. AA quotes context in decimal thousands (128k = 128,000) and the
+    control in binary (128k = 131,072), so a 128k model on the 128k choice is
+    priced 3,072 tokens short by unit alone; calling that "capped" would flag a
+    third of the catalogue for a rounding difference.
+    """
+    sel = _ctx_label(ctx_tokens)
+    try:
+        sel_n = int(ctx_tokens or 0)
+    except (TypeError, ValueError):
+        sel_n = 0
+    if "ctx_used" not in df.columns or sel_n <= 0:
+        return [sel] * len(df), 0
+    labels, capped = [], 0
+    for used in pd.to_numeric(df["ctx_used"], errors="coerce").fillna(sel_n):
+        used = int(used)
+        own_k, sel_k = (used // 1000, sel_n // 1024) if sel_n >= 1024 else (used, sel_n)
+        if used < sel_n and own_k < sel_k:
+            capped += 1
+            labels.append((f"{own_k}k" if sel_n >= 1024 and used >= 1000 else str(used))
+                          + " (model max)")
+        else:
+            labels.append(sel)
+    return labels, capped
+
+
+def speed_notes(df: pd.DataFrame, speed_mode) -> list[str]:
+    """The hover's speed line, one per row, leading with the metric chosen.
+
+    Built here, not in the template, so a row with no session count renders a
+    sentence instead of "Sessions: ×0 concurrent at 0 tok/s each → 0 tok/s
+    total" — which is what the tooltip said for a model the chart had just
+    listed as runnable. The hover leads with the metric the reader chose and
+    offers the other one underneath, so the 2-4x gap between them is never a
+    surprise and never an unlabelled second number.
+
+    A single session has two different causes and they must not share a
+    sentence. "kv_vram" means memory ran out after one; "latency" means even
+    one stream misses the per-session floor — a 405B on 8x H100 decodes 8.6
+    tok/s alone while its free VRAM would hold ~100 sessions, and "one session
+    is all this fits" blamed the memory for what is a bandwidth limit.
+    "latency" also covers a single stream that clears the floor when a second
+    would not, so the sentence branches on the speed, not only the label.
+    """
+    n_rows = len(df)
+    _single = df["speed_tps"] if "speed_tps" in df else [0] * n_rows
+    _total = df["total_tps"] if "total_tps" in df else [0] * n_rows
+    _sess = df["sessions"] if "sessions" in df else [0] * n_rows
+    _bound = df["concurrency_bound"] if "concurrency_bound" in df else [""] * n_rows
+    floor = SLO_FLOORS_TPS[DEFAULT_SLO]
+    notes = []
+    for s, t, n, b in zip(_single, _total, _sess, _bound):
+        n = int(n or 0)
+        if n > 1:
+            notes.append(
+                (f"Speed: {t:,.0f} tok/s across {n} sessions<br>"
+                 f"       {s:,.0f} tok/s if you run one")
+                if speed_mode == "throughput" else
+                (f"Speed: {s:,.0f} tok/s single stream<br>"
+                 f"       {t:,.0f} tok/s across {n} sessions"))
+        elif b == "latency" and (s or 0) < floor:
+            notes.append(f"Speed: {s:,.0f} tok/s — below the {floor:g} tok/s "
+                         f"per-session floor even alone")
+        elif b == "latency":
+            # One stream clears the floor but two would not: the scan stopped
+            # at B=1 on speed, not memory, so neither "even alone" (false —
+            # this is above the floor) nor "all this fits" (blames VRAM) holds.
+            notes.append(f"Speed: {s:,.0f} tok/s — a second session would drop "
+                         f"each below the {floor:g} tok/s floor")
+        else:
+            notes.append(f"Speed: {s:,.0f} tok/s — one session is all this fits")
+    return notes
+
+
 def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                        ctx_tokens=None, speed_mode=DEFAULT_SPEED_MODE) -> go.Figure:
     """
@@ -65,7 +161,10 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     pending = runnable[runnable.get("pending", False) & runnable["quality"].isna()] \
         if "pending" in runnable.columns else runnable.iloc[0:0]
     scored = runnable.drop(index=pending.index)
-    scored = scored.sort_values("quality", ascending=True)
+    # Stable and fully specified. The default quicksort ordered tied scores
+    # differently on the CI build and in Pyodide, so the pre-rendered chart's
+    # tied bars swapped places a second after load when the live render landed.
+    scored = scored.sort_values(["quality", "name"], ascending=True, kind="mergesort")
     runnable = pd.concat([scored, pending]).reset_index(drop=True)
 
     # Truncate long names, then force them distinct: several Nemotron variants
@@ -85,43 +184,16 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     _speed_col, _speed_label = speed_columns(speed_mode)
 
     # Whether the KV figure two lines above came from a published config or the
-    # fitted estimator. The reader has to be able to tell: the estimator's p90
-    # signed residual is +50%, and an unlabelled estimate beside an exact
-    # weights figure reads as though both were measured.
-    # "config" is the hand-curated table, "hf" the model's own config.json off
-    # HuggingFace. Both are published facts, so they read the same; only the
-    # fitted estimate carries a warning, because it is the only guess.
-    _KV_NOTE = {"config": "published architecture",
-                "hf": "published architecture",
-                "estimated": "architecture estimated, ±30%",
-                "none": "no context priced"}
+    # fitted estimator. The reader has to be able to tell: an unlabelled
+    # estimate beside an exact weights figure reads as though both were
+    # measured. "config" is the hand-curated table, "hf" the model's own
+    # config.json off HuggingFace. Both are published facts, so they read the
+    # same; only the fitted estimate carries a warning, because it is the only
+    # guess. See ESTIMATED_KV_NOTE for the band it quotes.
     runnable["kv_note"] = (runnable["kv_source"] if "kv_source" in runnable
-                           else "none").map(_KV_NOTE).fillna("architecture estimated, ±30%")
-    runnable["ctx_label"] = _ctx_label(ctx_tokens)
-    # Built here, not in the template, so a row with no session count renders a
-    # sentence instead of "Sessions: ×0 concurrent at 0 tok/s each → 0 tok/s
-    # total" — which is what the tooltip said for a model the chart had just
-    # listed as runnable.
-    # The hover leads with the metric the reader chose and offers the other one
-    # underneath, so the 2-4x gap between them is never a surprise and never an
-    # unlabelled second number.
-    _single, _total, _sess = (runnable.get("speed_tps", 0),
-                              runnable.get("total_tps", 0),
-                              runnable.get("sessions", 0))
-    if speed_mode == "throughput":
-        runnable["speed_note"] = [
-            (f"Speed: {t:,.0f} tok/s across {int(n)} sessions<br>"
-             f"       {s:,.0f} tok/s if you run one")
-            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
-            for s, t, n in zip(_single, _total, _sess)
-        ]
-    else:
-        runnable["speed_note"] = [
-            (f"Speed: {s:,.0f} tok/s single stream<br>"
-             f"       {t:,.0f} tok/s across {int(n)} sessions")
-            if int(n or 0) > 1 else f"Speed: {s:,.0f} tok/s — one session is all this fits"
-            for s, t, n in zip(_single, _total, _sess)
-        ]
+                           else "none").map(KV_NOTE).fillna(ESTIMATED_KV_NOTE)
+    runnable["ctx_label"], n_capped = ctx_labels(runnable, ctx_tokens)
+    runnable["speed_note"] = speed_notes(runnable, speed_mode)
     for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
         if _c not in runnable:
             runnable[_c] = 0
@@ -203,25 +275,34 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
             sessions = f" ×{int(row['sessions'])}"
         return f"{speed_str}{sessions}  ·  {row['vram_req_gb']:.1f} GB{tight_tag}"
 
-    _rows = [r for _, r in runnable.iterrows()]
+    # One label per row, computed once. Records rather than iterrows: iterrows
+    # builds a Series per row, which was a measurable share of a build that
+    # runs on every Run Local control change.
+    _rows = runnable.to_dict("records")
+    _labels = [_label(r) for r in _rows]
     # size_px=11 to MATCH the fit_text call below. They disagreed — the gutter
     # was sized at 10 px/char and the labels trimmed at 11 — so every annotation
     # here lost ~10% of the width it had actually been given, and a throughput
     # label ended "816 tok/s · 22.3 GB (×2…" with room to spare beside it.
-    _gutter = right_gutter([_label(r) for r in _rows], size_px=11)
-    for row in _rows:
-        color = FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)
-        text = fit_text(_label(row), _gutter, size_px=11)
-
-        fig.add_annotation(
+    _gutter = right_gutter(_labels, size_px=11)
+    # Collected as plain dicts and set ONCE in the update_layout below. One
+    # fig.add_annotation per row re-validated the whole annotations tuple on
+    # every call, so the build was quadratic in runnable rows: 2.5 s natively
+    # for 179 rows on 8x B200, and several times that in the Pyodide worker,
+    # on every control change.
+    annotations = [
+        dict(
             x=1.01,
             y=row["short_name"],
-            text=text,
+            text=fit_text(text, _gutter, size_px=11),
             showarrow=False,
             xanchor="left",
-            font=dict(size=11, family=_FONT, color=color),
+            font=dict(size=11, family=_FONT,
+                      color=FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)),
             xref="paper", yref="y",
         )
+        for row, text in zip(_rows, _labels)
+    ]
 
     height = max(480, len(runnable) * 42 + 80)
 
@@ -235,7 +316,12 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                 f"<span style='font-size:11px;color:#666666;font-weight:400'>"
                 f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)} "
                 f"at {_ctx_label(ctx_tokens)} context"
-                f"  ·  ranked by intelligence"
+                # The count above includes models that were only ever priced at
+                # their own shorter maximum; say how many, so "fit at 128k" is
+                # not read as "run at 128k".
+                + (f" ({n_capped} only up to their own shorter max)"
+                   if n_capped else "")
+                + "  ·  ranked by intelligence"
                 f"  ·  tok/s = {_speed_label}"
                 + (f"  ·  {int(sum(is_pending))} not yet scored (outlined)"
                    if any(is_pending) else "")
@@ -257,6 +343,7 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),
+        annotations=annotations,
         barmode="overlay",
         bargap=0.35,
         margin=dict(l=20, r=_gutter, t=52, b=36),

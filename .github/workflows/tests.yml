@@ -12,13 +12,28 @@ name: Tests
 #     named SpaceXAI by hand died on KeyError '_score'
 #   * AA published gpt-oss-20b scoring HIGHER at low effort than at high, which
 #     broke a test asserting quality is monotonic in effort
-# Both arrived with *data*, not code, which is exactly why `on: push` is the
-# right trigger here: the hourly bot commits data to main, so its commits get
-# tested like any other. A pull_request-only workflow would still be blind.
+# Both arrived with *data*, not code, so the bot's data commits must be tested.
+#
+# `on: push` alone does NOT do that, whatever this comment used to claim. The
+# bot pushes with the default GITHUB_TOKEN, and GitHub never starts workflows
+# from a GITHUB_TOKEN push. From 2026-09-22 not one of ~25 bot commits got a
+# Tests run, while a test that named Claude Opus 5 went red the hour AA
+# flagged that model deprecated — surfacing only on the next human push,
+# blamed on an unrelated commit.
+#
+# workflow_run is the documented exception: it fires when "Refresh model data"
+# finishes, whatever its conclusion (a red refresh still publishes the datasets
+# that did scrape). It runs against the tip of main, so the bot's commit is
+# what gets tested. It reports; it does not gate the publish — refusing a data
+# refresh over a colour-palette test would take the site stale for a cosmetic.
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+  workflow_run:
+    workflows: ["Refresh model data"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -30,12 +45,25 @@ permissions:
 
 # The bot can push several data commits while a run is in flight. Only the tip
 # matters, so supersede rather than queue — but never cancel a PR mid-review.
+#
+# A no-op refresh (head_sha == sha: nothing was pushed) gets a group of its own.
+# Concurrency is applied when a run is QUEUED, before the job `if` below is
+# evaluated, so in the shared group a refresh that published nothing cancelled
+# the in-flight run for a human push to the same commit and then skipped
+# itself — leaving that commit with no test result. The same condition as the
+# job `if` must stay in both places.
 concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  group: tests-${{ github.ref }}${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_sha == github.sha) && format('-noop-{0}', github.run_id) || '' }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'workflow_run' }}
 
 jobs:
   pytest:
+    # A refresh that found nothing to publish leaves main where it started
+    # (its head_sha), and that commit has already been tested. Only a refresh
+    # that pushed moves the tip.
+    if: >-
+      github.event_name != 'workflow_run'
+      || github.event.workflow_run.head_sha != github.sha
     runs-on: ubuntu-latest
     steps:
       # SHA-pinned, matching refresh.yml: a moving tag is a dependency on

@@ -42,6 +42,9 @@ from static_helpers import (
     cap_compare_selection,
     csv_safe,
     export_frame_for_tab,
+    gpu_hw_meta,
+    gpu_preset_options,
+    local_frame,
     compute_diverse5,
     ctx_to_k,
     quality_label,
@@ -326,10 +329,15 @@ def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None
     return json.dumps(f[cols].to_dict("records"))
 
 
-def export_csv(providers, min_quality, search, tab=None):
+def export_csv(providers, min_quality, search, tab=None, effort=None, local_args=None):
     """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
-    on screen, not always the hosted-LLM table."""
-    frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search)
+    on screen, not always the hosted-LLM table.
+
+    `effort` and `local_args` are APPENDED, like update_local's late
+    parameters: pyworker.js spreads the argument list with no arity check.
+    `local_args` is the same list docs/app.js sends to update_local."""
+    frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search,
+                                        effort=effort, local_args=local_args)
     return csv_safe(frame).to_csv(index=False)
 
 
@@ -357,44 +365,30 @@ def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
     check and no type check, so inserting a parameter mid-signature shifts every
     later argument and surfaces only as a console line in someone's browser.
     """
-    gpu_count = int(coerce_number(num_gpus, default=DEFAULT_GPU_COUNT, minimum=1))
-    vram_gb = coerce_number(vram_per_gpu, default=DEFAULT_VRAM_GB, minimum=0.0) * gpu_count
-    bw = coerce_number(bandwidth_gbps, default=DEFAULT_BANDWIDTH_GBPS, minimum=0.0)
-    eff_bw = effective_bandwidth(bw, gpu_count)
-    ctx = int(coerce_number(ctx_tokens, default=DEFAULT_CONTEXT_TOKENS, minimum=0))
-    ldf = get_local_df(
-        quant=quant or "Q4",
-        vram_gb=vram_gb,
-        bandwidth_gbps=eff_bw,
-        hw_type=hw_type or "nvidia",
-        tags=list(tags) if tags else None,
-        ctx_tokens=ctx,
-        # None stays None: decode_roofline drops the compute roof and reports
-        # bound="memory?" rather than implying a ceiling was checked.
-        fp16_tflops=fp16_tflops,
-        gpu_count=gpu_count,
-    )
+    # static_helpers.local_frame is shared with the Run Local ↓CSV, so the
+    # export is computed for exactly the hardware this chart shows.
+    ldf, vram_gb, ctx, quant = local_frame(vram_per_gpu, num_gpus, quant, bandwidth_gbps,
+                                           hw_type, tags, ctx_tokens, fp16_tflops)
     mode = speed_mode or DEFAULT_SPEED_MODE
     return json.dumps({
-        "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant or "Q4",
+        "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant,
                                                   ctx_tokens=ctx, speed_mode=mode).to_json()),
-        "compat":  json.loads(build_local_compat(ldf, quant=quant or "Q4", vram_gb=vram_gb,
+        "compat":  json.loads(build_local_compat(ldf, quant=quant, vram_gb=vram_gb,
                                                  ctx_tokens=ctx, speed_mode=mode).to_json()),
     })
 
 
 def local_hw_for_gpu(gpu_name):
-    """Mirror app.py update_local_hw — returns hw metadata for a GPU preset."""
-    g = GPU_BY_NAME.get(gpu_name)
-    if not g:
-        return json.dumps(None)
-    # fp16_tflops MUST be here. This dict is the only route a compute figure
-    # takes to the browser — app.py:1233 reads GPU_BY_NAME server-side and does
-    # not need it — so omitting it makes the deployed site compute
-    # bandwidth-only speeds while Dash computes roofline speeds for the same card.
-    return json.dumps({"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"],
-                       "hw_type": g["hw_type"],
-                       "fp16_tflops": tflops_for_gpu(gpu_name)})
+    """Mirror app.py update_local_hw — returns hw metadata for a GPU preset.
+
+    The browser no longer calls this on a preset change (gpu_options ships the
+    same dict per preset at boot); it stays as the single-preset lookup.
+    """
+    # fp16_tflops MUST be in the dict. It is the only route a compute figure
+    # takes to the browser — app.py reads GPU_BY_NAME server-side and does not
+    # need it — so omitting it makes the deployed site compute bandwidth-only
+    # speeds while Dash computes roofline speeds for the same card.
+    return json.dumps(gpu_hw_meta(gpu_name))
 
 
 def context_options():
@@ -412,8 +406,13 @@ def speed_mode_options():
 
 
 def gpu_options():
-    """Return JSON list of GPU option dicts for the local-tab preset dropdown."""
-    return json.dumps(get_gpu_options())
+    """Return JSON list of GPU option dicts for the preset dropdowns.
+
+    Each option carries its preset's vram_gb / bandwidth_gbps / hw_type /
+    fp16_tflops, so a preset change resolves in the browser in the same tick
+    instead of queueing a lookup behind a multi-second update_local.
+    """
+    return json.dumps(gpu_preset_options())
 
 
 def quant_options():

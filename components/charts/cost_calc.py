@@ -155,7 +155,11 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     _gutter = right_gutter(
         f"{p}  {q:.0f}pt" for p, q in zip(plot_df["provider"], plot_df["quality"])
     )
-    # Provider label + intelligence score on right
+    # Provider label + intelligence score on right.
+    # Collected as plain dicts and set once in update_layout below: one
+    # fig.add_annotation per row re-validates the whole annotations tuple on
+    # every call, which makes the build quadratic in rows.
+    annotations = []
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         score_color = (
@@ -163,7 +167,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             else "#7ecfaa" if row["quality"] >= 30
             else "#888888"
         )
-        fig.add_annotation(
+        annotations.append(dict(
             x=1.01,
             y=short_names[i],
             text=(
@@ -174,7 +178,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             xanchor="left",
             font=dict(size=10, family=_FONT, color=color),
             xref="paper", yref="y",
-        )
+        ))
 
     height = max(500, top_n * 26)
 
@@ -218,6 +222,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             automargin=True,
             autorange="reversed",  # cheapest at top
         ),
+        annotations=annotations,
         barmode="overlay",
         margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,

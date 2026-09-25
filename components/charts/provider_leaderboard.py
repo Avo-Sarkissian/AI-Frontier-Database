@@ -104,10 +104,14 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
     _gutter = right_gutter(
         f"{int(c)} models  ·  {n}" for c, n in zip(agg["model_count"], short_names)
     )
-    # Right-side annotations: model count + best model name
+    # Right-side annotations: model count + best model name.
+    # Collected as plain dicts and set once in update_layout below: one
+    # fig.add_annotation per row re-validates the whole annotations tuple on
+    # every call, which makes the build quadratic in rows.
+    annotations = []
     for i, row in agg.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
-        fig.add_annotation(
+        annotations.append(dict(
             x=1.01,
             y=row["_label"],
             text=fit_text(
@@ -117,7 +121,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
             xanchor="left",
             font=dict(size=10, family=_FONT, color=color),
             xref="paper", yref="y",
-        )
+        ))
 
     height = max(400, len(agg) * 30 + 80)
 
@@ -147,6 +151,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
             showgrid=False, showline=False, ticks="",
             automargin=True,
         ),
+        annotations=annotations,
         barmode="overlay",
         margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,

@@ -447,7 +447,7 @@ _LOCAL_ONLY_COLORS: dict[str, str] = {
     "Liquid AI":                               "#38bdf8",  # AA paints it #000000 — no hue to mirror
     "Ornith AI":                               "#f0abfc",  # not in AA's catalogue
     "AI9Stars":                                "#795bcf",  # AA verbatim
-    "MBZUAI Institute of Foundation Models":   "#4a6ae4",  # AA #1521a9 lifted to 4.02:1
+    "Institute of Foundation Models":          "#4a6ae4",  # AA #1521a9 lifted to 4.02:1 (AA dropped "MBZUAI " 2026-09-17)
     "Motif Technologies":                      "#6a93eb",  # AA verbatim
     "Nanbeige":                                "#36686a",  # AA #023c3e lifted to 3.01:1
     "Naver":                                   "#03c75b",  # AA verbatim
@@ -647,6 +647,9 @@ for _m in _MODELS_RAW:
 
 # ── GPU / hardware presets ────────────────────────────────────────────────────
 # Fields: name, vram_gb, bandwidth_gbps, hw_type, category
+# Unified-memory rows (Apple, Snapdragon, CPU) are written with `ram_gb`, the
+# figure on the box, and get `vram_gb` — what a model may actually occupy —
+# from usable_memory_gb() below. See there for why those differ.
 # Bandwidth sources: NVIDIA official specs, Apple silicon specs pages
 GPUS: list[dict] = [
     # ── NVIDIA RTX 50 (Blackwell, GDDR7) ─────────────────────────────────────
@@ -737,7 +740,9 @@ GPUS: list[dict] = [
     {"name": "NVIDIA RTX 5000 Ada",      "vram_gb": 32,  "bandwidth_gbps": 576,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     {"name": "NVIDIA RTX A6000",             "vram_gb": 48,  "bandwidth_gbps": 768,  "hw_type": "nvidia", "category": "NVIDIA Professional"},
     # ── Apple Silicon ─────────────────────────────────────────────────────────
-    # Unified memory = VRAM; bandwidth from Apple silicon spec pages.
+    # Unified memory: `ram_gb` is the tier Apple sells, and `vram_gb` is the
+    # part of it Metal will let the GPU wire — see usable_memory_gb(). Bandwidth
+    # from Apple silicon spec pages.
     #
     # THE RECURRING DEFECT IN THIS BLOCK, now fixed, is assuming a bigger memory
     # tier implies the higher-bandwidth GPU bin. Apple does not sell them that
@@ -757,69 +762,69 @@ GPUS: list[dict] = [
     # M5 Ultra (Mac Studio, Aug 2026): 1.2 TB/s, tiers 96/256/512. See below.
     # M6 (Mac mini, Aug 2026): first 2 nm chip, 170 GB/s, tiers 16/24/32.
     # ── M1 ──
-    {"name": "Apple M1 (8 GB)",          "vram_gb": 8,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Pro (16 GB)",     "vram_gb": 16,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Pro (32 GB)",     "vram_gb": 32,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Max (32 GB)",     "vram_gb": 32,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Ultra (64 GB)",   "vram_gb": 64,  "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M1"},
-    {"name": "Apple M1 Ultra (128 GB)",  "vram_gb": 128, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 (8 GB)",          "ram_gb": 8,   "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 68,   "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Pro (16 GB)",     "ram_gb": 16,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Pro (32 GB)",     "ram_gb": 32,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Max (32 GB)",     "ram_gb": 32,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Max (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Ultra (64 GB)",   "ram_gb": 64,  "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M1"},
+    {"name": "Apple M1 Ultra (128 GB)",  "ram_gb": 128, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M1"},
     # ── M2 ──
-    {"name": "Apple M2 (8 GB)",          "vram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Pro (16 GB)",     "vram_gb": 16,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Pro (32 GB)",     "vram_gb": 32,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Max (32 GB)",     "vram_gb": 32,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Ultra (64 GB)",   "vram_gb": 64,  "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Ultra (128 GB)",  "vram_gb": 128, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
-    {"name": "Apple M2 Ultra (192 GB)",  "vram_gb": 192, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 (8 GB)",          "ram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 (24 GB)",         "ram_gb": 24,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Pro (16 GB)",     "ram_gb": 16,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Pro (32 GB)",     "ram_gb": 32,  "bandwidth_gbps": 200,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Max (32 GB)",     "ram_gb": 32,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Max (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Max (96 GB)",     "ram_gb": 96,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Ultra (64 GB)",   "ram_gb": 64,  "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Ultra (128 GB)",  "ram_gb": 128, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
+    {"name": "Apple M2 Ultra (192 GB)",  "ram_gb": 192, "bandwidth_gbps": 800,  "hw_type": "apple",  "category": "Apple M2"},
     # ── M3 ──
-    {"name": "Apple M3 (8 GB)",          "vram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Pro (18 GB)",     "vram_gb": 18,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Pro (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 (8 GB)",          "ram_gb": 8,   "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 (24 GB)",         "ram_gb": 24,  "bandwidth_gbps": 100,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Pro (18 GB)",     "ram_gb": 18,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Pro (36 GB)",     "ram_gb": 36,  "bandwidth_gbps": 150,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Max 14-core GPU: 300 GB/s — MacBook Pro 14" base, MacBook Pro 16" base
-    {"name": "Apple M3 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (36 GB)",     "ram_gb": 36,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (48 GB)",     "ram_gb": 48,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Max 16-core GPU: 400 GB/s — MacBook Pro 16" high, Mac Studio
-    {"name": "Apple M3 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Max (96 GB)",     "vram_gb": 96,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (96 GB)",     "ram_gb": 96,  "bandwidth_gbps": 300,  "si": "M3 Max 30c", "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Max (128 GB)",    "ram_gb": 128, "bandwidth_gbps": 400,  "hw_type": "apple",  "category": "Apple M3"},
     # M3 Ultra: 2× M3 Max (16-core) → 819 GB/s — Mac Studio (2025), up to 512 GB
-    {"name": "Apple M3 Ultra (96 GB)",  "vram_gb": 96, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Ultra (256 GB)",  "vram_gb": 256, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
-    {"name": "Apple M3 Ultra (512 GB)",  "vram_gb": 512, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Ultra (96 GB)",  "ram_gb": 96, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Ultra (256 GB)",  "ram_gb": 256, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
+    {"name": "Apple M3 Ultra (512 GB)",  "ram_gb": 512, "bandwidth_gbps": 819,  "hw_type": "apple",  "category": "Apple M3"},
     # ── M4 ──
-    {"name": "Apple M4 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Pro (24 GB)",     "vram_gb": 24,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Pro (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 (24 GB)",         "ram_gb": 24,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 (32 GB)",         "ram_gb": 32,  "bandwidth_gbps": 120,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Pro (24 GB)",     "ram_gb": 24,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Pro (48 GB)",     "ram_gb": 48,  "bandwidth_gbps": 273,  "hw_type": "apple",  "category": "Apple M4"},
     # M4 Max 14-core GPU: 410 GB/s — MacBook Pro 14" / 16" base tier
-    {"name": "Apple M4 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 410,  "si": "M4 Max 32c", "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (36 GB)",     "ram_gb": 36,  "bandwidth_gbps": 410,  "si": "M4 Max 32c", "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (48 GB)",     "ram_gb": 48,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     # M4 Max 16-core GPU: 546 GB/s — MacBook Pro 16" high, Mac Studio
-    {"name": "Apple M4 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
-    {"name": "Apple M4 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
+    {"name": "Apple M4 Max (128 GB)",    "ram_gb": 128, "bandwidth_gbps": 546,  "hw_type": "apple",  "category": "Apple M4"},
     # ── M5 ──
     # M5 base (MacBook Air, Mar 2026): 153.6 GB/s, up to 32 GB
-    {"name": "Apple M5 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (24 GB)",         "ram_gb": 24,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 (32 GB)",         "ram_gb": 32,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Pro (MacBook Pro 14"/16", Mar 2026): 307 GB/s, up to 64 GB
-    {"name": "Apple M5 Pro (24 GB)",     "vram_gb": 24,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Pro (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Pro (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Pro (24 GB)",     "ram_gb": 24,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Pro (48 GB)",     "ram_gb": 48,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Pro (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 307,  "hw_type": "apple",  "category": "Apple M5"},
     # M5 Max (MacBook Pro 14"/16", Mar 2026): 614 GB/s, up to 128 GB
-    {"name": "Apple M5 Max (36 GB)",     "vram_gb": 36,  "bandwidth_gbps": 460,  "si": "M5 Max 32c", "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Max (48 GB)",     "vram_gb": 48,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Max (64 GB)",     "vram_gb": 64,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Max (128 GB)",    "vram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (36 GB)",     "ram_gb": 36,  "bandwidth_gbps": 460,  "si": "M5 Max 32c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (48 GB)",     "ram_gb": 48,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (64 GB)",     "ram_gb": 64,  "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Max (128 GB)",    "ram_gb": 128, "bandwidth_gbps": 614,  "hw_type": "apple",  "category": "Apple M5"},
     # ── M5 Ultra ── (Mac Studio, announced 2026-08-25; ships 22 Sep 2026)
     # Quad-die: two dual-die M5 Max joined by next-generation UltraFusion.
     # 36-core CPU (12 super + 24 performance), up to 80-core GPU with a Neural
@@ -830,9 +835,9 @@ GPUS: list[dict] = [
     # Tiers Apple sells are 96 / 256 / 512 GB. There is NO 128 GB M5 Ultra.
     # https://www.apple.com/newsroom/2026/08/apple-introduces-m6-and-m5-ultra-for-a-big-leap-in-performance-and-ai-compute/
     #   ("1.2TB/s of unified memory bandwidth", "up to 512GB of unified memory")
-    {"name": "Apple M5 Ultra (96 GB)",   "vram_gb": 96,  "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Ultra (256 GB)",  "vram_gb": 256, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
-    {"name": "Apple M5 Ultra (512 GB)",  "vram_gb": 512, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Ultra (96 GB)",   "ram_gb": 96,  "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Ultra (256 GB)",  "ram_gb": 256, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
+    {"name": "Apple M5 Ultra (512 GB)",  "ram_gb": 512, "bandwidth_gbps": 1200, "si": "M5 Ultra 80c", "hw_type": "apple",  "category": "Apple M5"},
     # ── M6 ── (Mac mini, announced 2026-08-25; ships 22 Sep 2026)
     # Apple's first 2 nm chip. 12-core CPU (2 super + 4 performance + 6
     # efficiency), 12-core GPU with a Neural Accelerator in every core, dual
@@ -842,19 +847,21 @@ GPUS: list[dict] = [
     # https://www.apple.com/newsroom/2026/08/apple-introduces-m6-and-m5-ultra-for-a-big-leap-in-performance-and-ai-compute/
     #   ("170GB/s of unified memory bandwidth — a 10 percent increase over M5
     #     and a 2.5x increase over M1"; 68 × 2.5 = 170 confirms both ends)
-    {"name": "Apple M6 (16 GB)",         "vram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M6"},
-    {"name": "Apple M6 (24 GB)",         "vram_gb": 24,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
-    {"name": "Apple M6 (32 GB)",         "vram_gb": 32,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (16 GB)",         "ram_gb": 16,  "bandwidth_gbps": 153,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (24 GB)",         "ram_gb": 24,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
+    {"name": "Apple M6 (32 GB)",         "ram_gb": 32,  "bandwidth_gbps": 170,  "hw_type": "apple",  "category": "Apple M6"},
     # M5 Ultra: not yet announced (expected Mac Studio mid-2026)
     # ── Apple iPhone (on-device inference via llama.cpp Metal / Core ML) ────────
-    # Named by chip, not device. Usable RAM ≈ total minus ~2 GB OS reservation.
+    # Named by chip, not device. `ram_gb` is the phone's RAM; usable is total
+    # minus ~2 GB OS reservation (usable_memory_gb). A16 is priced at the 16e's
+    # 8 GB — the 14 Pro's 6 GB would leave it 4.
     # Only models ≤ ~4 GB VRAM fit on phones — filter enforces this automatically.
     # Bandwidth from Apple silicon spec pages.
-    {"name": "A16 (iPhone 14 Pro / 16e)", "vram_gb": 6,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
-    {"name": "A17 Pro (iPhone 15 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
-    {"name": "A18 Pro (iPhone 16 Pro)",   "vram_gb": 6,  "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A16 (iPhone 14 Pro / 16e)", "ram_gb": 8,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A17 Pro (iPhone 15 Pro)",   "ram_gb": 8,  "bandwidth_gbps": 51.2,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A18 Pro (iPhone 16 Pro)",   "ram_gb": 8,  "bandwidth_gbps": 60,   "hw_type": "apple",  "category": "Apple — iPhone"},
     # A19 Pro (iPhone 17 Pro, Sep 2025): 12 GB RAM, improved memory bandwidth
-    {"name": "A19 Pro (iPhone 17 Pro)",   "vram_gb": 10, "bandwidth_gbps": 76.8,   "hw_type": "apple",  "category": "Apple — iPhone"},
+    {"name": "A19 Pro (iPhone 17 Pro)",   "ram_gb": 12, "bandwidth_gbps": 76.8,   "hw_type": "apple",  "category": "Apple — iPhone"},
     # ── AMD RDNA 4 (2025) ─────────────────────────────────────────────────────
     # RX 9070 XT: 16 GB GDDR6, 256-bit, 717 GB/s — RDNA4 flagship mainstream
     # RX 9070:    16 GB GDDR6, 256-bit, 640 GB/s
@@ -886,18 +893,75 @@ GPUS: list[dict] = [
     {"name": "Intel Arc A770 (8 GB)",    "vram_gb": 8,   "bandwidth_gbps": 512,  "hw_type": "intel",  "category": "Intel Arc"},
     {"name": "Intel Arc A750",           "vram_gb": 8,   "bandwidth_gbps": 512,  "hw_type": "intel",  "category": "Intel Arc"},
     # ── Qualcomm Snapdragon X (Windows ARM laptops, llama.cpp Vulkan) ─────────
-    # Bandwidth = LPDDR5X spec; usable RAM ~85% of total (OS overhead).
+    # Bandwidth = LPDDR5X spec; usable RAM = total minus a fixed Windows
+    # reserve (usable_memory_gb).
     # Snapdragon X Elite X1E-84-100: 45/64 GB LPDDR5X, 136 GB/s
     # Snapdragon X Plus X1P-64-100:  32/64 GB LPDDR5X, 120 GB/s
-    {"name": "Snapdragon X Elite (64 GB)","vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Elite (32 GB)","vram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Plus (64 GB)", "vram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
-    {"name": "Snapdragon X Plus (32 GB)", "vram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (64 GB)","ram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Elite (32 GB)","ram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (64 GB)", "ram_gb": 64, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
+    {"name": "Snapdragon X Plus (32 GB)", "ram_gb": 32, "bandwidth_gbps": 135,  "hw_type": "qualcomm","category": "Qualcomm Snapdragon X"},
     # ── CPU Only ─────────────────────────────────────────────────────────────
-    {"name": "CPU only — DDR5 laptop",     "vram_gb": 16,  "bandwidth_gbps": 89.6,  "hw_type": "cpu",    "category": "CPU Only"},
-    {"name": "CPU only — DDR5 desktop",    "vram_gb": 32,  "bandwidth_gbps": 96,  "hw_type": "cpu",    "category": "CPU Only"},
-    {"name": "CPU only — DDR5 workstation","vram_gb": 128, "bandwidth_gbps": 153.6, "hw_type": "cpu",    "category": "CPU Only"},
+    # System RAM, less the same fixed OS reserve as Snapdragon.
+    {"name": "CPU only — DDR5 laptop",     "ram_gb": 16,  "bandwidth_gbps": 89.6,  "hw_type": "cpu",    "category": "CPU Only"},
+    {"name": "CPU only — DDR5 desktop",    "ram_gb": 32,  "bandwidth_gbps": 96,  "hw_type": "cpu",    "category": "CPU Only"},
+    {"name": "CPU only — DDR5 workstation","ram_gb": 128, "bandwidth_gbps": 153.6, "hw_type": "cpu",    "category": "CPU Only"},
 ]
+
+
+# ── Usable memory on unified-memory presets ──────────────────────────────────
+# A discrete card's VRAM is the model's alone; a unified-memory machine shares
+# its RAM with the OS, and every preset in this block used to hand 100% of it to
+# the model. The M4 Max 128 GB preset therefore told its owner that Command A+
+# (126.5 GiB at Q4) fits, with 1.5 GiB left for macOS — and llama.cpp/Metal
+# refuses that allocation outright at the default wired limit.
+#
+# Mac: the GPU may wire at most Metal's recommendedMaxWorkingSetSize, which
+#   macOS sets to 2/3 of RAM on machines with 36 GB or less and 3/4 above that
+#   (the default iogpu.wired_limit_mb). llama.cpp's Metal backend prints the
+#   figure at load as "recommendedMaxWorkingSetSize": 5461.34 MB on an 8 GB
+#   Mac (2/3), 49152.00 MB on 64 GB and 147456.00 MB on a 192 GB M2 Ultra
+#   (3/4 — MiB, so exactly 48 and 144 GiB). It can be raised by
+#   hand with `sudo sysctl iogpu.wired_limit_mb=...`, but that is a user
+#   override, not the machine as shipped, so the preset prices the default.
+# iPhone: total minus ~2 GB OS reservation — the rule these presets already
+#   used, now computed rather than hand-subtracted.
+# Snapdragon X / CPU-only: total minus a fixed 4 GB reserve for the OS, which
+#   is Windows 11's own minimum system RAM requirement — the least the OS needs
+#   to run at all, so this is a floor on the reserve, not a generous one.
+#
+# The result is what the preset puts in the VRAM box, so a reader who has
+# raised the wired limit can still type their own figure over it.
+MAC_WIRED_FRACTION_SMALL = 2 / 3     # RAM <= 36 GB
+MAC_WIRED_FRACTION_LARGE = 3 / 4     # RAM  > 36 GB
+MAC_WIRED_SMALL_MAX_GB = 36
+IPHONE_OS_RESERVE_GB = 2
+DESKTOP_OS_RESERVE_GB = 4
+
+
+def usable_memory_gb(gpu: dict) -> float:
+    """Memory a model may occupy on this preset, in the units of `vram_gb`,
+    rounded down to a whole GB.
+
+    Discrete cards (no `ram_gb`) return `vram_gb` unchanged."""
+    ram = gpu.get("ram_gb")
+    if ram is None:
+        return gpu["vram_gb"]
+    if gpu.get("category") == "Apple — iPhone":
+        usable = ram - IPHONE_OS_RESERVE_GB
+    elif gpu.get("hw_type") == "apple":
+        frac = (MAC_WIRED_FRACTION_SMALL if ram <= MAC_WIRED_SMALL_MAX_GB
+                else MAC_WIRED_FRACTION_LARGE)
+        usable = ram * frac
+    else:
+        usable = ram - DESKTOP_OS_RESERVE_GB
+    # Whole GB, rounded DOWN: the VRAM box this lands in steps by 1, and
+    # rounding up would hand back a fraction of a GB the OS has claimed.
+    return max(int(usable + 1e-9), 0)
+
+
+for _g in GPUS:
+    _g["vram_gb"] = usable_memory_gb(_g)
 
 # Index by name for fast lookup
 GPU_BY_NAME: dict[str, dict] = {g["name"]: g for g in GPUS}
@@ -1195,13 +1259,48 @@ KV_ARCH: dict[str, dict] = {
                      "global_layers": 18, "window":  128},
     "gpt-oss-20b":  {"n_layers": 24, "n_kv_heads":  8, "head_dim":  64,
                      "global_layers": 12, "window":  128},
+    # Llama 4 is CHUNKED, not sliding, and for the cache that is the same
+    # thing: a chunked layer attends only inside its own attention_chunk_size
+    # block, so it never holds more than one chunk of K/V. Both published
+    # configs (text_config, read from unsloth/Llama-4-Scout-17B-16E-Instruct and
+    # unsloth/Llama-4-Maverick-17B-128E, mirrors of the gated meta-llama repos)
+    # carry num_hidden_layers 48, num_key_value_heads 8, head_dim 128 and
+    # attention_chunk_size 8192. The global layers are the NoPE ones: Scout's
+    # no_rope_layers is [1,1,1,0] x 12, and Maverick's is [] which transformers'
+    # Llama4TextConfig expands with no_rope_layer_interval=4 to the same
+    # pattern; layer_types is then "full_attention" exactly where no_rope is 0.
+    # 12 global + 36 chunked. At 128k this is 7.1 GiB of FP16 KV, not the 24.0
+    # the plain-GQA row charged — enough to flip Scout Q4 on an 80 GB H100.
+    "llama 4 scout":    {"n_layers": 48, "n_kv_heads": 8, "head_dim": 128,
+                         "global_layers": 12, "window": 8192},
+    "llama 4 maverick": {"n_layers": 48, "n_kv_heads": 8, "head_dim": 128,
+                         "global_layers": 12, "window": 8192},
+
+    # ── hybrid attention / Mamba ── only the attention layers cache anything;
+    # a Mamba layer carries a fixed-size SSM state that does not grow with
+    # context, so local_kind "linear" charges it zero. Read from the GGUF
+    # headers of bartowski/ai21labs_AI21-Jamba-{Large,Mini}-1.7-GGUF (the
+    # ai21labs repos are gated): jamba.attention.head_count_kv is 8 on every
+    # 8th layer from index 4 and 0 elsewhere — 9 of 72 layers for Large, 4 of
+    # 32 for Mini — and head_dim is embedding_length / head_count = 8192/64 =
+    # 4096/32 = 128. Same 1:7 attention:Mamba layout the Jamba-1.5 paper
+    # describes (arXiv:2408.12570). Jamba Reasoning 3B's own config.json
+    # (ai21labs/AI21-Jamba-Reasoning-3B) is attn_layer_period 14, offset 7 over
+    # 28 layers — 2 attention layers — with 1 KV head of 2560/20 = 128.
+    # Priced as full attention on every layer these came out 8.6x (Large),
+    # 10.7x (Mini) and 14x (Reasoning 3B) high.
+    "jamba 1.7 large":    {"n_layers": 72, "n_kv_heads": 8, "head_dim": 128,
+                           "global_layers": 9, "local_kind": "linear"},
+    "jamba 1.7 mini":     {"n_layers": 32, "n_kv_heads": 8, "head_dim": 128,
+                           "global_layers": 4, "local_kind": "linear"},
+    "jamba reasoning 3b": {"n_layers": 28, "n_kv_heads": 1, "head_dim": 128,
+                           "global_layers": 2, "local_kind": "linear"},
 
     # ── MoE (GQA attention) ──
     "mixtral 8x7b":     {"n_layers": 32, "n_kv_heads": 8, "head_dim": 128},
     "mixtral 8x22b":    {"n_layers": 56, "n_kv_heads": 8, "head_dim": 128},
     "qwen3 30b-a3b":    {"n_layers": 48, "n_kv_heads": 4, "head_dim": 128},
     "qwen3 235b-a22b":  {"n_layers": 94, "n_kv_heads": 4, "head_dim": 128},
-    "llama 4 scout":    {"n_layers": 48, "n_kv_heads": 8, "head_dim": 128},
 
     # ── MLA ── ONE latent cached, no factor of 2. Verified against the weights:
     # DeepSeek-V3's kv_a_proj_with_mqa.weight is [576, 7168] and
@@ -1211,6 +1310,12 @@ KV_ARCH: dict[str, dict] = {
     "deepseek v3": {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
                     "qk_rope_head_dim": 64},
     "deepseek r1": {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
+                    "qk_rope_head_dim": 64},
+    # Perplexity's R1 1776 is a post-train of DeepSeek R1 on unchanged weights
+    # shapes (its GGUFs are arch deepseek2 with R1's 61 layers and 512+64
+    # latent). The catalogue name carries no "deepseek r1" for the lookup to
+    # find, so without this alias it fell to the estimator at 3.5x the cache.
+    "r1 1776":     {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
                     "qk_rope_head_dim": 64},
     "kimi k2":     {"attn": "mla", "n_layers": 61, "kv_lora_rank": 512,
                     "qk_rope_head_dim": 64},
@@ -1885,7 +1990,7 @@ def get_local_df(
         weights_gb      - the weights alone
         kv_gb           - the KV cache at ctx_used
         kv_bytes_tok    - KV bytes per token, the figure the hover should show
-        kv_source       - "config" (published) | "estimated" (±30%) | "none"
+        kv_source       - "config" (published) | "estimated" (median error 33%, p90 272%) | "none"
         ctx_used        - context actually priced, capped at the model's own max
         speed_tps       - single-stream decode tok/s on the given hardware
         bound           - which roof binds: memory | compute | dequant | memory?

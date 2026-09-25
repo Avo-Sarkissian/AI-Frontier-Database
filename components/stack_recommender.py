@@ -175,6 +175,8 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = 
     if ref.empty:
         ref = pool
 
+    # Every ranking below is a stable sort: `head(n)` cuts through ties, and a
+    # quicksort let the CI build and the in-browser render pick different cards.
     if tier["sort"] == "composite_fast":
         q_max = ref["quality"].max() or 1
         v_max = (ref["quality"] / ref["price"].replace(0, float("nan"))).max() or 1
@@ -182,12 +184,12 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = 
         pool["_score"] = pool.apply(
             lambda r: _score_fast_api(r, q_max, v_max, s_max), axis=1
         )
-        pool = pool.sort_values("_score", ascending=False)
+        pool = pool.sort_values("_score", ascending=False, kind="mergesort")
     elif tier["sort"] == "value":
         pool["_score"] = pool["quality"] / pool["price"]
-        pool = pool.sort_values("_score", ascending=False)
+        pool = pool.sort_values("_score", ascending=False, kind="mergesort")
     else:
-        pool = pool.sort_values("quality", ascending=False)
+        pool = pool.sort_values("quality", ascending=False, kind="mergesort")
 
     return pool.head(tier["n"])
 
@@ -229,7 +231,7 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
             runnable["quality"] / q_max * 0.50 +
             runnable["speed_tps"] / s_max * 0.50
         )
-        runnable = runnable.sort_values("_score", ascending=False)
+        runnable = runnable.sort_values("_score", ascending=False, kind="mergesort")
     elif tier_key == "balanced":
         # Quality-weighted efficiency — quality matters more than VRAM footprint
         runnable = runnable[runnable["quality"] >= 12].copy()
@@ -249,9 +251,9 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
             (runnable["quality"] / q_max) * 0.70 +
             runnable["_vram_fit"] * 0.30
         )
-        runnable = runnable.sort_values("_score", ascending=False)
+        runnable = runnable.sort_values("_score", ascending=False, kind="mergesort")
     else:  # reasoning
-        runnable = runnable.sort_values("quality", ascending=False)
+        runnable = runnable.sort_values("quality", ascending=False, kind="mergesort")
 
     return runnable.head(n)
 
