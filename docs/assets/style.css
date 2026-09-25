@@ -158,6 +158,18 @@ html, body {
   padding-right: 4px;
 }
 
+/* "usable of 128 GB" beside a VRAM box on unified-memory presets. Empty on a
+   discrete card or once a figure is typed, and then it takes no space. */
+.filter-note {
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+  cursor: help;
+}
+.filter-note:empty {
+  display: none;
+}
+
 .filter-sep {
   width: 1px;
   height: 16px;

@@ -28,7 +28,7 @@ from data.local_models import (
     DEFAULT_VRAM_GB, DEFAULT_GPU_COUNT, DEFAULT_BANDWIDTH_GBPS,
     DEFAULT_CONTEXT_TOKENS, DEFAULT_SPEED_MODE, DEFAULT_FP16_TFLOPS,
     context_options, speed_mode_options, tflops_for_gpu,
-    effective_bandwidth,
+    effective_bandwidth, memory_note,
 )
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
 from components.charts.pareto               import build_pareto_scatter
@@ -501,6 +501,7 @@ app.layout = html.Div([
                         "padding": "6px 10px", "width": "72px", "outline": "none",
                     },
                 ),
+                html.Span(id="recommend-vram-note", className="filter-note"),
                 html.Div(className="filter-sep"),
                 html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it."),
                 dcc.Dropdown(
@@ -770,6 +771,7 @@ app.layout = html.Div([
                         "padding": "6px 10px", "width": "72px", "outline": "none",
                     },
                 ),
+                html.Span(id="local-vram-note", className="filter-note"),
                 html.Div(className="filter-sep"),
                 html.Span("GPUs", className="filter-label", title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it."),
                 dcc.Dropdown(
@@ -1314,6 +1316,34 @@ def update_recommend_hw(gpu_name: str):
     if not gpu:
         return no_update
     return gpu["vram_gb"]
+
+
+# ── "usable of N GB" beside both VRAM boxes ───────────────────────────────────
+# The rule and the words live in data/local_models.memory_note; docs/app.js
+# syncVramNote makes the same box-equals-preset test in the browser.
+def _vram_note(vram, gpu_name):
+    note = memory_note(gpu_name, vram if vram is not None else "")
+    return (note["text"], note["title"]) if note else ("", "")
+
+
+@callback(
+    Output("local-vram-note", "children"),
+    Output("local-vram-note", "title"),
+    Input("local-vram",       "value"),
+    Input("local-gpu-preset", "value"),
+)
+def update_local_vram_note(vram, gpu_name):
+    return _vram_note(vram, gpu_name)
+
+
+@callback(
+    Output("recommend-vram-note", "children"),
+    Output("recommend-vram-note", "title"),
+    Input("recommend-vram",       "value"),
+    Input("recommend-gpu-preset", "value"),
+)
+def update_recommend_vram_note(vram, gpu_name):
+    return _vram_note(vram, gpu_name)
 
 
 # ── Local tab ─────────────────────────────────────────────────────────────────

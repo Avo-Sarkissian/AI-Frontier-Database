@@ -517,6 +517,20 @@ function setVramFromPreset(inputId, hw, userChange) {
   if (!userChange && el.dataset.userTyped === "1") return;
   el.value = hw.vram_gb;
   delete el.dataset.userTyped;
+  syncVramNote(inputId, hw);
+}
+
+// "usable of N GB" beside the box, from data/local_models.memory_note. Shown
+// only while the box holds the preset's own figure — the same test Dash makes —
+// because a typed number is no longer the one the rule produced.
+function syncVramNote(inputId, hw) {
+  const el = document.getElementById(inputId);
+  const note = document.getElementById(inputId + "-note");
+  if (!el || !note) return;
+  const n = hw && hw.memory_note;
+  const show = !!n && el.value !== "" && Number(el.value) === Number(hw.vram_gb);
+  note.textContent = show ? n.text : "";
+  note.title = show ? n.title : "";
 }
 
 // ---- Populate selects that need data from Python ----
@@ -534,6 +548,7 @@ async function populateDynamicSelects() {
       window.AF.gpuMeta[o.value] = {
         vram_gb: o.vram_gb, bandwidth_gbps: o.bandwidth_gbps,
         hw_type: o.hw_type, fp16_tflops: o.fp16_tflops ?? null,
+        memory_note: o.memory_note ?? null,
       };
     });
 
@@ -1477,7 +1492,11 @@ function wireTabControls() {
   // Local VRAM, num GPUs, quant, context, speed, tags
   const localVram = document.getElementById("local-vram");
   if (localVram) {
-    localVram.oninput = () => { localVram.dataset.userTyped = "1"; scheduleLocal(); };
+    localVram.oninput = () => {
+      localVram.dataset.userTyped = "1";
+      syncVramNote("local-vram", window.AF.localHwMeta);
+      scheduleLocal();
+    };
   }
   ["local-num-gpus", "local-quant", "local-context", "local-speed-mode", "local-tags"]
     .forEach(id => {
@@ -1521,7 +1540,11 @@ function wireTabControls() {
     scheduleRecommend();
   };
   if (recVram) {
-    recVram.oninput = () => { recVram.dataset.userTyped = "1"; scheduleRecommend(); };
+    recVram.oninput = () => {
+      recVram.dataset.userTyped = "1";
+      syncVramNote("recommend-vram", recGpu && window.AF.gpuMeta[recGpu.value]);
+      scheduleRecommend();
+    };
   }
   if (recNumGpus) recNumGpus.onchange = scheduleRecommend;
   if (recQuant) recQuant.onchange = scheduleRecommend;

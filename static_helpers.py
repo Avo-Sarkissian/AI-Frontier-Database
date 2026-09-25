@@ -193,9 +193,10 @@ def gpu_preset_options() -> list[dict]:
     next chart used still belonged to the previous card. Shipping the table
     once at boot lets the change handler resolve it in the same tick.
     """
-    from data.local_models import get_gpu_options
+    from data.local_models import get_gpu_options, memory_note
 
-    return [{**o, **(gpu_hw_meta(o["value"]) or {})} for o in get_gpu_options()]
+    return [{**o, **(gpu_hw_meta(o["value"]) or {}), "memory_note": memory_note(o["value"])}
+            for o in get_gpu_options()]
 
 
 def local_frame(vram_per_gpu=None, num_gpus=None, quant=None, bandwidth_gbps=None,

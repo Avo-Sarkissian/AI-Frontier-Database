@@ -190,18 +190,47 @@ def test_the_preset_handlers_never_wait_on_the_worker():
     assert "window.AF.gpuMeta[recGpu.value]" in body
 
 
+def _vram_script(body: str) -> str:
+    """setVramFromPreset plus the note helper it calls, over a fake document
+    holding one VRAM box and its note span."""
+    return (_js_function("syncVramNote") + "\n" + _js_function("setVramFromPreset") + """
+      const els = {
+        "local-vram": { value: "100", dataset: { userTyped: "1" } },
+        "local-vram-note": { textContent: "", title: "" },
+      };
+      var document = { getElementById: (id) => els[id] || null };
+      const el = els["local-vram"], note = els["local-vram-note"];
+    """ + body)
+
+
 def test_boot_default_never_overwrites_a_typed_vram():
     """setVramFromPreset(…, false) is the boot path; true is a real preset change."""
-    fn = _js_function("setVramFromPreset")
-    got = _node(fn + """
-      const el = { value: "100", dataset: { userTyped: "1" } };
-      const document = { getElementById: () => el };
+    got = _node(_vram_script("""
       setVramFromPreset("local-vram", { vram_gb: 32 }, false);
       const afterBoot = el.value;
       setVramFromPreset("local-vram", { vram_gb: 24 }, true);
       process.stdout.write(JSON.stringify([afterBoot, el.value, el.dataset.userTyped || null]));
-    """.replace("const document", "var document"))
+    """))
     assert got == ["100", 24, None]
+
+
+def test_the_usable_memory_note_follows_the_box():
+    """Shown for a unified-memory preset's own figure, cleared by a typed one
+    and by a discrete card — the same rule as data/local_models.memory_note."""
+    got = _node(_vram_script("""
+      const mac = { vram_gb: 96, memory_note: { text: "usable of 128 GB", title: "why" } };
+      const out = [];
+      setVramFromPreset("local-vram", mac, true);
+      out.push([note.textContent, note.title]);
+      el.value = "120"; syncVramNote("local-vram", mac);        // visitor types
+      out.push([note.textContent, note.title]);
+      el.value = "96"; syncVramNote("local-vram", mac);         // types it back
+      out.push([note.textContent]);
+      setVramFromPreset("local-vram", { vram_gb: 32, memory_note: null }, true);
+      out.push([note.textContent]);
+      process.stdout.write(JSON.stringify(out));
+    """))
+    assert got == [["usable of 128 GB", "why"], ["", ""], ["usable of 128 GB"], [""]]
 
 
 # ── #9 / #10 — the export describes what is on screen ───────────────────────

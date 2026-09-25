@@ -967,6 +967,40 @@ for _g in GPUS:
 GPU_BY_NAME: dict[str, dict] = {g["name"]: g for g in GPUS}
 
 
+def memory_note(gpu_name, vram_value=None) -> dict | None:
+    """The "usable of N GB" note beside a VRAM box, or None.
+
+    A unified-memory preset puts less than its RAM in the box (see
+    usable_memory_gb), and a bare 96 beside "M4 Max 128GB" reads like a typo.
+    The note names the total, and its tooltip names the rule.
+
+    With `vram_value`, the note applies only while the box still holds the
+    preset's own figure: once a visitor types a number, the rule no longer
+    describes what is shown. Dash passes the box value; the browser makes the
+    same comparison itself against the preset's vram_gb.
+    """
+    g = GPU_BY_NAME.get(gpu_name or "")
+    if not g or g.get("ram_gb") is None:
+        return None
+    if vram_value is not None:
+        try:
+            if float(vram_value) != float(g["vram_gb"]):
+                return None
+        except (TypeError, ValueError):
+            return None
+    ram = g["ram_gb"]
+    if g.get("category") == "Apple — iPhone":
+        why = f"iOS keeps about {IPHONE_OS_RESERVE_GB} GB of the {ram:g} GB for itself."
+    elif g.get("hw_type") == "apple":
+        frac = "2/3" if ram <= MAC_WIRED_SMALL_MAX_GB else "3/4"
+        why = (f"By default macOS lets the GPU use at most {frac} of the {ram:g} GB "
+               f"(iogpu.wired_limit_mb). If you have raised that limit, type your own figure.")
+    else:
+        why = (f"The OS keeps about {DESKTOP_OS_RESERVE_GB} GB of the {ram:g} GB "
+               f"(Windows 11's minimum system RAM).")
+    return {"text": f"usable of {ram:g} GB", "title": why}
+
+
 # ── Peak compute, per SILICON ────────────────────────────────────────────────
 # A preset is a (silicon, memory tier) pair: `vram_gb` and `bandwidth_gbps`
 # belong to the tier, FLOPS belong to the die. Fourteen Apple M3/M4/M5 Max
