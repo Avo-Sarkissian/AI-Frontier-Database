@@ -49,9 +49,9 @@ Seedance 1.0,seedance-10,ByteDance Seed,Seedance,2025-06-09,True,False,1135.63,7
 PixVerse V5.6 (January),pixverse-v5-6-january,PixVerse,PixVerse,2026-01-26,False,False,1131.34,9.0,1244.26,9.0,True,14.62,,
 LTX-2 Pro,ltx-2-pro,Lightricks,LTX,2025-10-23,True,True,1127.36,3.6,1201.43,3.6,True,3.6,,
 LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,1125.13,2.4,1190.91,2.4,True,2.4,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1159.01,4.8,True,4.8,50.7744023879995,Lightricks
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1149.98,2.4,True,2.4,25.284158379,Lightricks
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1116.09,4.8,1106.99,4.8,False,,269.6249180005,DeepInfra
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,1124.15,4.8,1159.01,4.8,True,4.8,50.7245392790001,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,1120.67,2.4,1149.98,2.4,True,2.4,25.5188358570001,Lightricks
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,1116.09,4.8,1106.99,4.8,False,,269.5948817575,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,1108.27,30.0,1099.81,30.0,False,,,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,1105.34,3.9,1230.14,3.9,True,3.9,53.4341668380002,Vidu
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,1091.96,16.8,1180.48,16.8,False,,,
