@@ -6,6 +6,7 @@ GLM 5.3 Flash,Z AI,320.0,18.0,1000,41.81,MIT,"vision,reasoning",True,False,,,7.4
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,984,39.89,Qwen3.8-Max License,reasoning,True,False,71.89,50.44,4.32
 Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,39.82,Qwen Community License 1.0,"vision,reasoning",True,False,73.05,,-9.72
 "DeepSeek V4.1 Flash (Reasoning, Max Effort)",DeepSeek,552.0,16.0,1000,39.46,MIT,"vision,reasoning",True,False,,,-5.3
+MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,37.88,MIT,"vision,reasoning",True,False,,,-12.68
 "DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",DeepSeek,1600.0,49.0,1000,36.0,MIT,reasoning,True,False,68.83,42.27,0.83
 Kimi K3 (low),Kimi,2800.0,104.0,1049,34.46,Kimi K3 License,"vision,reasoning",True,True,71.98,30.71,3.92
 GLM-5.3 (low),Z AI,753.0,40.0,1000,34.3,GLM-5.3 License,reasoning,True,False,,,-8.4
