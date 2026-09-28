@@ -152,3 +152,4 @@ K2 Horizon MoVA 36B A4B,IFM/K2-Horizon-MoVA-36B-A4B,gqa,48,,,8.0,128.0,,,37.445,
 Ling-3.0-flash-Fin,inclusionAI/Ling-3.0-flash-Fin,mla,42,512.0,64.0,,,,,127.486,2026-09-16,
 GLM 5.3 Flash,zai-org/GLM-5.3-Flash,mla,45,512.0,0.0,,,,,321.323,2026-09-17,
 GLM-5.3 (low),zai-org/GLM-5.3,mla,78,512.0,64.0,,,,,753.33,2026-09-24,
+MiMo-V2.6-Pro,XiaomiMiMo/MiMo-V2.6-Pro-RL,gqa,70,,,8.0,192.0,128.0,17.0,1024.217,2026-09-28,sliding
