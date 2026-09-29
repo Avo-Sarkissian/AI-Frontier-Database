@@ -1,8 +1,9 @@
 {
   "upstream_host_model_rows": 684,
   "distinct_upstream_models": 278,
-  "kept": 185,
+  "kept": 184,
   "skipped_no_score": [
+    "Claude Sonnet 5.5 (Adaptive Reasoning, Low Effort, Default Fallback)",
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
     "GPT-5.5 Pro (xhigh)",
