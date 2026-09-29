@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 679,
-  "distinct_upstream_models": 275,
-  "kept": 180,
+  "upstream_host_model_rows": 684,
+  "distinct_upstream_models": 278,
+  "kept": 185,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -68,7 +68,6 @@
     "LongCat Flash Lite",
     "Magistral Medium 1.2",
     "Mi:dm K 2.5 Pro",
-    "MiMo-V2-Flash (Feb 2026)",
     "MiniCPM-V 4.6 1.3B",
     "MiniCPM5-1B (Non-reasoning)",
     "MiniCPM5-1B (Reasoning)",
@@ -76,7 +75,6 @@
     "Molmo 7B-D",
     "Molmo2-8B",
     "Motif 3",
-    "Motif 3 (Beta)",
     "Motif-2-12.7B-Reasoning",
     "NVIDIA Nemotron 3 Nano 4B",
     "NVIDIA Nemotron Nano 12B v2 VL (Reasoning)",
@@ -383,6 +381,7 @@
     "Magistral Small 1",
     "Mercury 2",
     "Mi:dm K 2.5 Pro Preview",
+    "MiMo-V2-Flash (Feb 2026)",
     "MiMo-V2-Flash (Non-reasoning)",
     "MiMo-V2-Flash (Reasoning)",
     "MiMo-V2-Omni",
@@ -409,6 +408,7 @@
     "Mistral Small 3.2",
     "Mixtral 8x22B Instruct",
     "Mixtral 8x7B Instruct",
+    "Motif 3 (Beta)",
     "Muse Spark",
     "Muse Spark 1.1 (xhigh)",
     "Muse Spark 1.2 (xhigh)",
@@ -507,5 +507,20 @@
     "o3-pro",
     "o4-mini (high)"
   ],
-  "held_deprecated": []
+  "held_deprecated": [
+    "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Max Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)",
+    "Claude Sonnet 5 (Non-reasoning, High Effort)",
+    "Grok 4.6 (high)",
+    "Grok 4.6 (low)",
+    "Grok 4.6 (medium)",
+    "Grok 4.6 (xhigh)",
+    "MiMo-V2.5",
+    "MiMo-V2.5-Pro",
+    "MiMo-V2.5-Pro (Non-reasoning)",
+    "Step 3.7 Flash"
+  ]
 }
