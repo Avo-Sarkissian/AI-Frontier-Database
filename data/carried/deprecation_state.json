@@ -1,59 +1,59 @@
 {
   "models": {
     "Claude Sonnet 5 (Adaptive Reasoning, High Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Claude Sonnet 5 (Adaptive Reasoning, Max Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Claude Sonnet 5 (Non-reasoning, High Effort)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Grok 4.6 (high)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Grok 4.6 (low)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Grok 4.6 (medium)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Grok 4.6 (xhigh)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "MiMo-V2.5": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "MiMo-V2.5-Pro": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "MiMo-V2.5-Pro (Non-reasoning)": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     },
     "Step 3.7 Flash": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-09-29T18:55:04+00:00"
     }
   }
