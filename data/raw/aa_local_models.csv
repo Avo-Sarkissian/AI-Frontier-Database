@@ -55,7 +55,6 @@ Granite 4.2 30B,IBM,30.0,30.0,131,14.83,Apache 2.0,reasoning,False,True,29.92,,-
 Mistral Medium 3.5,Mistral,128.0,128.0,256,14.19,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-36.8
 Gemma 4 12B (Reasoning),Google,12.0,12.0,256,14.18,Apache 2.0,"vision,audio,reasoning",False,True,30.96,,-52.72
 Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,13.92,Apache 2.0,vision,False,True,33.17,,-51.68
-Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,13.65,Apache 2.0,"vision,reasoning",False,True,28.66,,-53.47
 Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,13.4,MIT,"vision,reasoning",False,True,,,-59.37
 Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,13.27,Apache 2.0,vision,False,True,23.46,,-70.7
 EXAONE 4.5 33B,LG AI Research,34.4,34.4,262,13.21,EXAONE AI Model License Agreement 1.2 - NC,"vision,reasoning",False,True,23.57,,-50.72
@@ -72,6 +71,7 @@ K2 Think V2,Institute of Foundation Models,70.0,70.0,262,11.5,Apache 2.0,reasoni
 LongCat Flash Lite,LongCat,68.5,3.0,256,11.47,MIT,,True,True,,,-70.07
 HyperCLOVA X SEED Think (32B),Naver,32.0,32.0,128,11.36,HyperCLOVA X SEED 32B Think Model License Agreement,"vision,reasoning",False,True,,,-53.28
 Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,11.27,Apache 2.0,"vision,reasoning",True,False,26.64,1.44,-30.4
+Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,11.2,Apache 2.0,"vision,reasoning",False,False,28.66,,-53.47
 Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,11.2,Apache 2.0,reasoning,True,True,17.42,,-51.42
 Granite 4.2 8B,IBM,8.0,8.0,131,11.08,Apache 2.0,reasoning,False,False,22.38,3.71,-17.17
 G9v3-3B,AI9Stars,3.0,3.0,131,10.84,Apache 2.0,reasoning,False,True,9.9,,-4.37
