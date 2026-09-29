@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 684,
-  "distinct_upstream_models": 278,
-  "kept": 184,
+  "distinct_upstream_models": 264,
+  "kept": 170,
   "skipped_no_score": [
     "Claude Sonnet 5.5 (Adaptive Reasoning, Low Effort, Default Fallback)",
     "Cogito v2.1 (Reasoning)",
@@ -138,6 +138,12 @@
     "Claude Sonnet 4.6 (Adaptive Reasoning, Max Effort)",
     "Claude Sonnet 4.6 (Non-reasoning, High Effort)",
     "Claude Sonnet 4.6 (Non-reasoning, Low Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Max Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
+    "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)",
+    "Claude Sonnet 5 (Non-reasoning, High Effort)",
     "Command-R (Mar '24)",
     "Command-R+ (Apr '24)",
     "DBRX Instruct",
@@ -331,6 +337,10 @@
     "Grok 4.3 (low)",
     "Grok 4.3 (medium)",
     "Grok 4.5 (high)",
+    "Grok 4.6 (high)",
+    "Grok 4.6 (low)",
+    "Grok 4.6 (medium)",
+    "Grok 4.6 (xhigh)",
     "Grok Beta",
     "Grok Build 0.1 0616",
     "Grok Code Fast 1",
@@ -388,6 +398,9 @@
     "MiMo-V2-Omni",
     "MiMo-V2-Omni-0327",
     "MiMo-V2-Pro",
+    "MiMo-V2.5",
+    "MiMo-V2.5-Pro",
+    "MiMo-V2.5-Pro (Non-reasoning)",
     "MiniMax M1 40k",
     "MiniMax M1 80k",
     "MiniMax-M2",
@@ -498,6 +511,7 @@
     "Sonar Reasoning Pro",
     "Step 3.5 Flash",
     "Step 3.5 Flash 2603",
+    "Step 3.7 Flash",
     "Tri-21B-think Preview",
     "o1",
     "o1-mini",
@@ -508,20 +522,5 @@
     "o3-pro",
     "o4-mini (high)"
   ],
-  "held_deprecated": [
-    "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
-    "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
-    "Claude Sonnet 5 (Adaptive Reasoning, Max Effort)",
-    "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
-    "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)",
-    "Claude Sonnet 5 (Non-reasoning, High Effort)",
-    "Grok 4.6 (high)",
-    "Grok 4.6 (low)",
-    "Grok 4.6 (medium)",
-    "Grok 4.6 (xhigh)",
-    "MiMo-V2.5",
-    "MiMo-V2.5-Pro",
-    "MiMo-V2.5-Pro (Non-reasoning)",
-    "Step 3.7 Flash"
-  ]
+  "held_deprecated": []
 }
