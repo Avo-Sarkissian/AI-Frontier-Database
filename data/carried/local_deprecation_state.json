@@ -1,23 +1,23 @@
 {
   "models": {
     "MiMo-V2-Flash (Feb 2026)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-09-29T18:55:05+00:00"
     },
     "MiMo-V2.5": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-09-29T18:55:05+00:00"
     },
     "MiMo-V2.5-Pro": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-09-29T18:55:05+00:00"
     },
     "MiMo-V2.5-Pro (Non-reasoning)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-09-29T18:55:05+00:00"
     },
     "Step 3.7 Flash": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-09-29T18:55:05+00:00"
     }
   }
