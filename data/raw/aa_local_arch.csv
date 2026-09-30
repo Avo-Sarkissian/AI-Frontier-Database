@@ -155,3 +155,4 @@ GLM-5.3 (low),zai-org/GLM-5.3,mla,78,512.0,64.0,,,,,753.33,2026-09-24,
 MiMo-V2.6-Pro,XiaomiMiMo/MiMo-V2.6-Pro-RL,gqa,70,,,8.0,192.0,128.0,17.0,1024.217,2026-09-28,sliding
 MiMo-V2.6-Flash,XiaomiMiMo/MiMo-V2.6-Flash-RL,gqa,48,,,4.0,192.0,128.0,12.0,310.756,2026-09-28,sliding
 DeepSeek V4 Pro 0813 (Non-reasoning),deepseek-ai/DeepSeek-V4-Pro-0813,mla,61,512.0,64.0,,,,,1650.498,2026-09-30,
+DeepSeek V4 Pro 0813 (Max),deepseek-ai/DeepSeek-V4-Pro-0813,mla,61,512.0,64.0,,,,,1650.498,2026-09-30,
