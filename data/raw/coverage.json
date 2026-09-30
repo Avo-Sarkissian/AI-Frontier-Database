@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 684,
-  "distinct_upstream_models": 264,
-  "kept": 170,
+  "upstream_host_model_rows": 686,
+  "distinct_upstream_models": 266,
+  "kept": 171,
   "skipped_no_score": [
     "Claude Sonnet 5.5 (Adaptive Reasoning, Low Effort, Default Fallback)",
     "Cogito v2.1 (Reasoning)",
@@ -41,6 +41,7 @@
     "INTELLECT-3 (based on GLM-4.5-Air)",
     "JT-35B-Flash",
     "JT-4.1 Flash 236B A21B",
+    "JT-4.1 Flash 236B A21B (non-reasoning)",
     "JT-MINI",
     "Jamba 1.7 Large",
     "Jamba 1.7 Mini",
