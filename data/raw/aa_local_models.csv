@@ -44,7 +44,6 @@ Gemma 4 26B A4B (Reasoning),Google,25.2,3.8,256,16.67,Apache 2.0,"vision,reasoni
 Ring-2.6-1T,InclusionAI,1000.0,63.0,262,16.62,MIT,reasoning,True,False,42.83,12.9,-37.7
 K2 Horizon 3.7B,Institute of Foundation Models,3.7,3.7,524,15.61,Apache 2.0,reasoning,False,False,,,-28.62
 Qwen3.5 122B A10B (Reasoning),Alibaba,125.0,10.0,262,15.57,Apache 2.0,"vision,reasoning",True,False,45.71,9.63,-41.5
-Ling 3.0 Tiny,InclusionAI,7.9,1.3,262,15.29,MIT,reasoning,True,True,26.54,7.06,-19.35
 Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,15.23,Apache 2.0,vision,True,True,28.14,,-60.02
 Granite 4.2 30B,IBM,30.0,30.0,131,14.83,Apache 2.0,reasoning,False,True,29.92,,-12.92
 Mistral Medium 3.5,Mistral,128.0,128.0,256,14.19,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-36.8
@@ -69,6 +68,7 @@ Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,11.27,Apache 2.0,"vision,reaso
 Qwen3.5 9B (Reasoning),Alibaba,9.65,9.65,262,11.2,Apache 2.0,"vision,reasoning",False,False,28.66,,-53.47
 Qwen3 Next 80B A3B (Reasoning),Alibaba,80.0,3.0,262,11.2,Apache 2.0,reasoning,True,True,17.42,,-51.42
 Granite 4.2 8B,IBM,8.0,8.0,131,11.08,Apache 2.0,reasoning,False,False,22.38,3.71,-17.17
+Ling 3.0 Tiny,InclusionAI,7.9,1.3,262,11.06,MIT,reasoning,True,False,26.54,7.06,-19.35
 G9v3-3B,AI9Stars,3.0,3.0,131,10.84,Apache 2.0,reasoning,False,True,9.9,,-4.37
 Trinity Large Thinking,Arcee AI,399.0,13.0,512,10.82,Apache 2.0,reasoning,True,False,25.77,1.16,-44.07
 Qwen3.5 4B (Non-reasoning),Alibaba,4.66,4.66,262,10.81,Apache 2.0,vision,False,True,20.33,,-74.73
