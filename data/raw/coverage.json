@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 687,
-  "distinct_upstream_models": 267,
-  "kept": 172,
+  "upstream_host_model_rows": 688,
+  "distinct_upstream_models": 268,
+  "kept": 173,
   "skipped_no_score": [
     "Claude Sonnet 5.5 (Adaptive Reasoning, Low Effort, Default Fallback)",
     "Cogito v2.1 (Reasoning)",
