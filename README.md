@@ -280,7 +280,7 @@ every hourly refresh.
 | [GitHub Actions](https://github.com/features/actions) | Hourly scrape → rebuild → deploy bot |
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
 | [pytest](https://docs.pytest.org/) | 383 regression tests, each named for the defect it prevents |
-| [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots |
+| [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots, and runs the browser smoke checks in `tests/e2e/` (skipped unless Playwright is installed; see that file for the command) |
 | [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
 
 ---

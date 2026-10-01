@@ -74,22 +74,40 @@ def _read() -> dict:
         return {}
 
 
-def record(dataset: str, ok: bool, rows: int | None = None) -> None:
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def record(dataset: str, ok: bool, rows: int | None = None,
+           detail: dict | None = None) -> None:
     """Note the outcome of one scrape.
 
     A failure keeps the previous `fetched_at` — the data really is that old —
     and flips `ok`, so the badge can say "stale, and we know it" rather than
     silently reporting the build time.
+
+    `detail` is provenance the scraper wants published beside the outcome (the
+    video scraper's per-arena counts, a detected re-scale, or why it refused).
+    A None value removes the key, so a reason for failure does not outlive the
+    failure; a dict value is merged into the existing one, so a re-scale
+    recorded for one arena is not erased by a later note about the other.
     """
     status = _read()
     entry = dict(status.get(dataset) or {})
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = now_iso()
     entry["ok"] = bool(ok)
     entry["checked_at"] = now
     if ok:
         entry["fetched_at"] = now
         if rows is not None:
             entry["rows"] = int(rows)
+    for key, val in (detail or {}).items():
+        if val is None:
+            entry.pop(key, None)
+        elif isinstance(val, dict) and isinstance(entry.get(key), dict):
+            entry[key] = {**entry[key], **val}
+        else:
+            entry[key] = val
     status[dataset] = entry
     try:
         STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
