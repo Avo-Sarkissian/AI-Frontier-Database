@@ -60,6 +60,23 @@ def _legend_traces(figure):
     return [t for t in figure.data if getattr(t, "showlegend", None) is not False]
 
 
+def _series(figure):
+    """One entry per legend series, in legend order: (name, points, colour, symbol).
+
+    A provider can span two traces — its filled bubbles and a hollow layer for
+    models with no measured speed — joined by legendgroup. The legend, the
+    colour and the shape belong to the series, so that is what these count.
+    """
+    out = {}
+    for t in _marker_traces(figure):
+        key = t.legendgroup or t.name
+        if key not in out:
+            out[key] = [t.name, 0, t.marker.color, str(t.marker.symbol)]
+        assert t.marker.color == out[key][2], f"{key} drawn in two colours"
+        out[key][1] += len(t.x)
+    return [tuple(v) for v in out.values()]
+
+
 # --- x axis ------------------------------------------------------------------
 
 def test_log_xaxis_declares_explicit_ticks(fig):
@@ -102,15 +119,15 @@ def test_major_providers_appear_in_legend(fig, real_df):
 
 def test_legend_is_ordered_by_model_count_not_alphabetically(fig):
     """Alphabetical order buried the majors; densest provider must lead."""
-    named = [t for t in _marker_traces(fig) if t.name != "Other"]
-    sizes = [len(t.x) for t in named]
+    named = [s for s in _series(fig) if s[0] != "Other"]
+    sizes = [s[1] for s in named]
     assert sizes == sorted(sizes, reverse=True), (
-        f"legend not count-ordered: {[(t.name, len(t.x)) for t in named]}"
+        f"legend not count-ordered: {[(s[0], s[1]) for s in named]}"
     )
 
 
 def test_other_bucket_sorts_last(fig):
-    names = [t.name for t in _marker_traces(fig)]
+    names = [s[0] for s in _series(fig)]
     if "Other" in names:
         assert names[-1] == "Other"
 
@@ -119,14 +136,14 @@ def test_other_bucket_sorts_last(fig):
 
 def test_legend_providers_have_unique_colors(fig):
     """OpenAI and AI21 Labs both shipped #34d399."""
-    colors = [t.marker.color for t in _marker_traces(fig)]
+    colors = [s[2] for s in _series(fig)]
     assert len(colors) == len(set(colors)), f"duplicate provider colors: {colors}"
 
 
 def test_legend_providers_have_unique_shapes(fig):
     """The subtitle claims 'shape = provider family'; it must be true for
     every provider the legend actually names."""
-    shapes = [t.marker.symbol for t in _marker_traces(fig) if t.name != "Other"]
+    shapes = [s[3].removesuffix("-open") for s in _series(fig) if s[0] != "Other"]
     assert len(shapes) == len(set(shapes)), f"duplicate provider shapes: {shapes}"
 
 
@@ -268,3 +285,68 @@ def test_spotlight_separates_from_the_grey_other_bucket():
             f"{provider} ({PROVIDER_COLORS[provider]}) is only ΔE {d:.1f} from "
             f'the "Other" bucket {DEFAULT_COLOR} (floor {NORMAL_VISION_FLOOR})'
         )
+
+
+# --- unmeasured speed --------------------------------------------------------
+
+def _two_models_at_one_point():
+    """A fast model and one AA has not timed yet, at the same price and score.
+
+    The live case: Gemini 4 Argon (High) shipped with speed 0 at $8.00 / 52.6,
+    so it drew at the 7px floor directly beneath GPT-6.1 Sol's 16px diamond at
+    $8.00 / 51.8 — the #2 model in the catalogue, invisible on the Overview.
+    """
+    return pd.DataFrame([
+        dict(model="Timed", provider="OpenAI", price=8.0, quality=52.0,
+             speed=300.0, latency=1.0, context="1m"),
+        dict(model="Untimed", provider="Google", price=8.0, quality=52.5,
+             speed=0.0, latency=0.0, context="1m"),
+    ])
+
+
+def _trace_of(figure, model):
+    for t in _marker_traces(figure):
+        if any(cd[5] == model for cd in t.customdata):
+            return t
+    raise AssertionError(f"{model} is not drawn")
+
+
+def test_unmeasured_speed_is_drawn_above_every_filled_bubble():
+    out = build_pareto_scatter(_two_models_at_one_point())
+    timed, untimed = _trace_of(out, "Timed"), _trace_of(out, "Untimed")
+    assert (untimed.zorder or 0) > (timed.zorder or 0), (
+        "a model with no measured speed sits at the size floor and is buried "
+        "under any bubble at the same point unless it is layered above them"
+    )
+    assert str(untimed.marker.symbol).endswith("-open")
+    assert untimed.marker.line.color == PROVIDER_COLORS["Google"]
+
+
+def test_unmeasured_speed_is_not_encoded_as_slowest():
+    """Size encodes speed, so the 7px floor claims 'slowest in the catalogue'."""
+    out = build_pareto_scatter(_two_models_at_one_point())
+    untimed = _trace_of(out, "Untimed")
+    hover = " ".join(str(cd[2]) for cd in untimed.customdata)
+    assert "not yet measured" in hover
+    title = str(out.layout.title.text)
+    assert "hollow" in title and "speed not yet measured" in title
+
+
+def test_unmeasured_overlay_toggles_with_its_provider(fig):
+    """The overlay is a second trace; the legend entry must hide both."""
+    for t in _marker_traces(fig):
+        assert t.legendgroup == t.name
+
+
+def test_title_does_not_mention_hollow_markers_when_every_speed_is_measured():
+    df = _two_models_at_one_point().iloc[:1]
+    assert "hollow" not in str(build_pareto_scatter(df).layout.title.text)
+
+
+def test_speed_quadrant_says_how_many_untimed_families_it_omits():
+    """The Speed view cannot place an untimed model; it must not drop it silently."""
+    from components.charts.quadrant import build_quadrant
+
+    df = _two_models_at_one_point()
+    assert "1 without a measured speed not shown" in str(build_quadrant(df).layout.title.text)
+    assert "without a measured speed" not in str(build_quadrant(df.iloc[:1]).layout.title.text)

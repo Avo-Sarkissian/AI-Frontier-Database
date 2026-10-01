@@ -43,6 +43,13 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
     """
     plot_df = _plottable(df)
     ref_df = plot_df if full_df is None else _plottable(full_df)
+    # Families AA has scored but not timed yet (new releases, e.g. Gemini 4
+    # Argon on 2026-09-30) cannot sit on a speed axis. Say so, rather than let
+    # a top model silently drop out of the view.
+    _scored = df[(df["quality"] > 0) & df["quality"].notna()]
+    _untimed = (dedupe_to_best_variant(_scored.copy())["model"].nunique()
+                - dedupe_to_best_variant(_scored[_scored["speed"] > 0].copy())["model"].nunique()
+                if not _scored.empty else 0)
 
     if plot_df.empty:
         # NOT a bare go.Figure(): that serialises Plotly's LIGHT default template
@@ -234,7 +241,10 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
                 "Speed vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  bubble size ∝ affordability (log)  ·  shape = provider family"
-                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
+                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
+                + (f"  ·  {_untimed} without a measured speed not shown"
+                   if _untimed else "")
+                + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

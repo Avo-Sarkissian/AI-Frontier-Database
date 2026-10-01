@@ -56,6 +56,16 @@ def _plottable(df: pd.DataFrame) -> pd.DataFrame:
     return dedupe_to_best_variant(sub)
 
 
+# Unmeasured-speed markers draw at the median of BUBBLE_MIN_PX..BUBBLE_MAX_PX
+# area, so their size claims nothing about speed in either direction.
+UNMEASURED_PX = 12.0
+
+
+def _speed_measured(df: pd.DataFrame) -> pd.Series:
+    """True where AA has published a throughput; it writes 0 until it has one."""
+    return df["speed"].notna() & (df["speed"] > 0)
+
+
 def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
     """Return the top-n providers by model count; rest become 'Other'."""
     counts = df["provider"].value_counts()
@@ -105,32 +115,50 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
         )
 
         speed_str = pdf["speed"].apply(
-            lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
+            lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "not yet measured"
         )
         latency_str = pdf["latency"].apply(
             lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
         )
 
-        fig.add_trace(go.Scatter(
-            x=pdf["price"],
-            y=pdf["quality"],
-            mode="markers",
-            name=provider,
-            marker=dict(
-                color=color,
-                symbol=symbol,
-                size=pdf["size"],
-                opacity=0.8,
-                line=marker_outline(),
-            ),
-            # [5] and [6] are the RAW model and provider for the click
-            # handler's lookup; [0] and [1] are escaped for the hover text.
-            customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
-                                speed_str, latency_str,
-                                _rate_pair(pdf),
-                                pdf["model"].astype(str), pdf["provider"].astype(str))),
-            hovertemplate=hover,
-        ))
+        # [5] and [6] are the RAW model and provider for the click
+        # handler's lookup; [0] and [1] are escaped for the hover text.
+        customdata = pd.Series(list(zip(
+            pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
+            speed_str, latency_str, _rate_pair(pdf),
+            pdf["model"].astype(str), pdf["provider"].astype(str),
+        )), index=pdf.index)
+
+        # A model AA has not timed yet has no size to draw: the floor would
+        # claim "slowest in the catalogue", and a 7px mark at the same price as
+        # a filled bubble is buried under it (Gemini 4 Argon, #2 by score,
+        # vanished beneath GPT-6.1 Sol at $8.00). Draw those hollow, at the
+        # median size, on a layer above every filled bubble.
+        timed = _speed_measured(pdf)
+        untimed_n = int((~timed).sum())
+        groups = [
+            (pdf[timed], dict(symbol=symbol, size=pdf.loc[timed, "size"],
+                              opacity=0.8, line=marker_outline()), 0),
+            (pdf[~timed], dict(symbol=f"{symbol}-open", size=[UNMEASURED_PX] * untimed_n,
+                               opacity=1.0, line=dict(width=1.6, color=color)), 1),
+        ]
+        legend_shown = False
+        for part, marker, zorder in groups:
+            if part.empty:
+                continue
+            fig.add_trace(go.Scatter(
+                x=part["price"],
+                y=part["quality"],
+                mode="markers",
+                name=provider,
+                legendgroup=provider,
+                showlegend=not legend_shown,
+                zorder=zorder,
+                marker=dict(color=color, **marker),
+                customdata=customdata.loc[part.index].tolist(),
+                hovertemplate=hover,
+            ))
+            legend_shown = True
 
     # --- Pareto frontier line ---
     # Membership is decided against the full catalogue, then intersected with
@@ -208,7 +236,9 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
                 "Cost vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
-                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
+                + ("  ·  hollow = speed not yet measured"
+                   if (~_speed_measured(plot_df)).any() else "")
+                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
@@ -269,8 +299,11 @@ def _rate_pair(df) -> list[str]:
     def _fmt(v):
         return f"${v:,.2f}" if _pd.notna(v) and v > 0 else None
 
+    # A frame without the columns (pre-2026-08 history rows) must still yield
+    # one entry per row: zip() against [] silently emptied the hover data.
+    missing = _pd.Series(float("nan"), index=df.index)
     out = []
-    for pin, pout in zip(df.get("price_in", []), df.get("price_out", [])):
+    for pin, pout in zip(df.get("price_in", missing), df.get("price_out", missing)):
         a, b = _fmt(pin), _fmt(pout)
         out.append(f"{a} in  ·  {b} out" if a and b else "—")
     return out

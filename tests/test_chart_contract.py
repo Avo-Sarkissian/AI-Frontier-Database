@@ -86,7 +86,13 @@ def test_only_spotlight_providers_get_their_own_colour(build, real_df):
 
 @pytest.mark.parametrize("build", BUILDERS)
 def test_provider_colours_are_unique_on_screen(build, real_df):
-    colours = [t.marker.color for t in _marker_traces(build(real_df))]
+    # One colour per legend series. A series may span traces joined by
+    # legendgroup (pareto's hollow unmeasured-speed layer); it is one series.
+    by_group = {}
+    for t in _marker_traces(build(real_df)):
+        by_group.setdefault(t.legendgroup or t.name, set()).add(t.marker.color)
+    assert all(len(c) == 1 for c in by_group.values()), f"split colours: {by_group}"
+    colours = [next(iter(c)) for c in by_group.values()]
     assert len(colours) == len(set(colours)), f"duplicate colours: {colours}"
 
 
