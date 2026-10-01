@@ -3,8 +3,8 @@
 Themes 9 and 10 of audit/2026-08-12.
 
 Theme 9 is not code correctness — it is checkably false sentences shipped to a
-reader: a README claiming 300+ models over a 155-model catalogue, a graded
-report describing eleven tabs and a Trends view that does not exist, a caption
+reader: a README claiming 300+ models over a 155-model catalogue, a write-up
+describing eleven tabs and a Trends view that does not exist, a caption
 promising one bubble per model over a chart drawing one per family.
 
 Theme 10 is the other direction: every model and provider name on this site is
@@ -14,7 +14,6 @@ are cheap to close, and impossible to close reactively.
 """
 import json
 import re
-import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -32,7 +31,6 @@ from static_helpers import csv_safe
 ROOT = Path(__file__).resolve().parent.parent
 DF = get_models()
 README = (ROOT / "README.md").read_text()
-REPORT = (ROOT / "report.tex").read_text() if (ROOT / "report.tex").exists() else ""
 
 POISON = '<a href="//evil.example">click</a>'
 
@@ -71,37 +69,10 @@ def test_the_readme_documents_the_tags_the_app_actually_offers():
     assert "multilingual" not in README
 
 
-@pytest.mark.skipif(not REPORT, reason="no report.tex in this checkout")
-@pytest.mark.parametrize("claim", [
-    "255+", "eleven tabs", "eleven specialized views", "all eleven tabs",
-])
-def test_the_report_does_not_repeat_a_retired_claim(claim):
-    assert claim not in REPORT, f"report.tex still claims {claim!r}"
-
-
-@pytest.mark.skipif(not REPORT, reason="no report.tex in this checkout")
-def test_the_report_does_not_describe_a_tab_that_does_not_exist():
-    """A "Trends" tab was described in four places. grep for build_trends,
-    price_timeline and embedding_chart across every entry point: zero hits."""
-    assert "Trends" not in REPORT
-    for entry in ("app.py", "docs/app.js", "build_static.py"):
-        assert "build_trends" not in (ROOT / entry).read_text()
-
-
-@pytest.mark.skipif(not REPORT, reason="no report.tex in this checkout")
-def test_the_report_describes_the_deployment_that_exists():
-    """It described a single Python process Render starts with `python app.py`.
-    The site has been static GitHub Pages + Pyodide since 2026-06-23."""
-    assert "Pyodide" in REPORT
-    assert "GitHub Pages" in REPORT
-
-
 def test_the_tab_count_agrees_across_every_place_that_states_it():
     tabs_js = len(re.findall(r'\{ id: "\w+",', (ROOT / "docs" / "app.js").read_text()))
     tabs_py = (ROOT / "app.py").read_text().count("dcc.Tab(")
     assert tabs_js == tabs_py, f"docs/app.js has {tabs_js} tabs, app.py has {tabs_py}"
-    if REPORT:
-        assert f"has ten tabs" in REPORT or tabs_js != 10 or "ten tabs" in REPORT
 
 
 def test_the_overview_caption_does_not_say_one_bubble_per_model():
@@ -383,56 +354,6 @@ def test_the_other_two_scrapers_sanitise_their_caches_too():
     for rel in ("data/local_scraper.py", "data/image_scraper.py",
                 "data/video_scraper.py"):
         assert "csv_safe" in (ROOT / rel).read_text(), f"{rel} writes raw text"
-
-
-def _last_commit_epoch(path: Path) -> int | None:
-    """When ``path`` was last changed, per git. None if git cannot say.
-
-    Read from history rather than the filesystem because **git does not record
-    mtimes**: a fresh clone stamps every file with its checkout time, in an
-    order nobody controls. This test compared ``st_mtime`` and so passed on the
-    laptop where the PDF happened to be written last and failed on the runner
-    where it was not — the first red build after CI was introduced, and a
-    property of the checkout rather than of the report.
-    """
-    try:
-        out = subprocess.run(
-            ["git", "log", "-1", "--format=%ct", "--", str(path)],
-            cwd=ROOT, capture_output=True, text=True, timeout=30,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    stamp = out.stdout.strip()
-    return int(stamp) if out.returncode == 0 and stamp.isdigit() else None
-
-
-def test_the_compiled_report_is_not_silently_stale():
-    """report.tex was corrected in place; the tracked PDF/DOCX beside it were
-    compiled from the older revision and still print the retired claims. No
-    LaTeX toolchain is available here, so the honest guard is to require the
-    staleness be documented rather than to pretend it is fixed."""
-    pdf = ROOT / "FinalReport_Sarkissian.pdf"
-    tex = ROOT / "report.tex"
-    if not (pdf.exists() and tex.exists()):
-        pytest.skip("no compiled report in this checkout")
-
-    pdf_at, tex_at = _last_commit_epoch(pdf), _last_commit_epoch(tex)
-    if pdf_at is None or tex_at is None:
-        pytest.skip("no git history here — cannot date the compiled report "
-                    "against its source")
-
-    # Where this really bites: actions/checkout clones at depth 1, and in a
-    # one-commit history git attributes BOTH paths to the tip, so the two dates
-    # come back equal and the check below is vacuous rather than wrong. That is
-    # the deliberate trade. Full history is ~158 MiB here (an hourly 4 MB
-    # pybundle.zip, forever), which is not worth re-fetching every run to date a
-    # report that changes a few times a semester — and a vacuous check is far
-    # cheaper than the false failure the mtime version produced.
-
-    if pdf_at < tex_at:
-        assert "Recompile `report.tex`" in README, (
-            "the compiled report is older than its source and nothing says so"
-        )
 
 
 def test_the_readme_screenshots_are_reproducible():

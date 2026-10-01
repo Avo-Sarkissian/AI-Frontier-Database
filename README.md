@@ -241,7 +241,6 @@ data_guard.py              # Row-loss, cumulative-drain and per-column median ch
 docs/                      # The static GitHub Pages site (index.html, app.js, figures/, pycode.zip, pydata.zip)
 scripts/
   capture_screenshots.py   # Regenerates the README screenshots from the built site
-  build_report.sh          # Compiles report.tex -> FinalReport_Sarkissian.pdf
 .github/workflows/refresh.yml   # Hourly bot: scrape → guard → rebuild → commit + push
 tests/                     # 383 tests: data semantics, encoding calibration, control
                            #   behaviour, pipeline integrity, injection surfaces
@@ -281,32 +280,3 @@ every hourly refresh.
 | [GitHub Pages](https://pages.github.com/) | Free static hosting for the live dashboard — auto-deploys on every push to `main` |
 | [pytest](https://docs.pytest.org/) | 383 regression tests, each named for the defect it prevents |
 | [Playwright](https://playwright.dev/python/) | Drives the built site to regenerate the README screenshots, and runs the browser smoke checks in `tests/e2e/` (skipped unless Playwright is installed; see that file for the command) |
-| [Tectonic](https://tectonic-typesetting.github.io/) | Compiles `report.tex` without a full TeX install |
-
----
-
-*Data Visualization — EECE 5642, Northeastern University, Spring 2026*
-
----
-
-## Written report
-
-`report.tex` is the source; `FinalReport_Sarkissian.pdf` is built from it and is
-current. `neurips_2024.sty` is vendored beside it so the build needs nothing
-fetched by hand.
-
-```bash
-brew install tectonic       # one-time; fetches its own TeX packages
-./scripts/build_report.sh   # report.tex -> FinalReport_Sarkissian.pdf
-```
-
-This used to be a comment reading "compile on Overleaf", and the PDF drifted
-from its source: the text was corrected while the PDF beside it kept printing
-inflated model and provider counts, one tab too many, a "Trends" view that was
-never built, and a deployment model retired months earlier. A test now fails if
-the PDF is older than the `.tex`.
-
-**`FinalReport_Sarkissian.docx` and `Final Project-EECE 5642.pdf` are earlier,
-hand-authored deliverables and still carry those retired claims.** They are not
-generated from `report.tex`, so this build cannot correct them; they are kept
-only as history — use the PDF above.
