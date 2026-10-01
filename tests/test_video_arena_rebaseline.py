@@ -208,3 +208,23 @@ def test_the_badge_tooltip_carries_the_failure_reason():
     js = (Path(__file__).resolve().parent.parent / "docs" / "app.js").read_text()
     body = js.split("function renderFreshness")[1].split("\nfunction ")[0]
     assert "e.error" in body, "a failing dataset's reason never reaches the reader"
+
+
+# ── Record completeness: a renamed key, not the odd unrated entry ────────────
+
+def test_a_couple_of_unrated_entries_in_a_small_arena_are_not_a_schema_change():
+    """30 rated + 2 unrated is 94% — a pure share floor refused it, and with a
+    30-model pool every hourly run would have gone amber over two new entries."""
+    recs = [_rec(f"s{i}", 1000.0 - i) for i in range(30)]
+    recs += [_rec("new-a", None), _rec("new-b", None)]
+    assert v._record_violations({"textToVideo": recs}) == []
+
+
+def test_a_renamed_elo_key_is_caught_by_the_completeness_guard_itself():
+    """Half of 60 records renamed still leaves 30 scored rows, above the
+    20-row floor, so only this guard stands between it and a publish."""
+    recs = [_rec(f"s{i}", 1000.0 - i) for i in range(60)]
+    for rec in recs[::2]:
+        rec["score"] = rec.pop("elo")
+    out = v._record_violations({"textToVideo": recs})
+    assert out and "30 of 60" in out[0]

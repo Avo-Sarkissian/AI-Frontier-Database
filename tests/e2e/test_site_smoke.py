@@ -6,14 +6,15 @@ suite: a freshness badge warning about a dataset that was fine, a badge that
 stayed calm over a failing one, a tab left blank by a Pyodide error that only
 the console showed, a CSV button that did nothing.
 
-Skipped unless Playwright is importable, so the default `pytest` run — and CI,
-which does not install a browser — is unaffected. To run it:
+Opt-in: skipped unless AIF_E2E=1 and Playwright is importable. The project
+.venv has Playwright installed, so an import check alone made every local
+`pytest` run boot Pyodide from the CDN 20 times and fail offline. To run it:
 
     uv venv <scratch>/pw-venv && uv pip install --python <scratch>/pw-venv/bin/python \\
         playwright pytest pandas
     PLAYWRIGHT_BROWSERS_PATH=<scratch>/browsers <scratch>/pw-venv/bin/python -m playwright install chromium
     PLAYWRIGHT_BROWSERS_PATH=<scratch>/browsers AIF_SMOKE_SCREENSHOTS=<dir> \\
-        <scratch>/pw-venv/bin/python -m pytest tests/e2e -q -p no:cacheprovider
+        AIF_E2E=1 <scratch>/pw-venv/bin/python -m pytest tests/e2e -q -p no:cacheprovider
 
 Pyodide is fetched from the jsDelivr CDN, exactly as for a visitor, so this
 needs network access. AIF_SMOKE_REQUIRE_FRESH=1 additionally fails when the
@@ -34,6 +35,9 @@ from pathlib import Path
 
 import pytest
 
+if os.environ.get("AIF_E2E") != "1":
+    pytest.skip("real-browser smoke checks are opt-in: set AIF_E2E=1",
+                allow_module_level=True)
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import sync_playwright  # noqa: E402
 

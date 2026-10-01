@@ -396,11 +396,14 @@ _COLUMN_HEALTH = {
 #     truncated leaderboard; also data_guard's spirit, scaled to one pool);
 #   - _ARENA_RECORD_COMPLETENESS of the records it published must yield a slug,
 #     a name and a numeric Elo (a renamed score key — the 2026-09-02 flattening
-#     dropped every row this way);
+#     dropped every row this way). Up to _ARENA_UNRATED_ALLOWANCE unreadable
+#     records always pass: as a bare share, 2 unrated newcomers in the 30-model
+#     t2v pool (94%) would have refused every hourly run;
 #   - _ARENA_PRICE_FLOOR of its scored models must carry a price (a renamed price
 #     key; 29 of 30 t2v and 74 of 83 i2v are priced today).
 _ARENA_MIN_ROWS            = 20
 _ARENA_RECORD_COMPLETENESS = 0.95
+_ARENA_UNRATED_ALLOWANCE   = 3
 _ARENA_PRICE_FLOOR         = 0.50
 
 # A RE-SCALED POOL VS A TRUNCATED ONE. When an arena loses more than
@@ -453,7 +456,8 @@ def _record_violations(arenas: dict[str, list[dict]]) -> list[str]:
                      and (r.get("name") or "").strip()
                      and _global_elo(r) is not None)
         share = usable / len(recs)
-        if share < _ARENA_RECORD_COMPLETENESS:
+        if (share < _ARENA_RECORD_COMPLETENESS
+                and len(recs) - usable > _ARENA_UNRATED_ALLOWANCE):
             out.append(f"{key}: only {usable} of {len(recs)} records carry a "
                        f"slug, name and Elo ({share:.0%}, floor "
                        f"{_ARENA_RECORD_COMPLETENESS:.0%}) — upstream schema changed")
@@ -481,7 +485,15 @@ def _rescale_signature(before: pd.Series, after: pd.Series) -> dict | None:
 
 
 def _arena_shrink(df, existing=None) -> tuple[list[str], list[str], dict]:
-    """Per-arena shrink check against the cache: (violations, notes, rebaselined)."""
+    """Per-arena shrink check against the cache: (violations, notes, rebaselined).
+
+    Why a re-scaled arena's old scores are dropped, not carried: two Elo pools
+    share no zero and no unit. A model the new pool left out would keep its
+    old-scale number — ~240 Elo above where the survivors now sit — and top the
+    ranking for a reason that has nothing to do with quality. _parse builds each
+    arena from live records only, so a model missing from the new pool simply
+    has no score there; nothing in this module carries one forward.
+    """
     if existing is None:
         try:
             existing = load_cached()

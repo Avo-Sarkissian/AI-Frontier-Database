@@ -436,3 +436,44 @@ def test_palette_mirrors_artificial_analysis():
         f"providers with an AA colour that no rule covers: "
         f"{sorted(mirrorable - accounted)}"
     )
+
+
+def test_video_palette_picks_clear_their_stated_separation():
+    """data/video_models.py says every hue it chose (not AA's verbatim brand
+    colours) lands >= 13.9 CIE76 dE from anything that can share the tab. The
+    2026-09-30 Sand.ai pick #a3e635 sat 10.8 dE from NVIDIA's #a0f427 and no
+    test noticed."""
+    import math
+    import re
+    from pathlib import Path
+
+    import pandas as pd
+
+    from data.video_models import (
+        _VIDEO_ONLY_COLORS, PROVIDER_COLORS as VIDEO_COLORS, DEFAULT_COLOR as VDEF,
+    )
+
+    def lin(c):
+        c /= 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    def lab(h):
+        r, g, b = (lin(int(h[i:i + 2], 16)) for i in (1, 3, 5))
+        x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+        y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+        f = lambda t: t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
+        return (116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z)))
+
+    src = Path("data/video_models.py").read_text()
+    verbatim = set(re.findall(r'"([^"]+)":\s*"#[0-9a-fA-F]{6}",\s*# AA verbatim', src))
+    vdf = pd.read_csv("data/raw/aa_video_models.csv")
+    neighbours = {p: VIDEO_COLORS.get(p, VDEF) for p in vdf["provider"].dropna().unique()}
+    neighbours.update(_VIDEO_ONLY_COLORS)
+    neighbours["(Other)"] = VDEF
+    for name, hexv in _VIDEO_ONLY_COLORS.items():
+        if name in verbatim:
+            continue
+        d, who = min((math.dist(lab(hexv), lab(c)), p)
+                     for p, c in neighbours.items() if p != name)
+        assert d >= 13.9, f"{name} {hexv} is {d:.1f} dE from {who}"

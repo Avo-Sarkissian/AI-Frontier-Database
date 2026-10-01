@@ -85,8 +85,8 @@ def _resolve_mode(mode: str | None) -> str:
 # Run Local palette had. Video-only studios keep their own hues, since they have
 # no entry in the shared provider palette to inherit.
 #
-# The live arena carries 31 creators, 11 of which already sit in the shared
-# palette. Thirty-one mutually separable hues do not exist, and this file does
+# The live arena carries 28 creators (2026-10-01), 8 of which already sit in the shared
+# palette. Twenty-eight mutually separable hues do not exist, and this file does
 # not pretend otherwise: the hues below were assigned by farthest-point search in
 # CIE L*a*b*, maximising the minimum distance to every colour that can appear
 # beside them on this tab. Every assignment here lands >= 13.9 dE from its
@@ -94,7 +94,7 @@ def _resolve_mode(mode: str | None) -> str:
 # under that bar is OpenAI/Tencent at 4.1 dE, which is inherited from the shared
 # palette and not ours to move.
 #
-# Because 31 is past what colour alone can carry, the two charts do not lean on
+# Because 28 is past what colour alone can carry, the two charts do not lean on
 # it: the ranked view labels every row with its model name and the scatter gives
 # legend entries only to the densest providers, bucketing the tail into a single
 # grey "Other" (see components/charts/video_chart.py). Colour groups here; it
@@ -123,7 +123,8 @@ _VIDEO_ONLY_COLORS: dict[str, str] = {
     "PixVerse":          "#fb923c",  # AA paints it #000000 — no hue to mirror
     "Pruna AI":          "#9334e9",  # AA verbatim
     "Runway":            "#f472b6",  # AA paints it #000000 — no hue to mirror
-    "Sand.ai":           "#a3e635",  # AA #ffbc3e is 13.6 dE from Video Rebirth
+    # Not #a3e635: 10.8 dE from NVIDIA's shared #a0f427, which ships here too.
+    "Sand.ai":           "#f0abfc",  # AA #ffbc3e is 13.6 dE from Video Rebirth
     "Skywork AI":        "#4d5eff",  # AA verbatim
     "Video Rebirth":     "#fcd34d",  # AA paints it #000000 — no hue to mirror
     "Vidu":              "#1fcfff",  # AA verbatim
