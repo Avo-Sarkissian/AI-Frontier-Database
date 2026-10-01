@@ -1,34 +1,34 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
-Wan 3.0,wan-3-0,Alibaba,,,True,False,1127.31,12.0,1361.65,12.0,True,12.0,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1114.9,4.8,,,True,4.8,123.916952947,MiniMax
-Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1100.45,34.12,,,True,34.12,,
-FLUX 3,flux-3,Black Forest Labs,,,True,False,1092.78,17.4,,,True,17.4,,
-SkyReels V4,skyreels-v4,Skywork AI,Skyreels,2026-03-18,True,False,1084.56,21.0,1282.33,21.0,True,21.0,,
-Dreamina Seedance 2.0,seedance-2-0-1080p,ByteDance Seed,,,True,False,1080.72,22.45,,,True,22.45,,
-Gemini Omni Flash 1.1,gemini-omni-flash-1-1,Google,,,True,False,1069.22,9.12,,,True,9.12,,
-Agnes-Video-2.5,agnes-video-2-5,Sapiens AI,,,True,False,1050.78,2.4,,,True,1.5,,
-HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1042.29,10.8,1313.7,9.9,True,9.9,,
-HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1037.8,14.4,1294.85,13.2,True,13.2,,
-grok-imagine-video-1.5,grok-imagine-video-1.5,SpaceXAI,Grok Imagine,2026-05-30,True,False,1035.62,15.0,1329.89,8.4,True,8.4,,
-Wan2.7-260612,wan2-7-260612,Alibaba,Wan,2026-06-12,True,False,1028.22,9.0,,,True,9.0,,
+Wan 3.0,wan-3-0,Alibaba,,,True,False,1127.62,12.0,1361.65,12.0,True,12.0,,
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1114.96,4.8,,,True,4.8,122.399605782,MiniMax
+Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1100.19,34.12,,,True,34.12,,
+FLUX 3,flux-3,Black Forest Labs,,,True,False,1092.44,17.4,,,True,17.4,,
+SkyReels V4,skyreels-v4,Skywork AI,Skyreels,2026-03-18,True,False,1082.69,21.0,1282.33,21.0,True,21.0,,
+Dreamina Seedance 2.0,seedance-2-0-1080p,ByteDance Seed,,,True,False,1080.2,22.45,,,True,22.45,,
+Gemini Omni Flash 1.1,gemini-omni-flash-1-1,Google,,,True,False,1068.25,9.12,,,True,9.12,,
+Agnes-Video-2.5,agnes-video-2-5,Sapiens AI,,,True,False,1050.95,2.4,,,True,1.5,,
+HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1041.44,10.8,1313.7,9.9,True,9.9,,
+HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1037.1,14.4,1294.85,13.2,True,13.2,,
+grok-imagine-video-1.5,grok-imagine-video-1.5,SpaceXAI,Grok Imagine,2026-05-30,True,False,1034.37,15.0,1329.89,8.4,True,8.4,,
+Wan2.7-260612,wan2-7-260612,Alibaba,Wan,2026-06-12,True,False,1025.79,9.0,,,True,9.0,,
 Kling 3.0 1080p (Pro),kling-3-0-pro,KlingAI,Kling,2026-02-04,True,False,1000.0,6.72,1278.01,13.44,True,10.08,,
-PixVerse V6,pixverse-v6,PixVerse,PixVerse,2026-03-23,True,False,995.19,5.4,1339.84,5.4,True,6.9,,
-Kling 3.0 Omni 1080p (Pro),kling-o3-pro,KlingAI,Kling,2026-02-04,True,False,990.22,6.72,1279.23,13.44,True,8.4,,
-Veo 3.1 Fast,veo-3-1-fast,Google,Google Veo,2026-01-30,True,False,969.07,6.0,1258.97,6.0,True,7.2,,
-Veo 3.1,veo-3-1,Google,Google Veo,2026-01-30,True,False,965.68,12.0,1252.17,12.0,True,24.0,,
-MAGI-2 Preview (0912),magi-2-preview-0912,Sand.ai,,,True,False,961.24,,,,True,,,
-Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,953.95,3.0,1241.32,3.0,True,4.8,,
-LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,938.55,7.8,1213.74,7.8,True,7.8,,
-LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,935.23,10.2,1193.36,10.2,True,10.2,,
-Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,922.49,7.2,1265.07,7.2,False,,,
-Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,910.17,3.9,1229.85,3.9,True,3.9,53.2416025035,Vidu
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,909.69,7.2,1290.38,9.6,True,7.2,114.0136163365,Vidu
-Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,896.68,6.72,,,False,,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,862.69,4.8,1158.83,4.8,True,4.8,53.8400556699999,Lightricks
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,861.48,3.6,1149.25,2.4,True,2.4,29.8869181709999,Lightricks
-Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,854.16,5.4,1202.01,5.4,False,,,
-Boreal,boreal,Creatify,,,True,False,839.84,2.69,,,True,2.69,,
-P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,818.77,2.4,1129.82,1.2,False,,,
+PixVerse V6,pixverse-v6,PixVerse,PixVerse,2026-03-23,True,False,994.74,5.4,1339.84,5.4,True,6.9,,
+Kling 3.0 Omni 1080p (Pro),kling-o3-pro,KlingAI,Kling,2026-02-04,True,False,989.41,6.72,1279.23,13.44,True,8.4,,
+Veo 3.1 Fast,veo-3-1-fast,Google,Google Veo,2026-01-30,True,False,965.89,6.0,1258.97,6.0,True,7.2,,
+Veo 3.1,veo-3-1,Google,Google Veo,2026-01-30,True,False,964.08,12.0,1252.17,12.0,True,24.0,,
+MAGI-2 Preview (0912),magi-2-preview-0912,Sand.ai,,,True,False,960.08,,,,True,,,
+Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,953.03,3.0,1241.32,3.0,True,4.8,,
+LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,937.43,7.8,1213.74,7.8,True,7.8,,
+LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,933.78,10.2,1193.36,10.2,True,10.2,,
+Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,921.48,7.2,1265.07,7.2,False,,,
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,909.72,7.2,1290.38,9.6,True,7.2,114.0136163365,Vidu
+Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,908.69,3.9,1229.85,3.9,True,3.9,56.4408704604998,Vidu
+Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,896.57,6.72,,,False,,,
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,860.24,4.8,1158.83,4.8,True,4.8,53.5825655219999,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,858.5,3.6,1149.25,2.4,True,2.4,29.0497679895,Lightricks
+Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,853.12,5.4,1202.01,5.4,False,,,
+Boreal,boreal,Creatify,,,True,False,838.99,2.69,,,True,2.69,,
+P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,817.89,2.4,1129.82,1.2,False,,,
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,,,1368.75,6.0,True,6.0,,
 Bach 1.0 Pro,bach-1-0-pro,Video Rebirth,,,True,False,,,1361.92,7.2,False,,,
 Vimoo 1.0,vimoo-1-0,Vimoo,,,False,False,,,1358.14,3.0,False,,,
@@ -77,7 +77,7 @@ Seedance 1.0 Mini,seedance-1-0-mini,ByteDance Seed,Seedance,2025-06-10,True,Fals
 Kling 1.6 Pro,kling-1-6-pro,KlingAI,Kling,2024-12-19,True,False,,,1137.09,5.88,False,,,
 HunyuanVideo-1.5 (Fal),hunyuanvideo-1-5-fal,Tencent,Hunyuan Video,2025-11-20,True,True,,,1133.85,4.5,False,,,
 Agnes-Video-V2.0,agnes-video-v2.0,Sapiens AI,Agnes Video,2026-05-20,True,False,,,1127.1,0.3,True,0.3,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.66,4.8,False,,270.692981307,DeepInfra
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.66,4.8,False,,270.6997653975,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,,,1099.51,30.0,False,,,
 Runway Gen 4,runway-gen-4,Runway,Runway,2025-03-31,True,False,,,1088.07,9.0,False,,,
 I2V-01-Director,i2v-01-director,MiniMax,Video-01,2025-02-22,True,False,,,1047.75,4.3,False,,,
