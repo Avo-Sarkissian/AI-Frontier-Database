@@ -657,7 +657,11 @@ async function doRefresh() {
       location.replace(u.toString());   // fresh figures + bundles + Pyodide reboot
       return;                            // navigating away; leave spinner on
     }
-    toast("Already up to date — updated " + relativeTime(window.AF.generatedIso));
+    // The DATA's age, like the badge. generatedIso is the build time, which a
+    // freshness heartbeat moves without any scrape — so the toast and the badge
+    // beside it could name two different ages for the same snapshot.
+    toast("Already up to date — updated " +
+          relativeTime((window.AF.manifest || {}).data_fetched_iso || window.AF.generatedIso));
   } catch (e) {
     console.error("refresh failed:", e);
     location.reload();                   // safe fallback
@@ -706,7 +710,10 @@ function renderFreshness() {
   Object.keys(LABELS).forEach(k => {
     const e = ds[k] || {};
     const when = e.fetched_at ? new Date(e.fetched_at).toUTCString() : "never";
-    const flag = e.ok === false ? "  (last scrape FAILED)" : e.ok === null ? "  (unknown)" : "";
+    // The scraper records why it refused (data/scrape_status.record detail), so
+    // a failing dataset says what tripped rather than only that something did.
+    const why = e.error ? `: ${String(e.error).slice(0, 240)}` : "";
+    const flag = e.ok === false ? `  (last scrape FAILED${why})` : e.ok === null ? "  (unknown)" : "";
     lines.push(`${LABELS[k]}: ${when}${flag}`);
   });
   if (stale.length) {

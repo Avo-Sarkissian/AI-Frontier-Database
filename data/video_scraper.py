@@ -26,9 +26,12 @@ so there is no single "the price of this model" to publish, and a scraper that
 picked one arena and called it "video" would repeat the narrowing this project
 already paid for on the Run Local tab.
 
-We carry the two silent generation arenas as peers: 89 text-to-video models, 84
-image-to-video, 109 distinct. Each keeps its own Elo, its own price and its own
-29 per-category Elos. The audio arenas are read only to answer a capability
+We carry the two silent generation arenas as peers. Each keeps its own Elo, its
+own price and (when AA publishes them) its own per-category Elos. On 2026-09-30
+AA re-anchored text-to-video as a new pool — 86 models became 30, every
+survivor shifted ~-240 Elo — while image-to-video (83) did not move; see
+_arena_shrink for how that is told apart from a truncated page, and why the
+old-scale scores were dropped rather than carried. The audio arenas are read only to answer a capability
 question — does this model generate synced audio, and what does that cost —
 because with 33 models they are too thin to rank as a third mode. video-to-video
 (8 models) is left alone entirely: it is below data_guard's 50-row floor and is
@@ -366,12 +369,10 @@ MAX_SHRINK_PCT = 20.0
 # full row count with an all-null column — see data/scraper.py for the hosted
 # case that made the site look 90% healthy while two panels were empty.
 #
-# The Elo and price floors are deliberately well below today's coverage (t2v Elo
-# 82%, i2v Elo 77%, t2v price 74%): a model is only in one arena if AA ran it
-# there, so genuine gaps are normal and the guard is looking for collapse, not
-# for gaps. Booleans are not listed — column_health_violations counts a numeric
-# zero as unpopulated, so `open_weights` (14 True of 109) would read as 87%
-# missing rather than as mostly-False.
+# Only identity columns are judged against the whole catalogue. Booleans are not
+# listed — column_health_violations counts a numeric zero as unpopulated, so
+# `open_weights` (14 True of 109) would read as 87% missing rather than as
+# mostly-False.
 _COLUMN_HEALTH = {
     "model":             0.99,
     "provider":          0.95,
@@ -379,16 +380,143 @@ _COLUMN_HEALTH = {
     # release_date was 0.90 until AA stopped publishing it per record on
     # 2026-09-02. It now survives only for models already in the cache, so a
     # coverage gate on it would fail the scrape for a field the scrape cannot
-    # affect. The columns that DO come from upstream are still gated below.
-    "elo_t2v":           0.60,
-    "elo_i2v":           0.55,
-    "price_per_min_t2v": 0.50,
+    # affect. The columns that DO come from upstream are gated per arena below.
 }
+
+# PER-ARENA, NOT PER-UNION. elo_t2v/elo_i2v/price_per_min_t2v used to be gated
+# on their share of every row in the catalogue — the UNION of both arenas. That
+# share measures how big one leaderboard is next to the other, not whether
+# either was read correctly. On 2026-09-30 AA re-anchored text-to-video as a new
+# 30-model pool beside an unchanged 83-model image-to-video one; elo_t2v covered
+# 32% of the union against a 60% floor, and every hourly run refused a scrape
+# that was complete and correct.
+#
+# Each arena is now judged against itself:
+#   - it must carry at least _ARENA_MIN_ROWS scored models (an emptied or
+#     truncated leaderboard; also data_guard's spirit, scaled to one pool);
+#   - _ARENA_RECORD_COMPLETENESS of the records it published must yield a slug,
+#     a name and a numeric Elo (a renamed score key — the 2026-09-02 flattening
+#     dropped every row this way);
+#   - _ARENA_PRICE_FLOOR of its scored models must carry a price (a renamed price
+#     key; 29 of 30 t2v and 74 of 83 i2v are priced today).
+_ARENA_MIN_ROWS            = 20
+_ARENA_RECORD_COMPLETENESS = 0.95
+_ARENA_PRICE_FLOOR         = 0.50
+
+# A RE-SCALED POOL VS A TRUNCATED ONE. When an arena loses more than
+# MAX_SHRINK_PCT of its models, the models present before and after decide what
+# happened. A cut-off page leaves their scores where they were. A re-anchored
+# pool moves every one of them together while keeping their order — on
+# 2026-09-30 all 21 survivors moved by -124 to -315 (median -239), Spearman
+# 0.82, and Kling 3.0 Pro landed on exactly 1000.00. Only that signature lets a
+# large shrink through; anything else is refused as before. Hourly re-fits move
+# a model by single-digit Elo, far below _RESCALE_MIN_SHIFT.
+_RESCALE_MIN_OVERLAP  = 10
+_RESCALE_MIN_SHIFT    = 50.0
+_RESCALE_MIN_SPEARMAN = 0.5
 
 
 def _column_violations(df) -> list[str]:
     from data.scraper import column_health_violations
-    return column_health_violations(df, _COLUMN_HEALTH)
+
+    out = column_health_violations(df, _COLUMN_HEALTH)
+    for mode, key in _MODES:
+        elo_col, price_col = f"elo_{mode}", f"price_per_min_{mode}"
+        if elo_col not in df.columns:
+            out.append(f"{key}: column '{elo_col}' is missing entirely — "
+                       f"upstream schema changed")
+            continue
+        scored = df[pd.to_numeric(df[elo_col], errors="coerce").notna()]
+        if len(scored) < _ARENA_MIN_ROWS:
+            out.append(f"{key}: only {len(scored)} scored models "
+                       f"(arena floor {_ARENA_MIN_ROWS})")
+            continue
+        out.extend(f"{key}: {v}" for v in column_health_violations(
+            scored, {price_col: _ARENA_PRICE_FLOOR}))
+    return out
+
+
+def _record_violations(arenas: dict[str, list[dict]]) -> list[str]:
+    """Records an arena published that the parser could not read.
+
+    _parse skips a record with no usable Elo, which is right for the odd unrated
+    entry and wrong when a key rename makes it every other one: the survivors
+    would then be judged as if they were the whole arena.
+    """
+    out = []
+    for _, key in _MODES:
+        recs = arenas.get(key) or []
+        if not recs:
+            continue            # an absent arena fails the floor instead
+        usable = sum(1 for r in recs
+                     if (r.get("slug") or "").strip()
+                     and (r.get("name") or "").strip()
+                     and _global_elo(r) is not None)
+        share = usable / len(recs)
+        if share < _ARENA_RECORD_COMPLETENESS:
+            out.append(f"{key}: only {usable} of {len(recs)} records carry a "
+                       f"slug, name and Elo ({share:.0%}, floor "
+                       f"{_ARENA_RECORD_COMPLETENESS:.0%}) — upstream schema changed")
+    return out
+
+
+def _rescale_signature(before: pd.Series, after: pd.Series) -> dict | None:
+    """Evidence that ``after`` is a re-scored pool rather than a cut of ``before``.
+
+    Both are Elo by slug for one arena. Returns the measured overlap when it
+    shows a coherent shift with preserved order, else None.
+    """
+    both = pd.concat([before.rename("old"), after.rename("new")],
+                     axis=1, join="inner").dropna()
+    if len(both) < _RESCALE_MIN_OVERLAP:
+        return None
+    shift = float((both["new"] - both["old"]).median())
+    # Spearman as Pearson-on-ranks: Series.corr(method="spearman") needs scipy,
+    # which is not in requirements.lock and has no business on a scraper path.
+    rho = float(both["old"].rank().corr(both["new"].rank()))
+    if abs(shift) < _RESCALE_MIN_SHIFT or not rho >= _RESCALE_MIN_SPEARMAN:
+        return None
+    return {"overlap": int(len(both)), "median_shift": round(shift, 1),
+            "spearman": round(rho, 2)}
+
+
+def _arena_shrink(df, existing=None) -> tuple[list[str], list[str], dict]:
+    """Per-arena shrink check against the cache: (violations, notes, rebaselined)."""
+    if existing is None:
+        try:
+            existing = load_cached()
+        except Exception:
+            existing = None
+    if existing is None or existing.empty or "slug" not in existing.columns:
+        return [], [], {}
+
+    violations, notes, rebaselined = [], [], {}
+    for mode, key in _MODES:
+        col = f"elo_{mode}"
+        if col not in existing.columns or col not in df.columns:
+            continue
+        old = pd.to_numeric(existing.set_index("slug")[col], errors="coerce").dropna()
+        new = pd.to_numeric(df.set_index("slug")[col], errors="coerce").dropna()
+        if old.empty:
+            continue
+        drop = (len(old) - len(new)) / len(old) * 100
+        if drop <= MAX_SHRINK_PCT:
+            continue
+        sig = _rescale_signature(old, new)
+        if sig is None:
+            violations.append(
+                f"{key}: {len(old)} -> {len(new)} scored models, a {drop:.0f}% "
+                f"drop (limit {MAX_SHRINK_PCT:.0f}%), and the models in both "
+                f"did not move together — looks truncated, not re-scaled")
+            continue
+        rebaselined[mode] = {"rows_before": int(len(old)),
+                             "rows_after": int(len(new)), **sig}
+        notes.append(
+            f"{mode} arena re-scaled upstream: {len(old)} -> {len(new)} models; "
+            f"{sig['overlap']} in both moved {sig['median_shift']:+.0f} Elo "
+            f"(median), rank correlation {sig['spearman']:.2f}. Old-scale "
+            f"scores were discarded, not carried.")
+    return violations, notes, rebaselined
 
 
 def _shrink_violations(df) -> list[str]:
@@ -396,7 +524,8 @@ def _shrink_violations(df) -> list[str]:
 
     data_guard.py enforces this in CI against committed files; this is the same
     rule where the write actually happens, so no path can quietly replace the
-    cache with a fraction of it.
+    cache with a fraction of it. The catalogue-wide count is checked here; each
+    arena's own count is checked by _arena_shrink.
     """
     try:
         existing = load_cached()
@@ -422,13 +551,18 @@ def _fetch(url: str) -> str:
     return resp.text
 
 
-def _scrape_and_save() -> bool:
-    """Fetch live data and write to cache CSV. Returns True on success."""
+def _scrape_and_save() -> tuple[bool, dict]:
+    """Fetch live data and write to cache CSV.
+
+    Returns (ok, detail); detail is the provenance scrape_status records beside
+    the outcome — per-arena counts and any re-scale on success, the reason on
+    failure — so the badge can say WHY a dataset is stale.
+    """
     try:
         arenas = _extract_arenas(_fetch(_PAGE_URL))
     except Exception as exc:
         print(f"[video_scraper] Fetch error: {exc}")
-        return False
+        return False, {"error": f"fetch failed: {type(exc).__name__}"}
 
     # Enrichment only. A speed page that moves or fails must not cost us the
     # catalogue — 103 of 109 models have no measured time either way.
@@ -442,24 +576,39 @@ def _scrape_and_save() -> bool:
     df = _parse(arenas, gen_times)
     if df is None or df.empty:
         print("[video_scraper] No valid rows parsed")
-        return False
+        return False, {"error": "no valid rows parsed"}
 
-    violations = _shrink_violations(df) + _column_violations(df)
+    shrink, notes, rebaselined = _arena_shrink(df)
+    violations = (_record_violations(arenas) + _shrink_violations(df)
+                  + shrink + _column_violations(df))
     if violations:
         for v in violations:
             print(f"[video_scraper] {v}")
         print("[video_scraper] Refusing to publish — cache left unchanged")
-        return False
+        return False, {"error": "; ".join(violations)}
 
     _CACHE.parent.mkdir(parents=True, exist_ok=True)
     # Sanitised like every other committed catalogue — these files are written
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
+    for note in notes:
+        print(f"[video_scraper] {note}")
     print(f"[video_scraper] Saved {len(df)} video models "
           f"({int(df['elo_t2v'].notna().sum())} text-to-video, "
           f"{int(df['elo_i2v'].notna().sum())} image-to-video, "
           f"{int(df['gen_time_s'].notna().sum())} speed-tested)")
-    return True
+    detail = {
+        "arenas": {mode: int(df[f"elo_{mode}"].notna().sum()) for mode, _ in _MODES},
+        "notes": notes or None,
+        "error": None,
+    }
+    # Persistent, unlike `notes`: the re-scale is detected on exactly one run
+    # (afterwards the cache is on the new scale), but it stays true of the data.
+    if rebaselined:
+        stamp = scrape_status.now_iso()
+        detail["rebaselined"] = {m: {**r, "detected_at": stamp}
+                                 for m, r in rebaselined.items()}
+    return True, detail
 
 
 def scrape_and_save() -> bool:
@@ -468,7 +617,7 @@ def scrape_and_save() -> bool:
     See data/scrape_status.py: the badge used to show the BUILD time, so one
     succeeding scraper reset the clock for every dataset.
     """
-    ok = _scrape_and_save()
+    ok, detail = _scrape_and_save()
     rows = None
     if ok:
         try:
@@ -476,7 +625,7 @@ def scrape_and_save() -> bool:
             rows = None if cached is None else len(cached)
         except Exception:
             rows = None
-    scrape_status.record("video", ok, rows)
+    scrape_status.record("video", ok, rows, detail=detail)
     return ok
 
 

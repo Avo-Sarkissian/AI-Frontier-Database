@@ -101,7 +101,13 @@ def _resolve_mode(mode: str | None) -> str:
 # never has to identify on its own.
 _VIDEO_ONLY_COLORS: dict[str, str] = {
     "Alibaba-ATH":       "#ff7018",  # AA verbatim
+    # The three below arrived with the re-anchored text-to-video pool on
+    # 2026-09-30. BFL's Image-tab orange sits 3.7 dE from Alibaba here, and AA's
+    # own Creatify/Sand.ai hues land 7.2/13.6 dE from Skywork/Video Rebirth, so
+    # each was re-picked by the same farthest-point search, over Tailwind 300-500.
+    "Black Forest Labs": "#e879f9",  # AA paints it #272727 — no hue to mirror
     "ByteDance Seed":    "#3c8bff",  # AA verbatim
+    "Creatify":          "#14b8a6",  # AA #5c50f4 is 7.2 dE from Skywork AI
     "Genmo":             "#8bbbe1",  # AA verbatim
     "Haiper":            "#7b61ff",  # AA verbatim
     "HiDream":           "#1d8eff",  # AA verbatim
@@ -117,6 +123,7 @@ _VIDEO_ONLY_COLORS: dict[str, str] = {
     "PixVerse":          "#fb923c",  # AA paints it #000000 — no hue to mirror
     "Pruna AI":          "#9334e9",  # AA verbatim
     "Runway":            "#f472b6",  # AA paints it #000000 — no hue to mirror
+    "Sand.ai":           "#a3e635",  # AA #ffbc3e is 13.6 dE from Video Rebirth
     "Skywork AI":        "#4d5eff",  # AA verbatim
     "Video Rebirth":     "#fcd34d",  # AA paints it #000000 — no hue to mirror
     "Vidu":              "#1fcfff",  # AA verbatim
