@@ -1,5 +1,5 @@
 {
-  "upstream_host_model_rows": 689,
+  "upstream_host_model_rows": 688,
   "distinct_upstream_models": 269,
   "kept": 175,
   "skipped_no_score": [
@@ -469,7 +469,6 @@
     "Qwen3 4B 2507 Instruct",
     "Qwen3 8B (Non-reasoning)",
     "Qwen3 8B (Reasoning)",
-    "Qwen3 Coder 30B A3B Instruct",
     "Qwen3 Coder 480B A35B Instruct",
     "Qwen3 Max",
     "Qwen3 Max (Preview)",
