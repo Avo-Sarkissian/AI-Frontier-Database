@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1127.8,12.0,1361.64,12.0,True,12.0,,
 MiniMax H3 Max (based on MiniMax H3),minimax-h3-max,Fal,,,True,False,1117.23,4.8,,,True,4.8,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1115.44,4.8,,,True,4.8,122.399605782,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1115.44,4.8,,,True,4.8,122.363532299,MiniMax
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1099.54,34.12,,,True,34.12,,
 FLUX 3,flux-3,Black Forest Labs,,,True,False,1092.82,17.4,,,True,17.4,,
 SkyReels V4,skyreels-v4,Skywork AI,Skyreels,2026-03-18,True,False,1083.16,21.0,1282.31,21.0,True,21.0,,
@@ -23,9 +23,9 @@ LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,937.61,7.8,1213.73
 LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,933.6,10.2,1193.34,10.2,True,10.2,,
 Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,919.51,7.2,1265.05,7.2,False,,,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,910.44,3.9,1229.84,3.9,True,3.9,53.2416025035,Vidu
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,910.41,7.2,1290.37,9.6,True,7.2,115.158358401,Vidu
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,910.41,7.2,1290.37,9.6,True,7.2,113.7034581695,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,896.28,6.72,,,False,,,
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,859.9,4.8,1158.81,4.8,True,4.8,53.8400556699999,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,859.9,4.8,1158.81,4.8,True,4.8,53.8862216800001,Lightricks
 LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,858.5,3.6,1149.24,2.4,True,2.4,29.8869181709999,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,853.21,5.4,1201.99,5.4,False,,,
 Boreal,boreal,Creatify,,,True,False,839.06,2.69,,,True,2.69,,
