@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 689,
-  "distinct_upstream_models": 263,
-  "kept": 168,
+  "upstream_host_model_rows": 688,
+  "distinct_upstream_models": 268,
+  "kept": 173,
   "skipped_no_score": [
     "Claude Sonnet 5.5 (Adaptive Reasoning, Low Effort, Default Fallback)",
     "Cogito v2.1 (Reasoning)",
@@ -269,12 +269,6 @@
     "GPT-5.6 Sol (Medium)",
     "GPT-5.6 Sol (Non-reasoning)",
     "GPT-5.6 Sol (Xhigh)",
-    "GPT-6 Sol (High)",
-    "GPT-6 Sol (Low)",
-    "GPT-6 Sol (Max)",
-    "GPT-6 Sol (Medium)",
-    "GPT-6 Sol (Non-reasoning)",
-    "GPT-6 Sol (Xhigh)",
     "Gemini 1.0 Pro",
     "Gemini 1.0 Ultra",
     "Gemini 1.5 Flash (May '24)",
