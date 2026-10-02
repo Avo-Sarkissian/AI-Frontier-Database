@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 689,
-  "distinct_upstream_models": 269,
-  "kept": 175,
+  "distinct_upstream_models": 263,
+  "kept": 169,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -268,6 +268,12 @@
     "GPT-5.6 Sol (Medium)",
     "GPT-5.6 Sol (Non-reasoning)",
     "GPT-5.6 Sol (Xhigh)",
+    "GPT-6 Sol (High)",
+    "GPT-6 Sol (Low)",
+    "GPT-6 Sol (Max)",
+    "GPT-6 Sol (Medium)",
+    "GPT-6 Sol (Non-reasoning)",
+    "GPT-6 Sol (Xhigh)",
     "Gemini 1.0 Pro",
     "Gemini 1.0 Ultra",
     "Gemini 1.5 Flash (May '24)",
@@ -522,12 +528,5 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": [
-    "GPT-6 Sol (High)",
-    "GPT-6 Sol (Low)",
-    "GPT-6 Sol (Max)",
-    "GPT-6 Sol (Medium)",
-    "GPT-6 Sol (Non-reasoning)",
-    "GPT-6 Sol (Xhigh)"
-  ]
+  "held_deprecated": []
 }

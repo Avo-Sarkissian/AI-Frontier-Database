@@ -48,7 +48,7 @@ Qwen3.6 35B A3B (Non-reasoning),Alibaba,36.0,3.0,262,15.23,Apache 2.0,vision,Tru
 Granite 4.2 30B,IBM,30.0,30.0,131,14.83,Apache 2.0,reasoning,False,True,29.92,,-12.92
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,14.67,Apache 2.0,"vision,reasoning",False,False,43.43,6.73,-47.93
 Mistral Medium 3.5,Mistral,128.0,128.0,256,14.19,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-36.8
-Gemma 4 12B (Reasoning),Google,12.0,12.0,256,14.18,Apache 2.0,"vision,audio,reasoning",False,True,30.96,,-52.72
+Gemma 4 12B (Reasoning),Google,12.0,12.0,262,14.18,Apache 2.0,"vision,audio,reasoning",False,True,30.96,,-52.72
 Gemma 4 31B (Non-reasoning),Google,30.7,30.7,256,13.92,Apache 2.0,vision,False,True,33.17,,-51.68
 Apriel-v1.6-15B-Thinker,ServiceNow,15.0,15.0,128,13.4,MIT,"vision,reasoning",False,True,,,-59.37
 Qwen3.5 9B (Non-reasoning),Alibaba,9.65,9.65,262,13.27,Apache 2.0,vision,False,True,23.46,,-70.7
