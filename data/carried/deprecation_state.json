@@ -1,27 +1,27 @@
 {
   "models": {
     "GPT-6 Sol (High)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     },
     "GPT-6 Sol (Low)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     },
     "GPT-6 Sol (Max)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     },
     "GPT-6 Sol (Medium)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     },
     "GPT-6 Sol (Non-reasoning)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     },
     "GPT-6 Sol (Xhigh)": {
-      "count": 1,
+      "count": 2,
       "first_seen": "2026-10-02T18:31:16+00:00"
     }
   }
