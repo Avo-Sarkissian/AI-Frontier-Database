@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 690,
-  "distinct_upstream_models": 264,
-  "kept": 170,
+  "upstream_host_model_rows": 688,
+  "distinct_upstream_models": 263,
+  "kept": 169,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -39,7 +39,7 @@
     "HyperNova 60B 2605 (High, Based on gpt-oss-120b)",
     "INTELLECT-3 (Based on GLM-4.5-Air)",
     "JT-35B-Flash",
-    "JT-4.1 Flash 236B A21B (Non-reasoning)",
+    "JT-4.1 Flash 236B A21B",
     "JT-4.1 Flash 236B A21B (Reasoning)",
     "JT-MINI",
     "Jamba 1.7 Large",
@@ -475,7 +475,6 @@
     "Qwen3 4B 2507 Instruct",
     "Qwen3 8B (Non-reasoning)",
     "Qwen3 8B (Reasoning)",
-    "Qwen3 Coder 30B A3B Instruct",
     "Qwen3 Coder 480B A35B Instruct",
     "Qwen3 Max",
     "Qwen3 Max (Preview)",
