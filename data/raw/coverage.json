@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 690,
-  "distinct_upstream_models": 264,
-  "kept": 170,
+  "distinct_upstream_models": 265,
+  "kept": 171,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -506,7 +506,6 @@
     "Sarvam M (Reasoning, Based on Mistral Small 3.1)",
     "Seed-OSS-36B-Instruct",
     "Solar Mini",
-    "Solar Pro 2 (Non-reasoning)",
     "Solar Pro 2 (Preview) (Non-reasoning)",
     "Solar Pro 2 (Preview) (Reasoning)",
     "Solar Pro 2 (Reasoning)",
