@@ -1,5 +1,5 @@
 {
-  "upstream_host_model_rows": 690,
+  "upstream_host_model_rows": 691,
   "distinct_upstream_models": 265,
   "kept": 171,
   "skipped_no_score": [
@@ -506,6 +506,7 @@
     "Sarvam M (Reasoning, Based on Mistral Small 3.1)",
     "Seed-OSS-36B-Instruct",
     "Solar Mini",
+    "Solar Pro 2 (Non-reasoning)",
     "Solar Pro 2 (Preview) (Non-reasoning)",
     "Solar Pro 2 (Preview) (Reasoning)",
     "Solar Pro 2 (Reasoning)",
