@@ -1,11 +1,12 @@
 {
-  "upstream_host_model_rows": 696,
-  "distinct_upstream_models": 268,
+  "upstream_host_model_rows": 697,
+  "distinct_upstream_models": 269,
   "kept": 174,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
     "GPT-5.5 Pro (Xhigh)",
+    "GPT-6 Sol (Daybreak Blue, max)",
     "Gemini 3 Deep Think"
   ],
   "skipped_no_price": [
