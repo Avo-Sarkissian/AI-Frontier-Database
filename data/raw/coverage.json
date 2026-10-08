@@ -528,5 +528,8 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": []
+  "held_deprecated": [
+    "Ling 3.0 Flash",
+    "Mistral Large 3"
+  ]
 }
