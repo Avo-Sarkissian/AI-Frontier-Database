@@ -1,3 +1,12 @@
 {
-  "models": {}
+  "models": {
+    "Claude 4.5 Haiku (Non-reasoning)": {
+      "count": 1,
+      "first_seen": "2026-10-09T08:02:57+00:00"
+    },
+    "Claude 4.5 Haiku (Reasoning)": {
+      "count": 1,
+      "first_seen": "2026-10-09T08:02:57+00:00"
+    }
+  }
 }
