@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 697,
-  "distinct_upstream_models": 269,
-  "kept": 174,
+  "distinct_upstream_models": 267,
+  "kept": 172,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -120,6 +120,8 @@
     "Claude 4 Sonnet (Reasoning)",
     "Claude 4.1 Opus (Non-reasoning)",
     "Claude 4.1 Opus (Reasoning)",
+    "Claude 4.5 Haiku (Non-reasoning)",
+    "Claude 4.5 Haiku (Reasoning)",
     "Claude 4.5 Sonnet (Non-reasoning)",
     "Claude 4.5 Sonnet (Reasoning)",
     "Claude Fable 5 (Max, Opus 4.8 Fallback)",
@@ -531,8 +533,5 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": [
-    "Claude 4.5 Haiku (Non-reasoning)",
-    "Claude 4.5 Haiku (Reasoning)"
-  ]
+  "held_deprecated": []
 }
