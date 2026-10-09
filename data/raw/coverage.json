@@ -531,8 +531,5 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": [
-    "Claude 4.5 Haiku (Non-reasoning)",
-    "Claude 4.5 Haiku (Reasoning)"
-  ]
+  "held_deprecated": []
 }
