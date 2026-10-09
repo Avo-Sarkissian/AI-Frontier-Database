@@ -1,11 +1,11 @@
 {
   "models": {
     "Ling 3.0 Flash": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-10-09T15:36:23+00:00"
     },
     "Mistral Large 3": {
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-10-09T15:36:23+00:00"
     }
   }
