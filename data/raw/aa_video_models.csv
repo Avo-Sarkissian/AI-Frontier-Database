@@ -34,7 +34,7 @@ P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,819.88,2.4,1129.83,1.2,Fa
 Gemini Omni Flash,gemini-omni-flash,Google,Gemini Omni,2026-05-19,True,False,,,1368.15,6.0,True,6.0,,
 Bach 1.0 Pro,bach-1-0-pro,Video Rebirth,,,True,False,,,1362.01,7.2,False,,,
 MiniMax H3,minimax-h3,MiniMax,Hailuo AI (MiniMax),2026-07-30,True,True,,,1356.42,7.8,True,7.8,,
-Vimoo 1.0,vimoo-1-0,Vimoo,,,False,False,,,1348.48,3.0,False,,,
+Vimoo 1.0,vimoo-1-0,Vimoo,,,True,False,,,1348.48,3.0,False,,,
 Dreamina Seedance 2.0 720p,seedance-2-0,ByteDance Seed,Seedance,2026-03-18,True,False,,,1338.93,9.07,True,9.07,,
 grok-imagine-video,grok-imagine-video,SpaceXAI,Grok Imagine,2026-01-27,True,False,,,1328.22,4.2,True,4.2,,
 Kling 2.5 Turbo 1080p,kling-25-turbo-1080p,KlingAI,Kling,2025-09-23,True,False,,,1298.64,4.2,False,,,
