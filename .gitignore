@@ -43,5 +43,8 @@ __pycache__/
 docs/pybundle [0-9]*.zip
 *.zip.tmp
 
-# Class deliverables (EECE 5642 report, presentation, sources) — kept local, never published
-class-project/
+# Class deliverables. Only the final report PDF and the slide deck are public;
+# the sources, drafts and build scripts stay local.
+class-project/*
+!class-project/FinalReport_Sarkissian.pdf
+!class-project/AI_Frontier_Presentation.pptx
