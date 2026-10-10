@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1129.0,12.0,1361.76,12.0,True,12.0,,
 MiniMax H3 Max,minimax-h3-max,Fal,,,True,False,1119.1,4.8,,,True,4.8,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1117.72,4.8,,,True,4.8,123.448259382,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1117.72,4.8,,,True,4.8,124.2420077535,MiniMax
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1105.76,34.12,,,True,34.12,,
 FLUX 3,flux-3,Black Forest Labs,,,True,False,1090.76,17.4,,,True,17.4,,
 SkyReels V4,skyreels-v4,Skywork AI,Skyreels,2026-03-18,True,False,1085.14,21.0,1282.53,21.0,True,21.0,,
@@ -23,8 +23,8 @@ Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,954.81,3.0,124
 LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,938.06,7.8,1215.09,7.8,True,7.8,,
 LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,935.23,10.2,1194.49,10.2,True,10.2,,
 Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,923.35,7.2,1265.1,7.2,False,,,
-Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,911.52,3.9,1229.78,3.9,True,3.9,44.7437278810003,Vidu
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,911.2,7.2,1289.99,9.6,True,7.2,113.090998547,Vidu
+Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,911.52,3.9,1229.78,3.9,True,3.9,46.6438165180002,Vidu
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,911.2,7.2,1289.99,9.6,True,7.2,112.551432367,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,897.57,6.72,,,False,,,
 LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,858.0,3.6,1149.73,2.4,True,2.4,27.1254971539997,Lightricks
 LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,857.67,4.8,1157.53,4.8,True,4.8,58.4102670240001,Lightricks
