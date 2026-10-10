@@ -47,6 +47,20 @@ that model's page carries the catalogue. The slug is read at run time rather
 than pinned, because a pinned slug dies the day AA deprecates that model — the
 failure mode that has already cost this project three endpoints.
 
+SPECS BY SLUG (2026-10-10)
+-------------------------
+The full-catalogue pages went away in turn: from ~2026-10-05 a /models/<slug>
+page ships its own record plus ~25 headline models, and the entry-page scrape
+failed on most hourly runs while the tab served a stale cache. So the two
+halves are now read separately. Scores and flags come from the leaderboard,
+which still lists every model and matched the old catalogue field-for-field.
+The four static facts it lacks — parameters, active parameters, modality flags,
+licence — live in data/carried/local_specs.json, keyed by slug. Each run reads
+the page of every open-weight model the cache has not seen (at most
+_MAX_NEW_PAGES) plus a rotating _ROTATE_PER_RUN known ones, and every record
+those pages carry refreshes the cache. A newly released model appears within
+one run; a page that fails costs that model one run, never the catalogue.
+
 A second benefit, restored: data/scraper.py and this module used to hit the
 byte-identical URL, so the hosted and local datasets always failed together and
 the freshness badge could never distinguish them (see data/scrape_status.py).
@@ -59,6 +73,7 @@ Fields pulled per model:
 Run standalone:  python -m data.local_scraper
 """
 
+import json
 import sys
 import threading
 import time
@@ -82,11 +97,15 @@ _HEADERS = {
     "Referer": "https://artificialanalysis.ai/",
 }
 _PAGE_URL = "https://artificialanalysis.ai/leaderboards/models"
-# Any model's own page ships the FULL catalogue, not just the model in the URL,
-# so this is an entry point rather than a lookup — the slug is discovered at
-# run time (see _entry_slug) because pinning one means the scrape dies the day
-# that model is deprecated.
+# A model's own page: its full record, plus ~25 headline models' records.
 _CATALOGUE_URL = "https://artificialanalysis.ai/models/{slug}"
+# Spec cache under data/carried/ — see SPECS BY SLUG in the module docstring.
+_SPECS_FILE = "local_specs.json"
+_SPEC_FIELDS = ("parameters", "inferenceParametersActiveBillions",
+                "inputModalityImage", "inputModalitySpeech", "licenseName")
+_MAX_NEW_PAGES = 25      # model pages fetched per run for models with no specs yet
+_ROTATE_PER_RUN = 2      # known models re-read per run, so corrections land (~8 days/cycle)
+_PAGE_DELAY_S = 0.3
 _TIMEOUT = 45          # the leaderboard is ~2.8 MB, a model page ~3.6 MB
 _CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
 # Under data/carried/ beside the hosted scraper's deprecation_state.json, and
@@ -97,23 +116,109 @@ _DEPRECATION_STATE_FILE = "local_deprecation_state.json"
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
-def _entry_slug(payload: str) -> str:
-    """Any live model's slug, taken from the leaderboard's picker index.
+def _leaderboard(payload: str) -> list[dict]:
+    """The leaderboard's metrics records — every model AA tracks, scored.
 
-    Every /models/<slug> page serves the same 646-model catalogue, so this only
-    has to name a page that exists. Deprecated models are skipped because their
-    pages are the ones AA eventually removes.
+    Matched field-for-field against the old full catalogue on 2026-10-10: name,
+    Intelligence Index, estimated flag, reasoning flag, context window,
+    deprecated, omniscience and isOpenWeights agreed on all 372 open-weight
+    models. What it lacks is _SPEC_FIELDS, which come from the spec cache.
     """
-    index = find_array(
+    models = find_array(
         payload, "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "slug" in a[0],
+        where=lambda a: bool(a) and isinstance(a[0], dict) and "isOpenWeights" in a[0],
     )
-    if not index:
-        raise ValueError("no model index found for 'models' in RSC payload")
-    for entry in index:
-        if isinstance(entry, dict) and entry.get("slug") and not entry.get("deprecated"):
-            return entry["slug"]
-    raise ValueError("model index carries no live slug")
+    if not models:
+        raise ValueError("no leaderboard metrics array found for 'models' in RSC payload")
+    return [m for m in models if isinstance(m, dict) and m.get("slug")]
+
+
+def _spec_of(m: dict) -> dict:
+    """The static facts this tab needs from one catalogue record, normalised."""
+    lic = m.get("licenseName")
+    return {
+        "parameters": _num(m.get("parameters")),
+        "inferenceParametersActiveBillions": _num(m.get("inferenceParametersActiveBillions")),
+        "inputModalityImage": m.get("inputModalityImage") is True,
+        "inputModalitySpeech": m.get("inputModalitySpeech") is True,
+        "licenseName": lic.strip() if isinstance(lic, str) and lic != "$undefined" else None,
+    }
+
+
+def _harvest_specs(payload: str) -> dict[str, dict]:
+    """Specs for every open-weight record a model page carries, by slug.
+
+    A page whose catalogue array survives yields all of them at once. Since
+    ~2026-10-05 most pages carry only their own record plus ~25 headline
+    models, scattered through the payload rather than in one array, so each
+    record carrying `parameters` is decoded where it stands.
+    """
+    out: dict[str, dict] = {}
+
+    def keep(rec):
+        if isinstance(rec, dict) and rec.get("slug") and rec.get("isOpenWeights") is True \
+                and "parameters" in rec:
+            out[rec["slug"]] = _spec_of(rec)
+
+    catalogue = find_array(
+        payload, "models",
+        where=lambda a: bool(a) and isinstance(a[0], dict) and "parameters" in a[0],
+    )
+    for rec in catalogue or []:
+        keep(rec)
+
+    dec = json.JSONDecoder()
+    pos = 0
+    while (i := payload.find('"parameters":', pos)) >= 0:
+        pos = i + 1
+        j = i
+        for _ in range(200):                      # nearest enclosing object
+            j = payload.rfind("{", 0, j)
+            if j < 0:
+                break
+            try:
+                rec, end = dec.raw_decode(payload, j)
+            except ValueError:
+                continue
+            if end > i and isinstance(rec, dict) and "parameters" in rec:
+                keep(rec)
+                break
+    return out
+
+
+def _specs_path() -> Path:
+    return carried.CARRIED_DIR / _SPECS_FILE
+
+
+def load_specs() -> dict[str, dict]:
+    try:
+        return json.loads(_specs_path().read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_specs(specs: dict[str, dict]) -> None:
+    """Sorted and timestamp-free, so an unchanged cache is byte-identical and
+    the hourly bot's change guard makes no commit for it."""
+    path = _specs_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(specs, sort_keys=True, indent=1) + "\n"
+    if not path.exists() or path.read_text() != text:
+        path.write_text(text)
+
+
+def _pages_to_fetch(board: list[dict], specs: dict, hour: int) -> list[str]:
+    """Model pages this run reads: new models first, then a rotating few known ones."""
+    live = sorted(m["slug"] for m in board
+                  if m.get("isOpenWeights") and not m.get("deprecated")
+                  and _aa_real(m.get("intelligenceIndex")))
+    missing = [s for s in live if s not in specs][:_MAX_NEW_PAGES]
+    known = [s for s in live if s in specs]
+    if not known:
+        return missing
+    start = (hour * _ROTATE_PER_RUN) % len(known)
+    rotate = (known + known)[start:start + min(_ROTATE_PER_RUN, len(known))]
+    return missing + rotate
 
 
 def _extract_models(html: str) -> list[dict]:
@@ -321,15 +426,29 @@ def _scrape_and_save() -> bool:
         # carries the catalogue with the parameter counts this tab is built on.
         index = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
         index.raise_for_status()
-        slug = _entry_slug(payload_from_html(index.text))
-
-        page = requests.get(_CATALOGUE_URL.format(slug=slug),
-                            headers=_HEADERS, timeout=_TIMEOUT)
-        page.raise_for_status()
-        models = _extract_models(page.text)
+        board = _leaderboard(payload_from_html(index.text))
     except Exception as exc:
         print(f"[local_scraper] Fetch error: {exc}")
         return False
+
+    # Specs for models the cache has not seen, plus a rotating few it has. One
+    # page failing costs that model this run, not the run.
+    specs = load_specs()
+    misses = []
+    for n, slug in enumerate(_pages_to_fetch(board, specs, int(time.time() // 3600))):
+        if n:
+            time.sleep(_PAGE_DELAY_S)
+        try:
+            page = requests.get(_CATALOGUE_URL.format(slug=slug),
+                                headers=_HEADERS, timeout=_TIMEOUT)
+            page.raise_for_status()
+            specs.update(_harvest_specs(payload_from_html(page.text)))
+        except Exception as exc:
+            misses.append(f"{slug}: {exc}")
+    if misses:
+        print(f"[local_scraper] {len(misses)} model page(s) unread this run: "
+              + "; ".join(misses[:5]))
+    models = [{**m, **specs.get(m["slug"], {})} for m in board]
 
     # Deprecation hysteresis, as in data/scraper.py, with its OWN state file:
     # deprecation_hysteresis keeps only names in `published`, so sharing the
@@ -370,6 +489,7 @@ def _scrape_and_save() -> bool:
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
     carried.save_deprecation_state(dep_state, state_path)
+    save_specs(specs)
     # Fold this scrape's frozen coding/agentic scores into the sidecar that
     # _carry_dropped_columns reads back — without this the local sidecar only
     # ever held what backfill_from_git found, and a new score was one bad

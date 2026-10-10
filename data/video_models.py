@@ -85,8 +85,8 @@ def _resolve_mode(mode: str | None) -> str:
 # Run Local palette had. Video-only studios keep their own hues, since they have
 # no entry in the shared provider palette to inherit.
 #
-# The live arena carries 28 creators (2026-10-01), 8 of which already sit in the shared
-# palette. Twenty-eight mutually separable hues do not exist, and this file does
+# The live arena carries 29 creators (2026-10-10), 8 of which already sit in the shared
+# palette. Twenty-nine mutually separable hues do not exist, and this file does
 # not pretend otherwise: the hues below were assigned by farthest-point search in
 # CIE L*a*b*, maximising the minimum distance to every colour that can appear
 # beside them on this tab. Every assignment here lands >= 13.9 dE from its
@@ -94,7 +94,7 @@ def _resolve_mode(mode: str | None) -> str:
 # under that bar is OpenAI/Tencent at 4.1 dE, which is inherited from the shared
 # palette and not ours to move.
 #
-# Because 28 is past what colour alone can carry, the two charts do not lean on
+# Because 29 is past what colour alone can carry, the two charts do not lean on
 # it: the ranked view labels every row with its model name and the scatter gives
 # legend entries only to the densest providers, bucketing the tail into a single
 # grey "Other" (see components/charts/video_chart.py). Colour groups here; it
@@ -108,6 +108,8 @@ _VIDEO_ONLY_COLORS: dict[str, str] = {
     "Black Forest Labs": "#e879f9",  # AA paints it #272727 — no hue to mirror
     "ByteDance Seed":    "#3c8bff",  # AA verbatim
     "Creatify":          "#14b8a6",  # AA #5c50f4 is 7.2 dE from Skywork AI
+    # A host, not a lab: AA credits fal.ai for "MiniMax H3 Max" (2026-10-10).
+    "Fal":               "#ef4444",  # AA #ff6b35 is 11.7 dE from Alibaba-ATH
     "Genmo":             "#8bbbe1",  # AA verbatim
     "Haiper":            "#7b61ff",  # AA verbatim
     "HiDream":           "#1d8eff",  # AA verbatim

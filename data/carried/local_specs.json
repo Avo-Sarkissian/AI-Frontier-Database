@@ -1,0 +1,2613 @@
+{
+ "QwQ-32B-Preview": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.8
+ },
+ "a-x-k2": {
+  "inferenceParametersActiveBillions": 33.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 692.0
+ },
+ "apertus-70b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 70.0
+ },
+ "apertus-8b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "apriel-v1-5-15b-thinker": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 15.0
+ },
+ "apriel-v1-6-15b-thinker": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 15.0
+ },
+ "arctic-instruct": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 480.0
+ },
+ "cogito-v2-1-reasoning": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 671.0
+ },
+ "command-a": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "CC-BY-NC 4.0 License with Acceptable Use Addendum",
+  "parameters": 111.0
+ },
+ "command-a-plus": {
+  "inferenceParametersActiveBillions": 25.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 218.0
+ },
+ "command-r-03-2024": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "CC-BY-NC 4.0 License with Acceptable Use Addendum",
+  "parameters": 35.0
+ },
+ "command-r-plus-04-2024": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "CC-BY-NC 4.0 License with Acceptable Use Addendum",
+  "parameters": 104.0
+ },
+ "dbrx": {
+  "inferenceParametersActiveBillions": 36.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Databricks Open Model License",
+  "parameters": 132.0
+ },
+ "deephermes-3-llama-3-1-8b-preview": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 8.0
+ },
+ "deephermes-3-mistral-24b-preview": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "deepseek-coder-v2": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 236.0
+ },
+ "deepseek-coder-v2-lite": {
+  "inferenceParametersActiveBillions": 2.4,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 16.0
+ },
+ "deepseek-llm-67b-chat": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 7.0
+ },
+ "deepseek-r1": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-r1-0120": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-r1-distill-llama-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.0
+ },
+ "deepseek-r1-distill-llama-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 8.0
+ },
+ "deepseek-r1-distill-qwen-1-5b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.5
+ },
+ "deepseek-r1-distill-qwen-14b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 14.0
+ },
+ "deepseek-r1-distill-qwen-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.0
+ },
+ "deepseek-r1-qwen3-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 8.19
+ },
+ "deepseek-v2": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 236.0
+ },
+ "deepseek-v2-5": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 236.0
+ },
+ "deepseek-v2-5-sep-2024": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 236.0
+ },
+ "deepseek-v3": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "DEEPSEEK LICENSE AGREEMENT",
+  "parameters": 671.0
+ },
+ "deepseek-v3-0324": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 671.0
+ },
+ "deepseek-v3-1": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-1-reasoning": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-1-terminus": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-1-terminus-reasoning": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-2": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-2-0925": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-2-reasoning": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-2-reasoning-0925": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v3-2-speciale": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 685.0
+ },
+ "deepseek-v4-1-flash": {
+  "inferenceParametersActiveBillions": 16.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 552.0
+ },
+ "deepseek-v4-1-flash-non-reasoning": {
+  "inferenceParametersActiveBillions": 16.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 552.0
+ },
+ "deepseek-v4-flash": {
+  "inferenceParametersActiveBillions": 13.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 284.0
+ },
+ "deepseek-v4-flash-0420": {
+  "inferenceParametersActiveBillions": 13.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 284.0
+ },
+ "deepseek-v4-flash-0420-high": {
+  "inferenceParametersActiveBillions": 13.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 284.0
+ },
+ "deepseek-v4-flash-0420-non-reasoning": {
+  "inferenceParametersActiveBillions": 13.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 284.0
+ },
+ "deepseek-v4-pro": {
+  "inferenceParametersActiveBillions": 49.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "deepseek-v4-pro-0424": {
+  "inferenceParametersActiveBillions": 49.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "deepseek-v4-pro-0424-high": {
+  "inferenceParametersActiveBillions": 49.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "deepseek-v4-pro-0424-non-reasoning": {
+  "inferenceParametersActiveBillions": 49.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "deepseek-v4-pro-non-reasoning": {
+  "inferenceParametersActiveBillions": 49.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "devstral-2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 125.0
+ },
+ "devstral-small": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "devstral-small-2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "devstral-small-2505": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 23.6
+ },
+ "diffusiongemma-26b-a4b": {
+  "inferenceParametersActiveBillions": 3.8,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 25.2
+ },
+ "ernie-4-5-300b-a47b": {
+  "inferenceParametersActiveBillions": 47.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 300.0
+ },
+ "exaone-4-0-1-2b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 1.28
+ },
+ "exaone-4-0-1-2b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 1.28
+ },
+ "exaone-4-0-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 32.0
+ },
+ "exaone-4-0-32b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 32.0
+ },
+ "exaone-4-5-33b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 34.4
+ },
+ "exaone-4-5-33b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "EXAONE AI Model License Agreement 1.2 - NC",
+  "parameters": 34.4
+ },
+ "falcon-h1r-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Falcon Mamba 7B TII License Version 1.0",
+  "parameters": 7.0
+ },
+ "g9v3-39a5b": {
+  "inferenceParametersActiveBillions": 5.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 39.0
+ },
+ "g9v3-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "gemma-3-12b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 12.2
+ },
+ "gemma-3-1b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 1.0
+ },
+ "gemma-3-270m": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 0.268
+ },
+ "gemma-3-27b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 27.4
+ },
+ "gemma-3-4b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 4.3
+ },
+ "gemma-3n-e2b": {
+  "inferenceParametersActiveBillions": 2.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 5.98
+ },
+ "gemma-3n-e4b": {
+  "inferenceParametersActiveBillions": 4.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Gemma license",
+  "parameters": 8.39
+ },
+ "gemma-3n-e4b-preview-0520": {
+  "inferenceParametersActiveBillions": 4.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": true,
+  "licenseName": "Gemma license",
+  "parameters": 8.39
+ },
+ "gemma-4-12b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 12.0
+ },
+ "gemma-4-12b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 12.0
+ },
+ "gemma-4-26b-a4b": {
+  "inferenceParametersActiveBillions": 3.8,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 25.2
+ },
+ "gemma-4-26b-a4b-non-reasoning": {
+  "inferenceParametersActiveBillions": 3.8,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 25.2
+ },
+ "gemma-4-31b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.7
+ },
+ "gemma-4-31b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.7
+ },
+ "gemma-4-e2b": {
+  "inferenceParametersActiveBillions": 2.3,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 5.1
+ },
+ "gemma-4-e2b-non-reasoning": {
+  "inferenceParametersActiveBillions": 2.3,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 5.1
+ },
+ "gemma-4-e4b": {
+  "inferenceParametersActiveBillions": 4.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "gemma-4-e4b-non-reasoning": {
+  "inferenceParametersActiveBillions": 4.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "glm-4-5-air": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 106.0
+ },
+ "glm-4-5v": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 108.0
+ },
+ "glm-4-5v-reasoning": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 108.0
+ },
+ "glm-4-6": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 357.0
+ },
+ "glm-4-6-reasoning": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 357.0
+ },
+ "glm-4-6v": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 108.0
+ },
+ "glm-4-6v-reasoning": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 108.0
+ },
+ "glm-4-7": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 357.0
+ },
+ "glm-4-7-flash": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 31.2
+ },
+ "glm-4-7-flash-non-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 31.2
+ },
+ "glm-4-7-non-reasoning": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 357.0
+ },
+ "glm-4.5": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 355.0
+ },
+ "glm-5": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 744.0
+ },
+ "glm-5-1": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 744.0
+ },
+ "glm-5-1-non-reasoning": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 744.0
+ },
+ "glm-5-2": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 753.0
+ },
+ "glm-5-2-non-reasoning": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 753.0
+ },
+ "glm-5-3": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "GLM-5.3 License",
+  "parameters": 753.0
+ },
+ "glm-5-3-flash": {
+  "inferenceParametersActiveBillions": 18.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 320.0
+ },
+ "glm-5-3-low": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "GLM-5.3 License",
+  "parameters": 753.0
+ },
+ "glm-5-non-reasoning": {
+  "inferenceParametersActiveBillions": 40.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 744.0
+ },
+ "gpt-oss-120b": {
+  "inferenceParametersActiveBillions": 5.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 117.0
+ },
+ "gpt-oss-120b-low": {
+  "inferenceParametersActiveBillions": 5.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 117.0
+ },
+ "gpt-oss-20b": {
+  "inferenceParametersActiveBillions": 3.6,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 21.0
+ },
+ "gpt-oss-20b-low": {
+  "inferenceParametersActiveBillions": 3.6,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 21.0
+ },
+ "granite-3-3-8b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.17
+ },
+ "granite-4-0-350m": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.35
+ },
+ "granite-4-0-h-350m": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.34
+ },
+ "granite-4-0-h-nano-1b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.5
+ },
+ "granite-4-0-h-small": {
+  "inferenceParametersActiveBillions": 9.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.0
+ },
+ "granite-4-0-micro": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "granite-4-0-nano-1b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.6
+ },
+ "granite-4-1-30b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "granite-4-1-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "granite-4-1-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "granite-4-2-30b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "granite-4-2-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "granite-4-2-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "grok-1": {
+  "inferenceParametersActiveBillions": 78.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 314.0
+ },
+ "grok-2-1212": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Grok 2 Community License Agreement",
+  "parameters": 270.0
+ },
+ "hermes-3-llama-3-1-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.6
+ },
+ "hermes-4-llama-3-1-405b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 406.0
+ },
+ "hermes-4-llama-3-1-405b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 406.0
+ },
+ "hermes-4-llama-3-1-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.6
+ },
+ "hermes-4-llama-3-1-70b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.6
+ },
+ "hy3": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 299.0
+ },
+ "hy3-non-reasoning": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "TENCENT HY COMMUNITY LICENSE AGREEMENT",
+  "parameters": 295.0
+ },
+ "hy3-preview": {
+  "inferenceParametersActiveBillions": 21.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "TENCENT HY COMMUNITY LICENSE AGREEMENT",
+  "parameters": 295.0
+ },
+ "hyperclova-x-seed-think-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "HyperCLOVA X SEED 32B Think Model License Agreement",
+  "parameters": 32.0
+ },
+ "hypernova-60b": {
+  "inferenceParametersActiveBillions": 4.8,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 58.7
+ },
+ "inkling": {
+  "inferenceParametersActiveBillions": 41.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 975.0
+ },
+ "inkling-small": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 266.0
+ },
+ "intellect-3": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 107.0
+ },
+ "jamba-1-5-large": {
+  "inferenceParametersActiveBillions": 94.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 398.0
+ },
+ "jamba-1-5-mini": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 52.0
+ },
+ "jamba-1-6-large": {
+  "inferenceParametersActiveBillions": 94.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 398.0
+ },
+ "jamba-1-6-mini": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 52.0
+ },
+ "jamba-1-7-large": {
+  "inferenceParametersActiveBillions": 94.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 398.0
+ },
+ "jamba-1-7-mini": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Jamba Open Model License Agreement",
+  "parameters": 52.0
+ },
+ "jamba-reasoning-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "k-exaone": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "K Exaone",
+  "parameters": 236.0
+ },
+ "k-exaone-2-0-0803": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 750.0
+ },
+ "k-exaone-non-reasoning": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "K Exaone",
+  "parameters": 236.0
+ },
+ "k2-horizon-0-9b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.9
+ },
+ "k2-horizon-3-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.7
+ },
+ "k2-horizon-375b-a23b": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 375.0
+ },
+ "k2-horizon-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.0
+ },
+ "k2-horizon-mova-36b-a4b": {
+  "inferenceParametersActiveBillions": 4.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.0
+ },
+ "k2-think-v2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 70.0
+ },
+ "k2-v2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 70.0
+ },
+ "k2-v2-low": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 70.0
+ },
+ "k2-v2-medium": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 70.0
+ },
+ "kimi-k2": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k2-0905": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k2-5": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k2-5-non-reasoning": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k2-6": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT",
+  "parameters": 1000.0
+ },
+ "kimi-k2-6-non-reasoning": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT",
+  "parameters": 1000.0
+ },
+ "kimi-k2-7-code": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k2-thinking": {
+  "inferenceParametersActiveBillions": 32.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 1000.0
+ },
+ "kimi-k3": {
+  "inferenceParametersActiveBillions": 104.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Kimi K3 License",
+  "parameters": 2800.0
+ },
+ "kimi-k3-low": {
+  "inferenceParametersActiveBillions": 104.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Kimi K3 License",
+  "parameters": 2800.0
+ },
+ "kimi-linear-48b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 49.1
+ },
+ "lfm2-1-2b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.17
+ },
+ "lfm2-2-6b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 2.57
+ },
+ "lfm2-24b-a2b": {
+  "inferenceParametersActiveBillions": 2.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 23.8
+ },
+ "lfm2-5-1-2b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.17
+ },
+ "lfm2-5-1-2b-thinking": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.17
+ },
+ "lfm2-5-2-6b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 2.7
+ },
+ "lfm2-5-8b-a1b": {
+  "inferenceParametersActiveBillions": 1.5,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 8.3
+ },
+ "lfm2-5-vl-1-6b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.6
+ },
+ "lfm2-8b-a1b": {
+  "inferenceParametersActiveBillions": 1.5,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 8.34
+ },
+ "ling-1t": {
+  "inferenceParametersActiveBillions": 50.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1000.0
+ },
+ "ling-2-6-1t": {
+  "inferenceParametersActiveBillions": 63.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1026.0
+ },
+ "ling-2-6-flash": {
+  "inferenceParametersActiveBillions": 7.4,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 107.0
+ },
+ "ling-3-0-flash": {
+  "inferenceParametersActiveBillions": 5.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 124.0
+ },
+ "ling-3-0-flash-fin": {
+  "inferenceParametersActiveBillions": 5.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 124.0
+ },
+ "ling-3-0-flash-vl": {
+  "inferenceParametersActiveBillions": 5.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 124.0
+ },
+ "ling-3-0-tiny": {
+  "inferenceParametersActiveBillions": 1.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 7.9
+ },
+ "ling-flash-2-0": {
+  "inferenceParametersActiveBillions": 6.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 103.0
+ },
+ "ling-mini-2-0": {
+  "inferenceParametersActiveBillions": 1.4,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 16.3
+ },
+ "llama-2-chat-13b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Llama 2 Community License Agreement",
+  "parameters": 13.0
+ },
+ "llama-2-chat-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Llama 2 Community License Agreement",
+  "parameters": 70.0
+ },
+ "llama-2-chat-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Llama 2 Community License Agreement",
+  "parameters": 7.0
+ },
+ "llama-3-1-instruct-405b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 405.0
+ },
+ "llama-3-1-instruct-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.0
+ },
+ "llama-3-1-instruct-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 8.0
+ },
+ "llama-3-1-nemotron-instruct-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.0
+ },
+ "llama-3-1-nemotron-nano-4b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 4.51
+ },
+ "llama-3-1-nemotron-ultra-253b-v1-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 253.0
+ },
+ "llama-3-2-instruct-11b-vision": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.2 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 11.0
+ },
+ "llama-3-2-instruct-1b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.2 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 1.0
+ },
+ "llama-3-2-instruct-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.2 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 3.0
+ },
+ "llama-3-2-instruct-90b-vision": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.2 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 90.0
+ },
+ "llama-3-3-instruct-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.0
+ },
+ "llama-3-3-nemotron-super-49b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 49.0
+ },
+ "llama-3-3-nemotron-super-49b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 49.0
+ },
+ "llama-3-instruct-70b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 70.0
+ },
+ "llama-3-instruct-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "META LLAMA 3 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 8.0
+ },
+ "llama-4-maverick": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 4 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 402.0
+ },
+ "llama-4-scout": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 4 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 109.0
+ },
+ "llama-65b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLaMA LICENSE AGREEMENT",
+  "parameters": 65.0
+ },
+ "llama-nemotron-super-49b-v1-5": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 49.0
+ },
+ "llama-nemotron-super-49b-v1-5-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 49.0
+ },
+ "longcat-2-0": {
+  "inferenceParametersActiveBillions": 48.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1600.0
+ },
+ "longcat-flash-lite": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 68.5
+ },
+ "magistral-small": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 23.6
+ },
+ "magistral-small-2509": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "mimo-v2-0206": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 309.0
+ },
+ "mimo-v2-5-0424": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 310.0
+ },
+ "mimo-v2-5-pro": {
+  "inferenceParametersActiveBillions": 42.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1023.0
+ },
+ "mimo-v2-5-pro-non-reasoning": {
+  "inferenceParametersActiveBillions": 42.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1023.0
+ },
+ "mimo-v2-6-flash": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 309.0
+ },
+ "mimo-v2-6-pro": {
+  "inferenceParametersActiveBillions": 42.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "MIT",
+  "parameters": 1020.0
+ },
+ "mimo-v2-flash": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 309.0
+ },
+ "mimo-v2-flash-reasoning": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 309.0
+ },
+ "minicpm-v4-6-1-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.3
+ },
+ "minicpm5-1b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.0
+ },
+ "minicpm5-1b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.0
+ },
+ "minicpm5-2b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 2.6
+ },
+ "minimax-m1-40k": {
+  "inferenceParametersActiveBillions": 45.9,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 456.0
+ },
+ "minimax-m1-80k": {
+  "inferenceParametersActiveBillions": 45.9,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 456.0
+ },
+ "minimax-m2": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT",
+  "parameters": 230.0
+ },
+ "minimax-m2-1": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 230.0
+ },
+ "minimax-m2-5": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 230.0
+ },
+ "minimax-m2-7": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NON-COMMERCIAL LICENSE",
+  "parameters": 230.0
+ },
+ "minimax-m3": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MINIMAX COMMUNITY LICENSE",
+  "parameters": 428.0
+ },
+ "ministral-3-14b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 14.0
+ },
+ "ministral-3-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.0
+ },
+ "ministral-3-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.0
+ },
+ "mistral-7b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.0
+ },
+ "mistral-8x22b-instruct": {
+  "inferenceParametersActiveBillions": 39.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 141.0
+ },
+ "mistral-large-2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Research License",
+  "parameters": 123.0
+ },
+ "mistral-large-2407": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Research License",
+  "parameters": 123.0
+ },
+ "mistral-large-3": {
+  "inferenceParametersActiveBillions": 41.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 675.0
+ },
+ "mistral-medium-3-5": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Modified MIT License",
+  "parameters": 128.0
+ },
+ "mistral-small": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Research License",
+  "parameters": 22.0
+ },
+ "mistral-small-3": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "mistral-small-3-1": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "mistral-small-3-2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 24.0
+ },
+ "mistral-small-4": {
+  "inferenceParametersActiveBillions": 6.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 119.0
+ },
+ "mistral-small-4-non-reasoning": {
+  "inferenceParametersActiveBillions": 6.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 119.0
+ },
+ "mixtral-8x7b-instruct": {
+  "inferenceParametersActiveBillions": 12.9,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 46.7
+ },
+ "molmo-7b-d": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.02
+ },
+ "molmo2-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.66
+ },
+ "motif-3": {
+  "inferenceParametersActiveBillions": 13.2,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 314.0
+ },
+ "muse-glimmer": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "nanbeige4-1-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 3.93
+ },
+ "nemotron-3-5-lightning": {
+  "inferenceParametersActiveBillions": 3.6,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "OpenMDW-1.1",
+  "parameters": 31.6
+ },
+ "nemotron-3-nano-omni-30b-a3b": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 30.0
+ },
+ "nemotron-cascade-2-30b-a3b": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Open Model License",
+  "parameters": 31.6
+ },
+ "nex-n2-pro": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 397.0
+ },
+ "north-mini-code": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "nvidia-nemotron-3-nano-30b-a3b": {
+  "inferenceParametersActiveBillions": 3.6,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Nemotron Open Model License",
+  "parameters": 31.6
+ },
+ "nvidia-nemotron-3-nano-30b-a3b-reasoning": {
+  "inferenceParametersActiveBillions": 3.6,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Nemotron Open Model License",
+  "parameters": 31.6
+ },
+ "nvidia-nemotron-3-nano-4b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Nemotron Open Model License",
+  "parameters": 3.97
+ },
+ "nvidia-nemotron-3-super-120b-a12b": {
+  "inferenceParametersActiveBillions": 12.7,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Nemotron Open Model License",
+  "parameters": 120.6
+ },
+ "nvidia-nemotron-3-ultra-550b-a55b": {
+  "inferenceParametersActiveBillions": 55.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "OpenMDW",
+  "parameters": 550.0
+ },
+ "nvidia-nemotron-nano-12b-v2-vl": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Open Model License",
+  "parameters": 13.2
+ },
+ "nvidia-nemotron-nano-12b-v2-vl-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Nvidia Open Model License",
+  "parameters": 13.2
+ },
+ "nvidia-nemotron-nano-9b-v2": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 9.0
+ },
+ "nvidia-nemotron-nano-9b-v2-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "NVIDIA Open Model License Agreement",
+  "parameters": 9.0
+ },
+ "olmo-2-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.2
+ },
+ "olmo-2-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.3
+ },
+ "olmo-3-1-32b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.2
+ },
+ "olmo-3-1-32b-think": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.2
+ },
+ "olmo-3-32b-think": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.2
+ },
+ "olmo-3-7b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.0
+ },
+ "olmo-3-7b-think": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.0
+ },
+ "openchat-35": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.0
+ },
+ "phi-3-mini": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 3.8
+ },
+ "phi-4": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 14.0
+ },
+ "phi-4-mini": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 3.84
+ },
+ "phi-4-multimodal": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "MIT",
+  "parameters": 5.6
+ },
+ "pixtral-large-2411": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Research License",
+  "parameters": 124.0
+ },
+ "qwen-chat-14b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Tongyi Qianwen LICENSE AGREEMENT",
+  "parameters": 14.0
+ },
+ "qwen-chat-72b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Tongyi Qianwen LICENSE AGREEMENT",
+  "parameters": 72.0
+ },
+ "qwen1.5-110b-chat": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Tongyi Qianwen LICENSE AGREEMENT",
+  "parameters": 110.0
+ },
+ "qwen2-5-72b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Qwen License Agreement",
+  "parameters": 72.0
+ },
+ "qwen2-5-coder-32b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.0
+ },
+ "qwen2-5-coder-7b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 7.62
+ },
+ "qwen2-72b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Tongyi Qianwen LICENSE AGREEMENT",
+  "parameters": 72.0
+ },
+ "qwen2.5-32b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.0
+ },
+ "qwen3-0.6b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.752
+ },
+ "qwen3-0.6b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.752
+ },
+ "qwen3-1.7b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 2.03
+ },
+ "qwen3-1.7b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 2.03
+ },
+ "qwen3-14b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 14.8
+ },
+ "qwen3-14b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 14.8
+ },
+ "qwen3-235b-a22b-instruct": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-235b-a22b-instruct-2507": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-235b-a22b-instruct-2507-reasoning": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-235b-a22b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-30b-a3b-2507": {
+  "inferenceParametersActiveBillions": 3.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.5
+ },
+ "qwen3-30b-a3b-2507-reasoning": {
+  "inferenceParametersActiveBillions": 3.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.5
+ },
+ "qwen3-30b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.5
+ },
+ "qwen3-30b-a3b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": 3.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.5
+ },
+ "qwen3-32b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.8
+ },
+ "qwen3-32b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.8
+ },
+ "qwen3-4b-2507-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.02
+ },
+ "qwen3-4b-2507-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.02
+ },
+ "qwen3-4b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.02
+ },
+ "qwen3-4b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.02
+ },
+ "qwen3-5-0-8b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.873
+ },
+ "qwen3-5-0-8b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 0.873
+ },
+ "qwen3-5-122b-a10b": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 125.0
+ },
+ "qwen3-5-122b-a10b-non-reasoning": {
+  "inferenceParametersActiveBillions": 10.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 125.0
+ },
+ "qwen3-5-27b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.8
+ },
+ "qwen3-5-27b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.8
+ },
+ "qwen3-5-2b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 2.27
+ },
+ "qwen3-5-2b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 2.27
+ },
+ "qwen3-5-35b-a3b": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.0
+ },
+ "qwen3-5-35b-a3b-non-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.0
+ },
+ "qwen3-5-397b-a17b": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 397.0
+ },
+ "qwen3-5-397b-a17b-non-reasoning": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 397.0
+ },
+ "qwen3-5-4b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.66
+ },
+ "qwen3-5-4b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.66
+ },
+ "qwen3-5-9b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 9.65
+ },
+ "qwen3-5-9b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 9.65
+ },
+ "qwen3-6-27b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.8
+ },
+ "qwen3-6-27b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.8
+ },
+ "qwen3-6-35b-a3b": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.0
+ },
+ "qwen3-6-35b-a3b-non-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.0
+ },
+ "qwen3-8-2-4t-a95b": {
+  "inferenceParametersActiveBillions": 95.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Qwen3.8-Max License",
+  "parameters": 2400.0
+ },
+ "qwen3-8-27b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.0
+ },
+ "qwen3-8-27b-low": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.0
+ },
+ "qwen3-8-27b-medium": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.0
+ },
+ "qwen3-8-27b-non-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 27.0
+ },
+ "qwen3-8-flash-next": {
+  "inferenceParametersActiveBillions": 6.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Qwen Community License 1.0",
+  "parameters": 180.0
+ },
+ "qwen3-8b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.19
+ },
+ "qwen3-8b-instruct-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.19
+ },
+ "qwen3-coder-30b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.5
+ },
+ "qwen3-coder-480b-a35b-instruct": {
+  "inferenceParametersActiveBillions": 35.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 480.0
+ },
+ "qwen3-coder-next": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 79.7
+ },
+ "qwen3-next-80b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 80.0
+ },
+ "qwen3-next-80b-a3b-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 80.0
+ },
+ "qwen3-omni-30b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 35.3
+ },
+ "qwen3-omni-30b-a3b-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 35.3
+ },
+ "qwen3-vl-235b-a22b-instruct": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-vl-235b-a22b-reasoning": {
+  "inferenceParametersActiveBillions": 22.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 235.0
+ },
+ "qwen3-vl-30b-a3b-instruct": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "qwen3-vl-30b-a3b-reasoning": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 30.0
+ },
+ "qwen3-vl-32b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 33.4
+ },
+ "qwen3-vl-32b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 33.4
+ },
+ "qwen3-vl-4b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.44
+ },
+ "qwen3-vl-4b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 4.44
+ },
+ "qwen3-vl-8b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.77
+ },
+ "qwen3-vl-8b-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 8.77
+ },
+ "qwq-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.8
+ },
+ "r1-1776": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 671.0
+ },
+ "reka-flash-3": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 21.0
+ },
+ "ring-1t": {
+  "inferenceParametersActiveBillions": 50.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1000.0
+ },
+ "ring-2-6-1t": {
+  "inferenceParametersActiveBillions": 63.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 1000.0
+ },
+ "ring-flash-2-0": {
+  "inferenceParametersActiveBillions": 6.1,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 103.0
+ },
+ "sarvam-105b": {
+  "inferenceParametersActiveBillions": 10.3,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 106.0
+ },
+ "sarvam-30b": {
+  "inferenceParametersActiveBillions": 2.4,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.2
+ },
+ "sarvam-m-reasoning": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 23.6
+ },
+ "seed-oss-36b-instruct": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 36.2
+ },
+ "solar-mini": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 10.7
+ },
+ "solar-open-100b-reasoning": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Upstage Solar License",
+  "parameters": 102.0
+ },
+ "solar-open2-250b": {
+  "inferenceParametersActiveBillions": 15.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Upstage Solar License",
+  "parameters": 250.0
+ },
+ "step-3-5-flash-0202": {
+  "inferenceParametersActiveBillions": 11.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 196.0
+ },
+ "step-3-7-flash": {
+  "inferenceParametersActiveBillions": 11.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 198.0
+ },
+ "step-3-vl-10b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 10.2
+ },
+ "tiny-aya-global": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Cc By Nc 4.0",
+  "parameters": 3.35
+ },
+ "tri-21b-think-preview": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 21.0
+ },
+ "tri-21b-think-v0-5": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 21.0
+ },
+ "trinity-large-thinking": {
+  "inferenceParametersActiveBillions": 13.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 399.0
+ },
+ "tulu3-405b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "LLAMA 3.1 COMMUNITY LICENSE AGREEMENT",
+  "parameters": 405.0
+ }
+}

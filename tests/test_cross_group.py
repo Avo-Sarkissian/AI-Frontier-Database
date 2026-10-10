@@ -79,7 +79,7 @@ def test_the_raw_names_ride_at_customdata_5_and_6():
 # ── Open-weight scrape: sidecar and deprecation hysteresis ────────────────────
 
 def _rec(i, deprecated=False, coding=None):
-    return {"name": f"Open {i}", "creator": {"id": "c", "name": "LabX"},
+    return {"slug": f"open-{i}", "name": f"Open {i}", "creator": {"id": "c", "name": "LabX"},
             "isOpenWeights": True, "deprecated": deprecated,
             "intelligenceIndex": 40.0 + i, "intelligenceIndexIsEstimated": False,
             "parameters": 20.0, "inferenceParametersActiveBillions": 20.0,
@@ -87,33 +87,56 @@ def _rec(i, deprecated=False, coding=None):
             "codingIndex": coding, "agenticIndex": None, "omniscience": -5.0}
 
 
+_SPEC_KEYS = ("parameters", "inferenceParametersActiveBillions", "licenseName")
+
+
 @pytest.fixture
 def local_sandbox(tmp_path, monkeypatch):
     """_scrape_and_save end to end, with the network, the cache and data/carried
-    all redirected into tmp_path."""
+    all redirected into tmp_path. The leaderboard serves records WITHOUT specs;
+    each model's page serves its own specs, as AA does since 2026-10-05."""
     box = type("Box", (), {})()
     box.records = [_rec(i, coding=30.0 + i) for i in range(10)]
+    box.pages = []
+    box.failing = set()
     monkeypatch.setattr(L, "_CACHE", tmp_path / "aa_local_models.csv")
     monkeypatch.setattr(carried, "CARRIED_DIR", tmp_path / "carried")
+    monkeypatch.setattr(L, "_PAGE_DELAY_S", 0)
 
     class _Resp:
-        text = ""
+        def __init__(self, url):
+            self.text = url
         def raise_for_status(self):
-            pass
+            if self.text.rsplit("/", 1)[-1] in box.failing:
+                raise RuntimeError("503")
 
-    monkeypatch.setattr(L.requests, "get", lambda *a, **k: _Resp())
-    monkeypatch.setattr(L, "payload_from_html", lambda html: "")
-    monkeypatch.setattr(L, "_entry_slug", lambda payload: "open-0")
-    monkeypatch.setattr(L, "_extract_models", lambda html: box.records)
+    def get(url, *a, **k):
+        if "/models/" in url and "leaderboards" not in url:
+            box.pages.append(url.rsplit("/", 1)[-1])
+        return _Resp(url)
+
+    def board(payload):
+        return [{k: v for k, v in r.items() if k not in _SPEC_KEYS} for r in box.records]
+
+    def harvest(payload):
+        slug = payload.rsplit("/", 1)[-1]
+        return {r["slug"]: L._spec_of(r) for r in box.records if r["slug"] == slug}
+
+    monkeypatch.setattr(L.requests, "get", get)
+    monkeypatch.setattr(L, "payload_from_html", lambda html: html)
+    monkeypatch.setattr(L, "_leaderboard", board)
+    monkeypatch.setattr(L, "_harvest_specs", harvest)
 
     def run(deprecated=()):
         box.records = [_rec(i, deprecated=i in deprecated,
                             coding=None if i in deprecated else 30.0 + i)
                        for i in range(10)]
+        box.pages.clear()
         assert L._scrape_and_save() is True
         return set(pd.read_csv(L._CACHE)["name"])
     box.run = run
     box.state_path = tmp_path / "carried" / L._DEPRECATION_STATE_FILE
+    box.specs_path = tmp_path / "carried" / L._SPECS_FILE
     return box
 
 
@@ -144,3 +167,28 @@ def test_a_clean_local_scrape_resets_the_streak(local_sandbox):
 def test_an_unpublished_deprecated_model_is_still_skipped(local_sandbox):
     # First scrape ever: nothing is published yet, so nothing is held.
     assert "Open 3" not in local_sandbox.run(deprecated={3})
+
+
+def test_local_specs_come_from_each_models_own_page_and_are_cached(local_sandbox):
+    """The leaderboard has no parameter counts; a model's own page does."""
+    names = local_sandbox.run()
+    assert names == {f"Open {i}" for i in range(10)}
+    assert sorted(local_sandbox.pages) == sorted(f"open-{i}" for i in range(10))
+    df = pd.read_csv(L._CACHE)
+    assert (df["params_b"] == 20.0).all() and (df["license"] == "MIT").all()
+
+    # Second run: every spec is cached, so only the rotating few are re-read.
+    before = local_sandbox.specs_path.read_bytes()
+    local_sandbox.run()
+    assert len(local_sandbox.pages) == L._ROTATE_PER_RUN
+    assert local_sandbox.specs_path.read_bytes() == before, (
+        "an unchanged spec cache must be byte-identical, or the bot commits hourly"
+    )
+
+
+def test_one_failing_model_page_costs_that_model_not_the_run(local_sandbox):
+    local_sandbox.failing = {"open-3"}
+    names = local_sandbox.run()
+    assert "Open 3" not in names and len(names) == 9
+    local_sandbox.failing = set()
+    assert "Open 3" in local_sandbox.run(), "the next run must retry the page"

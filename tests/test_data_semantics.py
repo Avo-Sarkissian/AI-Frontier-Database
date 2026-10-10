@@ -811,15 +811,44 @@ def test_the_detail_page_catalogue_is_told_apart_from_the_slim_leaderboard():
     assert len(got) == 2
 
 
-def test_the_catalogue_page_slug_is_discovered_not_hardcoded():
-    """Any model's page serves the whole catalogue, so the entry point is just
-    a slug that exists. Pinning one means the scrape dies the day that model is
-    deprecated — which is how this project lost three endpoints already."""
-    from data.local_scraper import _entry_slug
+def test_specs_are_harvested_from_records_scattered_through_a_model_page():
+    """Since ~2026-10-05 a /models/<slug> page carries its own record and ~25
+    headline models, not one catalogue array. Every open-weight one counts;
+    proprietary records (parameters null) are not specs."""
+    from data.local_scraper import _harvest_specs
 
-    picker = [
-        {"slug": "gone", "name": "Retired", "deprecated": True},
-        {"slug": "alive", "name": "Current", "deprecated": False},
-    ]
-    payload = '{"models":' + json.dumps(picker) + "}"
-    assert _entry_slug(payload) == "alive", "picked a deprecated model's page"
+    own = {"id": "a", "slug": "gpt-oss-120b", "name": "gpt-oss-120b (High)",
+           "isOpenWeights": True, "parameters": 117,
+           "inferenceParametersActiveBillions": 5.1, "inputModalityImage": False,
+           "inputModalitySpeech": False, "licenseName": "Apache 2.0",
+           "release": {"slug": "gpt-oss", "name": "gpt-oss"}}
+    other = dict(own, slug="kimi-k3", parameters=2800, licenseName="$undefined")
+    closed = dict(own, slug="claude-opus-5-5", isOpenWeights=False, parameters=None)
+    payload = ('[{"page":{"model":' + json.dumps(own) + '},"related":[{"x":1},'
+               + json.dumps(closed) + "," + json.dumps(other) + "]}]")
+    got = _harvest_specs(payload)
+    assert set(got) == {"gpt-oss-120b", "kimi-k3"}
+    assert got["gpt-oss-120b"]["parameters"] == 117
+    assert got["gpt-oss-120b"]["inferenceParametersActiveBillions"] == 5.1
+    assert got["kimi-k3"]["licenseName"] is None, '"$undefined" is not a licence'
+
+
+def test_new_models_get_their_page_read_first_and_known_ones_rotate():
+    from data.local_scraper import _pages_to_fetch, _MAX_NEW_PAGES, _ROTATE_PER_RUN
+
+    board = [{"slug": f"m{i:03d}", "isOpenWeights": True, "deprecated": False,
+              "intelligenceIndex": 30.0} for i in range(60)]
+    board += [{"slug": "gone", "isOpenWeights": True, "deprecated": True, "intelligenceIndex": 30.0},
+              {"slug": "closed", "isOpenWeights": False, "deprecated": False, "intelligenceIndex": 50.0}]
+    known = {f"m{i:03d}": {} for i in range(30)}
+    pages = _pages_to_fetch(board, known, hour=0)
+    new = [p for p in pages if p not in known]
+    assert new == [f"m{i:03d}" for i in range(30, 30 + _MAX_NEW_PAGES)]
+    assert len(pages) == _MAX_NEW_PAGES + _ROTATE_PER_RUN
+    assert "gone" not in pages and "closed" not in pages
+
+    full = {f"m{i:03d}": {} for i in range(60)}
+    seen = set()
+    for hour in range(60 // _ROTATE_PER_RUN):
+        seen.update(_pages_to_fetch(board, full, hour))
+    assert seen == set(full), "rotation must eventually re-read every known model"
