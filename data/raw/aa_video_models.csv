@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1129.03,12.0,1361.66,12.0,True,12.0,,
 MiniMax H3 Max,minimax-h3-max,Fal,,,True,False,1118.39,4.8,,,True,4.8,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1116.98,4.8,,,True,4.8,125.811346868,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1116.98,4.8,,,True,4.8,127.1885080585,MiniMax
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1104.73,34.12,,,True,34.12,,
 FLUX 3,flux-3,Black Forest Labs,,,True,False,1090.78,17.4,,,True,17.4,,
 SkyReels V4,skyreels-v4,Skywork AI,Skyreels,2026-03-18,True,False,1084.47,21.0,1282.43,21.0,True,21.0,,
@@ -79,7 +79,7 @@ Seedance 1.0 Mini,seedance-1-0-mini,ByteDance Seed,Seedance,2025-06-10,True,Fals
 Kling 1.6 Pro,kling-1-6-pro,KlingAI,Kling,2024-12-19,True,False,,,1137.02,5.88,False,,,
 HunyuanVideo-1.5 (Fal),hunyuanvideo-1-5-fal,Tencent,Hunyuan Video,2025-11-20,True,True,,,1133.79,4.5,False,,,
 Agnes-Video-V2.0,agnes-video-v2.0,Sapiens AI,Agnes Video,2026-05-20,True,False,,,1127.06,0.3,True,0.3,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.67,4.8,False,,269.291009216,DeepInfra
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.67,4.8,False,,269.189017526,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,,,1099.49,30.0,False,,,
 Runway Gen 4,runway-gen-4,Runway,Runway,2025-03-31,True,False,,,1088.03,9.0,False,,,
 I2V-01-Director,i2v-01-director,MiniMax,Video-01,2025-02-22,True,False,,,1047.66,4.3,False,,,

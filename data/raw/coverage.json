@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 697,
-  "distinct_upstream_models": 267,
-  "kept": 172,
+  "upstream_host_model_rows": 699,
+  "distinct_upstream_models": 269,
+  "kept": 173,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -78,6 +78,7 @@
     "Molmo2-8B",
     "Motif 3",
     "Motif-2-12.7B-Reasoning",
+    "Muse Wonder Full (Max)",
     "NVIDIA Nemotron 3 Nano 4B",
     "NVIDIA Nemotron Nano 12B v2 VL (Reasoning)",
     "Nanbeige4.1-3B",
