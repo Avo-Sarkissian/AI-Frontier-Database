@@ -9,7 +9,7 @@ DeepSeek V4.1 Flash (Max),DeepSeek,552.0,16.0,1000,39.46,MIT,"vision,reasoning",
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,37.88,MIT,"vision,reasoning",True,False,,,-12.68
 DeepSeek V4 Pro 0813 (Max),DeepSeek,1600.0,49.0,1000,36.0,MIT,reasoning,True,False,,,0.83
 GLM-5.3 (Low),Z AI,753.0,40.0,1000,34.3,GLM-5.3 License,reasoning,True,False,,,-8.4
-Qwen3.8 27B (Xhigh),Alibaba,27.0,27.0,256,33.7,Apache 2.0,"vision,reasoning",False,False,,,-9.98
+Qwen3.8 27B (Xhigh),Alibaba,27.0,27.0,256,33.68,Apache 2.0,"vision,reasoning",False,False,,,-9.98
 Motif 3,Motif Technologies,314.0,13.2,262,33.57,MIT,reasoning,True,True,63.48,,10.18
 K2 Horizon 375B A23B,Institute of Foundation Models,375.0,23.0,524,30.5,Apache 2.0,reasoning,True,False,61.52,40.93,-2.97
 Kimi K3 (Low),Kimi,2800.0,104.0,1049,30.07,Kimi K3 License,"vision,reasoning",True,False,,,3.92
