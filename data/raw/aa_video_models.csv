@@ -22,11 +22,11 @@ Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,945.17,3.0,124
 LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,931.36,7.8,1215.09,7.8,True,7.8,,
 LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,929.25,10.2,1194.49,10.2,True,10.2,,
 Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,912.11,7.2,1265.11,7.2,False,,,
-Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,900.1,3.9,1229.78,3.9,True,3.9,43.2126130160002,Vidu
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,898.69,7.2,1289.99,9.6,True,7.2,137.98857411,Vidu
+Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,900.1,3.9,1229.78,3.9,True,3.9,43.2756536210004,Vidu
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,898.69,7.2,1289.99,9.6,True,7.2,135.768710171,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,884.96,6.72,,,False,,,
 LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,844.79,3.6,1149.73,2.4,True,2.4,30.056681064,Lightricks
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,838.49,4.8,1157.53,4.8,True,4.8,60.348243293,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,838.49,4.8,1157.53,4.8,True,4.8,60.541548298,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,837.69,5.4,1199.23,5.4,False,,,
 Boreal,boreal,Creatify,,,True,False,821.64,2.69,,,True,2.69,,
 P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,803.29,2.4,1129.83,1.2,False,,,
@@ -78,7 +78,7 @@ Seedance 1.0 Mini,seedance-1-0-mini,ByteDance Seed,Seedance,2025-06-10,True,Fals
 Kling 1.6 Pro,kling-1-6-pro,KlingAI,Kling,2024-12-19,True,False,,,1137.12,5.88,False,,,
 HunyuanVideo-1.5 (Fal),hunyuanvideo-1-5-fal,Tencent,Hunyuan Video,2025-11-20,True,True,,,1133.89,4.5,False,,,
 Agnes-Video-V2.0,agnes-video-v2.0,Sapiens AI,Agnes Video,2026-05-20,True,False,,,1127.17,0.3,False,,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.73,4.8,False,,268.839497867,DeepInfra
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,1106.73,4.8,False,,268.830291276,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,,,1099.59,30.0,False,,,
 Runway Gen 4,runway-gen-4,Runway,Runway,2025-03-31,True,False,,,1088.13,9.0,False,,,
 I2V-01-Director,i2v-01-director,MiniMax,Video-01,2025-02-22,True,False,,,1047.76,4.3,False,,,
