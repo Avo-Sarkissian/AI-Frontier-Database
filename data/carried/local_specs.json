@@ -1756,6 +1756,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 30.0
  },
+ "muse-spark-open": {
+  "inferenceParametersActiveBillions": 42.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Muse Model License",
+  "parameters": 816.0
+ },
  "nanbeige4-1-3b": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": false,
