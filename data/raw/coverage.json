@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 703,
-  "distinct_upstream_models": 273,
-  "kept": 175,
+  "distinct_upstream_models": 272,
+  "kept": 174,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -440,6 +440,7 @@
     "Muse Spark",
     "Muse Spark 1.1 (Xhigh)",
     "Muse Spark 1.2 (Xhigh)",
+    "Nemotron 3 Super 120B A12B (Reasoning)",
     "Nova Lite",
     "Nova Pro",
     "OLMo 2 32B",
@@ -536,7 +537,5 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": [
-    "Nemotron 3 Super 120B A12B (Reasoning)"
-  ]
+  "held_deprecated": []
 }
