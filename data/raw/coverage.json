@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 700,
-  "distinct_upstream_models": 270,
+  "upstream_host_model_rows": 702,
+  "distinct_upstream_models": 272,
   "kept": 175,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
@@ -83,6 +83,8 @@
     "NVIDIA Nemotron 3 Nano 4B",
     "NVIDIA Nemotron Nano 12B v2 VL (Reasoning)",
     "Nanbeige4.1-3B",
+    "Nemotron 3.5 Bolt 74B-A9B",
+    "Nemotron 3.5 Super VL",
     "Nemotron Cascade 2 30B A3B",
     "Nex-N2-Pro (Based on Qwen3.5-397B-A17B)",
     "North Mini Code",
@@ -533,5 +535,7 @@
     "o3-pro",
     "o4-mini (High)"
   ],
-  "held_deprecated": []
+  "held_deprecated": [
+    "Nemotron 3 Super 120B A12B (Reasoning)"
+  ]
 }
