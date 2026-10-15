@@ -1763,12 +1763,26 @@
   "licenseName": "Apache 2.0",
   "parameters": 3.93
  },
+ "nemotron-3-5-bolt-74b-a9b": {
+  "inferenceParametersActiveBillions": 9.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": null,
+  "parameters": 74.0
+ },
  "nemotron-3-5-lightning": {
   "inferenceParametersActiveBillions": 3.6,
   "inputModalityImage": false,
   "inputModalitySpeech": false,
   "licenseName": "OpenMDW-1.1",
   "parameters": 31.6
+ },
+ "nemotron-3-5-super-vl": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "OpenMDW-1.1",
+  "parameters": 120.0
  },
  "nemotron-3-nano-omni-30b-a3b": {
   "inferenceParametersActiveBillions": 3.0,
