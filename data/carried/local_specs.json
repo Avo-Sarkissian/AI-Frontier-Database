@@ -2596,6 +2596,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 10.2
  },
+ "step-5": {
+  "inferenceParametersActiveBillions": 27.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "StepFun Model License 1.0",
+  "parameters": 600.0
+ },
  "tiny-aya-global": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": false,
