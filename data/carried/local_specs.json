@@ -1280,6 +1280,13 @@
   "licenseName": "MIT",
   "parameters": 7.9
  },
+ "ling-3-1-flash": {
+  "inferenceParametersActiveBillions": 25.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 560.0
+ },
  "ling-flash-2-0": {
   "inferenceParametersActiveBillions": 6.1,
   "inputModalityImage": false,
