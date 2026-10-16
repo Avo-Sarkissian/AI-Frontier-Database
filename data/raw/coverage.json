@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 704,
   "distinct_upstream_models": 273,
-  "kept": 167,
+  "kept": 166,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -13,6 +13,7 @@
     "A.X-K2",
     "Apertus 70B Instruct",
     "Apriel-v1.6-15B-Thinker",
+    "Beam 1.0",
     "Command A+",
     "DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning)",
     "DeepHermes 3 - Mistral 24B Preview (Non-reasoning)",
