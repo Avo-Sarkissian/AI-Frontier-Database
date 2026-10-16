@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 703,
   "distinct_upstream_models": 272,
-  "kept": 174,
+  "kept": 176,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -79,13 +79,11 @@
     "Molmo2-8B",
     "Motif 3",
     "Motif-2-12.7B-Reasoning",
-    "Muse Spark Open (Xhigh)",
     "Muse Wonder Full (Max)",
     "NVIDIA Nemotron 3 Nano 4B",
     "NVIDIA Nemotron Nano 12B v2 VL (Reasoning)",
     "Nanbeige4.1-3B",
     "Nemotron 3.5 Bolt 74B-A9B",
-    "Nemotron 3.5 Super VL",
     "Nemotron Cascade 2 30B A3B",
     "Nex-N2-Pro (Based on Qwen3.5-397B-A17B)",
     "North Mini Code",

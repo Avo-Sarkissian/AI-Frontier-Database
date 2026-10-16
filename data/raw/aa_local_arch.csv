@@ -173,3 +173,4 @@ K2-V2 (Low),IFM/K2-Think-V2,gqa,80,,,8.0,128.0,,,72.55,2026-09-30,
 Sarvam 30B (High),sarvamai/sarvam-30b,gqa,19,,,4.0,64.0,,,32.153,2026-09-30,
 EXAONE 4.5 33B (Reasoning),LGAI-EXAONE/EXAONE-4.5-33B,gqa,64,,,8.0,128.0,4096.0,16.0,34.35,2026-10-01,sliding
 Muse Spark Open (Xhigh),mlx-community/Muse-Spark-Open-816B-A42B-4bit,gqa,62,,,16.0,64.0,2048.0,16.0,819.991,2026-10-15,sliding
+Step 5 Preview,stepfun-ai/Step-5-Preview,gqa,92,,,64.0,192.0,512.0,23.0,604.34,2026-10-16,sliding

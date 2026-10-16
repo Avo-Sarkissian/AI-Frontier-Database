@@ -1759,7 +1759,7 @@
  "muse-spark-open": {
   "inferenceParametersActiveBillions": 42.0,
   "inputModalityImage": true,
-  "inputModalitySpeech": false,
+  "inputModalitySpeech": true,
   "licenseName": "Muse Model License",
   "parameters": 816.0
  },

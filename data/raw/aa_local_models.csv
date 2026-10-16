@@ -1,12 +1,13 @@
 name,family,params_b,active_b,context_k,quality,license,tags,moe,quality_estimated,coding,agentic,omniscience
 MiMo-V2.6-Pro,Xiaomi,1020.0,42.0,1000,46.32,MIT,"vision,audio,reasoning",True,False,,,8.38
 GLM-5.3 (Max),Z AI,753.0,40.0,1000,44.78,GLM-5.3 License,reasoning,True,False,,,14.3
+Step 5 Preview,StepFun,600.0,27.0,1000,43.73,StepFun Model License 1.0,"vision,reasoning",True,False,,,16.38
 Kimi K3 (Max),Kimi,2800.0,104.0,1049,43.59,Kimi K3 License,"vision,reasoning",True,False,,,19.7
 GLM-5.3-Flash,Z AI,320.0,18.0,1000,41.81,MIT,"vision,reasoning",True,False,71.53,51.23,7.47
 Qwen3.8 2.4T A95B,Alibaba,2400.0,95.0,262,39.95,Qwen3.8-Max License,reasoning,True,False,71.89,50.44,4.32
 Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,39.82,Qwen Community License 1.0,"vision,reasoning",True,False,73.05,,-9.72
 DeepSeek V4.1 Flash (Max),DeepSeek,552.0,16.0,1000,39.46,MIT,"vision,reasoning",True,False,,,-5.3
-Muse Spark Open (Xhigh),Meta,816.0,42.0,1049,38.87,Muse Model License,"vision,reasoning",True,False,,,24.65
+Muse Spark Open (Xhigh),Meta,816.0,42.0,1049,38.87,Muse Model License,"vision,audio,reasoning",True,False,,,24.65
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,37.88,MIT,"vision,reasoning",True,False,,,-12.68
 DeepSeek V4 Pro 0813 (Max),DeepSeek,1600.0,49.0,1000,36.0,MIT,reasoning,True,False,,,0.83
 GLM-5.3 (Low),Z AI,753.0,40.0,1000,34.3,GLM-5.3 License,reasoning,True,False,,,-8.4
