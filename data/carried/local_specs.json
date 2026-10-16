@@ -2505,6 +2505,13 @@
   "licenseName": "MIT",
   "parameters": 671.0
  },
+ "reflection-beam": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 501.0
+ },
  "reka-flash-3": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": false,
