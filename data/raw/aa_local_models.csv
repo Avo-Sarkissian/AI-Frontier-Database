@@ -35,7 +35,7 @@ Ling-3.0-flash-Fin,InclusionAI,124.0,5.1,262,22.6,MIT,reasoning,True,False,,,-14
 G9v3-39A5B,AI9Stars,39.0,5.0,131,21.83,Apache 2.0,reasoning,True,True,33.07,,3.77
 A.X-K2,SK Telecom,692.0,33.0,262,21.46,Apache 2.0,reasoning,True,False,38.81,,-8.23
 Qwen3.5 397B A17B (Non-reasoning),Alibaba,397.0,17.0,262,21.44,Apache 2.0,vision,True,True,,,-37.9
-Nemotron 3.5 Bolt 74B-A9B,NVIDIA,74.0,9.0,262,21.41,Unknown,"vision,reasoning",True,False,,,-19.17
+Nemotron 3.5 Bolt 74B-A9B,NVIDIA,74.0,9.0,262,21.41,OpenMDW-1.1,"vision,reasoning",True,False,,,-19.17
 K2 Horizon 7B,Institute of Foundation Models,7.0,7.0,524,20.6,Apache 2.0,reasoning,False,False,,,-16.57
 DeepSeek V4 Pro 0813 (Non-reasoning),DeepSeek,1600.0,49.0,1000,20.36,MIT,,True,False,,,-12.38
 Qwen3.8 27B (Non-reasoning),Alibaba,27.0,27.0,256,20.15,Apache 2.0,vision,False,False,44.59,,-7.95

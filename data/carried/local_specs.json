@@ -1781,7 +1781,7 @@
   "inferenceParametersActiveBillions": 9.0,
   "inputModalityImage": true,
   "inputModalitySpeech": false,
-  "licenseName": null,
+  "licenseName": "OpenMDW-1.1",
   "parameters": 74.0
  },
  "nemotron-3-5-lightning": {
