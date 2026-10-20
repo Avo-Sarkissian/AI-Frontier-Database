@@ -1,6 +1,6 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,elo_i2v,price_per_min_i2v,audio,price_per_min_audio,gen_time_s,gen_time_host
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1135.19,12.0,1361.58,12.0,True,12.0,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1121.09,4.8,,,True,4.8,122.746618287,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1121.09,4.8,,,True,4.8,122.484013222,MiniMax
 MiniMax H3 Max,minimax-h3-max,Fal,,,True,False,1118.75,4.8,,,True,4.8,,
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1104.67,34.12,,,True,24.6,,
 FLUX 3,flux-3,Black Forest Labs,,,True,False,1093.86,17.4,,,True,17.4,,
