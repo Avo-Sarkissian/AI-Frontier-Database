@@ -1,7 +1,7 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,audio,elo_i2v,price_per_min_i2v,price_per_min_audio,gen_time_s,gen_time_host
 HeyGen Video (ultraquality),heygen-video,HeyGen,,,True,False,1144.64,,False,,,,,
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1135.19,12.0,True,1361.57,12.0,12.0,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1121.09,4.8,True,,,4.8,123.472786827,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1121.09,4.8,True,,,4.8,123.6407823675,MiniMax
 MiniMax H3 Max,minimax-h3-max,Fal,,,True,False,1118.75,4.8,True,,,4.8,,
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1104.67,34.12,True,,,24.6,,
 FLUX 3,flux-3,Black Forest Labs,,,True,False,1093.86,17.4,True,,,17.4,,
@@ -26,8 +26,8 @@ Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,912.79,
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,900.53,3.9,True,1229.59,3.9,3.9,,
 Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,899.13,7.2,True,1289.8,9.6,7.2,,
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,888.29,6.72,False,,,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,845.24,3.6,True,1149.54,2.4,2.4,29.8889380649999,Lightricks
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.78,4.8,True,1157.34,4.8,4.8,58.2107855164999,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,845.24,3.6,True,1149.54,2.4,2.4,29.7195456759998,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.78,4.8,True,1157.34,4.8,4.8,58.4991622299999,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,838.27,5.4,False,1199.03,5.4,,,
 Boreal,boreal,Creatify,,,True,False,821.69,2.69,True,,,2.69,,
 P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,803.53,2.4,False,1129.64,1.2,,,
@@ -51,7 +51,7 @@ Kling 2.6 Pro (January),kling-2-6-pro-january-no-audio,KlingAI,Kling,2026-01-13,
 Kling 2.6 Standard (January),kling-2-6-standard-january-no-audio,KlingAI,Kling,2026-01-13,True,False,,,False,1264.73,2.52,,,
 Hailuo 2.3 Fast,hailuo-2-3-fast-prompt-enhancement,MiniMax,Hailuo AI (MiniMax),2025-10-28,True,False,,,False,1256.47,1.0,,,
 Seedance 1.5 pro,seedance-1-5-pro,ByteDance Seed,Seedance,2025-12-15,True,False,,,False,1255.82,5.93,,,
-Hailuo 2.3,hailuo-2-3-prompt-enhancement,MiniMax,Hailuo AI (MiniMax),2025-10-28,True,False,,,False,1255.08,2.8,,,
+Hailuo 2.3,hailuo-2-3-prompt-enhancement,MiniMax,Hailuo AI (MiniMax),2025-10-28,True,False,,,False,1255.05,2.8,,,
 Cosmos3-Super-Image2Video,cosmos3-super-image2video,NVIDIA,Cosmos,2026-05-31,True,True,,,False,1252.6,,,,
 Kling 2.6 Pro (December),kling-2-6-pro,KlingAI,Kling,2025-12-03,False,False,,,False,1249.3,4.2,,,
 Hailuo 02 Pro,hailuo-02-pro,MiniMax,Hailuo AI (MiniMax),2025-06-18,True,False,,,False,1249.13,4.9,,,
@@ -72,14 +72,14 @@ LTX-2 Fast,ltx-2-fast,Lightricks,LTX,2025-10-23,True,True,,,False,1190.75,2.4,,,
 Kling 2.1 Pro,kling-2-1-pro,KlingAI,Kling,2025-05-29,True,False,,,False,1184.54,5.88,,,
 Kling 2.0,kling-2-0,KlingAI,Kling,2025-04-15,True,False,,,False,1179.77,16.8,,,
 Vivago 2.0,vivago-2-0,HiDream,Vivago,2025-06-20,True,False,,,False,1176.4,,,,
-Kling 2.1 Standard,kling-2-1-standard,KlingAI,Kling,2025-05-29,True,False,,,False,1173.95,3.36,,,
+Kling 2.1 Standard,kling-2-1-standard,KlingAI,Kling,2025-05-29,True,False,,,False,1173.96,3.36,,,
 Midjourney V1,midjourney-v1,Midjourney,Midjourney Video,2025-06-19,True,False,,,False,1164.82,,,,
 PixVerse V4.5,pixverse-v4-5,PixVerse,PixVerse,2025-05-16,True,False,,,False,1152.4,4.8,,,
 Seedance 1.0 Mini,seedance-1-0-mini,ByteDance Seed,Seedance,2025-06-10,True,False,,,False,1138.31,5.29,,,
 Kling 1.6 Pro,kling-1-6-pro,KlingAI,Kling,2024-12-19,True,False,,,False,1136.91,5.88,,,
 HunyuanVideo-1.5 (Fal),hunyuanvideo-1-5-fal,Tencent,Hunyuan Video,2025-11-20,True,True,,,False,1133.7,4.5,,,
 Agnes-Video-V2.0,agnes-video-v2.0,Sapiens AI,Agnes Video,2026-05-20,True,False,,,False,1126.98,0.3,,,
-Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,False,1106.54,4.8,,268.924239068,DeepInfra
+Wan 2.2 A14B,wan-2-2-a14b,Alibaba,Wan,2025-07-28,True,True,,,False,1106.54,4.8,,268.919063767,DeepInfra
 Veo 2,veo-2,Google,Google Veo,2024-12-16,True,False,,,False,1099.35,30.0,,,
 Runway Gen 4,runway-gen-4,Runway,Runway,2025-03-31,True,False,,,False,1087.96,9.0,,,
 I2V-01-Director,i2v-01-director,MiniMax,Video-01,2025-02-22,True,False,,,False,1047.52,4.3,,,
