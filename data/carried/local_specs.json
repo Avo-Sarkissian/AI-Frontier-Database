@@ -286,6 +286,13 @@
   "licenseName": "MIT",
   "parameters": 552.0
  },
+ "deepseek-v4-1-flash-1017": {
+  "inferenceParametersActiveBillions": 16.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 552.0
+ },
  "deepseek-v4-1-flash-non-reasoning": {
   "inferenceParametersActiveBillions": 16.0,
   "inputModalityImage": true,
