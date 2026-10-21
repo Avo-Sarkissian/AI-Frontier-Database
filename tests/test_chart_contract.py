@@ -430,8 +430,11 @@ def test_palette_mirrors_artificial_analysis():
             f"({theirs} -> {ours}); mirroring AA means keeping the hue"
         )
 
+    # The three rules govern HAND-PICKED colours. Automatic ones follow a
+    # fourth, mechanical rule — auto_palette.py, tested in test_self_healing.py.
+    from components.charts.constants import CURATED_PROVIDER_COLORS
     accounted = set(AA_MIRROR_EXACT) | set(AA_MIRROR_HUE) | set(AA_NO_HUE)
-    mirrorable = {p for p in PROVIDER_COLORS if p in AA_CREATOR_COLORS}
+    mirrorable = {p for p in CURATED_PROVIDER_COLORS if p in AA_CREATOR_COLORS}
     assert mirrorable <= accounted, (
         f"providers with an AA colour that no rule covers: "
         f"{sorted(mirrorable - accounted)}"

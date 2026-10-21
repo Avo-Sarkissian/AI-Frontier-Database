@@ -25,7 +25,7 @@ import json
 import pandas as pd
 import pytest
 
-from data import scrape_status
+from data import carried, scrape_status
 from data import video_scraper as v
 
 
@@ -80,6 +80,8 @@ def sandbox(tmp_path, monkeypatch):
     _old_cache().to_csv(cache, index=False)
     monkeypatch.setattr(v, "_CACHE", cache)
     monkeypatch.setattr(scrape_status, "STATUS_PATH", tmp_path / "status.json")
+    # The shrink streak and the learned colours live under data/carried/.
+    monkeypatch.setattr(carried, "CARRIED_DIR", tmp_path / "carried")
     monkeypatch.setattr(v, "_fetch", lambda url: "")
     monkeypatch.setattr(v, "_generation_times", lambda html: {})
 

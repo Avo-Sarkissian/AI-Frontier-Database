@@ -43,7 +43,8 @@ from pathlib import Path
 import pandas as pd
 
 from components.charts.constants import (
-    PROVIDER_COLORS as _SHARED_COLORS, DEFAULT_COLOR as _SHARED_DEFAULT,
+    CURATED_PROVIDER_COLORS as _SHARED_COLORS, AUTO_PROVIDER_COLORS as _AUTO_COLORS,
+    DEFAULT_COLOR as _SHARED_DEFAULT,
 )
 
 _CACHE = Path(__file__).parent / "raw" / "aa_video_models.csv"
@@ -132,7 +133,9 @@ _VIDEO_ONLY_COLORS: dict[str, str] = {
     "Vidu":              "#1fcfff",  # AA verbatim
 }
 
-PROVIDER_COLORS: dict[str, str] = {**_VIDEO_ONLY_COLORS, **_SHARED_COLORS}
+# Automatic colours (constants.AUTO_PROVIDER_COLORS) only fill gaps: a studio
+# hand-picked here or in the shared palette always keeps that colour.
+PROVIDER_COLORS: dict[str, str] = {**_AUTO_COLORS, **_VIDEO_ONLY_COLORS, **_SHARED_COLORS}
 
 DEFAULT_COLOR = _SHARED_DEFAULT
 

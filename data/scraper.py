@@ -64,7 +64,7 @@ import time
 
 import requests
 
-from data.rsc import find_array, payload_from_html
+from data.rsc import find_array, find_records, payload_from_html
 
 from pathlib import Path
 
@@ -149,18 +149,27 @@ def _extract_models(html: str) -> list[dict]:
     one — without the predicate the scrape publishes a full row count with every
     metric column empty.
 
-    Both halves are needed since 2026-09-10. The metrics array was slimmed from
+    Both halves were needed from 2026-09-10: the metrics array was slimmed from
     94 fields to 50 and `name` went with it, so the records are joined back to
     the picker on `slug` (unique across all 646 rows) before anything reads them.
+
+    ~2026-10-14 the array was renamed "models" -> "initialModels", deprecated
+    rows stopped shipping, and `name` came back inside each record. The array
+    is now found by the fields this module reads, not by its key (see
+    data.rsc.find_records), and a record's own `name` wins when it has one —
+    checked against the cache that day: 165 of 167 published names identical,
+    the other two models gone upstream.
     """
     payload = payload_from_html(html)
-    models = find_array(
-        payload, "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "intelligenceIndex" in a[0],
-    )
+    models = find_records(payload, ("slug", "intelligenceIndex"))
     if models is None:
-        raise ValueError("no metrics array found for 'models' in RSC payload")
+        raise ValueError("no metrics records (slug + intelligenceIndex) in RSC payload")
     models = [m for m in models if isinstance(m, dict)]
+
+    if all((m.get("name") or "").strip() for m in models):
+        for m in models:
+            m["name"] = m["name"].strip()
+        return models
 
     names = _names_by_slug(payload)
     if not names:
@@ -547,7 +556,10 @@ def _scrape_and_save() -> bool:
         df = _carry_dropped_columns(df, load_cached())
 
         violations = column_health_violations(df)
-        violations += _shrink_violations(df)
+        # A shrink that holds for half a day is an upstream prune, not a broken
+        # parse, and publishes itself (data/carried.py, "Shrink confirmation").
+        violations += carried.confirm_shrink(
+            "hosted", _shrink_violations(df), published, set(df["model"].astype(str)))
         if violations:
             for v in violations:
                 print(f"[scraper] {v}")
@@ -557,6 +569,8 @@ def _scrape_and_save() -> bool:
         save_cache(df)
         _save_coverage()
         carried.save_deprecation_state(dep_state)
+        carried.learn_creator_colors({m.get("modelCreatorName"): m.get("modelCreatorColor")
+                                      for m in models}, "llm")
         carried.remember(df, "scraper")
         if hold:
             print(f"[scraper] {len(hold)} deprecated model(s) held until their "

@@ -83,7 +83,7 @@ import requests
 import pandas as pd
 
 from data import carried, scrape_status
-from data.rsc import find_array, payload_from_html
+from data.rsc import find_records, payload_from_html
 from data.scraper import _real as _aa_real
 from static_helpers import csv_safe
 
@@ -124,12 +124,12 @@ def _leaderboard(payload: str) -> list[dict]:
     deprecated, omniscience and isOpenWeights agreed on all 372 open-weight
     models. What it lacks is _SPEC_FIELDS, which come from the spec cache.
     """
-    models = find_array(
-        payload, "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "isOpenWeights" in a[0],
-    )
+    # By the fields read, not the key: the key went "models" -> "initialModels"
+    # ~2026-10-14 and that rename alone stopped this tab for six days.
+    models = find_records(payload, ("slug", "isOpenWeights", "intelligenceIndex"))
     if not models:
-        raise ValueError("no leaderboard metrics array found for 'models' in RSC payload")
+        raise ValueError("no leaderboard records (slug + isOpenWeights + "
+                         "intelligenceIndex) in RSC payload")
     return [m for m in models if isinstance(m, dict) and m.get("slug")]
 
 
@@ -160,10 +160,7 @@ def _harvest_specs(payload: str) -> dict[str, dict]:
                 and "parameters" in rec:
             out[rec["slug"]] = _spec_of(rec)
 
-    catalogue = find_array(
-        payload, "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "parameters" in a[0],
-    )
+    catalogue = find_records(payload, ("slug", "parameters"))
     for rec in catalogue or []:
         keep(rec)
 
@@ -231,12 +228,9 @@ def _extract_models(html: str) -> list[dict]:
     full row count with no parameter counts behind it — the silent-degradation
     shape this project keeps paying for.
     """
-    models = find_array(
-        payload_from_html(html), "models",
-        where=lambda a: bool(a) and isinstance(a[0], dict) and "parameters" in a[0],
-    )
+    models = find_records(payload_from_html(html), ("slug", "parameters"))
     if models is None:
-        raise ValueError("no catalogue array found for 'models' in RSC payload")
+        raise ValueError("no catalogue records (slug + parameters) in RSC payload")
     return [m for m in models if isinstance(m, dict)]
 
 
@@ -477,7 +471,9 @@ def _scrape_and_save() -> bool:
     from data.scraper import _carry_dropped_columns
     df = _carry_dropped_columns(df, load_cached(), key="name", tag="local_scraper")
 
-    violations = _shrink_violations(df) + _column_violations(df)
+    violations = carried.confirm_shrink(
+        "local", _shrink_violations(df), published, set(df["name"].astype(str)))
+    violations += _column_violations(df)
     if violations:
         for v in violations:
             print(f"[local_scraper] {v}")
@@ -490,6 +486,8 @@ def _scrape_and_save() -> bool:
     csv_safe(df).to_csv(_CACHE, index=False)
     carried.save_deprecation_state(dep_state, state_path)
     save_specs(specs)
+    carried.learn_creator_colors({_creator_name(m): m.get("modelCreatorColor")
+                                  for m in board}, "llm")
     # Fold this scrape's frozen coding/agentic scores into the sidecar that
     # _carry_dropped_columns reads back — without this the local sidecar only
     # ever held what backfill_from_git found, and a new score was one bad

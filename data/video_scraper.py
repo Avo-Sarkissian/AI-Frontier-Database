@@ -67,7 +67,7 @@ from pathlib import Path
 import requests
 import pandas as pd
 
-from data import scrape_status
+from data import carried, scrape_status
 from data.rsc import find_array, payload_from_html
 from static_helpers import csv_safe
 
@@ -591,8 +591,18 @@ def _scrape_and_save() -> tuple[bool, dict]:
         return False, {"error": "no valid rows parsed"}
 
     shrink, notes, rebaselined = _arena_shrink(df)
-    violations = (_record_violations(arenas) + _shrink_violations(df)
-                  + shrink + _column_violations(df))
+    try:
+        cached = load_cached()
+    except Exception:
+        cached = None
+    published = set(cached["model"].astype(str)) \
+        if cached is not None and "model" in cached.columns else set()
+    # A row loss that holds for half a day publishes itself — see
+    # data/carried.py, "Shrink confirmation". Record and column checks never do.
+    violations = (_record_violations(arenas)
+                  + carried.confirm_shrink("video", _shrink_violations(df) + shrink,
+                                           published, set(df["model"].astype(str)))
+                  + _column_violations(df))
     if violations:
         for v in violations:
             print(f"[video_scraper] {v}")
@@ -603,6 +613,11 @@ def _scrape_and_save() -> tuple[bool, dict]:
     # Sanitised like every other committed catalogue — these files are written
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
+    carried.learn_creator_colors({
+        _canonical_video_provider(((r.get("creator") or {}).get("name") or "").strip()):
+            (r.get("creator") or {}).get("color")
+        for recs in arenas.values() for r in recs
+        if isinstance(r, dict) and isinstance(r.get("creator"), dict)}, "video")
     for note in notes:
         print(f"[video_scraper] {note}")
     print(f"[video_scraper] Saved {len(df)} video models "

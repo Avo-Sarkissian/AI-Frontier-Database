@@ -17,7 +17,8 @@ import pandas as pd
 
 from data.pending_models import merge_pending
 from components.charts.constants import (
-    PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider,
+    PROVIDER_COLORS, CURATED_PROVIDER_COLORS, AUTO_PROVIDER_COLORS,
+    DEFAULT_COLOR, canonical_provider,
 )
 
 _LOCAL_CACHE = Path(__file__).parent / "raw" / "aa_local_models.csv"
@@ -460,8 +461,11 @@ _LOCAL_ONLY_COLORS: dict[str, str] = {
 }
 
 FAMILY_COLORS: dict[str, str] = {
+    # Automatic colours (constants.AUTO_PROVIDER_COLORS) only fill gaps: a lab
+    # hand-picked here or in the shared palette always keeps that colour.
+    **AUTO_PROVIDER_COLORS,
     **_LOCAL_ONLY_COLORS,
-    **PROVIDER_COLORS,
+    **CURATED_PROVIDER_COLORS,
     **{alias: PROVIDER_COLORS[target]
        for alias, target in _FAMILY_ALIASES.items() if target in PROVIDER_COLORS},
 }

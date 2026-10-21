@@ -6,6 +6,8 @@ import math as _math
 import re as _re
 import pandas as _pd
 
+from components.charts import auto_palette as _auto_palette
+
 # Ordered from most-specific to least-specific so longer matches win
 _NAME_SUBS = [
     (_re.compile(r'\(\s*Adaptive\s+Reasoning\s*\)', _re.I), '(AR)'),
@@ -434,7 +436,7 @@ SPOTLIGHT_PROVIDERS: tuple[str, ...] = (
     "Kimi", "Z AI",
 )
 
-PROVIDER_COLORS: dict[str, str] = {
+CURATED_PROVIDER_COLORS: dict[str, str] = {
     # -- spotlight ten. Seven mirror AA's hue; Alibaba and Mistral take
     #    collision colours; OpenAI is AA's neutral, inverted for this surface.
     "Anthropic":                 "#cc785c",  # AA verbatim — and the brand pin; AA's #cc785c and anthropic.com's clay are ΔE 2.3 apart
@@ -482,6 +484,17 @@ PROVIDER_COLORS: dict[str, str] = {
     "Sarvam":                    "#f472b6",  # AA paints it #807d77 — no hue to mirror
     "Swiss AI Initiative":       "#bee9fa",  # AA verbatim
 }
+
+# Every company AA lists that nobody hand-picked a colour for, coloured from
+# AA's own value by the scrapers and stored in data/carried/aa_creator_colors.csv
+# (see auto_palette.py). Hand-picked always wins. Without this, each company AA
+# added rendered as grey "Other" until a person chose a hex for it.
+AUTO_PROVIDER_COLORS: dict[str, str] = {
+    name: colour for name, colour in _auto_palette.stored_colors().items()
+    if name not in CURATED_PROVIDER_COLORS
+}
+
+PROVIDER_COLORS: dict[str, str] = {**AUTO_PROVIDER_COLORS, **CURATED_PROVIDER_COLORS}
 
 DEFAULT_COLOR = "#6b7280"
 
@@ -539,7 +552,11 @@ def _build_provider_shapes() -> dict[str, str]:
         raise RuntimeError(f"spotlight providers need explicit shapes: {missing}")
     shapes = dict(_EXPLICIT_SHAPES)
     pool = [s for s in _SHAPE_POOL if s not in shapes.values()]
-    for name in sorted(set(PROVIDER_COLORS) - set(shapes)):
+    # Hand-picked providers first, so a company AA adds never shifts the shape
+    # of one already on screen.
+    for name in sorted(set(CURATED_PROVIDER_COLORS) - set(shapes)):
+        shapes[name] = pool.pop(0) if pool else DEFAULT_SHAPE
+    for name in sorted(set(AUTO_PROVIDER_COLORS) - set(shapes)):
         shapes[name] = pool.pop(0) if pool else DEFAULT_SHAPE
     return shapes
 

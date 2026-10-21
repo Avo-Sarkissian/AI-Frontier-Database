@@ -113,3 +113,45 @@ def find_array(payload: str, key: str, where=None) -> list | None:
                 return arr
         at = payload.find(needle, at + 1)
     return None
+
+
+# Any `"<key>":[{` — the start of an array of records under whatever name.
+_RECORD_ARRAY_RE = re.compile(r'"[A-Za-z0-9_$]+":\s*\[\s*\{')
+
+
+def find_records(payload: str, fields: tuple[str, ...]) -> list[dict] | None:
+    """The largest array whose first record carries every one of ``fields``,
+    under ANY key.
+
+    WHY NOT A KEY NAME
+    ------------------
+    The key is the part AA changes. ``/leaderboards/models`` called its metrics
+    array ``"models"`` until ~2026-10-14 and ``"initialModels"`` after, with the
+    records themselves unchanged — and that one rename took the hosted and
+    open-weight catalogues down for six days. The fields a scraper reads are
+    what it actually depends on, so they are what it should search by: a rename
+    of the array is then a non-event, and a rename of a FIELD still fails loudly
+    because nothing matches.
+
+    Largest wins because a page can quote a handful of the same records
+    elsewhere (a "headline models" strip, a comparison widget); the catalogue is
+    the long one. Arrays are pre-screened on a window after the opening brace so
+    the payload's thousands of unrelated arrays are never decoded.
+    """
+    needles = [f'"{f}":' for f in fields]
+    best: list[dict] | None = None
+    for m in _RECORD_ARRAY_RE.finditer(payload):
+        start = payload.index("[", m.start() + 1)
+        head = payload[start:start + 6000]
+        if not all(n in head for n in needles):
+            continue
+        try:
+            arr = json.loads(slice_json_array(payload, start))
+        except ValueError:
+            continue
+        if not arr or not isinstance(arr[0], dict) \
+                or not all(f in arr[0] for f in fields):
+            continue
+        if best is None or len(arr) > len(best):
+            best = arr
+    return best

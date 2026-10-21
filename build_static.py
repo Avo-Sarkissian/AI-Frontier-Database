@@ -29,7 +29,7 @@ from components.charts.video_chart import build_video_rankings, build_video_scat
 
 from captions import CAPTIONS
 from data import scrape_status
-from components.charts.constants import PROVIDER_ALIASES
+from components.charts.constants import PROVIDER_ALIASES, AUTO_PROVIDER_COLORS
 from static_helpers import (
     compute_diverse5, provider_options, model_options, quality_options,
     ranking_frame, effort_options,
@@ -70,6 +70,10 @@ DATA_CSVS = [
     "data/raw/aa_local_arch.csv",
     "data/raw/aa_image_models.csv",
     "data/raw/aa_video_models.csv",
+    # Automatic company colours (components/charts/auto_palette.py). Rides with
+    # the data because the hourly bot adds to it whenever AA lists a new
+    # company, and constants.py reads it at import in the browser too.
+    "data/carried/aa_creator_colors.csv",
 ]
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
@@ -144,6 +148,11 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # copy of this map in JS is exactly how palettes and labels drifted
         # before. Shipping it keeps PROVIDER_ALIASES the only source.
         "provider_aliases": dict(PROVIDER_ALIASES),
+        # Colours for companies nobody hand-picked one for (auto_palette.py).
+        # docs/app.js hand-mirrors only the hand-picked palette, so a company
+        # AA adds reaches the JS-rendered views through here, without a code
+        # change.
+        "auto_provider_colors": dict(sorted(AUTO_PROVIDER_COLORS.items())),
         # One source for the prose too — the public site used to ship 1 of 14.
         "captions":         dict(CAPTIONS),
         # Per-dataset scrape status. `generated_iso` below is the BUILD time and
@@ -269,6 +278,7 @@ def build_pybundle(docs: Path | None = None):
         # with no 'M' case that would have silently dropped every long-context
         # model from any chart wired to it.
         "components/charts/__init__.py", "components/charts/constants.py",
+        "components/charts/auto_palette.py",
         "components/charts/pareto.py", "components/charts/quadrant.py",
         "components/charts/treemap.py", "components/charts/rankings.py",
         "components/charts/radar.py", "components/charts/cost_calc.py",

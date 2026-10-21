@@ -1,8 +1,10 @@
 """State the hosted and open-weight scrapes need to keep between runs.
 
-Two things live here, both committed under data/carried/ rather than
-data/raw/, because data/raw/ is what the scrape OVERWRITES every hour and both
-of these exist precisely to outlive one bad hour.
+Four things live here, all committed under data/carried/ rather than
+data/raw/, because data/raw/ is what the scrape OVERWRITES every hour and each
+of these exists precisely to outlive one bad hour. The first two are described
+below; shrink confirmation and AA creator colours have their own sections
+further down.
 
 1. FROZEN SCORES (coding, agentic).
 AA stopped publishing codingIndex and agenticIndex on 2026-09-10. From then on
@@ -306,6 +308,169 @@ def deprecation_hysteresis(state: dict, deprecated_now: set[str],
             hold.add(name)
             new_state[name] = {"count": count, "first_seen": first.isoformat(timespec="seconds")}
     return hold, new_state
+
+
+# ── Shrink confirmation ───────────────────────────────────────────────────────
+#
+# Every scraper refuses to publish a scrape that loses more than 20% of its
+# rows, because a broken parse and a real upstream cleanup look the same for
+# one hour. They do not look the same for a day. On ~2026-10-13 AA pruned the
+# text-to-image arena 169 -> 105 (superseded versions: Recraft V4, MAI-Image-2,
+# Seedream 4.0 — AA's own page said "of 105 models"), and the guard refused it
+# every hour for a week, red the whole time, until a human re-ran the workflow
+# with allow_shrink. A guard that needs a human for every upstream cleanup is
+# one more thing to keep fixing.
+#
+# So a shrink that HOLDS publishes itself: the same dataset short by more than
+# the limit on SHRINK_CONFIRM_SCRAPES consecutive scrapes spanning at least
+# SHRINK_CONFIRM_HOURS, with at least SHRINK_MIN_OVERLAP of the surviving rows
+# already published (a prune keeps the survivors; a wrong array or a renamed
+# catalogue shares few names with the cache, and never confirms). One scrape at
+# full size clears the streak — the 40-90 minute deprecation flaps of 2026-09-22
+# never get near it. Column-health violations are never waived by this.
+#
+# data_guard.py reads the "accepted" marker this leaves, so the workflow's own
+# row-loss checks measure against the accepted size instead of the pre-prune one.
+
+SHRINK_STATE_FILE = "shrink_state.json"
+SHRINK_CONFIRM_SCRAPES = 4
+SHRINK_CONFIRM_HOURS = 12.0
+SHRINK_MIN_OVERLAP = 0.9
+
+
+def _shrink_path(path: Path | None) -> Path:
+    return Path(path) if path is not None else CARRIED_DIR / SHRINK_STATE_FILE
+
+
+def load_shrink_state(path: Path | None = None) -> dict:
+    p = _shrink_path(path)
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_shrink_state(state: dict, path: Path | None = None) -> None:
+    p = _shrink_path(path)
+    text = json.dumps(dict(sorted(state.items())), indent=2, sort_keys=True) + "\n"
+    if p.exists() and p.read_text() == text:
+        return
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+
+
+def confirm_shrink(dataset: str, violations: list[str], before: set[str],
+                   now_keys: set[str], now: datetime | None = None,
+                   path: Path | None = None) -> list[str]:
+    """The shrink violations that still stand after hysteresis.
+
+    `violations` is the scraper's own row-loss verdict for this scrape; `before`
+    and `now_keys` are the published and freshly scraped row keys. Returns []
+    when there was nothing to refuse or when the shrink has now held long
+    enough to publish; otherwise the original violations plus how far along
+    the confirmation is.
+    """
+    now = now or datetime.now(timezone.utc)
+    state = load_shrink_state(path)
+    entry = dict(state.get(dataset) or {})
+    streak = entry.pop("streak", None)
+
+    if not violations:
+        if streak is not None:
+            state[dataset] = entry
+            _save_shrink_state(state, path)
+        return []
+
+    overlap = len(now_keys & before) / len(now_keys) if now_keys else 0.0
+    if overlap < SHRINK_MIN_OVERLAP:
+        if streak is not None:
+            state[dataset] = entry
+            _save_shrink_state(state, path)
+        return violations + [
+            f"only {overlap:.0%} of the surviving rows are already published "
+            f"(need {SHRINK_MIN_OVERLAP:.0%}) — this looks like a different "
+            f"array, not a prune, and will not publish itself"
+        ]
+
+    first = _parse_iso((streak or {}).get("since")) or now
+    count = int((streak or {}).get("scrapes", 0)) + 1
+    hours = (now - first).total_seconds() / 3600
+    if count >= SHRINK_CONFIRM_SCRAPES and hours >= SHRINK_CONFIRM_HOURS:
+        entry["accepted"] = {"rows": len(now_keys), "from_rows": len(before),
+                             "at": now.isoformat(timespec="seconds")}
+        state[dataset] = entry
+        _save_shrink_state(state, path)
+        print(f"[{dataset}] shrink {len(before)} -> {len(now_keys)} held for "
+              f"{count} scrapes over {hours:.1f}h — accepted as an upstream prune")
+        return []
+
+    entry["streak"] = {"since": first.isoformat(timespec="seconds"), "scrapes": count,
+                       "rows": len(now_keys), "from_rows": len(before)}
+    state[dataset] = entry
+    _save_shrink_state(state, path)
+    return violations + [
+        f"shrink seen on {count} consecutive scrape(s) over {hours:.1f}h — it "
+        f"publishes by itself once it holds for {SHRINK_CONFIRM_SCRAPES} scrapes "
+        f"and {SHRINK_CONFIRM_HOURS:g}h"
+    ]
+
+
+def accepted_shrink(dataset: str, within_hours: float,
+                    now: datetime | None = None, path: Path | None = None) -> int | None:
+    """Row count of a shrink accepted in the last `within_hours`, else None."""
+    now = now or datetime.now(timezone.utc)
+    acc = (load_shrink_state(path).get(dataset) or {}).get("accepted") or {}
+    at = _parse_iso(acc.get("at"))
+    rows = acc.get("rows")
+    if at is None or not isinstance(rows, int):
+        return None
+    return rows if (now - at).total_seconds() / 3600 <= within_hours else None
+
+
+# ── AA creator colours ────────────────────────────────────────────────────────
+#
+# AA publishes a brand colour per company on every record (`modelCreatorColor`
+# on the leaderboard, `creator.color` on the media arenas). The hand-picked
+# palettes only cover the companies someone has chosen for, so every company AA
+# added rendered grey and failed a test until a person picked a hex. The
+# scrapers now hand every creator they see to learn_creator_colors, which gives
+# each one without a hand-picked colour a legible colour derived from AA's and
+# stores it — see components/charts/auto_palette.py for how and why it is
+# resolved once rather than at import.
+
+def _curated_colors() -> dict[str, str]:
+    """Every hand-picked colour on any tab, keyed by the name each tab uses."""
+    from components.charts.constants import CURATED_PROVIDER_COLORS
+    from data.image_models import _IMAGE_ONLY_COLORS
+    from data.local_models import _LOCAL_ONLY_COLORS
+    from data.video_models import _VIDEO_ONLY_COLORS
+    return {**_IMAGE_ONLY_COLORS, **_VIDEO_ONLY_COLORS, **_LOCAL_ONLY_COLORS,
+            **CURATED_PROVIDER_COLORS}
+
+
+def learn_creator_colors(seen: dict, tab: str, path: Path | None = None) -> bool:
+    """Give each newly seen creator an automatic colour. True when the file moved.
+
+    `tab` ("llm", "image" or "video") picks the hand-picked colours a new one
+    must stand apart from — the ones it will actually share a chart with.
+    Checking against all ~100 hand-picked colours at once left no room near
+    most of AA's hues, and pushed purples to brown.
+    """
+    from components.charts import auto_palette
+    from components.charts.constants import canonical_provider, CURATED_PROVIDER_COLORS
+    from data.image_models import _IMAGE_ONLY_COLORS
+    from data.local_models import _LOCAL_ONLY_COLORS
+    from data.video_models import _VIDEO_ONLY_COLORS
+    tab_only = {"image": _IMAGE_ONLY_COLORS, "video": _VIDEO_ONLY_COLORS,
+                "llm": _LOCAL_ONLY_COLORS}.get(tab, {})
+    path = Path(path) if path is not None else CARRIED_DIR / auto_palette.FILE_NAME
+    clean = {canonical_provider(str(k).strip()): v for k, v in seen.items()
+             if isinstance(k, str) and k.strip() and isinstance(v, str)}
+    stored = auto_palette.load_stored(path)
+    merged = auto_palette.assign(clean, _curated_colors(), stored,
+                                 neighbours={**tab_only, **CURATED_PROVIDER_COLORS})
+    return auto_palette.save_stored(merged, path) if merged != stored else False
 
 
 def main() -> int:

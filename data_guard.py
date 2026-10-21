@@ -34,6 +34,19 @@ DATA_CSVS = [
     "data/raw/aa_video_models.csv",
 ]
 
+# Which scraper's shrink state speaks for each CSV. A scraper that watched a
+# shrink hold for SHRINK_CONFIRM_HOURS accepts it as an upstream prune
+# (data/carried.py, "Shrink confirmation"); both checks below then measure
+# against the accepted size, or the workflow would refuse what the scraper
+# just — deliberately — published. Honoured for two baseline windows, after
+# which the 24h baseline is post-prune anyway.
+_SHRINK_DATASET = {
+    "data/raw/aa_models.csv":       "hosted",
+    "data/raw/aa_local_models.csv": "local",
+    "data/raw/aa_image_models.csv": "image",
+    "data/raw/aa_video_models.csv": "video",
+}
+
 DEFAULT_MAX_DROP_PCT = 20.0
 MIN_ROWS = 50            # the original absolute floor, kept as a backstop
 
@@ -179,7 +192,7 @@ def check(paths: list[str] | None = None,
             problems.append(f"{path}: only {now} rows (floor {MIN_ROWS})")
             continue
 
-        before = committed_rows(path, rev)
+        before = _accepted_floor(path, committed_rows(path, rev))
         if before is None or before == 0:
             print(f"  {path}: {now} rows (no committed baseline — skipping delta)")
             continue
@@ -199,6 +212,16 @@ def check(paths: list[str] | None = None,
     return problems
 
 
+def _accepted_floor(path: str, rows: int | None) -> int | None:
+    """`rows`, lowered to a shrink the scraper accepted as an upstream prune."""
+    dataset = _SHRINK_DATASET.get(path)
+    if rows is None or dataset is None:
+        return rows
+    from data import carried
+    accepted = carried.accepted_shrink(dataset, 2 * CUMULATIVE_BASELINE_HOURS)
+    return rows if accepted is None else min(rows, accepted)
+
+
 def _cumulative_violations(path: str, now: int) -> list[str]:
     """Catch the slow drain a per-run check cannot see."""
     rev = _baseline_rev(CUMULATIVE_BASELINE_HOURS)
@@ -207,8 +230,8 @@ def _cumulative_violations(path: str, now: int) -> list[str]:
     text = _show(path, rev)
     if not text:
         return []
-    then = _row_count(text)
-    if then == 0:
+    then = _accepted_floor(path, _row_count(text))
+    if not then:
         return []
     drop = (then - now) / then * 100
     if drop > CUMULATIVE_MAX_DROP_PCT:

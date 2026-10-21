@@ -43,9 +43,15 @@ def test_pyodide_runs_off_the_main_thread():
 def test_js_provider_colors_mirror_python():
     """docs/app.js keeps its own copy of the palette for the Table tab's
     provider dot. Drift there means a model is one color in the chart and
-    another in the table."""
-    from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR
+    another in the table.
 
+    Only the hand-picked palette is mirrored by hand; automatic colours ride
+    the manifest (build_static.py) and loadManifest() merges them in."""
+    from components.charts.constants import (
+        CURATED_PROVIDER_COLORS as PROVIDER_COLORS, DEFAULT_COLOR,
+    )
+
+    assert "m.auto_provider_colors" in APP, "app.js no longer merges the automatic colours"
     block = re.search(r"const PROVIDER_COLORS = \{(.*?)\n\};", APP, re.S)
     assert block, "PROVIDER_COLORS block not found in docs/app.js"
     js = dict(re.findall(r'"([^"]+)":\s*"(#[0-9a-fA-F]{6})"', block.group(1)))

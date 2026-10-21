@@ -51,9 +51,11 @@ function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, c => ESCAPE_MAP[c]);
 }
 
-// ---- Provider color map — mirrors PROVIDER_COLORS in
+// ---- Provider color map — mirrors CURATED_PROVIDER_COLORS in
 // components/charts/constants.py. Kept in sync by hand; tests/
-// test_static_site_wiring.py asserts they match.
+// test_static_site_wiring.py asserts they match. Companies with no hand-picked
+// colour arrive in manifest.auto_provider_colors and are merged in by
+// loadManifest(), so a company AA adds needs no edit here.
 const PROVIDER_COLORS = {
   "Anthropic":               "#cc785c",
   "Meta":                    "#138df7",
@@ -286,6 +288,9 @@ async function renderFigure(divId, figId) {
 async function loadManifest() {
   const m = await (await fetch("figures/manifest.json", { cache: "no-store" })).json();
   window.AF.manifest = m;
+  for (const [name, hex] of Object.entries(m.auto_provider_colors || {})) {
+    if (!(name in PROVIDER_COLORS)) PROVIDER_COLORS[name] = hex;
+  }
   window.AF.version = m.version || "";
   window.AF.codeVersion = m.code_version || "";
   window.AF.generatedIso = m.generated_iso || null;

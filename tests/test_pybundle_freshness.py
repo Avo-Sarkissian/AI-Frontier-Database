@@ -158,6 +158,13 @@ def test_every_first_party_import_inside_the_bundle_is_also_bundled():
             for node in ast.walk(tree):
                 if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                     mod = node.module
+                    # `from components.charts import auto_palette` imports a
+                    # SUBMODULE under a name; checking only the package let
+                    # exactly that slip through on 2026-10-20.
+                    for alias in node.names:
+                        sub = f"{mod}.{alias.name}"
+                        if (ROOT / (sub.replace(".", "/") + ".py")).exists():
+                            _check(sub, bundled, missing, name)
                 elif isinstance(node, ast.Import):
                     for alias in node.names:
                         mod = alias.name

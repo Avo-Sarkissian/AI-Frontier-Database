@@ -56,7 +56,7 @@ from pathlib import Path
 import requests
 import pandas as pd
 
-from data import scrape_status
+from data import carried, scrape_status
 from data.rsc import find_array, payload_from_html
 from static_helpers import csv_safe
 
@@ -338,7 +338,11 @@ def _scrape_and_save() -> bool:
         cached = None
     df = _merge_cached_columns(df, cached)
 
-    violations = _shrink_violations(df) + _column_violations(df)
+    published = set(cached["model"].astype(str)) \
+        if cached is not None and "model" in cached.columns else set()
+    violations = carried.confirm_shrink(
+        "image", _shrink_violations(df), published, set(df["model"].astype(str)))
+    violations += _column_violations(df)
     if violations:
         for v in violations:
             print(f"[image_scraper] {v}")
@@ -349,6 +353,10 @@ def _scrape_and_save() -> bool:
     # Sanitised like the hosted catalogue — these files are committed
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
+    carried.learn_creator_colors({
+        _canonical_image_provider(((m.get("creator") or {}).get("name") or "").strip()):
+            (m.get("creator") or {}).get("color")
+        for m in models if isinstance(m.get("creator"), dict)}, "image")
     print(f"[image_scraper] Saved {len(df)} image models")
     return True
 
