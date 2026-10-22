@@ -1,5 +1,5 @@
 model,slug,provider,family,release_date,is_current,open_weights,elo_t2v,price_per_min_t2v,audio,elo_i2v,price_per_min_i2v,price_per_min_audio,gen_time_s,gen_time_host
-HeyGen Video (ultraquality),heygen-video,HeyGen,,,True,False,1143.7,,False,,,,,
+HeyGen Video (ultraquality),heygen-video,HeyGen,,,True,False,1143.7,,True,,,,,
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1134.11,12.0,True,1361.57,12.0,12.0,,
 MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1119.9,4.8,True,,,4.8,124.0621296205,MiniMax
 MiniMax H3 Max,minimax-h3-max,Fal,,,True,False,1116.88,4.8,True,,,4.8,,
