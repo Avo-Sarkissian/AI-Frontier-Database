@@ -2,7 +2,7 @@ model,provider,context,quality,price,speed,latency,price_in,price_out,quality_es
 "Claude Opus 5.5 (Max, Default Fallback)",Anthropic,1m,57.62,16.0,96.1390422750912,588.677757639,4.0,20.0,False,,,46.42
 "Claude Sonnet 5.5 (Max, Default Fallback)",Anthropic,1m,56.0,8.0,132.603663861338,373.430792541,2.0,10.0,False,,,32.3
 "Claude Opus 5.5 (Xhigh, Default Fallback)",Anthropic,1m,55.99,16.0,82.1853521212302,126.281606047,4.0,20.0,False,,,42.65
-Kimi K3.1 Pro,Kimi,1m,55.09,8.0,84.1654564215285,3.08462318100001,2.0,10.0,False,,,29.52
+Kimi K3.1 Pro,Kimi,1m,55.09,8.0,73.4597669926874,3.20340037200003,2.0,10.0,False,,,29.52
 "Claude Opus 5.5 (High, Default Fallback)",Anthropic,1m,53.58,16.0,76.7634376978841,21.4955701599999,4.0,20.0,False,,,40.63
 "Claude Fable 5.1 (Max, Default Fallback)",Anthropic,1m,53.35,40.0,68.3997643462126,161.91650791,10.0,50.0,False,,,43.45
 "Claude Fable 5.1 (Xhigh, Default Fallback)",Anthropic,1m,53.2,40.0,65.1759065158213,54.3938178550001,10.0,50.0,False,,,42.38
