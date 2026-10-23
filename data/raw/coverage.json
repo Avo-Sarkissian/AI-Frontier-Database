@@ -1,13 +1,14 @@
 {
-  "upstream_host_model_rows": 272,
-  "distinct_upstream_models": 272,
-  "kept": 166,
+  "upstream_host_model_rows": 273,
+  "distinct_upstream_models": 273,
+  "kept": 165,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
     "GPT-5.5 Pro (Xhigh)",
     "GPT-6 Sol (Daybreak Blue, max)",
-    "Gemini 3 Deep Think"
+    "Gemini 3 Deep Think",
+    "Nemotron 3.5 Bolt E4B 4GB (Reasoning)"
   ],
   "skipped_no_price": [
     "A.X-K2",
@@ -68,6 +69,7 @@
     "LFM2.5-8B-A1B",
     "LFM2.5-VL-1.6B",
     "Ling 3.0 Tiny",
+    "Ling-3.0-flash-Fin",
     "Ling-3.0-flash-VL",
     "Llama 3.1 Instruct 405B",
     "Llama 3.1 Nemotron Ultra 253B v1 (Reasoning)",
