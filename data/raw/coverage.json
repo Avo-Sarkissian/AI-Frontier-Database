@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 272,
   "distinct_upstream_models": 272,
-  "kept": 164,
+  "kept": 163,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -101,6 +101,7 @@
     "Olmo 3 7B Think",
     "Olmo 3.1 32B Instruct",
     "Olmo 3.1 32B Think",
+    "Qwen3 Next 80B A3B (Reasoning)",
     "Qwen3.5 0.8B (Non-reasoning)",
     "Qwen3.5 0.8B (Reasoning)",
     "Qwen3.5 2B (Non-reasoning)",
