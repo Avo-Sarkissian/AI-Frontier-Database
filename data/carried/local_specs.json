@@ -1791,6 +1791,13 @@
   "licenseName": "OpenMDW-1.1",
   "parameters": 74.0
  },
+ "nemotron-3-5-bolt-e4b-4gb": {
+  "inferenceParametersActiveBillions": 4.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "OpenMDW-1.1",
+  "parameters": 8.0
+ },
  "nemotron-3-5-lightning": {
   "inferenceParametersActiveBillions": 3.6,
   "inputModalityImage": false,
