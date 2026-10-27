@@ -11,8 +11,9 @@ from components.charts.constants import (
     plot_text,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
-    empty_figure, unique_labels,
+    empty_figure, unique_labels, bar_weights_style, row_is_open,
 )
+from data.open_weights import weights_labels
 
 
 def _assign_tiers(values: pd.Series, gap_pct: float = 0.05) -> list[int]:
@@ -101,8 +102,14 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         "Price: %{customdata[2]}<br>"
         "Speed: %{customdata[3]}<br>"
         "Latency (TTFT): %{customdata[4]}<br>"
+        "Weights: %{customdata[5]}<br>"
         "<extra></extra>"
     )
+    # HOLLOW = open weights: an open bar is a provider-colour outline over a
+    # faint fill; closed bars stay solid. Self-host rows are open by
+    # construction (they come from AA's open-weights catalogue).
+    is_open = row_is_open(ranked)
+    weights_str = weights_labels(ranked)
 
     max_metric = ranked["_metric"].max() or 1
     fig = go.Figure()
@@ -122,13 +129,9 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         y=short_names,
         x=ranked["_metric"],
         orientation="h",
-        marker=dict(
-            color=colors,
-            opacity=0.85,
-            line=dict(width=0),
-        ),
+        marker=dict(opacity=0.85, **bar_weights_style(colors, is_open)),
         customdata=list(zip(ranked["model"].map(plot_text), ranked["provider"].map(plot_text),
-                            price_str, speed_str, latency_str)),
+                            price_str, speed_str, latency_str, weights_str)),
         hovertemplate=hover,
         showlegend=False,
         text=ranked["_metric"].apply(lambda q: f"{q:.0f}"),
@@ -212,7 +215,8 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
                 # do not wrap). Other metrics ignore price: no note.
                 + (fill_note(ranked, basis) if metric == "value" else "")
                 + f"  ·  {x_label}{_self_host_note}"
-                f"  ·  dashed lines = tier boundaries (8% gap)</span>"
+                + ("  ·  hollow = open weights" if is_open.any() else "")
+                + "  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

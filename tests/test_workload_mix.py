@@ -281,13 +281,16 @@ def test_mix_none_is_byte_identical_to_omitting_it(call):
 
 
 def test_mix_is_the_last_parameter_of_every_hosted_function():
-    """pyworker.js spreads the browser's list with no arity check."""
+    """pyworker.js spreads the browser's list with no arity check. MIX was
+    appended last; WEIGHTS (data/open_weights) was appended after it, so mix
+    is second to last wherever weights exists (economics_plan 0.4)."""
     import inspect
     for fn in (api.update_overview, api.update_treemap, api.update_provider_leaderboard,
                api.update_rankings, api.update_value_leaders, api.update_compare,
                api.update_cost_calc, api.update_table, api.export_csv, api.model_detail):
         params = list(inspect.signature(fn).parameters)
-        assert params[-1] == "mix", fn.__name__
+        tail = params[-2:] if params[-1] == "weights" else params[-1:]
+        assert tail[0] == "mix", fn.__name__
         assert inspect.signature(fn).parameters["mix"].default is None
 
 
@@ -354,8 +357,9 @@ def test_every_hosted_refresher_sends_the_mix(fn):
     calls = re.findall(r'callPy(?:Raw)?\("' + fn + r'",([^)]*)\)', APP_JS)
     assert calls, f"docs/app.js never calls {fn}"
     for args in calls:
-        assert args.strip().split(",")[-1].strip() == "m", (
-            f"{fn} is called without the mix as its LAST argument: {args!r}")
+        # MIX, then WEIGHTS last (economics_plan 0.4).
+        assert [a.strip() for a in args.strip().split(",")[-2:]] == ["m", "w"], (
+            f"{fn} is called without the mix and weights as its LAST arguments: {args!r}")
 
 
 def test_the_detail_panel_and_floor_stat_follow_the_mix():

@@ -698,6 +698,89 @@ def marker_outline(width: float = 0.8) -> dict:
     return dict(width=width, color=BG)
 
 
+# ── Open vs closed weights (data/open_weights.py) ────────────────────────────
+# Outside the Economics tab, HOLLOW means open weights and FILLED means closed;
+# colour stays the provider and shape the provider family. Untimed models (no
+# measured speed) used to be the hollow ones; they now carry a centre dot.
+
+# Plotly draws no "-dot" variant for these two, so an untimed model of a
+# provider that uses one keeps its plain symbol and is told apart by its light
+# rim and fixed size alone (the hover says "not yet measured").
+_NO_DOT_SYMBOLS = frozenset({"hourglass", "bowtie"})
+
+# Rim colour for untimed markers: on a filled "-dot" symbol Plotly draws the
+# centre dot with the marker LINE colour, so the default background-coloured
+# rim would make the dot invisible.
+UNTIMED_RIM = "#f2f2f2"
+
+
+def weights_symbol(base: str, is_open: bool, timed: bool = True) -> str:
+    """The Plotly symbol for a provider's base shape, open/closed and timed.
+
+    "square" -> "square" (closed) / "square-open" (open), plus "-dot" when the
+    model's speed is not yet measured ("square-dot", "square-open-dot"). A base
+    that is already "-open" is reduced to its filled form first, so hollow can
+    only ever mean open weights.
+    """
+    s = str(base or DEFAULT_SHAPE)
+    for suffix in ("-open-dot", "-dot", "-open"):
+        if s.endswith(suffix):
+            s = s[: -len(suffix)]
+            break
+    out = s + ("-open" if is_open else "")
+    if not timed and s not in _NO_DOT_SYMBOLS:
+        out += "-dot"
+    return out
+
+
+def with_alpha(color: str, alpha: float) -> str:
+    """'#rrggbb' (or '#rgb') -> 'rgba(r,g,b,alpha)'; other strings unchanged."""
+    c = str(color or "").strip()
+    if c.startswith("#") and len(c) in (4, 7):
+        h = c[1:]
+        if len(h) == 3:
+            h = "".join(ch * 2 for ch in h)
+        try:
+            r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        except ValueError:
+            return c
+        return f"rgba({r},{g},{b},{alpha:g})"
+    return c
+
+
+# Open-weights bars (Rankings, Value Leaders): a faint fill in the provider
+# colour plus a provider-colour outline — the bar-chart form of "hollow".
+OPEN_BAR_FILL_ALPHA = 0.14
+OPEN_BAR_LINE_WIDTH = 1.5
+
+
+def bar_weights_style(colors, is_open) -> dict:
+    """marker kwargs for a go.Bar whose bars may be open (hollow) or closed."""
+    fills, lines, widths = [], [], []
+    for c, o in zip(colors, is_open):
+        if bool(o):
+            fills.append(with_alpha(c, OPEN_BAR_FILL_ALPHA))
+            lines.append(c)
+            widths.append(OPEN_BAR_LINE_WIDTH)
+        else:
+            fills.append(c)
+            lines.append(c)
+            widths.append(0)
+    return dict(color=fills, line=dict(color=lines, width=widths))
+
+
+def row_is_open(df: _pd.DataFrame) -> _pd.Series:
+    """True per row for open weights; self-host rows are open by construction.
+
+    A frame that was never annotated (a test frame, an old pickle) reads as
+    closed rather than raising — the charts must still draw."""
+    out = (df["open_weights"].eq(True) if "open_weights" in df.columns
+           else _pd.Series(False, index=df.index))
+    if "self_host" in df.columns:
+        out = out | df["self_host"].eq(True)
+    return out
+
+
 def legend_below(y: float = -0.16) -> dict:
     """Horizontal legend under the axis.
 

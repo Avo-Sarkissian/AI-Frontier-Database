@@ -19,7 +19,9 @@ from components.charts.constants import (
     BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant, base_model_name,
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
+    weights_symbol, row_is_open, UNTIMED_RIM,
 )
+from data.open_weights import weights_labels
 from data.workload_mix import resolve_mix, fill_note, fill_hover, price_marks
 from data.task_cost import (
     task_costs, token_burn, fmt_task_cost, burn_text, list_blend_short,
@@ -162,6 +164,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             + "Rates: %{customdata[4]}<br>"
             "Speed: %{customdata[2]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
+            "Weights: %{customdata[10]}<br>"
             "<extra></extra>"
         )
 
@@ -179,7 +182,8 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         # a key line where the model has no AA cache price.
         # [8] AA's cost per task and [9] the token burn (data/task_cost), as
         # text, in BOTH x modes so every index after them means one thing.
-        # [9] is the last index; the next field appended goes at [10].
+        # [10] open or closed weights and where that came from
+        # (data/open_weights.weights_label). [10] is the last index.
         rates = [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))]
         customdata = pd.Series(list(zip(
             pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
@@ -188,21 +192,36 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             price_marks(pdf),
             task_costs(pdf).map(fmt_task_cost),
             token_burn(pdf).map(burn_text),
+            weights_labels(pdf),
         )), index=pdf.index)
 
         # A model AA has not timed yet has no size to draw: the floor would
         # claim "slowest in the catalogue", and a 7px mark at the same price as
         # a filled bubble is buried under it (Gemini 4 Argon, #2 by score,
-        # vanished beneath GPT-6.1 Sol at $8.00). Draw those hollow, at the
-        # median size, on a layer above every filled bubble.
+        # vanished beneath GPT-6.1 Sol at $8.00). Draw those at the median
+        # size, with a centre dot and a light rim, on a layer above every
+        # filled bubble.
+        # HOLLOW = open weights (data/open_weights.py), filled = closed;
+        # colour stays the provider. Closed before open within each layer, so
+        # the provider's legend swatch is the filled form when it has one.
         timed = _speed_measured(pdf)
-        untimed_n = int((~timed).sum())
-        groups = [
-            (pdf[timed], dict(symbol=symbol, size=pdf.loc[timed, "size"],
-                              opacity=0.8, line=marker_outline()), 0),
-            (pdf[~timed], dict(symbol=f"{symbol}-open", size=[UNMEASURED_PX] * untimed_n,
-                               opacity=1.0, line=dict(width=1.6, color=color)), 1),
-        ]
+        is_open = row_is_open(pdf)
+        groups = []
+        for t_flag, layer in ((True, 0), (False, 1)):
+            for o_flag in (False, True):
+                part = pdf[(timed == t_flag) & (is_open == o_flag)]
+                sym = weights_symbol(symbol, o_flag, timed=t_flag)
+                if t_flag:
+                    size = part["size"]
+                    line = (dict(width=1.6, color=color) if o_flag
+                            else marker_outline())
+                    opacity = 1.0 if o_flag else 0.8
+                else:
+                    size = [UNMEASURED_PX] * len(part)
+                    line = dict(width=1.6, color=color if o_flag else UNTIMED_RIM)
+                    opacity = 1.0
+                groups.append((part, dict(symbol=sym, size=size, opacity=opacity,
+                                          line=line), layer))
         legend_shown = False
         for part, marker, zorder in groups:
             if part.empty:
@@ -299,8 +318,10 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             font=dict(color="#666666", size=10, family=FONT),
         ))
 
-    hollow = ("  ·  hollow = speed not yet measured"
-              if (~_speed_measured(plot_df)).any() else "")
+    # Each key appears only when its encoding is on screen.
+    hollow = (("  ·  hollow = open weights" if row_is_open(plot_df).any() else "")
+              + ("  ·  centre dot = speed not yet measured"
+                 if (~_speed_measured(plot_df)).any() else ""))
     if task:
         # The count leads (Plotly titles do not wrap): how many families on
         # screen AA has costed, and how many it has not. None is imputed.

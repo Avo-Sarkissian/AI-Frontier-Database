@@ -78,6 +78,10 @@
          which tier represents a model is the reader's choice. -->
     <select id="filter-effort" style="min-width:130px;"></select>
     <div class="filter-sep"></div>
+    <span class="filter-label" title="Open or closed weights, from Artificial Analysis's flag (or an exact-name match to its open-weights list where a row has none). Hollow marks and outlined bars are open.">WEIGHTS</span>
+    <!-- Filled from manifest.weights_options (data/open_weights.py). -->
+    <select id="filter-weights" style="min-width:90px;"></select>
+    <div class="filter-sep"></div>
     <span class="filter-label" title="Workload mix: the input:output ratio and cache-hit rate every hosted price is computed at. Each option's tooltip names its source.">MIX</span>
     <!-- Filled from manifest.mix_options (data/workload_mix.py). Custom
          reveals the two boxes; Python clamps whatever is typed into them. -->

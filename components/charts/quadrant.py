@@ -17,7 +17,9 @@ from components.charts.constants import (
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     dedupe_to_best_variant, BUBBLE_PRICE_REF, BUBBLE_PRICE_FLOOR, bubble_size, safe_corr,
     marker_outline, legend_below, CHART_MARGIN, spotlight_split, log_ticks,
+    weights_symbol, row_is_open,
 )
+from data.open_weights import weights_labels
 
 _ZONE = "rgba(255,255,255,0.02)"
 
@@ -160,30 +162,46 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             "Price: %{customdata[2]}/M tokens  ·  " + basis.short + "<br>"
             "Rates: %{customdata[4]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
+            "Weights: %{customdata[7]}<br>"
             "<extra></extra>"
         )
 
-        fig.add_trace(go.Scatter(
-            x=pdf["speed"],
-            y=pdf["quality"],
-            mode="markers",
-            name=provider,
-            marker=dict(
-                color=color,
-                symbol=symbol,
-                size=pdf["size"],
-                opacity=0.8,
-                line=marker_outline(),
-            ),
-            # [5] and [6] are the RAW model and provider: the click handler
-            # looks the row up by them. [0] and [1] are escaped for the hover
-            # text, so a name containing & or < never matched its own row.
-            customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
-                                price_marks(pdf), latency_str,
-                                [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))],
-                                pdf["model"].astype(str), pdf["provider"].astype(str))),
-            hovertemplate=hover,
-        ))
+        # [5] and [6] are the RAW model and provider: the click handler
+        # looks the row up by them. [0] and [1] are escaped for the hover
+        # text, so a name containing & or < never matched its own row.
+        # [7] open or closed weights and the flag's source.
+        customdata = pd.Series(list(zip(
+            pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
+            price_marks(pdf), latency_str,
+            [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))],
+            pdf["model"].astype(str), pdf["provider"].astype(str),
+            weights_labels(pdf))), index=pdf.index)
+        # HOLLOW = open weights, filled = closed (data/open_weights.py); one
+        # trace each, closed first so the legend swatch is the filled form.
+        is_open = row_is_open(pdf)
+        shown = False
+        for o_flag in (False, True):
+            part = pdf[is_open == o_flag]
+            if part.empty:
+                continue
+            fig.add_trace(go.Scatter(
+                x=part["speed"],
+                y=part["quality"],
+                mode="markers",
+                name=provider,
+                legendgroup=provider,
+                showlegend=not shown,
+                marker=dict(
+                    color=color,
+                    symbol=weights_symbol(symbol, o_flag),
+                    size=part["size"],
+                    opacity=1.0 if o_flag else 0.8,
+                    line=dict(width=1.6, color=color) if o_flag else marker_outline(),
+                ),
+                customdata=customdata.loc[part.index].tolist(),
+                hovertemplate=hover,
+            ))
+            shown = True
 
     # Zone captions pinned to the outer corner of each quadrant. Centring them
     # put "Slow · Smart" and "Slow · Weak" straight through the dense low-speed
@@ -267,7 +285,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
                 + fill_note(plot_df, basis)
                 + _size_note
                 + "  ·  shape = provider family"
-                f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
+                + ("  ·  hollow = open weights" if row_is_open(plot_df).any() else "")
+                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
                 + (f"  ·  {_untimed} without a measured speed not shown"
                    if _untimed else "")
                 + "</span>"
@@ -315,8 +334,11 @@ def _rate_pair(df) -> list[str]:
     def _fmt(v):
         return f"${v:,.2f}" if _pd.notna(v) and v > 0 else None
 
+    # A frame without the columns must still yield one entry per row: zip()
+    # against [] silently emptied the hover data (pareto._rate_pair, same fix).
+    missing = _pd.Series(float("nan"), index=df.index)
     out = []
-    for pin, pout in zip(df.get("price_in", []), df.get("price_out", [])):
+    for pin, pout in zip(df.get("price_in", missing), df.get("price_out", missing)):
         a, b = _fmt(pin), _fmt(pout)
         out.append(f"{a} in  ·  {b} out" if a and b else "—")
     return out

@@ -10,7 +10,9 @@ import plotly.graph_objects as go
 
 from data.workload_mix import resolve_mix, fill_note, fill_hover, mark_price, price_marks
 
+from data.open_weights import weights_labels
 from components.charts.constants import (
+    bar_weights_style, row_is_open,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
@@ -209,19 +211,23 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in top["provider"]]
     names  = top["model"].apply(lambda m: m[:32] + "…" if len(m) > 32 else m)
 
+    # HOLLOW = open weights: outline + faint fill; closed bars stay solid.
+    is_open = row_is_open(top)
     fig = go.Figure(go.Bar(
         x=top["value_score"],
         y=names,
         orientation="h",
-        marker=dict(color=colors, opacity=0.85, line=dict(width=0)),
+        marker=dict(opacity=0.85, **bar_weights_style(colors, is_open)),
         customdata=list(zip(top["model"], top["provider"], top["quality"],
-                            price_marks(top), top["value_score"], fill_hover(top))),
+                            price_marks(top), top["value_score"], fill_hover(top),
+                            weights_labels(top))),
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{customdata[2]:.0f}<br>"
             "Price: %{customdata[3]}/M tokens  ·  " + basis.short + "%{customdata[5]}<br>"
             "Value Score: %{customdata[4]:.0f}<br>"
+            "Weights: %{customdata[6]}<br>"
             "<extra></extra>"
         ),
         showlegend=False,
@@ -250,6 +256,7 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
                 # Counted over the bars drawn, and first: titles do not wrap.
                 + fill_note(top, basis)
                 + f"  ·  quality ÷ price at {basis.short}  ·  quality floor ≥ 20"
+                + ("  ·  hollow = open weights" if is_open.any() else "")
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

@@ -56,7 +56,9 @@ def test_build_produces_figures_and_manifest(tmp_path):
                    cwd=ROOT, check=True)
     figdir = tmp_path / "figures"
     for fid in ["pareto", "treemap", "rankings", "radar", "cost_calc",
-                "local_scatter", "image_faceted", "video_rankings"]:
+                "local_scatter", "image_faceted", "video_rankings",
+                # Economics › Labs, pre-render only (data/open_gap.py)
+                "econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"]:
         p = figdir / f"{fid}.json"
         assert p.exists(), f"missing {p}"
         fig = json.loads(p.read_text())
@@ -64,6 +66,7 @@ def test_build_produces_figures_and_manifest(tmp_path):
     manifest = json.loads((figdir / "manifest.json").read_text())
     assert int(manifest["model_count"]) > 0
     assert manifest["provider_options"] and manifest["diverse5"]
+    assert [o["value"] for o in manifest["weights_options"]] == ["", "open", "closed"]
 
 @needs_lean_plotly
 def test_manifest_has_version_and_iso(tmp_path):

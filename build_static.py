@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from data.ingest import get_models
+from data.ingest import get_models, load_history
 from data.local_models import (
     get_local_df, DEFAULT_VRAM_GB, DEFAULT_BANDWIDTH_GBPS,
     DEFAULT_CONTEXT_TOKENS, DEFAULT_FP16_TFLOPS,
@@ -26,13 +26,17 @@ from components.charts.local_scatter import build_local_scatter
 from components.charts.local_compat import build_local_compat
 from components.charts.image_scatter import build_image_faceted
 from components.charts.video_chart import build_video_rankings, build_video_scatter
+from components.charts.open_gap import (
+    build_gap_history, build_release_lag, build_iso_price,
+)
+from data.open_gap import gap_history, release_lag, iso_quality_ratios, snapshot_dates
 
 from captions import CAPTIONS
 from data import scrape_status
 from components.charts.constants import PROVIDER_ALIASES, AUTO_PROVIDER_COLORS
 from static_helpers import (
     compute_diverse5, provider_options, model_options, quality_options,
-    ranking_frame, effort_options,
+    ranking_frame, effort_options, weights_options,
 )
 from data.workload_mix import (
     mix_options, DEFAULT_MIX_KEY, floor_label, fmt_floor, table_price_header,
@@ -77,10 +81,33 @@ DATA_CSVS = [
     # the data because the hourly bot adds to it whenever AA lists a new
     # company, and constants.py reads it at import in the browser too.
     "data/carried/aa_creator_colors.csv",
+    # Open-weights name registry (data/open_weights.py): classifies a hosted
+    # row that carries no AA flag of its own. Grown hourly by the bot.
+    "data/carried/open_weight_names.csv",
 ]
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
 # pure logic lives in static_helpers (imported above).
+
+
+def open_gap_figures(df) -> dict:
+    """Economics › Labs: the open-vs-closed gap (data/open_gap.py).
+
+    PRE-RENDER ONLY. The score-gap history reads every daily snapshot in
+    data/raw/history/ (~4 MB), which never ships to the browser: it is
+    aggregated here, at build time, into the figure. The release lag and the
+    iso-quality price ratio use the current catalogue at the default workload
+    mix — the Economics tab hides the global filter bar, MIX included, so no
+    visitor setting could move them.
+    """
+    hist = load_history()
+    dates = snapshot_dates(hist) if not hist.empty else []
+    asof = dates[-1] if dates else None
+    return {
+        "econ_open_gap_history": build_gap_history(*gap_history(hist)),
+        "econ_open_gap_lag":     build_release_lag(*release_lag(df, asof)),
+        "econ_open_gap_price":   build_iso_price(*iso_quality_ratios(df, None)),
+    }
 
 
 def export_default_figures(out_dir: Path) -> list[str]:
@@ -121,6 +148,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # visibly changed a few seconds after every page load.
         "video_rankings":       build_video_rankings(vdf, full_df=vdf),
         "video_scatter":        build_video_scatter(vdf, full_df=vdf),
+        **open_gap_figures(df),
     }
     written = []
     for fid, fig in figures.items():
@@ -187,6 +215,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # the spread reaches 18.5 points, so which tier represents a model is a
         # user choice rather than a fixed one.
         "effort_options":  effort_options(),
+        # WEIGHTS: All | Open | Closed (data/open_weights.WEIGHTS_OPTIONS).
+        "weights_options": weights_options(),
         "quality_options": quality_options(
             round(float(df["quality"].quantile(0.75)), 1),
             round(float(df["quality"].quantile(0.90)), 1)),
@@ -303,6 +333,8 @@ def build_pybundle(docs: Path | None = None):
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
         "data/workload_mix.py", "data/task_cost.py",
+        "data/open_weights.py", "data/open_gap.py",
+        "components/charts/open_gap.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity

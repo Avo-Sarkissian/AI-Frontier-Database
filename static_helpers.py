@@ -40,7 +40,7 @@ def coerce_number(value, default: float, minimum: float | None = None) -> float:
 
 
 def apply_filters(df, providers, min_quality, search: str = "",
-                  effort: str | None = None) -> pd.DataFrame:
+                  effort: str | None = None, weights: str | None = None) -> pd.DataFrame:
     """Global PROVIDER / MIN SCORE / SEARCH filter, shared by both renderings.
 
     `providers` is falsy-means-all here, and that is deliberate — this backs a
@@ -59,11 +59,20 @@ def apply_filters(df, providers, min_quality, search: str = "",
     does not filter rows out. Default None keeps every variant, which is what
     every caller saw before the control existed, so an untouched dashboard shows
     exactly what it always did. See components.charts.constants.select_effort.
+
+    `weights` is the WEIGHTS control: "open" keeps open-weights rows, "closed"
+    the rest, anything else (default "") keeps both. It runs AFTER the effort
+    pick, so a family's representative tier is chosen first and then kept or
+    dropped whole. Rows are classified by data/open_weights.py (AA's flag, else
+    the name registry); a frame that has not been annotated is annotated here.
     """
     filtered = df.copy()
     if effort:
         from components.charts.constants import select_effort
         filtered = select_effort(filtered, None if effort == "best" else effort)
+    if weights:
+        from data.open_weights import filter_weights
+        filtered = filter_weights(filtered, weights)
     if providers:
         wanted = {canonical_provider(str(p)) for p in providers}
         filtered = filtered[
@@ -84,7 +93,7 @@ def apply_filters(df, providers, min_quality, search: str = "",
 
 
 def task_axis_frames(df, providers, min_quality, search: str = "",
-                     effort: str | None = None):
+                     effort: str | None = None, weights: str | None = None):
     """Overview's Cost / task view filters the catalogue twice; both renderings
     call this so they cannot drift.
 
@@ -99,8 +108,8 @@ def task_axis_frames(df, providers, min_quality, search: str = "",
     """
     from data.task_cost import has_task_cost
     costed = apply_filters(df[has_task_cost(df)], providers, min_quality,
-                           search, effort)
-    every = apply_filters(df, providers, min_quality, search, effort)
+                           search, effort, weights)
+    every = apply_filters(df, providers, min_quality, search, effort, weights)
     return costed, every
 
 
@@ -264,7 +273,7 @@ def _local_kwargs(local_args) -> dict:
 
 
 def export_frame_for_tab(tab, full_df, providers, min_quality, search,
-                         effort=None, local_args=None, mix=None):
+                         effort=None, local_args=None, mix=None, weights=None):
     """(DataFrame, filename) for the dataset the given tab is showing.
 
     The three non-LLM tabs export their own catalogue, because the global
@@ -300,7 +309,8 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search,
         return apply_filters(full_df, None, 0, ""), name
     from data.workload_mix import apply_mix, resolve_mix
     m = resolve_mix(mix)
-    frame = apply_filters(apply_mix(full_df, m), providers, min_quality, search or "", effort)
+    frame = apply_filters(apply_mix(full_df, m), providers, min_quality, search or "",
+                          effort, weights)
     if not m.is_default:
         frame = frame.copy()
         frame.insert(frame.columns.get_loc("price") + 1, "price_basis", m.long)
@@ -444,7 +454,19 @@ def ranking_frame(df):
         # hosted rows NaN in an object column, and fillna+astype on that emits a
         # pandas downcasting FutureWarning. NaN.eq(True) is already False.
         merged["self_host"] = merged["self_host"].eq(True)
+    # The unhosted rows come from AA's open-weights catalogue, so they are open
+    # by AA's own classification; the hosted rows keep what they were given.
+    if "open_weights" in df.columns:
+        extra_rows = merged.index >= len(df)
+        merged["open_weights"] = merged["open_weights"].where(~extra_rows, True).eq(True)
+        merged["weights_source"] = merged["weights_source"].where(~extra_rows, "aa")
     return merged
+
+
+def weights_options() -> list[dict]:
+    """Options for the WEIGHTS control (data/open_weights.WEIGHTS_OPTIONS)."""
+    from data.open_weights import weights_options as _opts
+    return _opts()
 
 
 def effort_options() -> list[dict]:

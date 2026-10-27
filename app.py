@@ -155,6 +155,7 @@ from static_helpers import (
     export_frame_for_tab as _export_frame_for_tab_shared,
     ranking_frame,
     effort_options as _effort_options,
+    weights_options as _weights_options,
     TABS_WITHOUT_GLOBAL_FILTERS as _TABS_WITHOUT_GLOBAL_FILTERS,
     compute_diverse5 as _compute_diverse5,
     ctx_to_k as _ctx_to_k,
@@ -162,6 +163,7 @@ from static_helpers import (
     provider_options as _provider_options,
     model_options as _model_options,
 )
+from data.open_weights import valid_weights as _valid_weights, weights_label as _weights_label
 
 
 _DIVERSE5    = _compute_diverse5(df)
@@ -219,14 +221,15 @@ def _base(mix=None) -> pd.DataFrame:
 
 
 def _apply_filters(providers, min_quality, search: str = "",
-                   effort: str | None = None, mix=None) -> pd.DataFrame:
-    return apply_filters(_base(mix), providers, min_quality, search, effort)
+                   effort: str | None = None, mix=None, weights=None) -> pd.DataFrame:
+    return apply_filters(_base(mix), providers, min_quality, search, effort, weights)
 
 
 def _export_frame_for_tab(tab, providers, min_quality, search,
-                          effort=None, local_args=None, mix=None):
+                          effort=None, local_args=None, mix=None, weights=None):
     return _export_frame_for_tab_shared(tab, df, providers, min_quality, search,
-                                        effort=effort, local_args=local_args, mix=mix)
+                                        effort=effort, local_args=local_args, mix=mix,
+                                        weights=weights)
 
 
 def _mix_option_items() -> list[dict]:
@@ -416,6 +419,18 @@ app.layout = html.Div([
             value="",
             clearable=False,
             style={"width": "150px"},
+        ),
+        html.Div(className="filter-sep"),
+        # Open or closed weights (data/open_weights.py): AA's flag, else an
+        # exact-name match to its open-weights list. Hollow marks = open.
+        html.Span("WEIGHTS", className="filter-label",
+                  title="Open or closed weights, from Artificial Analysis's flag"),
+        dcc.Dropdown(
+            id="filter-weights",
+            options=_weights_options(),
+            value="",
+            clearable=False,
+            style={"width": "110px"},
         ),
         html.Div(className="filter-sep"),
         # Workload MIX (data/workload_mix): the input:output ratio and cache-hit
@@ -1156,15 +1171,41 @@ def reset_mix(_n):
     return DEFAULT_MIX_KEY
 
 
+# ── URL: the WEIGHTS setting (?w=open | ?w=closed) ───────────────────────────
+# Separate for the same reason as init_mix_from_url: init_from_url's 4-tuple is
+# destructured by existing tests.
+@callback(
+    Output("filter-weights", "value"),
+    Input("url", "search"),
+    prevent_initial_call=False,
+)
+def init_weights_from_url(search: str):
+    """A URL is user input: anything but 'open' / 'closed' means All ('')."""
+    if not search:
+        return ""
+    return _valid_weights(parse_qs(search.lstrip("?")).get("w", [""])[0])
+
+
+@callback(
+    Output("filter-weights", "value", allow_duplicate=True),
+    Input("preset-all",      "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_weights(_n):
+    """'Reset filters' clears WEIGHTS too; the quality presets do not."""
+    return ""
+
+
 # ── URL: write state on change ────────────────────────────────────────────────
 clientside_callback(
     """
-    function(tab, providers, quality, effort, mix, mixRatio, mixCache) {
+    function(tab, providers, quality, effort, mix, mixRatio, mixCache, weights) {
         var params = new URLSearchParams();
         if (tab)                           params.set('tab', tab);
         if (providers && providers.length) params.set('p', providers.join(','));
         if (quality > 0)                   params.set('q', quality);
         if (effort)                        params.set('e', effort);
+        if (weights)                       params.set('w', weights);
         if (mix && mix !== '""" + DEFAULT_MIX_KEY + """') params.set('m', mix);
         if (mix === '""" + CUSTOM_KEY + """') {
             if (mixRatio !== null && mixRatio !== undefined && mixRatio !== '') params.set('mr', mixRatio);
@@ -1183,6 +1224,7 @@ clientside_callback(
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 
@@ -1354,13 +1396,15 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_overview(providers, min_quality, effort, search, xaxis, _v,
-                    mix_key=None, mix_ratio=None, mix_cache=None):
+                    mix_key=None, mix_ratio=None, mix_cache=None,
+                    weights=None):
     basis = _mix(mix_key, mix_ratio, mix_cache)
     base = _base(basis)
-    filtered = apply_filters(base, providers, min_quality, search or "", effort)
+    filtered = apply_filters(base, providers, min_quality, search or "", effort, weights)
     if xaxis == "speed":
         desc = _desc(CAPTIONS["overview_speed"])
         # `base` is the unfiltered catalogue at this mix: the median crosshairs
@@ -1371,7 +1415,7 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
         # AA's cost per task: MIX reaches only the hover's price line. EFFORT
         # chooses among the tiers AA has costed (static_helpers.task_axis_frames).
         costed, every = task_axis_frames(base, providers, min_quality,
-                                         search or "", effort)
+                                         search or "", effort, weights)
         return (build_pareto_scatter(costed, full_df=base, basis=basis, x="task",
                                      count_df=every),
                 _desc(CAPTIONS["overview_task"]))
@@ -1389,12 +1433,15 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_treemap(providers, min_quality, effort, search, _v,
-                   mix_key=None, mix_ratio=None, mix_cache=None):
+                   mix_key=None, mix_ratio=None, mix_cache=None,
+                   weights=None):
     basis = _mix(mix_key, mix_ratio, mix_cache)
-    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, basis),
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, basis,
+                                        weights),
                          basis=basis)
 
 
@@ -1409,15 +1456,17 @@ def update_treemap(providers, min_quality, effort, search, _v,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_rankings(providers, min_quality, effort, search, sort_by, _v,
-                    mix_key=None, mix_ratio=None, mix_cache=None):
+                    mix_key=None, mix_ratio=None, mix_cache=None,
+                    weights=None):
     # Ranked on intelligence, so the open-weight models no host sells belong
     # here even though they cannot appear on any price or speed axis.
     basis = _mix(mix_key, mix_ratio, mix_cache)
     filtered = apply_filters(ranking_frame(_base(basis)), providers, min_quality,
-                             search or "", effort)
+                             search or "", effort, weights)
     return build_rankings(filtered, top_n=min(25, len(filtered)),
                           metric=sort_by or "intelligence", basis=basis)
 
@@ -1432,17 +1481,20 @@ def update_rankings(providers, min_quality, effort, search, sort_by, _v,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_value_leaders(providers, min_quality, effort, search, _v,
-                         mix_key=None, mix_ratio=None, mix_cache=None):
+                         mix_key=None, mix_ratio=None, mix_cache=None,
+                         weights=None):
     # Value Leaders sits under the same visible filter bar as the Rankings chart
     # above it, and was the one chart there with no callback: PROVIDER=Anthropic
     # narrowed Rankings and left this listing every provider, and the hourly
     # data-version bump never reached it, so its prices were frozen at boot.
     # The hosted frame, not ranking_frame: the score divides by price.
     basis = _mix(mix_key, mix_ratio, mix_cache)
-    return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort, basis),
+    return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort, basis,
+                                              weights),
                                basis=basis)
 
 
@@ -1456,13 +1508,16 @@ def update_value_leaders(providers, min_quality, effort, search, _v,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_provider_leaderboard(providers, min_quality, effort, search,
-                                mix_key=None, mix_ratio=None, mix_cache=None):
+                                mix_key=None, mix_ratio=None, mix_cache=None,
+                                weights=None):
     basis = _mix(mix_key, mix_ratio, mix_cache)
     return build_provider_leaderboard(
-        _apply_filters(providers, min_quality, search or "", effort, basis), basis=basis)
+        _apply_filters(providers, min_quality, search or "", effort, basis, weights),
+        basis=basis)
 
 
 @callback(
@@ -1478,13 +1533,15 @@ def update_provider_leaderboard(providers, min_quality, effort, search,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_compare(providers, min_quality, effort, search, selected_models,
-                   mix_key=None, mix_ratio=None, mix_cache=None):
+                   mix_key=None, mix_ratio=None, mix_cache=None,
+                   weights=None):
     basis     = _mix(mix_key, mix_ratio, mix_cache)
     base      = _base(basis)
-    filtered  = apply_filters(base, providers, min_quality, search or "", effort)
+    filtered  = apply_filters(base, providers, min_quality, search or "", effort, weights)
     options   = _model_options(filtered)
     triggered = ctx.triggered_id
 
@@ -1505,12 +1562,14 @@ def update_compare(providers, min_quality, effort, search, selected_models,
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def update_cost_calc(monthly_tokens_m, providers, min_quality, effort, search,
-                     mix_key=None, mix_ratio=None, mix_cache=None):
+                     mix_key=None, mix_ratio=None, mix_cache=None,
+                     weights=None):
     basis    = _mix(mix_key, mix_ratio, mix_cache)
-    filtered = _apply_filters(providers, min_quality, search or "", effort, basis)
+    filtered = _apply_filters(providers, min_quality, search or "", effort, basis, weights)
     # 0 tokens is a real query; a negative volume would invert the "cheapest" sort.
     tokens   = _coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
     return build_cost_calc(filtered, monthly_tokens_m=tokens, basis=basis)
@@ -1753,6 +1812,8 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
         _metric("Context", str(row.get("context", "N/A")) or "N/A"),
+        _metric("Weights", _weights_label(row.get("open_weights", False),
+                                          row.get("weights_source"))),
         html.Div(className="detail-panel-divider"),
         _metric("Coding",      index_label(row.get("coding"))),
         _metric("Agentic",     index_label(row.get("agentic"))),
@@ -1799,11 +1860,14 @@ def add_to_compare(n_clicks, model_name, current_selection):
     Input("filter-mix",      "value"),
     Input("mix-ratio",       "value"),
     Input("mix-cache",       "value"),
+    Input("filter-weights",  "value"),
 )
 def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
-                 mix_key=None, mix_ratio=None, mix_cache=None):
+                 mix_key=None, mix_ratio=None, mix_cache=None,
+                 weights=None):
     basis    = _mix(mix_key, mix_ratio, mix_cache)
-    filtered = _apply_filters(providers, min_quality, search or "", effort, basis).copy()
+    filtered = _apply_filters(providers, min_quality, search or "", effort, basis,
+                              weights).copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
@@ -1843,11 +1907,13 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
     State("filter-mix",      "value"),
     State("mix-ratio",       "value"),
     State("mix-cache",       "value"),
+    State("filter-weights",  "value"),
     prevent_initial_call=True,
 )
 def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
                vram_per_gpu=None, num_gpus=None, quant=None, ctx_tokens=None,
-               hw_meta=None, tags=None, mix_key=None, mix_ratio=None, mix_cache=None):
+               hw_meta=None, tags=None, mix_key=None, mix_ratio=None, mix_cache=None,
+               weights=None):
     """Export what is on screen, not always the hosted-LLM table.
 
     The global filter bar sits outside dcc.Tabs and four tabs consume none of
@@ -1870,7 +1936,8 @@ def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
     }
     frame, name = _export_frame_for_tab(tab, providers, min_quality, search,
                                         effort=effort, local_args=local_args,
-                                        mix=_mix(mix_key, mix_ratio, mix_cache))
+                                        mix=_mix(mix_key, mix_ratio, mix_cache),
+                                        weights=weights)
     return dcc.send_data_frame(_csv_safe(frame).to_csv, name, index=False)
 
 

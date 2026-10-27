@@ -801,6 +801,9 @@ def _scrape_and_save() -> bool:
         carried.learn_creator_colors({m.get("modelCreatorName"): m.get("modelCreatorColor")
                                       for m in models}, "llm")
         carried.remember(df, "scraper")
+        # AA's open-weights flag, kept by name so a row that later loses it
+        # (and every archived snapshot) can still be classified.
+        carried.learn_open_weights(df)
         if hold:
             print(f"[scraper] {len(hold)} deprecated model(s) held until their "
                   f"streak reaches {carried.DEPRECATED_DROP_AFTER_SCRAPES} scrapes "

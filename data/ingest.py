@@ -204,8 +204,12 @@ def _iso_date(val):
 
 
 def load_cached() -> pd.DataFrame:
+    """The published catalogue, plus the resolved `open_weights` (bool) and
+    `weights_source` columns (data/open_weights.py). Those two are computed on
+    read and never written back: save_cache is only ever handed a fresh parse."""
     if CACHE_PATH.exists():
-        return _with_price_sides(pd.read_csv(CACHE_PATH))
+        from data.open_weights import annotate_open_weights
+        return annotate_open_weights(_with_price_sides(pd.read_csv(CACHE_PATH)))
     raise FileNotFoundError("No cached data found. Run scrape first.")
 
 
@@ -365,7 +369,8 @@ def get_models(raw_rows: list | None = None) -> pd.DataFrame:
     or leave None to load from cache.
     """
     if raw_rows:
+        from data.open_weights import annotate_open_weights
         df = load_from_raw(raw_rows)
         save_cache(df)
-        return df
+        return annotate_open_weights(df)
     return load_cached()

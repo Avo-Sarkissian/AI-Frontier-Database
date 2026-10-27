@@ -1,10 +1,10 @@
 """State the hosted and open-weight scrapes need to keep between runs.
 
-Four things live here, all committed under data/carried/ rather than
+Five things live here, all committed under data/carried/ rather than
 data/raw/, because data/raw/ is what the scrape OVERWRITES every hour and each
 of these exists precisely to outlive one bad hour. The first two are described
-below; shrink confirmation and AA creator colours have their own sections
-further down.
+below; shrink confirmation, AA creator colours and the open-weights registry
+have their own sections further down.
 
 1. FROZEN SCORES (coding, agentic).
 AA stopped publishing codingIndex and agenticIndex on 2026-09-10. From then on
@@ -471,6 +471,76 @@ def learn_creator_colors(seen: dict, tab: str, path: Path | None = None) -> bool
     merged = auto_palette.assign(clean, _curated_colors(), stored,
                                  neighbours={**tab_only, **CURATED_PROVIDER_COLORS})
     return auto_palette.save_stored(merged, path) if merged != stored else False
+
+
+# ── Open-weights registry ─────────────────────────────────────────────────────
+# data/carried/open_weight_names.csv: name -> open/closed, with where that came
+# from and when it was first recorded. data/open_weights.py reads it to classify
+# rows that carry no AA flag of their own (every snapshot before 2026-10-27).
+
+def _today_iso() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def merge_open_weights(registry: pd.DataFrame, df: pd.DataFrame,
+                       today: str | None = None) -> pd.DataFrame:
+    """Fold a scrape's AA open-weights flags into the registry.
+
+    Append-only: a name never leaves. A name AA flags gains or keeps an
+    `aa_isOpenWeights` row carrying AA's latest flag; a catalogue-only row is
+    upgraded to the AA source and keeps its earlier first_seen. A row with no
+    AA flag (NA) changes nothing — "AA did not say" is not "closed".
+    """
+    from data.open_weights import REGISTRY_COLUMNS, SOURCE_AA, _flag, _isna
+
+    today = today or _today_iso()
+    cols = list(REGISTRY_COLUMNS)
+    out = (registry.copy() if registry is not None and not registry.empty
+           else pd.DataFrame(columns=cols)).astype(str)
+    if df is None or df.empty or "model" not in df.columns \
+            or "is_open_weights" not in df.columns:
+        return out[cols]
+    rows = {r["name"]: dict(r) for r in out[cols].to_dict("records")}
+    flags = df["is_open_weights"]
+    for name, is_open in zip(df["model"].astype(str), flags):
+        name = name.strip()
+        if not name:
+            continue
+        f = None if _isna(is_open) else _flag(is_open)
+        if f is None:
+            continue
+        flag = "1" if f else "0"
+        prev = rows.get(name)
+        rows[name] = {"name": name, "open_weights": flag, "source": SOURCE_AA,
+                      "first_seen": (prev or {}).get("first_seen") or today}
+    return pd.DataFrame(list(rows.values()), columns=cols)
+
+
+def _registry_text(df: pd.DataFrame) -> str:
+    from data.open_weights import REGISTRY_COLUMNS
+    from static_helpers import csv_safe
+    out = df[list(REGISTRY_COLUMNS)].sort_values("name", kind="mergesort")
+    return csv_safe(out.reset_index(drop=True)).to_csv(index=False)
+
+
+def save_open_weight_registry(df: pd.DataFrame, path: Path | None = None) -> bool:
+    """Write only on a real change, sorted, so a no-news hour is byte-identical."""
+    from data.open_weights import REGISTRY_FILE
+    path = Path(path) if path is not None else CARRIED_DIR / REGISTRY_FILE
+    text = _registry_text(df)
+    if path.exists() and path.read_text() == text:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return True
+
+
+def learn_open_weights(df: pd.DataFrame, path: Path | None = None) -> bool:
+    """Record a published scrape's AA open-weights flags. True when the file moved."""
+    from data.open_weights import REGISTRY_FILE, load_registry
+    path = Path(path) if path is not None else CARRIED_DIR / REGISTRY_FILE
+    merged = merge_open_weights(load_registry(path), df)
+    return save_open_weight_registry(merged, path)
 
 
 def main() -> int:

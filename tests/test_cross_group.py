@@ -47,7 +47,7 @@ def test_model_options_breaks_quality_ties_by_name():
 def test_the_static_rankings_refresh_redraws_value_leaders():
     block = APP_JS[APP_JS.index('rankings: makeRefresher("rankings"'):
                    APP_JS.index('budget: makeRefresher("budget"')]
-    assert 'callPy("update_value_leaders", p, q, s, e, m)' in block
+    assert 'callPy("update_value_leaders", p, q, s, e, m, w)' in block
     assert 'renderJsonFig("chart-value_leaders"' in block
     assert "no callback" not in block
 

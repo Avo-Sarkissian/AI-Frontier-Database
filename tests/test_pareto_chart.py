@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from components.charts.constants import (
-    PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_SHAPE, MAX_LEGEND_PROVIDERS,
+    PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_SHAPE, MAX_LEGEND_PROVIDERS, UNTIMED_RIM,
     SPOTLIGHT_PROVIDERS,
 )
 
@@ -318,8 +318,12 @@ def test_unmeasured_speed_is_drawn_above_every_filled_bubble():
         "a model with no measured speed sits at the size floor and is buried "
         "under any bubble at the same point unless it is layered above them"
     )
-    assert str(untimed.marker.symbol).endswith("-open")
-    assert untimed.marker.line.color == PROVIDER_COLORS["Google"]
+    # Hollow now means OPEN WEIGHTS (data/open_weights), so an untimed closed
+    # model is filled with a centre dot, drawn in a light rim colour (Plotly
+    # draws the dot with the marker line colour).
+    assert str(untimed.marker.symbol).endswith("-dot")
+    assert "-open" not in str(untimed.marker.symbol)
+    assert untimed.marker.line.color == UNTIMED_RIM
 
 
 def test_unmeasured_speed_is_not_encoded_as_slowest():
@@ -329,7 +333,8 @@ def test_unmeasured_speed_is_not_encoded_as_slowest():
     hover = " ".join(str(cd[2]) for cd in untimed.customdata)
     assert "not yet measured" in hover
     title = str(out.layout.title.text)
-    assert "hollow" in title and "speed not yet measured" in title
+    assert "centre dot = speed not yet measured" in title
+    assert "hollow" not in title, "no open-weights model is drawn, so no hollow key"
 
 
 def test_unmeasured_overlay_toggles_with_its_provider(fig):

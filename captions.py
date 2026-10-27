@@ -13,7 +13,8 @@ CAPTIONS: dict[str, str] = {
         "collapse to one point rather than five near-duplicates at the same price. X = price "
         "per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), "
         "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-        "Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
+        "Hollow = open weights, filled = closed (Artificial Analysis's flag; WEIGHTS filters "
+        "them). Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
     ),
     'recommend': (
         "Build your Claude Code model stack. API Only = all cloud. Hybrid — Fast "
@@ -38,7 +39,10 @@ CAPTIONS: dict[str, str] = {
         "tied — small deltas are within measurement variance. About half these "
         "scores are estimated by Artificial Analysis rather than measured: since "
         "its 2026-09 rebuild it extrapolates the index for models it has not yet "
-        "run the full evaluation suite on. Click any model for which it is."
+        "run the full evaluation suite on. Click any model for which it is. "
+        "Outlined bars = open weights (Artificial Analysis's flag, or a name match "
+        "to its open-weights list where a row has no flag; the hover says which), "
+        "solid = closed."
     ),
     'rankings_value': (
         "Top 15 models ranked by intelligence per dollar (quality score ÷ price per "
@@ -140,8 +144,8 @@ CAPTIONS: dict[str, str] = {
     ),
     'overview_speed': (
         "Speed (tok/s) vs. AA Intelligence Index. Top-right = fast and smart. "
-        "Bubble size = affordability (larger = cheaper). Click any bubble for full "
-        "details."
+        "Bubble size = affordability (larger = cheaper). Hollow = open weights. "
+        "Click any bubble for full details."
     ),
     'overview_task': (
         "Each bubble is one model FAMILY — its best-scoring variant that Artificial "
@@ -157,11 +161,46 @@ CAPTIONS: dict[str, str] = {
         "per task ÷ list price per token. Source: artificialanalysis.ai. Click any "
         "bubble for full details."
     ),
+    'economics_open_gap': (
+        "Open weights vs. closed, three ways, all from Artificial Analysis data "
+        "this dashboard scrapes (artificialanalysis.ai). Open or closed is AA's "
+        "isOpenWeights flag; a row without one (every daily snapshot before "
+        "2026-10-27) is classified by an exact-name match to AA's open-weights "
+        "list, kept from every revision since 2026-05-06, and otherwise counted "
+        "as closed. SCORE GAP: in each daily snapshot, the best closed model's AA "
+        "Intelligence Index minus the best open model's. AA has rescaled the "
+        "index — found in the snapshots on 2026-06-16, 2026-09-05 and 2026-09-08 "
+        "(nearly every model moved by one factor) — so the line breaks there and a "
+        "gap is comparable only within one segment; the 2026-03-07 snapshot, when "
+        "AA briefly published the index renormalised to 0–100, is left out. Early "
+        "snapshots can still overstate the gap where an open model left every "
+        "list this dashboard kept. RELEASE LAG: for each closed model that set a "
+        "new closed high when released, the time until an open model scoring at "
+        "least as much was released; one not matched yet is counted, not given a "
+        "number. Only models AA still lists are seen (it drops superseded ones), "
+        "so this is a survivor's view, not a measured history. PRICE: for each "
+        "open family, the price of the cheapest closed family scoring at least "
+        "as well, divided by the open model's price, both at our 1:3 in:out "
+        "blend (the Economics tab does not follow MIX). AA lists one price per "
+        "model, not the cheapest third-party host, and the spread runs both ways, "
+        "so no single ratio is claimed. For comparison, quoted: Epoch AI finds "
+        "open models trailing the closed frontier by about four months since "
+        "January 2026 on its Capabilities Index (epoch.ai/data-insights/"
+        "open-closed-eci-gap, 2026-05-29, CC BY 4.0); OpenRouter reports open "
+        "models above 62% of its tokens while closed models took 73% of spend "
+        "in September 2026 (openrouter.ai/data/newsletter/the-token-state-of-play, "
+        "quoted, not scraped); Nous Research measured open reasoning models using "
+        "about 1.5–4× the tokens of closed ones on the same tasks (nousresearch.com/"
+        "measuring-thinking-efficiency-in-reasoning-models-the-missing-benchmark), "
+        "which a per-token price ratio does not see — the hover adds AA's cost per "
+        "task where AA publishes one for both models."
+    ),
     'overview_price_dyn': (
 "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
         "collapse to one point rather than five near-duplicates at the same price. X = price "
         "per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), "
         "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-        "Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
+        "Hollow = open weights, filled = closed (Artificial Analysis's flag; WEIGHTS filters "
+        "them). Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
     ),
 }

@@ -208,10 +208,11 @@ def test_mix_moves_only_the_hover_price_on_the_task_axis(frame, mix):
 @pytest.mark.parametrize("x", ["price", "task"])
 def test_customdata_layout_is_the_same_on_both_axes(frame, x):
     """[5]/[6] raw names for the click handler, [7] price, [8] cost per task,
-    [9] burn: ten fields in both modes, so a later field has one index."""
+    [9] burn, [10] weights: eleven fields in both modes, so a later field has
+    one index."""
     fig = build_pareto_scatter(frame, full_df=frame, x=x)
     rows = [cd for t in fig.data if t.mode == "markers" for cd in t.customdata]
-    assert rows and all(len(cd) == 10 for cd in rows)
+    assert rows and all(len(cd) == 11 for cd in rows)
     by = {cd[5]: cd for cd in rows}
     assert by["Burner"][8] == "$2.00" and by["Burner"][9] == "2M blend-eq. tok/task"
     if x == "price":

@@ -72,8 +72,8 @@ def _base(mix=None):
     return apply_mix(_DF, resolve_mix(mix))
 
 
-def _apply_filters(providers, min_quality, search="", effort=None, mix=None):
-    return apply_filters(_base(mix), providers, min_quality, search, effort)
+def _apply_filters(providers, min_quality, search="", effort=None, mix=None, weights=None):
+    return apply_filters(_base(mix), providers, min_quality, search, effort, weights)
 
 
 # ── HTML-string mirrors of app.py's dash-component builders ──────────────────
@@ -163,6 +163,14 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list, mix=None) -> str:
         f"<tbody>{''.join(table_rows)}</tbody>"
         f"</table></div>"
     )
+
+
+def _weights_text(row: pd.Series) -> str:
+    """'Open · AA flag' etc. (data/open_weights.weights_label)."""
+    from data.open_weights import annotate_open_weights, weights_label
+    if "open_weights" not in row.index:
+        row = annotate_open_weights(row.to_frame().T).iloc[0]
+    return weights_label(row["open_weights"], row.get("weights_source"))
 
 
 def _cache_label(row: pd.Series) -> str:
@@ -282,6 +290,7 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
         + _metric("Speed", speed_str)
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)
+        + _metric("Weights", html.escape(_weights_text(row), quote=True))
         + divider
         + _metric("Coding", index_label(row.get("coding")))
         + _metric("Agentic", index_label(row.get("agentic")))
@@ -291,12 +300,14 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
 
 # ── Ported callbacks ──────────────────────────────────────────────────────────
 
-# Every hosted function takes `mix` LAST and optional (after `effort`).
-# docs/pyworker.js spreads the browser's argument list into these with no arity
-# check, so a parameter inserted mid-signature shifts every later argument and
-# fails silently in someone's browser. docs/app.js sends readMix() last.
+# Every hosted function takes `effort`, then `mix`, then `weights` LAST, all
+# optional. docs/pyworker.js spreads the browser's argument list into these
+# with no arity check, so a parameter inserted mid-signature shifts every later
+# argument and fails silently in someone's browser. docs/app.js sends
+# ..., effort, readMix(), weights in that order.
 
-def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None):
+def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None,
+                    weights=None):
     """xaxis: "price" | "speed" | "task". On "task" the x axis is AA's cost per
     Intelligence Index task, which MIX does not re-price: `mix` reaches only
     the hover's price line."""
@@ -307,10 +318,10 @@ def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None
     # user's filter.
     if xaxis == "task":
         costed, every = task_axis_frames(base, providers, min_quality,
-                                         search or "", effort)
+                                         search or "", effort, weights)
         return build_pareto_scatter(costed, full_df=base, basis=basis, x="task",
                                     count_df=every).to_json()
-    f = apply_filters(base, providers, min_quality, search or "", effort)
+    f = apply_filters(base, providers, min_quality, search or "", effort, weights)
     if xaxis == "speed":
         fig = build_quadrant(f, full_df=base, basis=basis)
     else:
@@ -318,38 +329,43 @@ def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None
     return fig.to_json()
 
 
-def update_treemap(providers, min_quality, search, effort=None, mix=None):
-    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, mix),
+def update_treemap(providers, min_quality, search, effort=None, mix=None, weights=None):
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, mix,
+                                        weights),
                          basis=resolve_mix(mix)).to_json()
 
 
-def update_provider_leaderboard(providers, min_quality, search, effort=None, mix=None):
+def update_provider_leaderboard(providers, min_quality, search, effort=None, mix=None,
+                                weights=None):
     return build_provider_leaderboard(
-        _apply_filters(providers, min_quality, search or "", effort, mix),
+        _apply_filters(providers, min_quality, search or "", effort, mix, weights),
         basis=resolve_mix(mix),
     ).to_json()
 
 
-def update_rankings(providers, min_quality, search, sort_by, effort=None, mix=None):
+def update_rankings(providers, min_quality, search, sort_by, effort=None, mix=None,
+                    weights=None):
     from static_helpers import ranking_frame
     basis = resolve_mix(mix)
-    f = apply_filters(ranking_frame(_base(basis)), providers, min_quality, search or "", effort)
+    f = apply_filters(ranking_frame(_base(basis)), providers, min_quality, search or "",
+                      effort, weights)
     return build_rankings(f, top_n=min(25, len(f)), metric=sort_by or "intelligence",
                           basis=basis).to_json()
 
 
-def update_value_leaders(providers, min_quality, search, effort=None, mix=None):
+def update_value_leaders(providers, min_quality, search, effort=None, mix=None,
+                         weights=None):
     return build_value_leaders(
-        _apply_filters(providers, min_quality, search or "", effort, mix),
+        _apply_filters(providers, min_quality, search or "", effort, mix, weights),
         basis=resolve_mix(mix),
     ).to_json()
 
 
 def update_compare(providers, min_quality, search, selected_models, triggered, effort=None,
-                   mix=None):
+                   mix=None, weights=None):
     basis = resolve_mix(mix)
     base = _base(basis)
-    f = apply_filters(base, providers, min_quality, search or "", effort)
+    f = apply_filters(base, providers, min_quality, search or "", effort, weights)
     options = model_options(f)
     capped = cap_compare_selection(selected_models, f, triggered)
     return json.dumps({
@@ -361,7 +377,7 @@ def update_compare(providers, min_quality, search, selected_models, triggered, e
 
 
 def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0,
-                     effort=None, mix=None):
+                     effort=None, mix=None, weights=None):
     """`min_intelligence` is the Budget tab's own floor. It composes with the
     global MIN SCORE filter rather than replacing it, so the effective floor is
     whichever is higher — the same as any two filters intersecting.
@@ -369,7 +385,7 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intel
     The monthly cost is tokens x the price at `mix`, so the cheapest answer
     moves with the workload; `basis` names the mix for the answer card."""
     basis = resolve_mix(mix)
-    f = _apply_filters(providers, min_quality, search or "", effort, basis)
+    f = _apply_filters(providers, min_quality, search or "", effort, basis, weights)
     # 0 is a volume the user typed; only a blank box means "not given". Negative
     # input is clamped — the HTML min attribute is a hint, not a guard.
     tokens = coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
@@ -383,8 +399,9 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intel
     })
 
 
-def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None, mix=None):
-    f = _apply_filters(providers, min_quality, search or "", effort, mix).copy()
+def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None, mix=None,
+                 weights=None):
+    f = _apply_filters(providers, min_quality, search or "", effort, mix, weights).copy()
     f["value"] = f.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
@@ -405,15 +422,17 @@ def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None
 
 
 def export_csv(providers, min_quality, search, tab=None, effort=None, local_args=None,
-               mix=None):
+               mix=None, weights=None):
     """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
     on screen, not always the hosted-LLM table.
 
-    `effort`, `local_args` and `mix` are APPENDED, like update_local's late
-    parameters: pyworker.js spreads the argument list with no arity check.
+    `effort`, `local_args`, `mix` and `weights` are APPENDED, like
+    update_local's late parameters: pyworker.js spreads the argument list with
+    no arity check.
     `local_args` is the same list docs/app.js sends to update_local."""
     frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search,
-                                        effort=effort, local_args=local_args, mix=mix)
+                                        effort=effort, local_args=local_args, mix=mix,
+                                        weights=weights)
     return csv_safe(frame).to_csv(index=False)
 
 
@@ -595,6 +614,12 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
 
     cards = build_stack_cards_html(_DF, providers, mode=mode, local_df=local_df)
     return json.dumps({"cards_html": cards, "show_providers": show_providers, "show_hw": show_hw})
+
+
+def weights_options():
+    """Return JSON list of {label, value} for the WEIGHTS control."""
+    from static_helpers import weights_options as _opts
+    return json.dumps(_opts())
 
 
 def effort_options():
