@@ -109,6 +109,10 @@ def test_median_token_burn_skips_rows_without_one(frame):
 @pytest.mark.parametrize("v,text", [
     (374_000, "374K"), (1_984_953, "1.98M"), (11_291.5, "11.3K"), (950, "950"),
     (None, "—"), (float("nan"), "—"), (0, "—"),
+    # Unit boundaries: round first, then pick the unit ('.3g' of 999.6K
+    # printed "1e+03K"; live burns sit at 943K-1.08M).
+    (999_600, "1M"), (999_499, "999K"), (999.6, "1K"), (999.4, "999"),
+    (999_600_000, "1B"), (1_000, "1K"), (1_000_000, "1M"), (995_000, "995K"),
 ])
 def test_fmt_tokens(v, text):
     assert tc.fmt_tokens(v) == text
@@ -174,7 +178,7 @@ def test_task_frontier_is_computed_on_cost_per_task(frame):
 def test_task_axis_is_labelled_as_aa_measured_and_mix_free(frame):
     fig = build_pareto_scatter(frame, full_df=frame, x="task")
     assert fig.layout.xaxis.title.text == (
-        "Cost per Intelligence Index task  (USD, log, AA-measured)  ·  MIX does not apply")
+        "Cost per Intelligence Index task  (USD, log)<br>AA-measured  ·  MIX does not apply")
     assert fig.layout.xaxis.type == "log"
     assert fig.layout.title.text.startswith("Cost per Task vs. Intelligence")
     ann = fig.layout.annotations[0].text
@@ -343,6 +347,10 @@ def test_caption_says_no_imputation_and_credits_aa():
     from captions import CAPTIONS
     text = CAPTIONS["overview_task"]
     assert "never estimated" in text and "MIX does not move it" in text
+    # AA prices cache reads at its live typical hit rate, not what the run saw,
+    # and falls back to a tokenizer where a provider reports no counts.
+    assert "cache traffic" not in text and "provider's prices" not in text
+    assert "typical cache-hit rate" in text and "tokenizer" in text
     assert "artificialanalysis.ai" in text
     assert "3:1" not in text
 
@@ -379,3 +387,89 @@ def test_dash_detail_panel_shows_the_same_task_rows(dash_app, monkeypatch):
     for lbl, val in tc.detail_rows(row, tc.median_token_burn(DF)):
         assert lbl in text and val in text
     assert tc.detail_note(row) in text
+
+
+# ── review fixes (2026-10-27) ────────────────────────────────────────────────
+
+def _tiers():
+    """Two families with effort tiers. Only Tiered's HIGH tier is costed, so
+    EFFORT=low used to pick the uncosted Low row and the title said AA had no
+    cost for the family. Solo has a single costed row."""
+    return pd.DataFrame([
+        _row("Tiered (high)", "OpenAI", 60.0, 1.0, 0.40),
+        _row("Tiered (medium)", "OpenAI", 50.0, 1.0, float("nan")),
+        _row("Tiered (low)", "OpenAI", 40.0, 1.0, float("nan")),
+        _row("Solo", "Google", 45.0, 2.0, 0.20),
+    ])
+
+
+@pytest.mark.parametrize("effort", [None, "best", "low", "medium", "high", "max"])
+def test_effort_picks_the_nearest_costed_tier(effort, monkeypatch):
+    from static_helpers import task_axis_frames
+    df = _tiers()
+    costed, every = task_axis_frames(df, [], 0, "", effort)
+    fig = build_pareto_scatter(costed, full_df=df, x="task", count_df=every)
+    assert _marker_models(fig) == {"Tiered (high)", "Solo"}
+    assert "2 of 2 model families have an AA cost per task (0 lack one" \
+        in fig.layout.title.text
+    # The same through static_api, which both renderings mirror.
+    monkeypatch.setattr(api, "_DF", df)
+    spec = json.loads(api.update_overview([], 0, "", "task", effort, None))
+    assert "2 of 2 model families" in spec["layout"]["title"]["text"]
+
+
+def test_a_costed_tier_that_passes_min_score_is_counted_on_screen():
+    """MIN SCORE drops the selected (uncosted) Low tier but not the costed
+    High one: the family is drawn, so it must also be counted, never '-1 lack'."""
+    from static_helpers import task_axis_frames
+    df = _tiers()
+    costed, every = task_axis_frames(df, [], 55, "", "low")
+    fig = build_pareto_scatter(costed, full_df=df, x="task", count_df=every)
+    assert _marker_models(fig) == {"Tiered (high)"}
+    assert "1 of 1 model families" in fig.layout.title.text
+
+
+@real
+@pytest.mark.parametrize("effort", [None, "best", "low", "medium", "high", "max"])
+def test_real_no_family_with_a_costed_tier_is_reported_missing(effort):
+    from components.charts.constants import base_model_name
+    from static_helpers import apply_filters
+    spec = _decoded(api.update_overview([], 0, "", "task", effort, None))
+    drawn = {cd[5] for t in spec["data"] if t.get("mode") == "markers"
+             for cd in t["customdata"]}
+    drawn_fams = {base_model_name(m) for m in drawn}
+    costed_fams = set(DF[tc.has_task_cost(DF)]["model"].map(base_model_name))
+    from components.charts.pareto import _plottable
+    on_screen = set(_plottable(apply_filters(DF, [], 0, "", effort))["model"]
+                    .map(base_model_name))
+    priced_costed = set(_plottable(DF, "cost_per_task")["model"].map(base_model_name))
+    assert (on_screen & priced_costed) <= drawn_fams
+    m = re.search(r"(\d+) of (\d+) model families .*?\((\d+) lack one",
+                  spec["layout"]["title"]["text"])
+    n, tot, lack = map(int, m.groups())
+    assert n == len(drawn_fams) and tot - n == lack >= 0
+    assert costed_fams  # sanity: the data has costs at all
+
+
+def test_rank_flip_line_names_its_blend_and_wraps(frame):
+    for mix in (None, "agentic"):
+        fig = build_pareto_scatter(apply_mix(frame, resolve_mix(mix)),
+                                   full_df=frame, basis=resolve_mix(mix), x="task")
+        ann = fig.layout.annotations[0]
+        assert f"list price at {tc.list_blend_short()}" in ann.text
+        assert ann.align == "left"
+        # 390 px phones: each line must fit a ~356 px plot at 10 px type.
+        assert all(len(re.sub("<[^>]+>", "", ln)) <= 60 for ln in ann.text.split("<br>"))
+    xt = fig.layout.xaxis.title.text
+    assert all(len(ln) <= 50 for ln in xt.split("<br>"))
+    # The two-line title must not run into a paper-relative legend.
+    assert fig.layout.legend.yref == "container" and fig.layout.legend.y == 0
+
+
+def test_dash_task_axis_uses_the_costed_tiers_too(dash_app):
+    fig, _ = dash_app.update_overview(None, 0, "low", "", "task", None)
+    static = _decoded(api.update_overview(None, 0, "", "task", "low", None))
+    dash = _decoded(fig.to_json())
+    assert dash["layout"]["title"] == static["layout"]["title"]
+    assert dash["layout"]["annotations"] == static["layout"]["annotations"]
+    assert [t.get("x") for t in dash["data"]] == [t.get("x") for t in static["data"]]

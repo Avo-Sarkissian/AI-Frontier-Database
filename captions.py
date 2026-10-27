@@ -145,9 +145,12 @@ CAPTIONS: dict[str, str] = {
     ),
     'overview_task': (
         "Each bubble is one model FAMILY — its best-scoring variant that Artificial "
-        "Analysis has costed. X = AA's measured cost per Intelligence Index task (USD, "
-        "log scale): the tokens each provider reported running the index, reasoning "
-        "and cache traffic included, at that provider's prices. MIX does not move it. "
+        "Analysis has costed (with EFFORT set, the nearest tier AA has costed). X = "
+        "AA's cost per Intelligence Index task (USD, log scale): the token counts the "
+        "provider reported for the run (a canonical tokenizer where none were "
+        "reported), reasoning included, with cache reads at AA's live measurement of "
+        "the model's typical cache-hit rate rather than the hits seen in the run. MIX "
+        "does not move it. "
         "Models AA has not costed are counted in the title, never estimated. Y = AA "
         "Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto "
         "frontier on cost per task. Token burn in the hover and detail panel = cost "

@@ -43,6 +43,7 @@ from data.task_cost import median_token_burn, detail_rows, detail_note
 from static_helpers import (
     index_label,
     apply_filters,
+    task_axis_frames,
     coerce_number,
     cap_compare_selection,
     csv_safe,
@@ -301,15 +302,19 @@ def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None
     the hover's price line."""
     basis = resolve_mix(mix)
     base = _base(basis)
-    f = apply_filters(base, providers, min_quality, search or "", effort)
     # `base` is the unfiltered catalogue at this mix: medians, axis bounds and
     # frontier membership are market-wide claims and must not move with the
     # user's filter.
+    if xaxis == "task":
+        costed, every = task_axis_frames(base, providers, min_quality,
+                                         search or "", effort)
+        return build_pareto_scatter(costed, full_df=base, basis=basis, x="task",
+                                    count_df=every).to_json()
+    f = apply_filters(base, providers, min_quality, search or "", effort)
     if xaxis == "speed":
         fig = build_quadrant(f, full_df=base, basis=basis)
     else:
-        fig = build_pareto_scatter(f, full_df=base, basis=basis,
-                                   x="task" if xaxis == "task" else "price")
+        fig = build_pareto_scatter(f, full_df=base, basis=basis)
     return fig.to_json()
 
 

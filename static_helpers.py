@@ -83,6 +83,27 @@ def apply_filters(df, providers, min_quality, search: str = "",
     return filtered
 
 
+def task_axis_frames(df, providers, min_quality, search: str = "",
+                     effort: str | None = None):
+    """Overview's Cost / task view filters the catalogue twice; both renderings
+    call this so they cannot drift.
+
+    Returns (costed, every):
+      costed — only rows AA published a cost per task for, THEN filtered, so
+               EFFORT picks the nearest tier AA has costed. Filtering after the
+               selection dropped a family whose chosen tier was uncosted while a
+               sibling tier was costed (gpt-oss-120b at Low: High costed, Low
+               not), and the title then said AA had no cost for it.
+      every  — the same filters on the whole catalogue: the families the title
+               counts as on screen.
+    """
+    from data.task_cost import has_task_cost
+    costed = apply_filters(df[has_task_cost(df)], providers, min_quality,
+                           search, effort)
+    every = apply_filters(df, providers, min_quality, search, effort)
+    return costed, every
+
+
 COMPARE_MAX = 5
 
 # Characters that make a spreadsheet treat a cell as a formula rather than text.

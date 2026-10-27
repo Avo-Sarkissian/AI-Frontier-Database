@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 from components.charts.constants import (
     plot_text,
     PROVIDER_COLORS, PROVIDER_SHAPES, DEFAULT_COLOR, DEFAULT_SHAPE,
-    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant,
+    BG, GRID, TICK, AXIS, FONT, dedupe_to_best_variant, base_model_name,
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
@@ -74,7 +74,9 @@ def _plottable(df: pd.DataFrame, xcol: str = "price") -> pd.DataFrame:
 
     On the task axis a row also needs AA's cost per task, and the filter runs
     BEFORE the family dedupe, so a family is drawn by its best-scoring variant
-    that AA has costed rather than dropped because its top tier was not."""
+    that AA has costed rather than dropped because its top tier was not. With
+    EFFORT set the tier is chosen upstream, so the callers select from costed
+    rows only (static_helpers.task_axis_frames) for the same guarantee."""
     sub = df[
         (df["price"] > 0) &
         (df["quality"] > 0) &
@@ -104,7 +106,8 @@ def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
 
 
 def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
-                         basis=None, x: str = "price") -> go.Figure:
+                         basis=None, x: str = "price",
+                         count_df: pd.DataFrame | None = None) -> go.Figure:
     """Build the Cost vs Quality Pareto scatter figure.
 
     ``full_df`` is the unfiltered catalogue. The frontier is a claim about the
@@ -119,6 +122,9 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     ``x`` is "price" (default) or "task": AA's cost per Intelligence Index
     task on the x axis. In task mode the MIX only reaches the hover's price
     line; the axis, frontier and counts are AA's numbers.
+
+    ``count_df`` (task mode only) is the filtered frame BEFORE the costed-only
+    restriction, i.e. every family on screen; the title counts it. None = `df`.
     """
     basis = resolve_mix(basis)
     task = x == "task"
@@ -272,10 +278,15 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     )
     if task and corr_text:
         # Why the axis exists: list price per token mis-orders cost per task.
+        # Ranked at the LIST blend whatever the MIX (as the token burn is), and
+        # the third line says so: the hover's Price line follows the MIX, and
+        # at agentic the share computed on that price is 23%, not 18%.
+        # Separate lines: on one line it ran 137 px off a 390 px screen.
         flips = rank_flip_share(plot_df)
         if flips is not None:
-            corr_text += (f"  ·  {flips[0]:.0%} of {flips[1]:,} pairs: cheaper per "
-                          "token, dearer per task")
+            corr_text += (f"<br>{flips[0]:.0%} of {flips[1]:,} pairs: cheaper per "
+                          "token, dearer per task"
+                          f"<br>per token = list price at {list_blend_short()}")
 
     annotations = []
     if corr_text:
@@ -284,7 +295,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             xref="paper", yref="paper",
             text=corr_text,
             showarrow=False,
-            xanchor="left", yanchor="top",
+            xanchor="left", yanchor="top", align="left",
             font=dict(color="#666666", size=10, family=FONT),
         ))
 
@@ -293,7 +304,12 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     if task:
         # The count leads (Plotly titles do not wrap): how many families on
         # screen AA has costed, and how many it has not. None is imputed.
-        n_fam = len(_plottable(df))
+        # Families on screen = those in the unrestricted filtered frame, plus
+        # any drawn only because a costed tier passed a filter the selected
+        # tier failed, so "N of M" never goes negative.
+        fams = set(_plottable(df if count_df is None else count_df)["model"]
+                   .map(base_model_name))
+        n_fam = len(fams | set(plot_df["model"].map(base_model_name)))
         title_text = (
             "Cost per Task vs. Intelligence"
             "  <span style='font-size:12px;color:#777777;font-weight:400'>"
@@ -302,8 +318,14 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
             + hollow + "</span>"
         )
-        x_title = ("Cost per Intelligence Index task  (USD, log, AA-measured)"
-                   "  ·  MIX does not apply")
+        # Two lines: on one it overflowed a 390 px plot at both ends.
+        x_title = ("Cost per Intelligence Index task  (USD, log)"
+                   "<br>AA-measured  ·  MIX does not apply")
+        # A paper-relative legend sits a fixed fraction of the plot height
+        # under the axis; at 390 px that put its first row on the title's
+        # second line. Pinned to the figure bottom, automargin keeps it clear.
+        legend = {**legend_below(), "yref": "container", "y": 0,
+                  "yanchor": "bottom"}
     else:
         title_text = (
             "Cost vs. Intelligence"
@@ -317,6 +339,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             + "</span>"
         )
         x_title = f"Price  (USD / 1M tokens, log)  ·  {basis.short}"
+        legend = legend_below()
 
     fig.update_layout(
         paper_bgcolor=BG,
@@ -361,7 +384,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             showline=False,
             ticks="",
         ),
-        legend=legend_below(),
+        legend=legend,
         margin=CHART_MARGIN,
         hovermode="closest",
         hoverlabel=dict(

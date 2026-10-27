@@ -1,9 +1,11 @@
 """Cost per Intelligence Index task, and the "token burn" it implies.
 
-`cost_per_task` is Artificial Analysis's own number: the USD it spent, per task,
-running a model through the Intelligence Index, built from the tokens each
-provider reported (input, cache read and write, reasoning and answer) at that
-provider's prices. It is scraped as `intelligenceIndexCostPerTask` from
+`cost_per_task` is Artificial Analysis's own number: the USD per task of running
+a model through the Intelligence Index. AA builds it from the token counts each
+model's API provider reported "where available" (a canonical-tokenizer fallback
+otherwise), reasoning included, combined with "live measurements of the model's
+typical cache hit rate" rather than the cache hits seen in the run itself; the
+methodology page does not name the price list. It is scraped as `intelligenceIndexCostPerTask` from
 https://artificialanalysis.ai/leaderboards/models (column 13 of aa_models.csv
 since 2026-10-27); the method is described at
 https://artificialanalysis.ai/methodology/intelligence-benchmarking (read
@@ -101,15 +103,19 @@ def row_token_burn(row) -> float | None:
 
 
 def fmt_tokens(v) -> str:
-    """374K, 1.98M, 11.3K: three significant digits, never scientific."""
+    """374K, 1.98M, 11.3K: three significant digits, never scientific.
+
+    Rounds to three significant digits FIRST and picks the unit from the
+    rounded value: 999,600 rounds to 1,000K, which '.3g' printed as
+    "1e+03K". Choosing the unit after rounding makes it "1M"."""
     v = _scalar(v)
     if v is None:
         return "—"
-    if v >= 1e6:
-        return f"{v / 1e6:.3g}M"
-    if v >= 1e3:
-        return f"{v / 1e3:.3g}K"
-    return f"{v:.3g}"
+    r = float(f"{v:.3g}")
+    for scale, unit in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if r >= scale:
+            return f"{r / scale:.3g}{unit}"
+    return f"{r:.3g}"
 
 
 def fmt_task_cost(v) -> str:

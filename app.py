@@ -146,6 +146,7 @@ from captions import CAPTIONS
 from static_helpers import (
     index_label,
     apply_filters,
+    task_axis_frames,
     coerce_number as _coerce_number,
     cap_compare_selection as _cap_compare_selection,
     COMPARE_MAX,
@@ -1367,8 +1368,12 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
         # so they must not move when the user narrows the frame.
         return build_quadrant(filtered, full_df=base, basis=basis), desc
     if xaxis == "task":
-        # AA's cost per task: MIX reaches only the hover's price line.
-        return (build_pareto_scatter(filtered, full_df=base, basis=basis, x="task"),
+        # AA's cost per task: MIX reaches only the hover's price line. EFFORT
+        # chooses among the tiers AA has costed (static_helpers.task_axis_frames).
+        costed, every = task_axis_frames(base, providers, min_quality,
+                                         search or "", effort)
+        return (build_pareto_scatter(costed, full_df=base, basis=basis, x="task",
+                                     count_df=every),
                 _desc(CAPTIONS["overview_task"]))
     desc = _desc(CAPTIONS["overview_price_dyn"])
     return build_pareto_scatter(filtered, full_df=base, basis=basis), desc
