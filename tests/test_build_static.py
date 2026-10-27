@@ -60,11 +60,16 @@ def test_build_produces_figures_and_manifest(tmp_path):
                 # Economics › Labs, pre-render only (data/open_gap.py)
                 "econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price",
                 # Economics › Serve (data/serving_cost.py)
-                "econ_serve"]:
+                "econ_serve",
+                # Economics › Labs, lab economics (data/lab_economics.py)
+                "econ_labs_runrate", "econ_labs_margins", "econ_labs_commitments",
+                "econ_labs_tokens"]:
         p = figdir / f"{fid}.json"
         assert p.exists(), f"missing {p}"
         fig = json.loads(p.read_text())
         assert "data" in fig and "layout" in fig
+    ledger = json.loads((figdir / "econ_labs_ledger.json").read_text())
+    assert set(ledger) == {"html"} and "<table" in ledger["html"]
     manifest = json.loads((figdir / "manifest.json").read_text())
     assert int(manifest["model_count"]) > 0
     assert manifest["provider_options"] and manifest["diverse5"]

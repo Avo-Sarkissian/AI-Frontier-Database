@@ -29,7 +29,7 @@ const TAB_CAPTIONS = {
   local:     ["local"],
   // Every view's captions: each view pre-creates its [data-caption] elements,
   // which renderCaptions fills in place.
-  economics: ["economics_serve", "economics_compute", "economics_open_gap"],
+  economics: ["economics_serve", "economics_compute", "economics_labs", "economics_open_gap"],
   image:     ["image"],
   video:     ["video"],
 };
@@ -40,8 +40,10 @@ const TAB_CAPTIONS = {
 // captions: manifest.captions keys shown above them; controls: the spans of
 // #tab-controls-economics shown with the view; html: figure ids whose JSON is
 // {html} (a ledger table built and escaped in Python), set as innerHTML.
-// G prepends its Labs section (captions/charts) before the open-gap one and
-// adds its ledger to html.
+// sections (optional): the view's captions, charts and html in display order,
+// so a view can interleave caption + cards blocks; charts/captions/html are
+// then filled from it below. Labs: lab economics first, then the
+// open-vs-closed gap, then the ledger (with its credit line inside).
 const ECON_VIEWS = [
   { view: "serve", label: "Serve", charts: ["econ_serve"], captions: ["economics_serve"],
     controls: ["econ-shared-controls", "econ-serve-controls"], html: [] },
@@ -49,10 +51,24 @@ const ECON_VIEWS = [
     charts: ["econ_tco", "econ_ladder", "econ_rental_series"],
     captions: ["economics_compute"],
     controls: ["econ-shared-controls", "econ-compute-controls"], html: [] },
-  { view: "labs",  label: "Labs",
-    charts: ["econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"],
-    captions: ["economics_open_gap"], controls: [], html: [] },
+  { view: "labs",  label: "Labs", controls: [],
+    sections: [
+      { captions: ["economics_labs"],
+        charts: ["econ_labs_runrate", "econ_labs_margins", "econ_labs_commitments",
+                 "econ_labs_tokens"] },
+      { captions: ["economics_open_gap"],
+        charts: ["econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"] },
+      { html: ["econ_labs_ledger"] },
+    ] },
 ];
+ECON_VIEWS.forEach(v => {
+  if (!v.sections) return;
+  ["captions", "charts", "html"].forEach(k => { v[k] = v.sections.flatMap(s => s[k] || []); });
+});
+// Figures shorter than the site-wide chart clamp (shell.css): each keeps the
+// box its figure pins (pinFigureHeight) instead of being stretched to ~56vh.
+// The number is the box held before the figure arrives, its layout height.
+const ECON_CHART_MIN_HEIGHT = { econ_labs_commitments: 314 };
 const ECON_CONTROL_SPANS = ["econ-shared-controls", "econ-serve-controls",
   "econ-compute-controls"];
 
@@ -188,27 +204,33 @@ function buildTabsAndPanels() {
         const box = document.createElement("div");
         box.id = "econ-view-" + v.view;
         box.style.display = j === 0 ? "block" : "none";
-        (v.captions || []).forEach(key => {
-          const cap = document.createElement("div");
-          cap.className = "chart-caption";
-          cap.dataset.caption = key;
-          box.appendChild(cap);
-        });
-        (v.charts || []).forEach(c => {
-          const card = document.createElement("div");
-          card.className = "chart-card";
-          const div = document.createElement("div");
-          div.id = "chart-" + c;
-          div.style.minHeight = "460px";
-          card.appendChild(div);
-          box.appendChild(card);
-        });
-        (v.html || []).forEach(h => {
-          const card = document.createElement("div");
-          card.className = "chart-card";
-          card.id = "econ-html-" + h;
-          card.style.cssText = "overflow-x:auto;padding:16px;";
-          box.appendChild(card);
+        (v.sections || [v]).forEach(sec => {
+          (sec.captions || []).forEach(key => {
+            const cap = document.createElement("div");
+            cap.className = "chart-caption";
+            cap.dataset.caption = key;
+            box.appendChild(cap);
+          });
+          (sec.charts || []).forEach(c => {
+            const card = document.createElement("div");
+            card.className = "chart-card";
+            const div = document.createElement("div");
+            div.id = "chart-" + c;
+            div.style.minHeight = (ECON_CHART_MIN_HEIGHT[c] || 460) + "px";
+            if (ECON_CHART_MIN_HEIGHT[c]) {
+              div.classList.add("chart--own-height");
+              div.style.setProperty("--chart-min", ECON_CHART_MIN_HEIGHT[c] + "px");
+            }
+            card.appendChild(div);
+            box.appendChild(card);
+          });
+          (sec.html || []).forEach(h => {
+            const card = document.createElement("div");
+            card.className = "chart-card";
+            card.id = "econ-html-" + h;
+            card.style.cssText = "overflow-x:auto;padding:16px;";
+            box.appendChild(card);
+          });
         });
         panel.appendChild(box);
       });

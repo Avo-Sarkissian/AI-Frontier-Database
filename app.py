@@ -1130,6 +1130,12 @@ app.layout = html.Div([
                   for gid in ("econ-tco-chart", "econ-ladder-chart", "econ-rental-series-chart")],
             ]),
             html.Div(id="econ-view-labs", style={"display": "none"}, children=[
+                _desc(CAPTIONS["economics_labs"]),
+                *[html.Div([dcc.Loading(**_LOADING, children=[
+                    dcc.Graph(id=f"econ-labs-{gid}-chart", config=_GRAPH_CONFIG,
+                              style={"minHeight": "300px"}),
+                ])], className="chart-card")
+                  for gid in ("runrate", "margins", "commitments", "tokens")],
                 _desc(CAPTIONS["economics_open_gap"]),
                 *[html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id=f"{gid}-chart", config=_GRAPH_CONFIG,
@@ -1137,6 +1143,8 @@ app.layout = html.Div([
                 ])], className="chart-card")
                   for gid in ("econ-open-gap-history", "econ-open-gap-lag",
                               "econ-open-gap-price")],
+                html.Div(id="econ-labs-ledger", className="chart-card",
+                         style={"overflowX": "auto", "padding": "16px"}),
             ]),
         ]),
 
@@ -2025,6 +2033,11 @@ def sync_econ_compute_preset(preset):
     Output("econ-open-gap-price-chart",   "figure"),
     Output("econ-view-compute",     "style"),
     Output("econ-compute-controls", "style"),
+    Output("econ-labs-runrate-chart",     "figure"),
+    Output("econ-labs-margins-chart",     "figure"),
+    Output("econ-labs-commitments-chart", "figure"),
+    Output("econ-labs-tokens-chart",      "figure"),
+    Output("econ-labs-ledger",            "children"),
     Input("econ-view", "value"),
 )
 def toggle_econ_view(view):
@@ -2035,10 +2048,13 @@ def toggle_econ_view(view):
     shown = {"display": "inline-flex", "alignItems": "center", "gap": "8px",
              "flexWrap": "wrap"}
     hidden = {"display": "none"}
+    labs_none = (no_update,) * 5
     if view == "compute":
-        return (hidden, hidden, hidden, shown, no_update, no_update, no_update, {}, shown)
+        return (hidden, hidden, hidden, shown, no_update, no_update, no_update, {}, shown,
+                *labs_none)
     if view != "labs":
-        return ({}, hidden, shown, shown, no_update, no_update, no_update, hidden, hidden)
+        return ({}, hidden, shown, shown, no_update, no_update, no_update, hidden, hidden,
+                *labs_none)
     from data.ingest import load_history
     from data.open_gap import (gap_history, release_lag, iso_quality_ratios,
                                snapshot_dates, score_dates)
@@ -2050,7 +2066,42 @@ def toggle_econ_view(view):
     return ({"display": "none"}, {}, hidden, hidden,
             build_gap_history(*gap_history(hist)),
             build_release_lag(*release_lag(df, asof, score_dates(hist, df))),
-            build_iso_price(*iso_quality_ratios(df, None)), hidden, hidden)
+            build_iso_price(*iso_quality_ratios(df, None)), hidden, hidden,
+            *_econ_labs_outputs())
+
+
+def _econ_labs_outputs():
+    """Economics › Labs: the four figures from the same builders as the static
+    pre-render, and the ledger as an html.Table from the same rows (Dash
+    escapes every string itself; links are https only)."""
+    from components.charts.lab_economics import (build_labs_figures, ledger_rows,
+                                                 LEDGER_HEADS, LEDGER_CREDIT_TEXT)
+    figs = build_labs_figures()
+    rows = ledger_rows()
+    body = []
+    for r in rows:
+        definition = [r["definition"]]
+        if r["reason"]:
+            definition.append(html.Div(r["reason"], className="lab-ledger__reason"))
+        src = ([html.A(r["source_name"], href=r["source_url"], target="_blank",
+                       rel="noopener noreferrer")] if r["source_url"] else [r["source_name"]])
+        src.append(html.Span(" " + r["source_date"], className="lab-ledger__date"))
+        body.append(html.Tr([
+            html.Td(r["entity"]), html.Td(r["metric"]), html.Td(definition),
+            html.Td(r["value"], className="lab-ledger__num"), html.Td(r["period"]),
+            html.Td(html.Span(r["badge"], className=f"lab-badge lab-badge--{r['badge']}")),
+            html.Td(r["filing"]), html.Td(src),
+        ], className="lab-ledger__excluded" if r["excluded"] else None))
+    n_x = sum(r["excluded"] for r in rows)
+    ledger = html.Div([
+        html.Div(f"Ledger · {len(rows) - n_x} rows · {n_x} excluded",
+                 className="lab-ledger__title"),
+        html.Table([html.Thead(html.Tr([html.Th(h) for h in LEDGER_HEADS])),
+                    html.Tbody(body)], className="lab-ledger__table"),
+        html.Div(LEDGER_CREDIT_TEXT, className="lab-ledger__credit"),
+    ], className="lab-ledger")
+    return (figs["econ_labs_runrate"], figs["econ_labs_margins"],
+            figs["econ_labs_commitments"], figs["econ_labs_tokens"], ledger)
 
 
 # ── Model detail panel ────────────────────────────────────────────────────────

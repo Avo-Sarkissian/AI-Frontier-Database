@@ -673,6 +673,22 @@ def econ_compute_options():
     return json.dumps(gpu_tco.compute_options())
 
 
+def update_econ_labs():
+    """Economics › Labs: the four figures and the ledger HTML. Labs has no
+    controls, so this is exactly the pre-rendered docs/figures/econ_labs_*.json
+    and econ_labs_ledger.json; the browser draws those and never calls this
+    (no live refresher). It exists for the parity test, Dash and exports."""
+    from components.charts.lab_economics import build_labs_figures, labs_ledger_html
+    figs = build_labs_figures()
+    return json.dumps({
+        "runrate": json.loads(figs["econ_labs_runrate"].to_json()),
+        "margins": json.loads(figs["econ_labs_margins"].to_json()),
+        "commitments": json.loads(figs["econ_labs_commitments"].to_json()),
+        "tokens": json.loads(figs["econ_labs_tokens"].to_json()),
+        "ledger_html": labs_ledger_html(),
+    })
+
+
 def weights_options():
     """Return JSON list of {label, value} for the WEIGHTS control."""
     from static_helpers import weights_options as _opts

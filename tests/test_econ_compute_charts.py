@@ -259,9 +259,11 @@ def test_dash_compute_callbacks_draw_the_same_figures():
     assert json.loads(ladder.to_json())["data"] == live["ladder"]["data"]
     assert json.loads(series.to_json())["data"] == live["series"]["data"]
     styles = dash_app.toggle_econ_view("compute")
-    assert styles[-2] == {} and styles[-1]["display"] == "inline-flex"
+    # (serve, labs, serve-controls, shared, 3 gap figs, compute view,
+    #  compute controls, then G's 4 Labs figures + ledger)
+    assert styles[7] == {} and styles[8]["display"] == "inline-flex"
     assert styles[3]["display"] == "inline-flex"          # shared USE slider shown
-    assert dash_app.toggle_econ_view("serve")[-1] == {"display": "none"}
+    assert dash_app.toggle_econ_view("serve")[8] == {"display": "none"}
     cleared = dash_app.sync_econ_compute_gpu("mi300x")
     assert cleared[:2] == (None, None) and cleared[2] == "—"
     assert "Compute" in APP_PY and '"value": "compute"' in APP_PY

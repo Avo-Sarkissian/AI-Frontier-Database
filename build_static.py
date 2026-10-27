@@ -38,6 +38,8 @@ from data import serving_cost, econ_common, gpu_tco
 from data import open_gap as open_gap_data
 from components.charts.econ_serve import build_econ_serve
 from components.charts.econ_compute import build_econ_compute
+from components.charts.lab_economics import build_labs_figures, labs_ledger_html
+from data import lab_economics
 
 from captions import CAPTIONS
 from data import scrape_status
@@ -101,6 +103,9 @@ DATA_CSVS = [
     # fetches weekly (~8 rows).
     *gpu_tco.CURATED_FILES,
     gpu_tco.HYPERSCALER_FILE,
+    # Economics › Labs: the hand-curated ledger (filings, press and analyst
+    # figures, each with source_url / as_of / badge / status; ~20 KB).
+    lab_economics.LEDGER_FILE,
 ]
 
 # Build-time slices of the economics archives, written straight into
@@ -122,6 +127,11 @@ DERIVED_DATA: dict[str, Callable[[], str]] = {
     gpu_tco.DERIVED_WEEKLY: gpu_tco.slim_weekly_csv,
     gpu_tco.DERIVED_SOFR: gpu_tco.sofr_latest_csv,
     gpu_tco.DERIVED_EPOCH: gpu_tco.epoch_specs_csv,
+    # Economics › Labs: Epoch AI's annualised revenue rows and its
+    # tokens-per-day rows, cut from the bot's Epoch mirrors (rows outside the
+    # unit ranges are dropped with a warning, never raised).
+    lab_economics.DERIVED_REVENUE: lab_economics.revenue_csv,
+    lab_economics.DERIVED_TOKENS: lab_economics.tokens_csv,
 }
 # Each derived file, and the whole data zip, stay small: every visitor
 # downloads pydata.zip on every hourly version. The Labs export grows by one
@@ -209,11 +219,17 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # Economics › Compute at its defaults (econ_tco, econ_ladder,
         # econ_rental_series); equals static_api.update_econ_compute().
         **build_econ_compute(gpu_tco.compute()),
+        # Economics › Labs (econ_labs_runrate, _margins, _commitments,
+        # _tokens); equals static_api.update_econ_labs(). Labs has no controls.
+        **build_labs_figures(),
     }
     written = []
     for fid, fig in figures.items():
         (out_dir / f"{fid}.json").write_text(fig.to_json())
         written.append(f"{fid}.json")
+    # The Labs ledger is HTML, escaped in Python; app.js sets it as innerHTML.
+    (out_dir / "econ_labs_ledger.json").write_text(json.dumps({"html": labs_ledger_html()}))
+    written.append("econ_labs_ledger.json")
 
     _now = datetime.now(timezone.utc)
     manifest = {
@@ -406,6 +422,7 @@ def build_pybundle(docs: Path | None = None):
         "data/econ_common.py", "data/serving_cost.py",
         "components/charts/econ_serve.py",
         "data/gpu_tco.py", "components/charts/econ_compute.py",
+        "data/lab_economics.py", "components/charts/lab_economics.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity
@@ -497,6 +514,7 @@ def shipped_derived():
     econ_common.clear_derived_overrides()
     serving_cost.reset_cache()
     gpu_tco.reset_cache()
+    lab_economics.reset_cache()
     texts: dict[str, str] = {}
     try:
         for rel, compute in DERIVED_DATA.items():
@@ -504,11 +522,13 @@ def shipped_derived():
             econ_common.set_derived_override(rel, texts[rel])
             serving_cost.reset_cache()      # the next slice reads this one
             gpu_tco.reset_cache()
+            lab_economics.reset_cache()
         yield texts
     finally:
         econ_common.clear_derived_overrides()
         serving_cost.reset_cache()
         gpu_tco.reset_cache()
+        lab_economics.reset_cache()
 
 
 def build_data_bundle(docs: Path | None = None, derived: dict[str, str] | None = None):

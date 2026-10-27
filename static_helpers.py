@@ -194,7 +194,7 @@ _TAB_EXPORTS = {
 # back to Serve, so ↓CSV on Labs downloaded the serving-cost table.
 ECON_EXPORT_FILENAMES = {"serve": "ai_frontier_serving_cost.csv",
                          "compute": "ai_frontier_gpu_tco.csv",
-                         "labs": "ai_frontier_open_gap.csv"}
+                         "labs": "ai_frontier_labs.csv"}
 
 
 # The positional order of update_local's hardware arguments. docs/app.js builds
@@ -391,11 +391,19 @@ def econ_export(econ_args, hosted=None):
         args = (list(rest) + [None] * 10)[:10]
         return gpu_tco.export_frame(gpu_tco.compute(*args)), name
     if view == "labs":
-        # The three open-vs-closed figures' rows (a build-time slice: their
-        # score history never ships). Labs has no controls, so no arguments.
+        # Everything the Labs view draws, one `chart` column naming which: the
+        # lab ledger (every curated row, excluded ones included, with source,
+        # badge and status), the commitment multiples, Epoch AI's run-rate and
+        # token rows (a `credit` column on each), then the three open-vs-closed
+        # figures' rows (a build-time slice: their score history never ships).
+        # Labs has no controls, so no arguments.
         from data.econ_common import read_derived
         from data.open_gap import DERIVED_EXPORT, export_csv_text
-        return read_derived(DERIVED_EXPORT, export_csv_text), name
+        from data.lab_economics import ledger_export_frame
+        frames = [f for f in (ledger_export_frame(),
+                              read_derived(DERIVED_EXPORT, export_csv_text)) if not f.empty]
+        return (pd.concat(frames, ignore_index=True, sort=False) if frames
+                else pd.DataFrame()), name
     return pd.DataFrame(), name
 
 

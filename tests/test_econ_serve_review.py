@@ -80,16 +80,19 @@ def test_every_econ_view_has_its_own_export():
     assert len(set(ECON_EXPORT_FILENAMES.values())) == len(ECON_EXPORT_FILENAMES)
 
 
-def test_labs_export_is_the_open_gap_data():
+def test_labs_export_is_the_labs_data():
+    """Labs exports what Labs draws: the lab ledger, commitment multiples and
+    Epoch rows (data/lab_economics.py), then the open-gap figures' rows."""
     name = api.export_csv_filename("economics", ["labs"])
-    assert name == "ai_frontier_open_gap.csv"
+    assert name == "ai_frontier_labs.csv"
     assert name != api.export_csv_filename("economics", ["serve"])
     # Dash sends the Serve controls along; they must not turn it into Serve.
     for args in (["labs"], ["labs", "NVIDIA H100 SXM", "rent", 40]):
         frame, fname = econ_export(args)
-        assert fname == "ai_frontier_open_gap.csv"
+        assert fname == "ai_frontier_labs.csv"
         assert list(frame.columns)[0] == "chart"
-        assert set(frame["chart"]) == set(open_gap.EXPORT_CHARTS)
+        assert set(open_gap.EXPORT_CHARTS) <= set(frame["chart"])
+        assert {"ledger", "runrate", "tokens", "commitment_multiple"} <= set(frame["chart"])
         assert "price_out" not in frame.columns          # not the Serve table
     assert econ_view_args(["labs", 1, 2]) == ("labs", [1, 2])
     assert econ_view_args(["nonsense"])[0] == "serve"

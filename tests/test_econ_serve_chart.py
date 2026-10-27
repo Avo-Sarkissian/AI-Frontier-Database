@@ -153,7 +153,8 @@ def test_a_bad_control_value_falls_back_to_the_default():
 def test_app_js_economics_wiring():
     assert '{ id: "economics", label: "Economics",   charts: [] }' in APP_JS
     block = re.search(r"const TAB_CAPTIONS = \{(.*?)\n\};", APP_JS, re.S).group(1)
-    assert 'economics: ["economics_serve", "economics_compute", "economics_open_gap"]' in block
+    assert ('economics: ["economics_serve", "economics_compute", "economics_labs", '
+            '"economics_open_gap"]') in block
     assert re.search(r'const TABS_WITHOUT_GLOBAL_FILTERS = \[[^\]]*"economics"', APP_JS)
     assert "economics" in TABS_WITHOUT_GLOBAL_FILTERS
     views = re.search(r"const ECON_VIEWS = \[(.*?)\n\];", APP_JS, re.S).group(1)
@@ -312,10 +313,12 @@ def test_new_modules_ship_to_the_browser():
                 "components/charts/econ_serve.py"):
         assert f'"{mod}"' in src
     assert "data/carried/econ/inferencex_rates.csv" in build_static.DATA_CSVS
-    from data import open_gap, gpu_tco
+    from data import open_gap, gpu_tco, lab_economics
     assert set(build_static.DERIVED_DATA) == {sc.DERIVED_POINTS, sc.DERIVED_CALIBRATION,
                                               open_gap.DERIVED_EXPORT, gpu_tco.DERIVED_WEEKLY,
-                                              gpu_tco.DERIVED_SOFR, gpu_tco.DERIVED_EPOCH}
+                                              gpu_tco.DERIVED_SOFR, gpu_tco.DERIVED_EPOCH,
+                                              lab_economics.DERIVED_REVENUE,
+                                              lab_economics.DERIVED_TOKENS}
     assert (ROOT / ".gitignore").read_text().count("data/derived/") >= 1
 
 

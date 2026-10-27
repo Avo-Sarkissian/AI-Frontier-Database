@@ -1,0 +1,571 @@
+"""Economics › Labs: what the labs earn, what they keep, what they have
+committed to spend and how many tokens they serve. Pyodide-safe (stdlib +
+pandas); nothing here fetches.
+
+Two inputs:
+
+* Epoch AI's "Data on AI companies" hub (CC BY 4.0; Josh You, John Croxton,
+  Venkat Somala, Yafah Edelman, epoch.ai). The bot mirrors its CSVs into
+  data/raw/epoch/ (data/econ_archive.py, its own cadence, range-checked there).
+  Two slim slices are cut from the mirrors at BUILD time and written into
+  pydata.zip (build_static.DERIVED_DATA): DERIVED_REVENUE (annualised revenue
+  rows) and DERIVED_TOKENS (rows carrying Epoch's normalised "Daily tokens").
+  The cut DROPS any row outside the unit ranges with a printed warning; it
+  never raises, because a raise here would block the hourly AA publish.
+
+* data/curated/lab_ledger.csv, hand-curated: every row carries its source URL,
+  the source's date, the date the figure refers to (as_of), a company-claim
+  BADGE (disclosed = filing or on-record company statement; reported = press
+  citing people or documents; estimated = analyst model or Epoch
+  interpolation), the filing's audit status, a provenance `status`
+  (econ_common.STATUS_VALUES) and `ledger_state` (ship | excluded). Excluded
+  rows (a leaked draft figure, a projection mislabelled as commitments) stay
+  in the ledger with their reason and are never charted.
+
+Every margin is drawn with ONE definition per row (entity × definition), so
+no line ever joins a gross margin to a derived "revenue less all compute" or
+to an analyst's inference-only estimate.
+"""
+from __future__ import annotations
+
+import csv
+import functools
+import io
+import math
+import re
+from datetime import date, timedelta
+from pathlib import Path
+
+import pandas as pd
+
+from data.econ_common import ROOT, read_derived
+
+EPOCH_REVENUE = "data/raw/epoch/ai_companies_revenue_reports.csv"
+EPOCH_USAGE = "data/raw/epoch/ai_companies_usage_reports.csv"
+LEDGER_FILE = "data/curated/lab_ledger.csv"
+DERIVED_REVENUE = "data/derived/epoch_lab_revenue.csv"
+DERIVED_TOKENS = "data/derived/epoch_lab_tokens.csv"
+
+EPOCH_URL = "https://epoch.ai/data/ai-companies"
+EPOCH_LICENCE_URL = "https://creativecommons.org/licenses/by/4.0/"
+EPOCH_CREDIT = "Epoch AI, 'Data on AI companies' (CC BY 4.0)"
+EPOCH_CITATION = ("Josh You, John Croxton, Venkat Somala, Yafah Edelman, "
+                  "'Data on AI companies', epoch.ai")
+
+# Epoch's company names -> this dashboard's provider palette keys
+# (components/charts/constants.PROVIDER_COLORS). Anything else is grey.
+EPOCH_TO_PALETTE: dict[str, str] = {
+    "OpenAI": "OpenAI", "Anthropic": "Anthropic", "Google": "Google",
+    "Mistral AI": "Mistral", "Cohere": "Cohere", "xAI": "SpaceXAI",
+    "DeepSeek": "DeepSeek", "Meta": "Meta", "Z.ai (Zhipu)": "Z AI",
+    "MiniMax": "MiniMax", "Moonshot AI": "Kimi",
+}
+
+BADGES = ("disclosed", "reported", "estimated")
+FILING_STATUSES = ("audited", "unaudited", "n/a")
+LEDGER_STATES = ("ship", "excluded")
+LEDGER_VIEWS = ("margin", "commitment", "token", "revenue", "footnote", "ledger")
+DENOMINATOR_BASES = ("epoch_runrate", "quarterly_revenue_x4")
+
+LEDGER_COLUMNS = (
+    "row_id", "entity", "palette_name", "entity_type", "view", "label", "metric",
+    "definition", "value", "value_qualifier", "unit", "per", "scope", "numerator",
+    "denominator", "nd_unit", "period_label", "period_start", "period_end", "badge",
+    "filing_status", "derived", "denominator_basis", "source_name", "source_url",
+    "source_date", "retrieved", "ledger_state", "as_of", "status", "note",
+)
+REVENUE_COLUMNS = ("epoch_id", "company", "palette_name", "date", "annualized_usd",
+                   "revenue_type", "scope", "confidence", "source_type", "badge",
+                   "source_url")
+TOKEN_COLUMNS = ("epoch_id", "company", "palette_name", "product", "scope", "date",
+                 "tokens_per_day", "confidence", "source_type", "badge", "source_url",
+                 "statement", "graph_excluded", "origin")
+
+# Epoch's own conventions: a monthly figure ÷ 30 (not 30.44), weekly ÷ 7,
+# per-minute × 1,440 ("Google 9.7T monthly" -> 3.23e11/day; "API 6B tk/min"
+# -> 8.6e12/day).
+# (multiplier, divisor) so a weekly figure is value / 7 exactly, not value × (1/7).
+_PER_DAY: dict[str, tuple[int, int]] = {"day": (1, 1), "week": (1, 7), "month": (1, 30),
+                                        "minute": (1440, 1)}
+TOKENS_PER_DAY_FACTOR: dict[str, float] = {k: m / d for k, (m, d) in _PER_DAY.items()}
+
+# Unit ranges. Anything outside is a unit slip upstream, not a fact.
+REVENUE_RANGE = (1e6, 1e12)          # annualised USD
+TOKENS_RANGE = (1e8, 1e16)           # tokens per day
+EARLIEST_DATE = date(2015, 1, 1)
+FUTURE_SLACK_DAYS = 31
+
+COMMITMENT_MAX_GAP_DAYS = 92         # a run-rate older than this is no denominator
+TOKEN_DEDUP_DAYS = 7                 # a curated row this close to an Epoch row is dropped
+
+# Token-volume scope: what the disclosure counts. Drawn as marker symbols.
+SCOPE_LABELS = {"all": "all products", "api": "API only",
+                "product": "one product or model family"}
+SCOPE_SYMBOLS = {"all": "circle", "api": "square", "product": "triangle-up"}
+
+
+# ── Small parsers ────────────────────────────────────────────────────────────
+
+def _num(v) -> float | None:
+    try:
+        f = float(str(v).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
+
+
+def _iso(v) -> str | None:
+    s = str(v or "").strip()[:10]
+    try:
+        return date.fromisoformat(s).isoformat()
+    except ValueError:
+        return None
+
+
+def _col(df: pd.DataFrame, name: str) -> str | None:
+    """The frame's column called `name`, ignoring case and surrounding space:
+    Epoch spells it 'Source type' in one file and 'Source Type' in another."""
+    want = name.strip().lower()
+    for c in df.columns:
+        if str(c).strip().lower() == want:
+            return c
+    return None
+
+
+def _need(df: pd.DataFrame, names: tuple[str, ...], what: str) -> dict[str, str]:
+    cols = {n: _col(df, n) for n in names}
+    missing = [n for n, c in cols.items() if c is None]
+    if missing:
+        raise ValueError(f"{what}: missing columns {missing}")
+    return cols
+
+
+_URL = re.compile(r"https://[^\s,;\"'<>]+")
+
+
+def first_https(cell) -> str:
+    """The first https URL in a cell ('' if none): Epoch packs several sources
+    into one cell, and only an https link is ever emitted."""
+    m = _URL.search(str(cell or ""))
+    return m.group(0) if m else ""
+
+
+def source_domain(url: str) -> str:
+    m = re.match(r"https://([^/?#]+)", str(url or ""))
+    return (m.group(1).lower().removeprefix("www.")) if m else ""
+
+
+def epoch_badge(source_type, revenue_type=None) -> str:
+    """Company-claim badge for an Epoch row.
+
+    'Period interpolation' is Epoch annualising disclosed PERIOD revenue, so
+    the annualised figure is its estimate whatever the source; otherwise a
+    company disclosure anywhere in the source list wins, then a media report;
+    'Other' or nothing is an estimate."""
+    rt = "" if revenue_type is None or (isinstance(revenue_type, float)
+                                         and math.isnan(revenue_type)) else str(revenue_type)
+    if rt.strip().lower() == "period interpolation":
+        return "estimated"
+    st = "" if source_type is None or (isinstance(source_type, float)
+                                        and math.isnan(source_type)) else str(source_type)
+    st = st.lower()
+    if "company disclosure" in st:
+        return "disclosed"
+    if "media report" in st:
+        return "reported"
+    return "estimated"
+
+
+def token_scope(product) -> str:
+    """What a token disclosure counts: 'all' (whole company, every product),
+    'api' (API traffic only) or 'product' (one product or model family)."""
+    p = "" if product is None or (isinstance(product, float) and math.isnan(product)) \
+        else str(product).strip().lower()
+    if ("full company" in p or "all products" in p or "all ai products" in p
+            or ("chat" in p and "api" in p)):
+        return "all"
+    if p == "api" or p.endswith(" api"):
+        return "api"
+    return "product"
+
+
+def tokens_per_day(value, per) -> float | None:
+    v = _num(value)
+    md = _PER_DAY.get(str(per or "").strip().lower())
+    return None if v is None or md is None else v * md[0] / md[1]
+
+
+def _truthy(v) -> bool:
+    return str(v).strip().lower() in ("true", "1", "yes", "y")
+
+
+# ── Unit checks ──────────────────────────────────────────────────────────────
+
+def out_of_range(frame: pd.DataFrame, kind: str, today: date | None = None) -> pd.Series:
+    """Boolean mask of rows whose value or date is outside the unit ranges.
+    kind: 'revenue' (annualized_usd) or 'tokens' (tokens_per_day)."""
+    today = today or date.today()
+    col, (lo, hi) = (("annualized_usd", REVENUE_RANGE) if kind == "revenue"
+                     else ("tokens_per_day", TOKENS_RANGE))
+    if frame.empty:
+        return pd.Series([], dtype=bool)
+    vals = pd.to_numeric(frame[col], errors="coerce")
+    latest = today + timedelta(days=FUTURE_SLACK_DAYS)
+
+    def bad_date(d):
+        iso = _iso(d)
+        return iso is None or not (EARLIEST_DATE <= date.fromisoformat(iso) <= latest)
+
+    return (vals.isna() | (vals < lo) | (vals > hi)) | frame["date"].map(bad_date)
+
+
+def validate_units(frame: pd.DataFrame, kind: str, today: date | None = None) -> None:
+    """Raise ValueError naming the first row outside the unit ranges."""
+    bad = out_of_range(frame, kind, today)
+    if bad.any():
+        r = frame[bad].iloc[0]
+        raise ValueError(f"{kind}: row {r.get('epoch_id', '?')!r} out of range "
+                         f"({r.to_dict()})")
+
+
+def _drop_out_of_range(df: pd.DataFrame, kind: str, today: date | None) -> pd.DataFrame:
+    bad = out_of_range(df, kind, today)
+    if bad.any():
+        for _, r in df[bad].iterrows():
+            print(f"  WARNING: Epoch {kind} row {r['epoch_id']!r} dropped "
+                  f"(value or date out of range)")
+    return df[~bad] if len(bad) else df
+
+
+# ── Epoch slices (build time) ────────────────────────────────────────────────
+
+def slim_revenue(raw: pd.DataFrame, today: date | None = None) -> pd.DataFrame:
+    """Epoch revenue_reports -> REVENUE_COLUMNS: rows with a date and an
+    annualised value, in range, sorted (company, date, id)."""
+    c = _need(raw, ("Id", "Company", "Date", "Annualized revenue (USD)",
+                    "Annualized revenue type", "Scope", "Confidence", "Source type",
+                    "Source 1"), "revenue_reports")
+    df = pd.DataFrame({
+        "epoch_id": raw[c["Id"]].astype(str).str.strip(),
+        "company": raw[c["Company"]].astype(str).str.strip(),
+        "date": raw[c["Date"]].map(_iso),
+        "annualized_usd": raw[c["Annualized revenue (USD)"]].map(_num),
+        "revenue_type": raw[c["Annualized revenue type"]].fillna("").astype(str).str.strip(),
+        "scope": raw[c["Scope"]].fillna("").astype(str).str.strip(),
+        "confidence": raw[c["Confidence"]].fillna("").astype(str).str.strip(),
+        "source_type": raw[c["Source type"]].fillna("").astype(str).str.strip(),
+        "source_url": raw[c["Source 1"]].map(first_https),
+    })
+    df = df[df["date"].notna() & df["annualized_usd"].notna()]
+    df = _drop_out_of_range(df, "revenue", today)
+    df = df.assign(palette_name=df["company"].map(EPOCH_TO_PALETTE).fillna(""),
+                   badge=[epoch_badge(s, t) for s, t in zip(df["source_type"],
+                                                            df["revenue_type"])])
+    df = df.sort_values(["company", "date", "epoch_id"], kind="mergesort")
+    return df[list(REVENUE_COLUMNS)].reset_index(drop=True)
+
+
+def slim_tokens(raw: pd.DataFrame, today: date | None = None) -> pd.DataFrame:
+    """Epoch usage_reports -> TOKEN_COLUMNS: rows with a 'Daily tokens' value
+    (Epoch's normalisation, already per day), in range."""
+    c = _need(raw, ("Id", "Company", "Date", "Daily tokens", "Product", "Confidence",
+                    "Source type", "Source 1"), "usage_reports")
+    excl = _col(raw, "Exclude from graph view")
+    df = pd.DataFrame({
+        "epoch_id": raw[c["Id"]].astype(str).str.strip(),
+        "company": raw[c["Company"]].astype(str).str.strip(),
+        "product": raw[c["Product"]].fillna("").astype(str).str.strip(),
+        "date": raw[c["Date"]].map(_iso),
+        "tokens_per_day": raw[c["Daily tokens"]].map(_num),
+        "confidence": raw[c["Confidence"]].fillna("").astype(str).str.strip(),
+        "source_type": raw[c["Source type"]].fillna("").astype(str).str.strip(),
+        "source_url": raw[c["Source 1"]].map(first_https),
+        "graph_excluded": (raw[excl].map(_truthy) if excl else False),
+    })
+    df = df[df["date"].notna() & df["tokens_per_day"].notna()]
+    df = _drop_out_of_range(df, "tokens", today)
+    df = df.assign(palette_name=df["company"].map(EPOCH_TO_PALETTE).fillna(""),
+                   scope=df["product"].map(token_scope),
+                   badge=df["source_type"].map(epoch_badge),
+                   statement=df["epoch_id"], origin="epoch")
+    df = df.sort_values(["company", "date", "epoch_id"], kind="mergesort")
+    return df[list(TOKEN_COLUMNS)].reset_index(drop=True)
+
+
+def _frame_csv(df: pd.DataFrame, cols) -> str:
+    buf = io.StringIO()
+    df.to_csv(buf, index=False, columns=list(cols), lineterminator="\n",
+              float_format="%.6g", quoting=csv.QUOTE_MINIMAL)
+    return buf.getvalue()
+
+
+def revenue_csv(path: Path | None = None) -> str:
+    """DERIVED_REVENUE text from the Epoch mirror ('' when the mirror is absent)."""
+    path = Path(path) if path is not None else ROOT / EPOCH_REVENUE
+    if not path.exists():
+        return ""
+    raw = pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[""])
+    return _frame_csv(slim_revenue(raw), REVENUE_COLUMNS)
+
+
+def tokens_csv(path: Path | None = None) -> str:
+    """DERIVED_TOKENS text from the Epoch mirror ('' when the mirror is absent)."""
+    path = Path(path) if path is not None else ROOT / EPOCH_USAGE
+    if not path.exists():
+        return ""
+    raw = pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[""])
+    return _frame_csv(slim_tokens(raw), TOKEN_COLUMNS)
+
+
+# ── Loaders (browser and local alike) ────────────────────────────────────────
+
+@functools.lru_cache(maxsize=1)
+def load_epoch_revenue() -> pd.DataFrame:
+    df = read_derived(DERIVED_REVENUE, revenue_csv)
+    if df.empty:
+        return pd.DataFrame(columns=list(REVENUE_COLUMNS))
+    df["annualized_usd"] = pd.to_numeric(df["annualized_usd"], errors="coerce")
+    for col in REVENUE_COLUMNS:
+        if col != "annualized_usd":
+            df[col] = df[col].fillna("").astype(str)
+    return df
+
+
+@functools.lru_cache(maxsize=1)
+def load_epoch_tokens() -> pd.DataFrame:
+    df = read_derived(DERIVED_TOKENS, tokens_csv)
+    if df.empty:
+        return pd.DataFrame(columns=list(TOKEN_COLUMNS))
+    df["tokens_per_day"] = pd.to_numeric(df["tokens_per_day"], errors="coerce")
+    df["graph_excluded"] = df["graph_excluded"].map(_truthy)
+    for col in TOKEN_COLUMNS:
+        if col not in ("tokens_per_day", "graph_excluded"):
+            df[col] = df[col].fillna("").astype(str)
+    return df
+
+
+@functools.lru_cache(maxsize=1)
+def _ledger_all() -> pd.DataFrame:
+    path = ROOT / LEDGER_FILE
+    if not path.exists():
+        return pd.DataFrame(columns=list(LEDGER_COLUMNS))
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    for col in LEDGER_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    for col in ("value", "numerator", "denominator"):
+        df[col] = df[col].map(_num)
+    df["order"] = range(len(df))
+    return df
+
+
+def load_ledger(include_excluded: bool = False) -> pd.DataFrame:
+    df = _ledger_all().copy()
+    if not include_excluded:
+        df = df[df["ledger_state"] == "ship"]
+    return df.reset_index(drop=True)
+
+
+def reset_cache() -> None:
+    for f in (load_epoch_revenue, load_epoch_tokens, _ledger_all):
+        f.cache_clear()
+
+
+# ── Chart frames ─────────────────────────────────────────────────────────────
+
+def runrate_frame() -> pd.DataFrame:
+    """Epoch's 'Full company' annualised revenue rows (product/division rows
+    are not a company's run-rate)."""
+    df = load_epoch_revenue()
+    if df.empty:
+        return df
+    df = df[df["scope"].str.strip().str.lower().eq("full company")
+            & df["annualized_usd"].notna()]
+    return df.sort_values(["company", "date", "epoch_id"], kind="mergesort").reset_index(drop=True)
+
+
+def margin_rows() -> pd.DataFrame:
+    """Shipped margin rows, one chart row per `label` (= entity × definition),
+    each sorted by the end of its period."""
+    df = load_ledger()
+    df = df[(df["view"] == "margin") & df["value"].notna()].copy()
+    if df.empty:
+        return df
+    first = df.groupby("label", sort=False)["order"].transform("min")
+    df["row_order"] = first.rank(method="dense").astype(int) - 1
+    df["sort_date"] = df["period_end"].where(df["period_end"] != "", df["as_of"])
+    return df.sort_values(["row_order", "sort_date", "order"], kind="mergesort").reset_index(drop=True)
+
+
+def commitment_rows(max_gap_days: int = COMMITMENT_MAX_GAP_DAYS) -> pd.DataFrame:
+    """Shipped commitment rows with their denominator and multiple (×).
+
+    A lab's denominator is its latest Epoch 'Full company' run-rate dated on or
+    before the commitment's as_of and at most `max_gap_days` earlier; a row
+    with none is kept, flagged and not charted. A row whose
+    denominator_basis is 'quarterly_revenue_x4' uses its own filed quarterly
+    revenue × 4 (CoreWeave: the sell side, a different definition)."""
+    led = load_ledger()
+    led = led[(led["view"] == "commitment") & led["value"].notna()]
+    rr = runrate_frame()
+    out = []
+    for _, r in led.iterrows():
+        rec = {k: r[k] for k in ("row_id", "entity", "palette_name", "label", "definition",
+                                 "value", "value_qualifier", "as_of", "badge",
+                                 "filing_status", "source_url", "source_name",
+                                 "denominator_basis", "order")}
+        rec.update(den_usd=None, den_date="", den_badge="", den_label="", den_source="",
+                   den_epoch_id="", multiple=None, charted=False, flag="")
+        basis = r["denominator_basis"]
+        if basis == "quarterly_revenue_x4" and r["denominator"]:
+            rec.update(den_usd=r["denominator"] * 4, den_date=r["as_of"],
+                       den_badge=r["badge"], den_source=r["source_url"],
+                       den_label=f"Q revenue {_usd(r['denominator'])} × 4")
+        elif basis == "epoch_runrate":
+            asof = _iso(r["as_of"])
+            cand = rr[rr["palette_name"] == r["palette_name"]] if asof else rr.iloc[0:0]
+            if asof is not None and not cand.empty:
+                d = pd.to_datetime(cand["date"])
+                gap = (pd.Timestamp(asof) - d).dt.days
+                cand = cand[(gap >= 0) & (gap <= max_gap_days)]
+            if not cand.empty:
+                hit = cand.sort_values(["date", "epoch_id"], kind="mergesort").iloc[-1]
+                rec.update(den_usd=float(hit["annualized_usd"]), den_date=hit["date"],
+                           den_badge=hit["badge"], den_source=hit["source_url"],
+                           den_epoch_id=hit["epoch_id"],
+                           den_label=f"run-rate {_usd(hit['annualized_usd'])} "
+                                     f"(Epoch, {hit['date']}, {hit['badge']})")
+            else:
+                rec["flag"] = (f"no Epoch run-rate within {max_gap_days} days before "
+                               f"{r['as_of']}; not charted")
+        else:
+            rec["flag"] = f"unknown denominator basis {basis!r}; not charted"
+        if rec["den_usd"]:
+            rec["multiple"] = r["value"] / rec["den_usd"]
+            rec["charted"] = True
+        out.append(rec)
+    cols = ["row_id", "entity", "palette_name", "label", "definition", "value",
+            "value_qualifier", "as_of", "badge", "filing_status", "source_url", "source_name",
+            "denominator_basis", "order", "den_usd", "den_date", "den_badge", "den_label",
+            "den_source", "den_epoch_id", "multiple", "charted", "flag"]
+    return pd.DataFrame(out, columns=cols)
+
+
+_SCALE = ((1e15, "quadrillion"), (1e12, "trillion"), (1e9, "billion"), (1e6, "million"))
+
+
+def human_tokens(v: float) -> str:
+    for base, word in _SCALE:
+        if abs(v) >= base:
+            return f"{v / base:.4g} {word}"
+    return f"{v:,.0f}"
+
+
+def token_rows() -> pd.DataFrame:
+    """Epoch's usage rows plus the curated token rows, all in tokens per day.
+
+    A curated row is dropped when Epoch already has a row for the same company
+    within TOKEN_DEDUP_DAYS days (Epoch's own normalisation then wins)."""
+    ep = load_epoch_tokens()
+    rows = []
+    for _, r in ep.iterrows():
+        rows.append({
+            "entity": r["company"], "palette_name": r["palette_name"], "scope": r["scope"],
+            "product": r["product"], "date": r["date"],
+            "tokens_per_day": r["tokens_per_day"], "badge": r["badge"],
+            "statement": r["statement"], "value": None, "per": "day",
+            "source_url": r["source_url"], "source_name": "Epoch AI usage_reports",
+            "origin": "epoch", "ref": r["epoch_id"],
+            "graph_excluded": bool(r["graph_excluded"]),
+        })
+    led = load_ledger()
+    led = led[(led["view"] == "token") & led["value"].notna()]
+    for _, r in led.iterrows():
+        tpd = tokens_per_day(r["value"], r["per"])
+        if tpd is None:
+            continue
+        q = {">": "over ", "~": "about ", "=": ""}.get(r["value_qualifier"] or "=", "")
+        rows.append({
+            "entity": r["entity"], "palette_name": r["palette_name"],
+            "scope": r["scope"] or "all", "product": r["label"], "date": r["as_of"],
+            "tokens_per_day": tpd, "badge": r["badge"],
+            "statement": f"{q}{human_tokens(r['value'])} tokens per {r['per']}",
+            "value": r["value"], "per": r["per"], "source_url": r["source_url"],
+            "source_name": r["source_name"], "origin": "curated", "ref": r["row_id"],
+            "graph_excluded": False,
+        })
+    cols = ["entity", "palette_name", "scope", "product", "date", "tokens_per_day", "badge",
+            "statement", "value", "per", "source_url", "source_name", "origin", "ref",
+            "graph_excluded"]
+    df = pd.DataFrame(rows, columns=cols)
+    if df.empty:
+        return df
+    ep_dates = df[df["origin"] == "epoch"]
+    keep = []
+    for _, r in df.iterrows():
+        if r["origin"] == "curated" and r["palette_name"]:
+            same = ep_dates[ep_dates["palette_name"] == r["palette_name"]]
+            gaps = (pd.to_datetime(same["date"]) - pd.Timestamp(r["date"])).abs().dt.days
+            if (gaps <= TOKEN_DEDUP_DAYS).any():
+                keep.append(False)
+                continue
+        keep.append(True)
+    df = df[keep]
+    return df.sort_values(["entity", "scope", "date"], kind="mergesort").reset_index(drop=True)
+
+
+# ── Formatting shared by the charts, the ledger and the export ──────────────
+
+def _usd(v) -> str:
+    v = _num(v)
+    if v is None:
+        return "—"
+    for base, suf in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if abs(v) >= base:
+            x = v / base
+            return f"${x:.3g}{suf}" if x < 100 else f"${x:,.0f}{suf}"
+    return f"${v:,.0f}"
+
+
+def fmt_value(row) -> str:
+    """A ledger row's value in its own unit, with its qualifier."""
+    v = _num(row.get("value"))
+    if v is None:
+        return "—"
+    q = {">": ">", "~": "~", "=": ""}.get(str(row.get("value_qualifier") or ""), "")
+    unit = row.get("unit")
+    if unit == "pct":
+        return f"{q}{v:.1f}%"
+    if unit == "usd":
+        return f"{q}{_usd(v)}"
+    if unit == "tokens":
+        per = row.get("per") or "day"
+        tpd = tokens_per_day(v, per)
+        base = f"{q}{human_tokens(v)} / {per}"
+        return base if per == "day" or tpd is None else f"{base} (≈ {human_tokens(tpd)} / day)"
+    return f"{q}{v:g}"
+
+
+def ledger_export_frame() -> pd.DataFrame:
+    """Every Labs number behind the charts and the ledger, one row each, with
+    a `chart` column naming which (ledger | commitment_multiple | runrate |
+    tokens) and a `credit` column on every Epoch-derived row."""
+    led = load_ledger(include_excluded=True).drop(columns=["order"], errors="ignore")
+    led.insert(0, "chart", "ledger")
+    com = commitment_rows().drop(columns=["order"], errors="ignore")
+    com.insert(0, "chart", "commitment_multiple")
+    com["credit"] = [EPOCH_CREDIT if b == "epoch_runrate" and c else ""
+                     for b, c in zip(com["denominator_basis"], com["charted"])]
+    rr = runrate_frame().copy()
+    rr.insert(0, "chart", "runrate")
+    rr["credit"] = EPOCH_CREDIT
+    tk = token_rows().copy()
+    tk.insert(0, "chart", "tokens")
+    tk["credit"] = [EPOCH_CREDIT if o == "epoch" else "" for o in tk.get("origin", [])]
+    frames = [f for f in (led, com, rr, tk) if not f.empty]
+    if not frames:
+        return pd.DataFrame(columns=["chart"])
+    out = pd.concat(frames, ignore_index=True, sort=False)
+    if "credit" in out.columns:
+        out["credit"] = out["credit"].fillna("")
+    return out

@@ -115,6 +115,12 @@ input[type="number"] { -moz-appearance: textfield; }
 @media (max-width: 768px) {
   [id^="chart-"] { min-height: clamp(300px, 52vh, 520px) !important; }
 }
+/* A short figure that pins its own layout height (Economics › Labs'
+   commitments strip) holds its own box instead: the clamp above would stretch
+   a 290 px figure to half the viewport. --chart-min is set inline by app.js. */
+[id^="chart-"].chart--own-height {
+  min-height: var(--chart-min, 0px) !important;
+}
 
 /* ── Static-site additions (Task 2) ──────────────── */
 
