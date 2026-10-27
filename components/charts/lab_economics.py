@@ -4,6 +4,8 @@
   build_labs_margins      — one dot row per (entity × definition), never mixed
   build_labs_commitments  — compute commitments ÷ revenue run-rate (×)
   build_labs_tokens       — disclosed token volumes, normalised to per day
+  build_labs_stack        — value-capture stack: each layer's USD per year
+                            against Sequoia's "$600B question", rerun
   labs_ledger_html        — every curated row with its badge and source link
 
 Inside Economics, fill strength is strength of evidence: disclosed = filled,
@@ -32,7 +34,7 @@ import plotly.graph_objects as go
 
 from components.charts import auto_palette
 from components.charts.constants import (
-    plot_text, empty_figure, PROVIDER_COLORS, AA_CREATOR_COLORS, FONT,
+    plot_text, empty_figure, PROVIDER_COLORS, AA_CREATOR_COLORS, FONT, CHART_MARGIN,
 )
 from components.charts.open_gap import _layout, SUB, RULE
 from data import lab_economics as L
@@ -443,10 +445,121 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
     return fig
 
 
-# ── 5. The ledger ───────────────────────────────────────────────────────────
+# ── 5. Value-capture stack ──────────────────────────────────────────────────
 
-_VIEW_ORDER = {"margin": 0, "commitment": 1, "token": 2, "revenue": 3, "footnote": 4,
-               "ledger": 5}
+STACK_HEIGHT = 400
+STACK_MARK = "#d9d9d9"                   # one neutral: a layer is not a provider
+STACK_REF = "#8a8a8a"
+
+
+def _stack_value(r) -> str:
+    q = ">" if r["qualifier"] == ">" else ""
+    return q + (L.usd_range(r["lo"], r["hi"]) if r["hi"] != r["lo"] else L._usd(r["lo"]))
+
+
+def _stack_parts(r) -> str:
+    """Hover lines, one per part (largest first, at most 9)."""
+    parts = sorted(r["parts"], key=lambda p: (-p["hi"], str(p["name"])))
+    lines = []
+    for p in parts[:9]:
+        q = {">": ">", "~": "~"}.get(p["qualifier"], "")
+        v = L.usd_range(p["lo"], p["hi"]) if p["hi"] != p["lo"] else L._usd(p["lo"])
+        lines.append(f"{plot_text(p['name'])}: {q}{v}  ({p['as_of']}, {p['badge']})")
+    if len(parts) > 9:
+        lines.append(f"+ {len(parts) - 9} more")
+    return "<br>".join(lines)
+
+
+def build_labs_stack(rows: pd.DataFrame | None = None) -> go.Figure:
+    rows = L.stack_rows() if rows is None else rows
+    if rows is None or rows.empty or not (rows["kind"] == "layer").any():
+        return empty_figure("No value-capture layers available")
+    layers = rows[rows["kind"] == "layer"].set_index("layer")
+    order = [k for k in L.STACK_LAYERS if k in layers.index]
+    labels = [L.STACK_LAYER_LABELS[k] for k in order]
+    fig = go.Figure()
+    short = {}
+    for k, lab in zip(order, labels):
+        r = layers.loc[k]
+        val = _stack_value(r)
+        short[len(fig.data)] = {"text": [val]}
+        x = float(r["mid"])
+        fig.add_trace(go.Scatter(
+            x=[x], y=[lab], mode="markers+text", showlegend=False, cliponaxis=False,
+            name=plot_text(lab),
+            marker=dict(color=STACK_MARK, size=11, symbol=badge_symbol(r["badge"]),
+                        line=dict(color=STACK_MARK, width=1.6)),
+            text=[val], textposition="middle right",
+            textfont=dict(color="#aaaaaa", size=11, family=FONT),
+            customdata=[[plot_text(lab), val, plot_text(r["basis"]), r["badge"],
+                         _stack_parts(r)]],
+            meta={"layer": k},
+            hovertemplate=("<b>%{customdata[0]}</b><br>%{customdata[1]} per year · "
+                           "%{customdata[2]}<br>weakest badge: %{customdata[3]}<br>"
+                           "%{customdata[4]}<extra></extra>"),
+        ))
+    n_marks = len(fig.data)
+    for k in _badge_keys(_present(layers.loc[order, "badge"])):
+        fig.add_trace(k)
+    refs = rows[rows["kind"] == "reference"].set_index("layer")
+    shapes, notes, narrow_notes = [], [], []
+    # (label, narrow label, side): the lower line's label sits left of it and
+    # the higher line's right of it, so the two labels never meet.
+    ref_text = {"required_2024": ("Sequoia, Jun '24: {v} →", "'24 {v} →", "left"),
+                "required_now": ("← needed now: {v}/yr", "← now {v}", "right")}
+    hi = float(rows["hi"].max())
+    lo = float(layers["lo"].min())
+    for key, (long_t, short_t, anchor) in ref_text.items():
+        if key not in refs.index:
+            continue
+        x = float(refs.loc[key, "mid"])
+        v = L._usd(x)
+        dash = "dash" if key == "required_now" else "dot"
+        shapes.append(dict(type="line", xref="x", yref="paper", x0=x, x1=x, y0=0, y1=1,
+                           line=dict(color=STACK_REF, width=1, dash=dash)))
+        base = dict(x=math.log10(x), y=1.0, xref="x", yref="paper", yanchor="bottom",
+                    xanchor="right" if anchor == "left" else "left", showarrow=False,
+                    xshift=-4 if anchor == "left" else 4,
+                    font=dict(color=STACK_REF, size=10, family=FONT))
+        notes.append(dict(base, text=long_t.format(v=v)))
+        # Narrow: the top row's label sits above its row (_row_notes), so the
+        # reference labels go one line higher, clear of it.
+        narrow_notes.append(dict(base, text=short_t.format(v=_usd_tick(float(f"{x:.3g}"))),
+                                 yshift=16))
+    sub = ""
+    if "required_now" in refs.index:
+        earned = sum(float(layers.loc[k, "mid"]) for k in ("labs", "apps") if k in order)
+        need = float(refs.loc["required_now", "mid"])
+        if earned > 0:
+            sub = (f" · needed ÷ (labs + Cursor) ≈ {need / earned:.0f}×")
+    title = ("Value-Capture Stack" + "  " + SUB
+             + "USD per year (log) · capex is spend, the rest revenue · layers do not add: "
+               "one layer's revenue is the next one's cost<br>dashed: Sequoia's '$600B "
+               "question' (Nvidia DC run-rate × 2 × 2) rerun on the filed quarter"
+             + sub + "</span>")
+    # Room above the plot for the two-line subtitle and the reference labels.
+    _layout(fig, title, "USD per year (log)", "", height=STACK_HEIGHT, shapes=shapes,
+            annotations=notes)
+    fig.update_layout(margin=dict(CHART_MARGIN, t=100))
+    ticks = _decades(min(lo, 1e9), max(hi, 1e12))
+    x_range = [math.log10(lo) - 0.35, math.log10(hi) + 0.6]
+    fig.update_xaxes(type="log", tickvals=ticks, ticktext=[_usd_tick(t) for t in ticks],
+                     range=x_range)
+    fig.update_yaxes(categoryorder="array", categoryarray=labels, autorange="reversed",
+                     showgrid=False, tickvals=labels,
+                     ticktext=[plot_text(lab).replace(" · ", "<br>", 1) for lab in labels])
+    fig.update_layout(meta=_narrow_meta(
+        short, {"yaxis": {"showticklabels": False}, "margin": {"l": 12, "t": 112},
+                # a little more room right of the top line for its label
+                "xaxis": {"range": [x_range[0], x_range[1] + 0.25]},
+                "annotations": _row_notes(labels) + narrow_notes}))
+    return fig
+
+
+# ── 6. The ledger ───────────────────────────────────────────────────────────
+
+_VIEW_ORDER = {"margin": 0, "commitment": 1, "token": 2, "stack": 3, "revenue": 4,
+               "footnote": 5, "ledger": 6}
 _SAFE_URL = re.compile(r"^https://[A-Za-z0-9.\-]+(:\d+)?(/[^\s\"'<>`]*)?$")
 
 
@@ -554,10 +667,11 @@ def labs_ledger_html(ledger: pd.DataFrame | None = None,
 
 
 def build_labs_figures() -> dict[str, go.Figure]:
-    """The four Labs figures at their only state (Labs has no controls)."""
+    """The five Labs figures at their only state (Labs has no controls)."""
     return {
         "econ_labs_runrate": build_labs_runrate(),
         "econ_labs_margins": build_labs_margins(),
         "econ_labs_commitments": build_labs_commitments(),
         "econ_labs_tokens": build_labs_tokens(),
+        "econ_labs_stack": build_labs_stack(),
     }

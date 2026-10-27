@@ -55,7 +55,7 @@ const ECON_VIEWS = [
     sections: [
       { captions: ["economics_labs"],
         charts: ["econ_labs_runrate", "econ_labs_margins", "econ_labs_commitments",
-                 "econ_labs_tokens"] },
+                 "econ_labs_tokens", "econ_labs_stack"] },
       { captions: ["economics_open_gap"],
         charts: ["econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"] },
       { html: ["econ_labs_ledger"] },
@@ -68,7 +68,7 @@ ECON_VIEWS.forEach(v => {
 // Figures shorter than the site-wide chart clamp (shell.css): each keeps the
 // box its figure pins (pinFigureHeight) instead of being stretched to ~56vh.
 // The number is the box held before the figure arrives, its layout height.
-const ECON_CHART_MIN_HEIGHT = { econ_labs_commitments: 314 };
+const ECON_CHART_MIN_HEIGHT = { econ_labs_commitments: 314, econ_labs_stack: 400 };
 const ECON_CONTROL_SPANS = ["econ-shared-controls", "econ-serve-controls",
   "econ-compute-controls"];
 

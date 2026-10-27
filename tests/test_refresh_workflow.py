@@ -410,6 +410,11 @@ def test_econ_archive_step_is_wired_and_cannot_block_publish():
     # The archive refuses a pruned upstream before data_guard sees it, so the
     # workflow's only remedy must reach the module too.
     assert "inputs.allow_shrink && '--allow-shrink'" in block
+    # A dispatch can force every source once (proves the bot path without
+    # waiting out the cadence); off by default, so the hourly runs never force.
+    assert "inputs.force_econ && '--force'" in block
+    head = txt[:txt.index("permissions:")]
+    assert "force_econ:" in head and "default: false" in head.split("force_econ:")[1]
     report = _step_block(txt, "Report archive failures")
     assert txt.index("git push") < txt.index("- name: Report archive failures")
     assert txt.index("- name: Report scrape failures") < txt.index("- name: Report archive failures")

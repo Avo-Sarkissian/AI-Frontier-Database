@@ -63,7 +63,7 @@ def test_build_produces_figures_and_manifest(tmp_path):
                 "econ_serve",
                 # Economics › Labs, lab economics (data/lab_economics.py)
                 "econ_labs_runrate", "econ_labs_margins", "econ_labs_commitments",
-                "econ_labs_tokens"]:
+                "econ_labs_tokens", "econ_labs_stack"]:
         p = figdir / f"{fid}.json"
         assert p.exists(), f"missing {p}"
         fig = json.loads(p.read_text())

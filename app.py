@@ -1135,7 +1135,7 @@ app.layout = html.Div([
                     dcc.Graph(id=f"econ-labs-{gid}-chart", config=_GRAPH_CONFIG,
                               style={"minHeight": "300px"}),
                 ])], className="chart-card")
-                  for gid in ("runrate", "margins", "commitments", "tokens")],
+                  for gid in ("runrate", "margins", "commitments", "tokens", "stack")],
                 _desc(CAPTIONS["economics_open_gap"]),
                 *[html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id=f"{gid}-chart", config=_GRAPH_CONFIG,
@@ -2037,6 +2037,7 @@ def sync_econ_compute_preset(preset):
     Output("econ-labs-margins-chart",     "figure"),
     Output("econ-labs-commitments-chart", "figure"),
     Output("econ-labs-tokens-chart",      "figure"),
+    Output("econ-labs-stack-chart",       "figure"),
     Output("econ-labs-ledger",            "children"),
     Input("econ-view", "value"),
 )
@@ -2048,7 +2049,7 @@ def toggle_econ_view(view):
     shown = {"display": "inline-flex", "alignItems": "center", "gap": "8px",
              "flexWrap": "wrap"}
     hidden = {"display": "none"}
-    labs_none = (no_update,) * 5
+    labs_none = (no_update,) * 6
     if view == "compute":
         return (hidden, hidden, hidden, shown, no_update, no_update, no_update, {}, shown,
                 *labs_none)
@@ -2071,7 +2072,7 @@ def toggle_econ_view(view):
 
 
 def _econ_labs_outputs():
-    """Economics › Labs: the four figures from the same builders as the static
+    """Economics › Labs: the five figures from the same builders as the static
     pre-render, and the ledger as an html.Table from the same rows (Dash
     escapes every string itself; links are https only)."""
     from components.charts.lab_economics import (build_labs_figures, ledger_rows,
@@ -2101,7 +2102,8 @@ def _econ_labs_outputs():
         html.Div(LEDGER_CREDIT_TEXT, className="lab-ledger__credit"),
     ], className="lab-ledger")
     return (figs["econ_labs_runrate"], figs["econ_labs_margins"],
-            figs["econ_labs_commitments"], figs["econ_labs_tokens"], ledger)
+            figs["econ_labs_commitments"], figs["econ_labs_tokens"],
+            figs["econ_labs_stack"], ledger)
 
 
 # ── Model detail panel ────────────────────────────────────────────────────────

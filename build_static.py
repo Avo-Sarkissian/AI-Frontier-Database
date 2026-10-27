@@ -219,8 +219,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # Economics › Compute at its defaults (econ_tco, econ_ladder,
         # econ_rental_series); equals static_api.update_econ_compute().
         **build_econ_compute(gpu_tco.compute()),
-        # Economics › Labs (econ_labs_runrate, _margins, _commitments,
-        # _tokens); equals static_api.update_econ_labs(). Labs has no controls.
+        # Economics › Labs (econ_labs_runrate, _margins, _commitments, _tokens,
+        # _stack); equals static_api.update_econ_labs(). Labs has no controls.
         **build_labs_figures(),
     }
     written = []

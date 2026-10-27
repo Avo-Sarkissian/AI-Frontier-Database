@@ -578,7 +578,7 @@ def test_labs_prerender_matches_live(tmp_path):
     live = json.loads(api.update_econ_labs())
     for fid, key in (("econ_labs_runrate", "runrate"), ("econ_labs_margins", "margins"),
                      ("econ_labs_commitments", "commitments"),
-                     ("econ_labs_tokens", "tokens")):
+                     ("econ_labs_tokens", "tokens"), ("econ_labs_stack", "stack")):
         assert f"{fid}.json" in written
         pre = json.loads((tmp_path / f"{fid}.json").read_text())
         assert pre["data"] == live[key]["data"], fid
@@ -629,12 +629,12 @@ def test_dash_labs_view_draws_the_same_figures_and_ledger():
     import app as dash_app
     out = dash_app.toggle_econ_view("labs")
     live = json.loads(api.update_econ_labs())
-    for fig, key in zip(out[9:13], ("runrate", "margins", "commitments", "tokens")):
+    for fig, key in zip(out[9:14], ("runrate", "margins", "commitments", "tokens", "stack")):
         assert json.loads(fig.to_json())["data"] == live[key]["data"]
-    ledger = out[13]
+    ledger = out[14]
     assert "lab-ledger" in ledger.className
     serve = dash_app.toggle_econ_view("serve")
-    assert len(serve) == len(out) == 14
+    assert len(serve) == len(out) == 15
 
 
 def test_badge_css_is_neutral_grey():
@@ -650,8 +650,10 @@ def test_badge_css_is_neutral_grey():
 def test_the_short_commitments_box_matches_its_figure():
     """The commitments strip opts out of the site-wide chart clamp (shell.css)
     and holds the box app.js names, which must be the figure's own height."""
-    m = re.search(r"const ECON_CHART_MIN_HEIGHT = \{ econ_labs_commitments: (\d+) \};", APP_JS)
+    m = re.search(r"const ECON_CHART_MIN_HEIGHT = \{ econ_labs_commitments: (\d+), "
+                  r"econ_labs_stack: (\d+) \};", APP_JS)
     assert m and int(m.group(1)) == C.build_labs_commitments().layout.height
+    assert int(m.group(2)) == C.build_labs_stack().layout.height
     # inline !important, so a stale cached shell.css cannot stretch it
     assert ('div.style.setProperty("min-height", ECON_CHART_MIN_HEIGHT[c] + "px", '
             '"important")') in APP_JS

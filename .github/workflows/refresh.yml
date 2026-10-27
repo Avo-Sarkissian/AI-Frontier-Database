@@ -21,6 +21,10 @@ on:
         description: "Publish even if a dataset lost >20% of its rows (upstream really did prune)"
         type: boolean
         default: false
+      force_econ:
+        description: "Fetch every economics source now, ignoring its cadence (one-off check)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -94,7 +98,8 @@ jobs:
         timeout-minutes: 8
         # allow_shrink reaches the archive's own pre-write checks too: they
         # refuse a pruned upstream before data_guard ever sees it.
-        run: python -m data.econ_archive ${{ inputs.allow_shrink && '--allow-shrink' || '' }} || echo "failed=true" >> "$GITHUB_OUTPUT"
+        # force_econ (dispatch only) fetches every source now, ignoring cadence.
+        run: python -m data.econ_archive ${{ inputs.allow_shrink && '--allow-shrink' || '' }} ${{ inputs.force_econ && '--force' || '' }} || echo "failed=true" >> "$GITHUB_OUTPUT"
       - name: Change guard — stop if no data moved
         id: guard
         run: |

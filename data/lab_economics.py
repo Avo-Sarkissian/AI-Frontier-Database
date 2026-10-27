@@ -25,6 +25,13 @@ Two inputs:
   rows (a leaked draft figure, a projection mislabelled as commitments) stay
   in the ledger with their reason and are never charted.
 
+The value-capture STACK (view "stack", one `layer` per row: chips, capex,
+apps, required) puts each layer's yearly dollars side by side: Nvidia's
+filed data-center quarter × 4, the four hyperscalers' 2026 capex guidance
+(a range: `value` low, `value_high` high), the labs' latest Epoch run-rates
+(computed here, not curated) and Cursor's reported ARR, against Sequoia's
+"$600B question" (Nvidia run-rate × 2 × 2), rerun on the filed quarter.
+
 Every margin is drawn with ONE definition per row (entity × definition), so
 no line ever joins a gross margin to a derived "revenue less all compute" or
 to an analyst's inference-only estimate.
@@ -67,7 +74,7 @@ EPOCH_TO_PALETTE: dict[str, str] = {
 BADGES = ("disclosed", "reported", "estimated")
 FILING_STATUSES = ("audited", "unaudited", "n/a")
 LEDGER_STATES = ("ship", "excluded")
-LEDGER_VIEWS = ("margin", "commitment", "token", "revenue", "footnote", "ledger")
+LEDGER_VIEWS = ("margin", "commitment", "token", "revenue", "footnote", "ledger", "stack")
 DENOMINATOR_BASES = ("epoch_runrate", "quarterly_revenue_x4")
 
 LEDGER_COLUMNS = (
@@ -76,7 +83,7 @@ LEDGER_COLUMNS = (
     "denominator", "nd_unit", "period_label", "period_start", "period_end", "badge",
     "filing_status", "derived", "denominator_basis", "source_name", "source_url",
     "source_date", "retrieved", "ledger_state", "as_of", "status", "note",
-    "epoch_company",
+    "epoch_company", "layer", "value_high",
 )
 REVENUE_COLUMNS = ("epoch_id", "company", "palette_name", "date", "annualized_usd",
                    "revenue_type", "scope", "confidence", "source_type", "badge",
@@ -357,7 +364,7 @@ def _ledger_all() -> pd.DataFrame:
     for col in LEDGER_COLUMNS:
         if col not in df.columns:
             df[col] = ""
-    for col in ("value", "numerator", "denominator"):
+    for col in ("value", "numerator", "denominator", "value_high"):
         df[col] = df[col].map(_num)
     df["order"] = range(len(df))
     return df
@@ -537,6 +544,139 @@ def token_rows() -> pd.DataFrame:
     return df.sort_values(["entity", "scope", "date"], kind="mergesort").reset_index(drop=True)
 
 
+# ── The value-capture stack ─────────────────────────────────────────────────
+
+STACK_LAYERS = ("apps", "labs", "capex", "chips")      # top to bottom on the chart
+STACK_LAYER_LABELS = {
+    "apps": "Apps · Cursor, one app (reported ARR)",
+    "labs": "Labs · latest run-rates (Epoch AI)",
+    "capex": "Clouds · 2026 capex guidance",
+    "chips": "Chips · Nvidia data-center revenue",
+}
+USD_PER_YEAR = {"year": 1, "quarter": 4}               # a usd row's `per` -> × to a year
+# Sequoia's method (David Cahn, 2024-06-20, sequoiacap.com/article/ais-600b-question):
+# Nvidia's run-rate × 2 (GPUs are half a data centre's total cost) × 2 (a 50%
+# gross margin for the GPU's end user).
+SEQUOIA_URL = "https://www.sequoiacap.com/article/ais-600b-question/"
+SEQUOIA_DC_MULT = 2
+SEQUOIA_MARGIN_MULT = 2
+STACK_LAB_WINDOW_DAYS = 365   # a lab's run-rate older than this (vs the newest) is left out
+_BADGE_RANK = {b: i for i, b in enumerate(BADGES)}
+
+
+def weakest_badge(badges) -> str:
+    """The weakest evidence among a layer's parts (estimated < reported < disclosed)."""
+    have = [b for b in badges if b in _BADGE_RANK]
+    return max(have, key=_BADGE_RANK.get) if have else "estimated"
+
+
+def usd_range(lo, hi) -> str:
+    """'$725–745B' when both ends share a unit, else '$900M–$1.1B'."""
+    a, b = _usd(lo), _usd(hi)
+    if a[-1] == b[-1] and a[-1] in "TBMK":
+        return f"{a[:-1]}–{b[1:]}"
+    return f"{a}–{b}"
+
+
+def stack_lab_runrates(window_days: int = STACK_LAB_WINDOW_DAYS) -> pd.DataFrame:
+    """Each company's latest Epoch run-rate or ARR SNAPSHOT (never an
+    annualised period, which looks backward), kept only if dated within
+    `window_days` of the newest snapshot in the data (no clock is read)."""
+    rr = runrate_frame()
+    if rr.empty:
+        return rr
+    snap = rr[rr["revenue_type"].str.strip().str.lower() != "period interpolation"]
+    if snap.empty:
+        return snap
+    last = (snap.sort_values(["date", "epoch_id"], kind="mergesort")
+            .groupby("company", sort=False).tail(1))
+    newest = pd.Timestamp(last["date"].max())
+    keep = (newest - pd.to_datetime(last["date"])).dt.days <= window_days
+    return last[keep].sort_values(["annualized_usd", "company"], ascending=[False, True],
+                                  kind="mergesort").reset_index(drop=True)
+
+
+def _part(name, lo, hi, badge, as_of, url, q="", ref="", note=""):
+    return {"name": name, "lo": lo, "hi": hi, "badge": badge, "as_of": as_of,
+            "source_url": url, "qualifier": q, "ref": ref, "note": note}
+
+
+def stack_rows() -> pd.DataFrame:
+    """One row per layer (STACK_LAYERS) plus the two 'required' references,
+    every value in USD per year: lo, hi (equal unless a range), mid, the
+    weakest badge of its parts, its parts (list of dicts) and a `basis`
+    sentence. A layer with no parts is left out; the rerun needs the chips
+    layer."""
+    led = load_ledger()
+    led = led[(led["view"] == "stack") & led["value"].notna()
+              & led["per"].isin(list(USD_PER_YEAR))]
+    out = []
+
+    def add(layer, kind, parts, basis):
+        if not parts:
+            return
+        lo = sum(p["lo"] for p in parts)
+        hi = sum(p["hi"] for p in parts)
+        out.append({"layer": layer, "kind": kind, "lo": lo, "hi": hi, "mid": (lo + hi) / 2,
+                    "badge": weakest_badge(p["badge"] for p in parts),
+                    "as_of": max(p["as_of"] for p in parts),
+                    "qualifier": ">" if any(p["qualifier"] == ">" for p in parts) else "",
+                    "n_parts": len(parts), "parts": parts, "basis": basis})
+
+    def ledger_parts(layer):
+        parts = []
+        for _, r in led[led["layer"] == layer].iterrows():
+            k = USD_PER_YEAR[r["per"]]
+            hi = r["value_high"] if pd.notna(r["value_high"]) else r["value"]
+            q = str(r["value_qualifier"] or "")
+            parts.append(_part(r["entity"], float(r["value"]) * k, float(hi) * k, r["badge"],
+                               r["as_of"], r["source_url"], q=q, ref=r["row_id"],
+                               note=(f"{r['period_label']} {_usd(r['value'])} × {k}"
+                                     if k != 1 else str(r["period_label"]))))
+        return parts
+
+    chips = ledger_parts("chips")
+    add("chips", "layer", chips, "filed quarter × 4 (revenue)")
+    capex = ledger_parts("capex")
+    add("capex", "layer", capex,
+        f"sum of {len(capex)} companies' guidance (spend, not revenue; definitions differ)")
+    labs = [_part(r["company"], float(r["annualized_usd"]), float(r["annualized_usd"]),
+                  r["badge"], r["date"], r["source_url"], ref=r["epoch_id"],
+                  note=str(r["revenue_type"]))
+            for _, r in stack_lab_runrates().iterrows()]
+    add("labs", "layer", labs,
+        f"sum of {len(labs)} labs' latest run-rate or ARR (revenue; gross and net mixed)")
+    add("apps", "layer", ledger_parts("apps"), "one app's reported ARR: a floor")
+    if chips:
+        k = SEQUOIA_DC_MULT * SEQUOIA_MARGIN_MULT
+        add("required_now", "reference",
+            [_part(p["name"], p["lo"] * k, p["hi"] * k, "estimated", p["as_of"],
+                   p["source_url"], ref=p["ref"],
+                   note=f"{_usd(p['lo'])}/yr × {SEQUOIA_DC_MULT} × {SEQUOIA_MARGIN_MULT}")
+             for p in chips],
+            "Sequoia's × 2 × 2 rerun on the filed Nvidia quarter (our arithmetic)")
+    add("required_2024", "reference", ledger_parts("required"),
+        "Sequoia Capital's figure, June 2024")
+    cols = ["layer", "kind", "lo", "hi", "mid", "badge", "as_of", "qualifier", "n_parts",
+            "parts", "basis"]
+    return pd.DataFrame(out, columns=cols)
+
+
+def stack_export_frame() -> pd.DataFrame:
+    """The stack's numbers, one row per part, with its layer total."""
+    rows = []
+    for _, s in stack_rows().iterrows():
+        for p in s["parts"]:
+            rows.append({"layer": s["layer"], "kind": s["kind"], "layer_lo_usd_yr": s["lo"],
+                         "layer_hi_usd_yr": s["hi"], "layer_basis": s["basis"],
+                         "part": p["name"], "part_lo_usd_yr": p["lo"],
+                         "part_hi_usd_yr": p["hi"], "qualifier": p["qualifier"],
+                         "badge": p["badge"], "as_of": p["as_of"],
+                         "source_url": p["source_url"], "ref": p["ref"], "note": p["note"],
+                         "credit": EPOCH_CREDIT if s["layer"] == "labs" else ""})
+    return pd.DataFrame(rows)
+
+
 # ── Formatting shared by the charts, the ledger and the export ──────────────
 
 def _usd(v) -> str:
@@ -562,7 +702,10 @@ def fmt_value(row) -> str:
     if unit == "pct":
         return f"{q}{v:.1f}%"
     if unit == "usd":
-        return f"{q}{_usd(v)}"
+        hi = _num(row.get("value_high"))
+        text = usd_range(v, hi) if hi is not None and hi != v else _usd(v)
+        per = str(row.get("per") or "")
+        return f"{q}{text}" + (f" / {per}" if per in USD_PER_YEAR and per != "year" else "")
     if unit == "tokens":
         per = row.get("per") or "day"
         tpd = tokens_per_day(v, per)
@@ -574,7 +717,7 @@ def fmt_value(row) -> str:
 def ledger_export_frame() -> pd.DataFrame:
     """Every Labs number behind the charts and the ledger, one row each, with
     a `chart` column naming which (ledger | commitment_multiple | runrate |
-    tokens) and a `credit` column on every Epoch-derived row."""
+    tokens | stack) and a `credit` column on every Epoch-derived row."""
     led = load_ledger(include_excluded=True).drop(columns=["order"], errors="ignore")
     led.insert(0, "chart", "ledger")
     com = commitment_rows().drop(columns=["order"], errors="ignore")
@@ -587,7 +730,10 @@ def ledger_export_frame() -> pd.DataFrame:
     tk = token_rows().copy()
     tk.insert(0, "chart", "tokens")
     tk["credit"] = [EPOCH_CREDIT if o == "epoch" else "" for o in tk.get("origin", [])]
-    frames = [f for f in (led, com, rr, tk) if not f.empty]
+    st = stack_export_frame()
+    if not st.empty:
+        st.insert(0, "chart", "stack")
+    frames = [f for f in (led, com, rr, tk, st) if not f.empty]
     if not frames:
         return pd.DataFrame(columns=["chart"])
     out = pd.concat(frames, ignore_index=True, sort=False)
