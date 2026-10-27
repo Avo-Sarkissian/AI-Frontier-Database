@@ -946,17 +946,20 @@ function renderBudgetAnswer(best, floor, basis) {
 
   const cost = document.createElement("span");
   cost.style.cssText = "font-size:15px;color:#00d4ff;margin-left:auto;";
-  const c = best.monthly_cost;
-  cost.textContent = (c >= 1 ? "$" + c.toFixed(2) : "$" + c.toFixed(3)) + " / mo";
+  // fmtPrice, not toFixed(3): at the agentic mix and 0.1M tokens the answer
+  // is $0.0004, which toFixed(3) printed as "$0.000 / mo".
+  const mark = best.cache_price_filled ? "*" : "";
+  cost.textContent = fmtPrice(best.monthly_cost) + mark + " / mo";
 
   const meta = document.createElement("span");
   meta.style.cssText = "font-size:11px;color:#777;";
   // `basis` names the workload MIX the price is at (update_cost_calc returns
   // it with the answer, so it can never belong to a different render).
   meta.textContent =
-    `${best.quality.toFixed(1)} pts · ${fmtPrice(best.price)}/M tok` +
+    `${best.quality.toFixed(1)} pts · ${fmtPrice(best.price)}${mark}/M tok` +
     (basis ? ` at ${basis}` : "") + " · " +
-    `${best.n_qualifying} model${best.n_qualifying === 1 ? "" : "s"} qualify`;
+    `${best.n_qualifying} model${best.n_qualifying === 1 ? "" : "s"} qualify` +
+    (best.cache_price_filled && best.fill_key ? ` · ${best.fill_key}` : "");
 
   line.append(name, prov, cost);
   card.append(line, meta);
@@ -1166,7 +1169,12 @@ function renderTableRows(records) {
     const pcolor = PROVIDER_COLORS[r.provider] || DEFAULT_PROVIDER_COLOR;
     const qual = r.quality != null ? r.quality.toFixed(1) : "—";
     const val  = r.value  != null && r.value > 0  ? r.value.toFixed(2) : "—";
-    const price = r.price != null && r.price > 0   ? fmtPrice(r.price) : "—";
+    // '*' = no AA cache price at this mix (cache hits billed at full input),
+    // the same mark as the floor stat and every chart hover.
+    const price = r.price != null && r.price > 0
+      ? fmtPrice(r.price) + (r.cache_price_filled ? "*" : "") : "—";
+    const priceTitle = r.cache_price_filled
+      ? ` title="${escapeHtml((window.AF.mixInfo && window.AF.mixInfo.fill_key) || "* no AA cache price")}"` : "";
     // "en-US", not the visitor's locale: a bare toLocaleString renders 1560 as
   // "1.560" in de-DE — a 1000x ambiguity in a column sitting next to $0.1580.
   const speed = r.speed != null && r.speed > 0
@@ -1179,7 +1187,7 @@ function renderTableRows(records) {
       <td style="${cellBase}text-align:left;color:${pcolor};">${escapeHtml(r.provider)}</td>
       <td style="${cellBase}color:#f2f2f2;">${qual}</td>
       <td style="${cellBase}color:#34d399;">${val}</td>
-      <td style="${cellBase}color:#888;">${price}</td>
+      <td style="${cellBase}color:#888;"${priceTitle}>${price}</td>
       <td style="${cellBase}color:#888;">${speed}</td>
       <td style="${cellBase}color:#888;">${lat}</td>
       <td style="${cellBase}color:#888;">${ctx}</td>
@@ -1213,15 +1221,52 @@ function syncMixCustom() {
   if (box) box.style.display = sel && sel.value === "custom" ? "inline-flex" : "none";
 }
 
-// Custom starts from the numbers of the preset that was selected before.
+// Custom starts from the numbers of the preset that was showing. The boxes are
+// hidden while a preset is selected, so whatever they still hold from an
+// earlier Custom session is overwritten: custom -> agentic -> custom starts at
+// 300 / 90, not at the old typed numbers the page was no longer showing.
 function prefillCustomMix(fromKey) {
   const opts = (window.AF.manifest && window.AF.manifest.mix_options) || [];
   const o = opts.find(x => x.value === fromKey);
   if (!o || o.ratio == null) return;
   const r = document.getElementById("mix-ratio");
   const h = document.getElementById("mix-cache");
-  if (r && r.value === "") r.value = String(Number(o.ratio.toPrecision(4)));
-  if (h && h.value === "") h.value = String(o.cache_pct ?? 0);
+  if (r) r.value = String(Number(o.ratio.toPrecision(4)));
+  if (h) h.value = String(o.cache_pct ?? 0);
+}
+
+// The previous MIX value lives on the element, not in a closure: applyUrlState
+// and Reset set the select programmatically (no change event), and a closure
+// captured at wiring time then pre-filled Custom from a preset that was not
+// showing (?m=agentic -> Custom filled 1:3 / 0%).
+function rememberMix() {
+  const el = document.getElementById("filter-mix");
+  if (el) el.dataset.prev = el.value;
+}
+
+// Python clamps the custom numbers (workload_mix.custom_mix: ratio 0-1000,
+// cache 0-100). Write what it actually used back into the boxes, so a typed
+// 2000 reads 1000 in the box and the link, matching every chart. An empty
+// box keeps its emptiness but shows the number used as its placeholder.
+function syncCustomBoxes(args) {
+  if (!Array.isArray(args) || args[0] !== "custom") return;
+  let changed = false;
+  [["mix-ratio", args[1]], ["mix-cache", args[2]]].forEach(([id, used]) => {
+    const el = document.getElementById(id);
+    if (!el || used == null || !Number.isFinite(Number(used))) return;
+    const shown = String(Number(Number(used).toPrecision(4)));
+    if (el.value === "") { el.placeholder = shown; return; }
+    const typed = Number(el.value);
+    if (!Number.isFinite(typed) || Math.abs(typed - used) > 1e-9 * Math.max(1, Math.abs(used))) {
+      el.value = shown;
+      changed = true;
+    }
+  });
+  if (changed) {
+    readGlobalFilters();
+    syncUrl();
+    lastMixInfoKey = JSON.stringify(readMix());
+  }
 }
 
 function syncTablePriceHeader() {
@@ -1250,10 +1295,16 @@ async function refreshMixInfo() {
     if (v) {
       v.textContent = info.floor_price + (info.floor_filled ? "*" : "");
       v.title = (info.floor_model ? `${info.floor_model}` : "") +
-        (info.floor_filled ? " · * cache price estimated at 10% of input (AA publishes none)" : "");
+        (info.floor_filled ? ` · ${info.fill_key}` : "");
     }
-    if (l) { l.textContent = info.floor_label; l.title = info.title || ""; }
+    // The '*' key is VISIBLE in the label, not only in a title: a touch
+    // screen has no hover. Same text as Dash's _floor_stat.
+    if (l) {
+      l.textContent = info.floor_label + (info.floor_filled ? ` · ${info.fill_key}` : "");
+      l.title = info.title || "";
+    }
     syncTablePriceHeader();
+    syncCustomBoxes(info.args);
   } catch (e) { console.error("mix_info failed:", e); }
 }
 
@@ -1270,6 +1321,7 @@ async function rerenderActiveFilterCharts() {
   syncUrl();
   if (!window.AF.pyReady) return;
   refreshMixInfo();   // the header stat follows MIX on every tab
+  refreshDetailPanel();   // an open panel follows MIX too
   const tab = window.AF.state.tab;
   if (tab === "compare") {
     // "tab-switch", not "filter-provider": this path runs on every tab change,
@@ -1346,12 +1398,13 @@ function wireGlobalControls() {
   const mixEl = document.getElementById("filter-mix");
   if (mixEl) {
     const mixChanged = onFilter("filter-mix");
-    let lastMix = mixEl.value;
+    rememberMix();
     mixEl.onchange = () => {
       // Custom starts from the preset that was showing, so the boxes never
       // hold a number nobody chose.
-      if (mixEl.value === "custom") prefillCustomMix(lastMix);
-      lastMix = mixEl.value;
+      const prev = mixEl.dataset.prev;
+      if (mixEl.value === "custom" && prev !== "custom") prefillCustomMix(prev);
+      rememberMix();
       syncMixCustom();
       mixChanged();
     };
@@ -1373,6 +1426,7 @@ function wireGlobalControls() {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+    rememberMix();
     syncMixCustom();
     setPreset(0, [], true);
   };
@@ -1496,6 +1550,7 @@ function applyUrlState() {
         if (el && u.has(k) && Number.isFinite(v)) el.value = String(v);
       });
     }
+    rememberMix();
     syncMixCustom();
   }
   readGlobalFilters();
@@ -1546,13 +1601,37 @@ function attachParetoClickHandler() {
     const model = Array.isArray(cd) ? (cd[5] ?? cd[0]) : cd;
     const provider = Array.isArray(cd) ? (cd[6] ?? cd[1]) : "";
     try {
-      const html = await window.AF.callPyRaw("model_detail", model, provider, readMix());
+      const mix = readMix();
+      const html = await window.AF.callPyRaw("model_detail", model, provider, mix);
       if (!html) return;
       document.getElementById("detail-panel-body").innerHTML = html;
       document.getElementById("detail-panel").className = "detail-panel open";
       window.AF.detailModel = model;
+      window.AF.detailProvider = provider;
+      window.AF.detailMix = JSON.stringify(mix);
     } catch (e) { console.error("model_detail failed:", e); }
   });
+}
+
+// The panel states a price at a MIX. When MIX changes with the panel open,
+// every chart behind it re-prices, so the panel is re-requested at the new mix
+// rather than left quoting the old one beside them.
+async function refreshDetailPanel() {
+  const panel = document.getElementById("detail-panel");
+  const model = window.AF.detailModel;
+  if (!panel || !model || !panel.classList.contains("open")) return;
+  const mix = readMix();
+  const key = JSON.stringify(mix);
+  if (key === window.AF.detailMix) return;
+  try {
+    const html = await window.AF.callPyRaw("model_detail", model,
+                                            window.AF.detailProvider || "", mix);
+    // Superseded by another click or another mix change: drop this answer.
+    if (window.AF.detailModel !== model || JSON.stringify(readMix()) !== key) return;
+    if (!html) { panel.className = "detail-panel"; window.AF.detailModel = null; return; }
+    document.getElementById("detail-panel-body").innerHTML = html;
+    window.AF.detailMix = key;
+  } catch (e) { console.error("model_detail failed:", e); }
 }
 
 // ---- Overview caption text (mirrors app.py) ----

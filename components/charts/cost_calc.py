@@ -5,7 +5,10 @@ Given a monthly token volume, shows projected monthly cost per model.
 import pandas as pd
 import plotly.graph_objects as go
 
-from data.workload_mix import resolve_mix, fmt_price, fill_note
+from data.workload_mix import (
+    resolve_mix, fmt_price, fill_note, fill_hover, is_filled, price_marks,
+    FILL_MARK, FILL_SHORT,
+)
 
 from components.charts.constants import (
     right_gutter, ANNOTATED_AXIS_HEADROOM,
@@ -52,6 +55,9 @@ def cheapest_above(df: pd.DataFrame, min_quality: float = 0.0,
     if ranked.empty:
         return None
     row = ranked.iloc[0]
+    # The answer card states this price as THE cheapest, so it carries the
+    # same flag every chart does when the model has no AA cache price.
+    filled = is_filled(row.get("cache_price_filled"))
     return {
         "model": str(row["model"]),
         "provider": str(row["provider"]),
@@ -59,6 +65,8 @@ def cheapest_above(df: pd.DataFrame, min_quality: float = 0.0,
         "price": float(row["price"]),
         "monthly_cost": float(row["monthly_cost"]),
         "n_qualifying": int(len(ranked)),
+        "cache_price_filled": filled,
+        "fill_key": f"{FILL_MARK} {FILL_SHORT}" if filled else "",
     }
 
 
@@ -107,6 +115,9 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     plot_df = plot_df.head(top_n).reset_index(drop=True)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in plot_df["provider"]]
+    # Same rule as every price on the page: cent-and-up values print exactly as
+    # before ($1,234.56 / $0.123); below a cent, 4 significant digits.
+    cost_text = plot_df["monthly_cost"].map(fmt_price).tolist()
     # Truncation can collapse two models onto one category (the Nemotron 3 Nano
     # "(Reasoning)" / "(Non-reasoning)" pair, for one). Plotly then stacks both
     # bars in the same row and draws both right-hand labels on top of each other.
@@ -118,9 +129,11 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     hover = (
         "<b>%{customdata[0]}</b><br>"
         "Provider: %{customdata[1]}<br>"
-        "Monthly cost: $%{x:,.2f}<br>"
+        # customdata[5] is the cost as text (workload_mix.fmt_price): ",.2f"
+        # hovered the agentic floor's $0.0041 / month as "$0.00".
+        "Monthly cost: %{customdata[5]}<br>"
         "Price: %{customdata[2]}/M tokens  ·  " + basis.short + "<br>"
-        "Rates: %{customdata[4]}<br>"
+        "Rates: %{customdata[4]}%{customdata[6]}<br>"
         "Intelligence: %{customdata[3]:.0f}<br>"
         "<extra></extra>"
     )
@@ -148,13 +161,12 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         orientation="h",
         marker=dict(color=colors, opacity=opacities, line=dict(width=0)),
         customdata=list(zip(plot_df["model"], plot_df["provider"],
-                            plot_df["price"].map(fmt_price),
-                            plot_df["quality"], _rate_pair(plot_df))),
+                            price_marks(plot_df),
+                            plot_df["quality"], _rate_pair(plot_df),
+                            cost_text, fill_hover(plot_df))),
         hovertemplate=hover,
         showlegend=False,
-        text=plot_df["monthly_cost"].apply(
-            lambda c: f"${c:,.2f}" if c >= 1 else f"${c:.3f}"
-        ),
+        text=cost_text,
         textposition="inside",
         textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
     ))
@@ -197,6 +209,9 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             text=(
                 "Monthly API Cost"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+                # The fill note leads: Plotly titles do not wrap, and a narrow
+                # card clips the end of this long subtitle.
+                + fill_note(plot_df, basis)
                 + (
                     f"  ·  cheapest models scoring {min_quality:g}+"
                     if min_quality else
@@ -209,7 +224,6 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
                 # than that (Claude Opus 5 at 100M: $2000 charted, $500
                 # all-input). Whatever the mix, the title says which.
                 + f"  ·  assumes {basis.assumption}"
-                + fill_note(plot_df, basis)
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

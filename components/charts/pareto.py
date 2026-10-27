@@ -14,7 +14,7 @@ from components.charts.constants import (
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
-from data.workload_mix import resolve_mix, fmt_price, fill_note
+from data.workload_mix import resolve_mix, fill_note, fill_hover, price_marks
 
 
 def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
@@ -138,12 +138,14 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         # [5] and [6] are the RAW model and provider for the click
         # handler's lookup; [0] and [1] are escaped for the hover text.
         # [7] is the price as text (workload_mix.fmt_price), so a sub-cent
-        # agentic price never hovers as "$0.004".
+        # agentic price never hovers as "$0.004"; it carries a '*' and [4]
+        # a key line where the model has no AA cache price.
+        rates = [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))]
         customdata = pd.Series(list(zip(
             pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
-            speed_str, latency_str, _rate_pair(pdf),
+            speed_str, latency_str, rates,
             pdf["model"].astype(str), pdf["provider"].astype(str),
-            pdf["price"].map(fmt_price),
+            price_marks(pdf),
         )), index=pdf.index)
 
         # A model AA has not timed yet has no size to draw: the floor would
@@ -252,11 +254,13 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             text=(
                 "Cost vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+                # The fill note leads: Plotly titles do not wrap, and at 1300 px
+                # the tail of this subtitle ran off the card.
+                + fill_note(plot_df, basis)
+                + "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
                 + ("  ·  hollow = speed not yet measured"
                    if (~_speed_measured(plot_df)).any() else "")
                 + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
-                + fill_note(plot_df, basis)
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),

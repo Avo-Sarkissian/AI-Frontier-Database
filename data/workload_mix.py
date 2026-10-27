@@ -17,7 +17,8 @@ price per 1M TOTAL tokens (input + output), so a monthly volume times it is a bi
 Rules:
   * h == 0 never reads the cache price, so a model with none is never flagged and
     0 * NaN can never poison a row.
-  * h > 0 with no published cache price uses CACHE_FILL_RATIO x input price, and
+  * h > 0 with no published cache price bills the cache hits at the FULL input
+    price (CACHE_FILL_RATIO = 1.0: no discount is invented), and
     `cache_price_filled` marks the row so every surface can say so.
   * A row with no input or output price stays NaN and drops out of the price
     views exactly as it did before (the unhosted Rankings rows).
@@ -40,17 +41,21 @@ from dataclasses import dataclass
 import pandas as pd
 
 # ── Cache fill-in ─────────────────────────────────────────────────────────────
-# Where Artificial Analysis publishes no cached-input price for a model, the
-# cache-hit price is taken as 10% of its input price.
-#   Primary basis: the median cacheHitPrice / price1mInputTokens over the 120
-#   models AA prices a cache hit for on its leaderboard was exactly 0.10
-#   (https://artificialanalysis.ai/leaderboards/models, measured 2026-10-27;
-#   mean 0.19, range 0.008-1.0). tests/test_workload_mix.py re-checks the
-#   committed catalogue so a drifting market fails a test, not silently.
-#   Precedent: SemiAnalysis InferenceX's calculator defaults cached input to 10%
-#   of the input price (https://inferencex.semianalysis.com/api/openapi.json,
-#   cachedInputPrice default 0.1, read 2026-10-27).
-CACHE_FILL_RATIO = 0.10
+# Where Artificial Analysis publishes no cached-input price for a model, its
+# cache hits are billed at the FULL input price: no discount is assumed.
+#   Why not a typical discount: over the 120 models AA does price a cache hit
+#   for, cacheHitPrice / price1mInputTokens has median 0.10 and range
+#   0.008-1.0 (https://artificialanalysis.ai/leaderboards/models, measured
+#   2026-10-27), and SemiAnalysis InferenceX's calculator defaults cached input
+#   to 10% (https://inferencex.semianalysis.com/api/openapi.json, read
+#   2026-10-27). But that median is over models whose host OFFERS caching; a
+#   missing price is as likely to mean the cheapest host has no cache discount
+#   at all. A 10% fill-in gave 42 unpriced rows a 90% discount on 90% of their
+#   input and put 11 of them in the 15 cheapest at the agentic mix, the floor
+#   model included. 1.0 is the top of the published range, so a filled row is
+#   never cheaper than its published list prices allow: an upper bound, flagged.
+#   tests/test_workload_mix.py re-checks that no published ratio exceeds it.
+CACHE_FILL_RATIO = 1.0
 CACHE_FILL_SOURCE_URL = "https://artificialanalysis.ai/leaderboards/models"
 CACHE_FILL_AS_OF = "2026-10-27"
 
@@ -111,15 +116,17 @@ MIX_PRESETS: tuple[MixPreset, ...] = (
     ),
     MixPreset(
         key="observed", w_in=15.0, w_out=1.0, cache_hit=0.0,
-        label="Observed ≈15:1",
-        short="observed ≈15:1 in:out",
+        label="Observed 15:1 (late 2025)",
+        short="observed 15:1 in:out",
         source_url="https://openrouter.ai/state-of-ai",
         as_of="2026-10-23",
         status="reported",
         note=("a16z x OpenRouter 'State of AI' 100-trillion-token study (Dec 2025, data "
-              "Nov 2024-Nov 2025): published study averages (prompt >6K, completion "
-              "≈400 tokens), Nov 2024-Nov 2025; quoted, not scraped. Cache rate not "
-              "published, so none is assumed."),
+              "Nov 2024-Nov 2025): by late 2025 the average request had grown to a prompt "
+              "of >6K tokens and a completion of ≈400, so input:output was AT LEAST 15:1. "
+              "Those are end-of-window values, not averages over the window (prompts were "
+              "≈1.5K and completions ≈150 in early 2024). Quoted, not scraped. Cache rate "
+              "not published, so none is assumed."),
     ),
     MixPreset(
         key="agentic", w_in=300.0, w_out=1.0, cache_hit=0.90,
@@ -199,7 +206,7 @@ class Mix:
         parts = [f"{self.short}: {self._share_text} output tokens"]
         if self.cache_hit > 0:
             parts.append(f"{self.cache_hit * 100:.0f}% of input served from cache "
-                         f"(AA cache price, else {CACHE_FILL_RATIO:.0%} of input); "
+                         f"(AA cache price; {FILL_TEXT}); "
                          "cache-write premium not modelled")
         else:
             parts.append("no cache")
@@ -300,7 +307,8 @@ def apply_mix(df: pd.DataFrame, mix: Mix | None = None) -> pd.DataFrame:
 
     The default returns `df` itself, untouched. Otherwise a copy where `price` is
     the effective price, `price_list_blend` keeps the dashboard's list blend, and
-    `cache_price_filled` marks rows whose cache price is the 10% fill-in. Rows,
+    `cache_price_filled` marks rows with no published cache price (cache hits
+    billed at the full input price, CACHE_FILL_RATIO). Rows,
     index and order never change.
     """
     mix = resolve_mix(mix)
@@ -317,14 +325,59 @@ def apply_mix(df: pd.DataFrame, mix: Mix | None = None) -> pd.DataFrame:
 
 
 def fill_note(df: pd.DataFrame, mix: Mix) -> str:
-    """'  ·  cache price est. at 10% of input for N of M' when it applies, else ''."""
+    """'  ·  * N of M: no AA cache price, billed at full input' when it applies,
+    else ''. Builders put it FIRST in the subtitle: Plotly titles do not wrap,
+    and the provenance note is the part a narrow card must not clip."""
     if mix.cache_hit <= 0 or df is None or "cache_price_filled" not in df.columns:
         return ""
     priced = df[df["price"].notna() & (df["price"] > 0)] if "price" in df.columns else df
     n = int(priced["cache_price_filled"].eq(True).sum())
     if not n:
         return ""
-    return f"  ·  cache price est. at {CACHE_FILL_RATIO:.0%} of input for {n} of {len(priced)}"
+    return f"  ·  {FILL_MARK} {n} of {len(priced)}: {FILL_SHORT}"
+
+
+def filled_flags(df: pd.DataFrame) -> pd.Series:
+    """Per-row bool: is this row's cache price the fill-in? False where the
+    column is absent (the default mix, or h == 0)."""
+    if df is None:
+        return pd.Series(dtype=bool)
+    col = df.get("cache_price_filled")
+    if col is None:
+        return pd.Series(False, index=df.index)
+    return col.eq(True)
+
+
+def is_filled(v) -> bool:
+    """A `cache_price_filled` cell as a plain bool: numpy bools, None and NaN
+    (a frame at the default mix has no such column) all handled."""
+    try:
+        return v is not None and not pd.isna(v) and bool(v)
+    except (TypeError, ValueError):
+        return False
+
+
+def mark_price(v, filled) -> str:
+    """fmt_price, plus FILL_MARK where the cache price is the fill-in."""
+    return fmt_price(v) + (FILL_MARK if is_filled(filled) else "")
+
+
+def price_marks(df: pd.DataFrame) -> pd.Series:
+    """mark_price for every row of `df` (its `price` column)."""
+    flags = filled_flags(df)
+    return pd.Series([mark_price(p, f) for p, f in zip(df["price"], flags)], index=df.index)
+
+
+def fill_hover(df: pd.DataFrame) -> pd.Series:
+    """A hover line per row: FILL_HOVER where the row is filled, else ''."""
+    return filled_flags(df).map(lambda f: FILL_HOVER if f else "")
+
+
+# One wording for the fill-in everywhere (subtitle, hover, floor stat, panel).
+FILL_MARK = "*"
+FILL_SHORT = "no AA cache price, billed at full input"
+FILL_TEXT = "none published: billed at the full input price, no discount assumed"
+FILL_HOVER = f"<br>{FILL_MARK} no AA cache price: cache hits billed at full input"
 
 
 def fmt_price(v) -> str:
@@ -343,6 +396,20 @@ def fmt_price(v) -> str:
     if v == 0:
         return "$0.00"
     return f"${v:.4g}"
+
+
+def cache_label(row) -> str:
+    """The detail panel's "Cached in" value: the cached-input price this
+    dashboard uses for a model, and whose it is. AA's per-model figure where it
+    publishes one (it can differ from the vendor's own page), else the full
+    input price, marked. One function for Dash and the static site."""
+    c, p_in = row.get("cache_hit_price"), row.get("price_in")
+    if c is not None and pd.notna(c):
+        return f"{fmt_price(c)} / 1M  ·  AA"
+    if p_in is not None and pd.notna(p_in):
+        return (f"{fmt_price(CACHE_FILL_RATIO * float(p_in))} / 1M{FILL_MARK}  ·  "
+                "none published: input rate")
+    return "—"
 
 
 def fmt_floor(v) -> str:
@@ -377,7 +444,7 @@ def mix_options() -> list[dict]:
     out.append({"value": CUSTOM_KEY, "label": "Custom…",
                 "title": ("Your own input:output ratio (input tokens per output token, "
                           f"0-{CUSTOM_RATIO_MAX:g}) and cache-hit rate (0-100% of input). "
-                          f"Models with no AA cache price use {CACHE_FILL_RATIO:.0%} of input."),
+                          "Models with no AA cache price bill cache hits at the full input price."),
                 "ratio": None, "cache_pct": None, "status": "estimated",
                 "source_url": "", "as_of": ""})
     return out
@@ -412,4 +479,7 @@ def mix_summary(df: pd.DataFrame, mix: Mix | None = None) -> dict:
         "table_header": table_price_header(mix),
         "n_filled": n_filled,
         "n_priced": int(len(priced)),
+        # The floor stat's visible key when floor_filled (a touch screen has
+        # no hover, so the '*' cannot be explained by a title alone).
+        "fill_key": f"{FILL_MARK} {FILL_SHORT}",
     }

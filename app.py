@@ -52,7 +52,9 @@ from components.charts.bump_chart          import build_value_leaders
 from data.workload_mix                      import (
     apply_mix, resolve_mix, mix_options as _mix_options, fmt_price, fmt_floor,
     floor_label as _floor_label, table_price_header as _table_price_header,
-    DEFAULT_MIX_KEY, CUSTOM_KEY, CACHE_FILL_RATIO,
+    DEFAULT_MIX_KEY, CUSTOM_KEY, mix_summary as _mix_summary,
+    cache_label as _cache_label, mark_price as _mark_price,
+    filled_flags as _filled_flags, FILL_MARK, FILL_SHORT,
 )
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -327,6 +329,9 @@ app.layout = html.Div([
               data={"bandwidth_gbps": DEFAULT_BANDWIDTH_GBPS, "hw_type": "nvidia",
                     "fp16_tflops": DEFAULT_FP16_TFLOPS}),
     dcc.Store(id="detail-model-name", data=None),
+    # The MIX value before the latest change, so Custom can start from the
+    # preset that was showing (docs/app.js keeps it on the element).
+    dcc.Store(id="mix-prev", data=None),
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
     dcc.Store(id="resize-sink"),
@@ -1076,12 +1081,28 @@ def init_mix_from_url(search: str):
 
 @callback(
     Output("mix-custom", "style"),
+    Output("mix-ratio",  "value", allow_duplicate=True),
+    Output("mix-cache",  "value", allow_duplicate=True),
+    Output("mix-prev",   "data"),
     Input("filter-mix",  "value"),
+    State("mix-prev",    "data"),
+    prevent_initial_call="initial_duplicate",
 )
-def toggle_mix_custom(key):
-    """The ratio and cache boxes exist only for Custom; presets carry their own."""
-    return {"display": "inline-flex", "alignItems": "center", "gap": "6px"} \
-        if key == CUSTOM_KEY else {"display": "none"}
+def toggle_mix_custom(key, prev):
+    """The ratio and cache boxes exist only for Custom; presets carry their own.
+
+    Choosing Custom from a preset fills the boxes with THAT preset's numbers,
+    as the static site does: left blank they silently meant 1:3 at 0%, a mix
+    nobody chose. The first call (page load, after init_mix_from_url) has no
+    previous value, so a shared ?m=custom&mr=20 link keeps its own numbers."""
+    style = ({"display": "inline-flex", "alignItems": "center", "gap": "6px"}
+             if key == CUSTOM_KEY else {"display": "none"})
+    ratio = cache = no_update
+    if key == CUSTOM_KEY and prev and prev != CUSTOM_KEY:
+        opt = next((o for o in _mix_options() if o["value"] == prev), None)
+        if opt and opt["ratio"] is not None:
+            ratio, cache = float(f'{opt["ratio"]:.4g}'), opt["cache_pct"]
+    return style, ratio, cache, key
 
 
 @callback(
@@ -1099,10 +1120,25 @@ def update_mix_labels(mix_key, mix_ratio, mix_cache, columns):
     floor is the cheapest effective price over the UNFILTERED catalogue, as it
     always was — at the default it is the same string the layout renders."""
     basis = _mix(mix_key, mix_ratio, mix_cache)
-    priced = _base(basis)["price"]
+    value, label = _floor_stat(basis)
     cols = [dict(c, name=_table_price_header(basis)) if c.get("id") == "price" else c
             for c in (columns or [])]
-    return fmt_floor(priced[priced > 0].min()), _floor_label(basis), cols
+    return value, label, cols
+
+
+def _floor_stat(basis):
+    """(stat-floor-price children, stat-floor-label children) for `basis`.
+
+    Mirrors docs/app.js refreshMixInfo: workload_mix.mix_summary decides the
+    floor, and a floor model with no AA cache price carries the '*' plus a
+    VISIBLE key in the label (a title alone is invisible on a touch screen).
+    At the default mix both are the plain strings the layout renders."""
+    info = _mix_summary(df, basis)
+    if not info["floor_filled"]:
+        return info["floor_price"], info["floor_label"]
+    value = html.Span(info["floor_price"] + "*",
+                      title=f'{info["floor_model"]} · {info["fill_key"]}')
+    return value, f'{info["floor_label"]} · {info["fill_key"]}'
 
 
 @callback(
@@ -1586,32 +1622,42 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, h
     # hid, killing this whole callback — clicking a bubble did nothing.
     Input("pareto-chart", "clickData"),
     Input("detail-close", "n_clicks"),
-    State("filter-mix",   "value"),
-    State("mix-ratio",    "value"),
-    State("mix-cache",    "value"),
+    # MIX is an Input, not a State: the panel states a price at a mix, and an
+    # open panel left at the old mix contradicted every chart behind it.
+    Input("filter-mix",   "value"),
+    Input("mix-ratio",    "value"),
+    Input("mix-cache",    "value"),
+    State("detail-model-name", "data"),
     prevent_initial_call=True,
 )
-def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_cache=None):
+def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_cache=None,
+                        open_model=None):
     trigger = ctx.triggered_id
 
     if trigger == "detail-close":
         return "detail-panel", [], None
 
-    click = pareto_click
-    if not click or not click.get("points"):
-        return no_update, no_update, no_update
+    if trigger in ("filter-mix", "mix-ratio", "mix-cache"):
+        # Re-render the open panel at the new mix; a closed one stays closed.
+        if not open_model:
+            return no_update, no_update, no_update
+        model_name, provider = open_model, None
+    else:
+        click = pareto_click
+        if not click or not click.get("points"):
+            return no_update, no_update, no_update
 
-    pt         = click["points"][0]
-    customdata = pt.get("customdata", [])
-    if not customdata or len(customdata) < 2:
-        return no_update, no_update, no_update
+        pt         = click["points"][0]
+        customdata = pt.get("customdata", [])
+        if not customdata or len(customdata) < 2:
+            return no_update, no_update, no_update
 
-    # customdata[0] and [1] are HTML-escaped for Plotly's hover text; [5] and
-    # [6] carry the raw strings. Looking up the escaped name meant a model
-    # called "R&D Coder" matched no row and its panel silently never opened,
-    # and a provider with "&" printed as a literal "&amp;".
-    model_name = customdata[5] if len(customdata) > 6 else customdata[0]
-    provider   = customdata[6] if len(customdata) > 6 else customdata[1]
+        # customdata[0] and [1] are HTML-escaped for Plotly's hover text; [5]
+        # and [6] carry the raw strings. Looking up the escaped name meant a
+        # model called "R&D Coder" matched no row and its panel silently never
+        # opened, and a provider with "&" printed as a literal "&amp;".
+        model_name = customdata[5] if len(customdata) > 6 else customdata[0]
+        provider   = customdata[6] if len(customdata) > 6 else customdata[1]
 
     basis = _mix(mix_key, mix_ratio, mix_cache)
     base  = _base(basis)
@@ -1619,12 +1665,9 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
     if rows.empty:
         return no_update, no_update, no_update
     row = rows.iloc[0]
-    # Mirrors static_api._cache_label: AA's figure, else the 10% fill-in.
-    _c, _pin = row.get("cache_hit_price"), row.get("price_in")
-    cache_str = (f"{fmt_price(_c)} / 1M  ·  AA" if _c is not None and pd.notna(_c)
-                 else f"{fmt_price(CACHE_FILL_RATIO * float(_pin))} / 1M  ·  "
-                      f"est. {CACHE_FILL_RATIO:.0%} of input"
-                 if _pin is not None and pd.notna(_pin) else "—")
+    if provider is None:
+        provider = str(row["provider"])
+    cache_str = _cache_label(row)   # shared with static_api
 
     color      = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
     quality    = float(row["quality"])
@@ -1686,7 +1729,8 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
         ]),
 
         html.Div(className="detail-panel-divider"),
-        _metric("Price",   f"{fmt_price(row['price'])} / 1M  ·  {basis.short}"),
+        _metric("Price",   f"{_mark_price(row['price'], row.get('cache_price_filled'))}"
+                           f" / 1M  ·  {basis.short}"),
         _metric("Cached in", cache_str),
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
@@ -1727,6 +1771,7 @@ def add_to_compare(n_clicks, model_name, current_selection):
 # ── Table view ────────────────────────────────────────────────────────────────
 @callback(
     Output("model-table", "data"),
+    Output("model-table", "tooltip_data"),
     Input("filter-provider",  "value"),
     Input("filter-quality",   "value"),
     Input("filter-effort",   "value"),
@@ -1754,7 +1799,12 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
         filtered = filtered.sort_values(col, ascending=asc, na_position="last",
                                         kind="mergesort")
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
-    return filtered[cols].to_dict("records")
+    # Mirrors the static table's '*': a row whose price rests on the
+    # no-cache-price fill-in says so on its price cell.
+    flags = _filled_flags(filtered)
+    key = f"{FILL_MARK} {FILL_SHORT}"
+    tips = [{"price": key} if f else {} for f in flags]
+    return filtered[cols].to_dict("records"), tips
 
 
 # ── Export CSV ────────────────────────────────────────────────────────────────
@@ -1828,6 +1878,7 @@ def toggle_global_filters(tab):
     Output("stat-model-count",    "children"),
     Output("stat-provider-count", "children"),
     Output("stat-floor-price",    "children"),
+    Output("stat-floor-label",    "children", allow_duplicate=True),
     Output("stat-peak-quality",   "children"),
     Output("data-version",        "data"),
     Input("data-refresh-interval", "n_intervals"),
@@ -1850,8 +1901,9 @@ def auto_refresh_data(_, current_version, mix_key=None, mix_ratio=None, mix_cach
         str(len(df)),
         str(df["provider"].nunique()),
         # At the visitor's MIX, so an hourly refresh cannot reset the stat to
-        # the default basis under a label that still names their mix.
-        fmt_floor(_base(_mix(mix_key, mix_ratio, mix_cache))["price"].min()),
+        # the default basis under a label that still names their mix. The
+        # label is refreshed with it, so the '*' and its key never part.
+        *_floor_stat(_mix(mix_key, mix_ratio, mix_cache)),
         f"{df['quality'].max():.1f}",
         new_version,
     )

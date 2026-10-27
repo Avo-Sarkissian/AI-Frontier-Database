@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from data.workload_mix import resolve_mix, fmt_price, fill_note
+from data.workload_mix import resolve_mix, fill_note, fill_hover, mark_price, price_marks
 
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
@@ -215,12 +215,12 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
         orientation="h",
         marker=dict(color=colors, opacity=0.85, line=dict(width=0)),
         customdata=list(zip(top["model"], top["provider"], top["quality"],
-                            top["price"].map(fmt_price), top["value_score"])),
+                            price_marks(top), top["value_score"], fill_hover(top))),
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{customdata[2]:.0f}<br>"
-            "Price: %{customdata[3]}/M tokens  ·  " + basis.short + "<br>"
+            "Price: %{customdata[3]}/M tokens  ·  " + basis.short + "%{customdata[5]}<br>"
             "Value Score: %{customdata[4]:.0f}<br>"
             "<extra></extra>"
         ),
@@ -229,7 +229,7 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
 
     # Annotate each bar with quality score and price
     for i, row in top.iterrows():
-        price_str = f"{fmt_price(row['price'])}/M"
+        price_str = f"{mark_price(row['price'], row.get('cache_price_filled'))}/M"
         fig.add_annotation(
             x=row["value_score"],
             y=i,
@@ -247,8 +247,9 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
             text=(
                 "Value Leaders  —  Most Intelligence per Dollar"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  quality ÷ price at {basis.short}  ·  quality floor ≥ 20"
-                + fill_note(valid, basis)
+                # Counted over the bars drawn, and first: titles do not wrap.
+                + fill_note(top, basis)
+                + f"  ·  quality ÷ price at {basis.short}  ·  quality floor ≥ 20"
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

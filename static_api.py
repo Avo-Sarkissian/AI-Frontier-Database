@@ -37,7 +37,7 @@ from components.charts.radar import build_radar
 from components.charts.cost_calc import build_cost_calc, cheapest_above
 from data.workload_mix import (
     apply_mix, resolve_mix, fmt_price, mix_summary, table_price_header,
-    CACHE_FILL_RATIO,
+    cache_label, filled_flags, mark_price,
 )
 from static_helpers import (
     index_label,
@@ -164,15 +164,8 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list, mix=None) -> str:
 
 
 def _cache_label(row: pd.Series) -> str:
-    """The cached-input price this dashboard uses for a model, and whose it is.
-    AA's per-model figure where it publishes one (it can differ from the
-    vendor's own page), else the 10%-of-input fill-in, marked as an estimate."""
-    c, p_in = row.get("cache_hit_price"), row.get("price_in")
-    if c is not None and pd.notna(c):
-        return f"{fmt_price(c)} / 1M  ·  AA"
-    if p_in is not None and pd.notna(p_in):
-        return f"{fmt_price(CACHE_FILL_RATIO * float(p_in))} / 1M  ·  est. {CACHE_FILL_RATIO:.0%} of input"
-    return "—"
+    """See workload_mix.cache_label (shared with app.py)."""
+    return cache_label(row)
 
 
 def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
@@ -254,7 +247,9 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
     provider_str = html.escape(str(provider), quote=True)
     model_str = html.escape(str(row["model"]), quote=True)
     basis = resolve_mix(mix)
-    price_str = html.escape(f"{fmt_price(row['price'])} / 1M  ·  {basis.short}", quote=True)
+    price_str = html.escape(
+        f"{mark_price(row['price'], row.get('cache_price_filled'))} / 1M  ·  {basis.short}",
+        quote=True)
     p_in, p_out = row.get("price_in"), row.get("price_out")
     rates_str = (
         f"${p_in:,.2f} in  ·  ${p_out:,.2f} out"
@@ -377,6 +372,11 @@ def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None
     else:
         f = f.sort_values(col, ascending=asc, na_position="last")
     cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
+    # Off the default mix, each row says whether its price rests on the
+    # no-cache-price fill-in, so the table can mark it like every chart does.
+    if "cache_price_filled" in f.columns:
+        cols.append("cache_price_filled")
+        f["cache_price_filled"] = filled_flags(f)
     return json.dumps(f[cols].to_dict("records"))
 
 
@@ -414,7 +414,9 @@ def mix_info(mix=None):
     The floor is the minimum effective price over the UNFILTERED catalogue —
     the same market-wide meaning the stat always had — and at the default it is
     the manifest's floor_price string exactly, so nothing jumps on boot.
-    `floor_filled` is true when that model's cache price is the 10% fill-in."""
+    `floor_filled` is true when that model has no AA cache price (its cache
+    hits are billed at the full input price), and `fill_key` is the visible
+    key for the '*' that marks it."""
     return json.dumps(mix_summary(_DF, mix))
 
 

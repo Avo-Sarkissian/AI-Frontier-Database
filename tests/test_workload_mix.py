@@ -98,9 +98,13 @@ def test_h_zero_never_reads_the_cache_price():
         assert not out["cache_price_filled"].any(), key
 
 
-def test_missing_cache_is_filled_at_ten_percent_and_flagged():
+def test_missing_cache_bills_full_input_and_is_flagged():
+    """No published cache price means no discount: the cache hits cost the
+    input price. A 10% fill-in once handed 42 unpriced rows a 90% discount and
+    put 11 of them in the agentic top 15, the floor model included."""
+    assert CACHE_FILL_RATIO == 1.0
     out = apply_mix(_row(4.0, 20.0), resolve_mix("agentic"))
-    want = (300 * (0.9 * CACHE_FILL_RATIO * 4 + 0.1 * 4) + 20) / 301
+    want = (300 * 4 + 20) / 301
     assert out["price"].iloc[0] == pytest.approx(want)
     assert bool(out["cache_price_filled"].iloc[0]) is True
     assert out["price_list_blend"].iloc[0] == pytest.approx(16.0)
@@ -191,18 +195,42 @@ def test_mixing_never_adds_drops_or_reorders_rows():
 
 # ── The data still supports the fill-in ──────────────────────────────────────
 
-def test_fill_ratio_is_still_representative():
-    """CACHE_FILL_RATIO rests on AA's own median cache/input ratio (0.10 over
-    120 models on 2026-10-27). If the market moves, this fails and points at
-    the constant instead of the site quietly using a stale guess."""
+def test_the_fill_is_never_cheaper_than_any_published_discount():
+    """CACHE_FILL_RATIO is the conservative end of AA's published range
+    (0.008-1.0 over 120 models on 2026-10-27), so a filled row is an upper
+    bound and can never undercut a model with a real cache price on the
+    strength of an assumption. If AA ever publishes a cache price above input,
+    this fails and points at the constant."""
     has = DF["cache_hit_price"].notna() & DF["price_in"].gt(0)
     assert has.mean() >= 0.5, (
-        f"only {has.mean():.0%} of rows carry an AA cache price — CACHE_FILL_RATIO "
+        f"only {has.mean():.0%} of rows carry an AA cache price — the fill-in "
         "would be doing most of the work; check the scraper's cache_hit_price")
-    med = float((DF.loc[has, "cache_hit_price"] / DF.loc[has, "price_in"]).median())
-    assert 0.05 <= med <= 0.20, (
-        f"median AA cache/input ratio is {med:.3f}; revisit "
-        "data/workload_mix.CACHE_FILL_RATIO and its source comment")
+    ratio = DF.loc[has, "cache_hit_price"] / DF.loc[has, "price_in"]
+    assert float(ratio.max()) <= CACHE_FILL_RATIO + 1e-9
+
+
+@pytest.mark.parametrize("spec", ["agentic", ["custom", 50, 80], ["custom", 1000, 100]])
+def test_a_filled_row_is_priced_as_if_it_had_no_cache(spec):
+    """The fill-in must not discount: at any cached mix a filled row costs
+    exactly what it costs at the same ratio with no cache at all."""
+    mix = resolve_mix(spec)
+    cached = apply_mix(DF, mix)
+    flat = apply_mix(DF, resolve_mix(["custom", mix.ratio, 0]))
+    filled = cached["cache_price_filled"]
+    assert filled.any()
+    diff = (cached.loc[filled, "price"] - flat.loc[filled, "price"]).abs()
+    assert float(diff.max()) < 1e-12
+
+
+def test_the_agentic_cheap_end_is_not_built_from_fill_ins():
+    """The review that changed the fill: at agentic, 11 of the 15 cheapest rows
+    and the floor model rested on the 10% assumption."""
+    ranked = apply_mix(DF, resolve_mix("agentic")).dropna(subset=["price"]).sort_values("price")
+    top = ranked.head(15)
+    assert not bool(top["cache_price_filled"].iloc[0])
+    assert int(top["cache_price_filled"].sum()) <= 5
+    info = json.loads(api.mix_info(["agentic", None, None]))
+    assert info["floor_filled"] is False
 
 
 def test_the_mix_changes_the_answer():
@@ -279,8 +307,12 @@ def test_detail_panel_names_cache_source_and_mix():
     without = DF[DF["cache_hit_price"].isna() & DF["price_in"].notna()].iloc[0]
     a = api.model_detail(with_cache["model"], with_cache["provider"], ["agentic", None, None])
     b = api.model_detail(without["model"], without["provider"])
+    c = api.model_detail(without["model"], without["provider"], ["agentic", None, None])
     assert "Cached in" in a and "AA" in a and "agentic" in a
-    assert "est. 10% of input" in b and "not AA" in b
+    assert "none published: input rate" in b and "not AA" in b
+    # The panel's price carries the '*' at a cached mix, not at the default.
+    price_cell = lambda h: h.split(">Price<")[1].split("</span></div>")[0]
+    assert "*" in price_cell(c) and "*" not in price_cell(b)
 
 
 def test_export_at_a_mix_carries_its_basis():
@@ -327,10 +359,16 @@ def test_every_hosted_refresher_sends_the_mix(fn):
 
 
 def test_the_detail_panel_and_floor_stat_follow_the_mix():
-    assert 'callPyRaw("model_detail", model, provider, readMix())' in APP_JS
+    assert 'callPyRaw("model_detail", model, provider, mix)' in APP_JS
     assert 'callPy("mix_info", mix)' in APP_JS
-    body = APP_JS.split("async function rerenderActiveFilterCharts")[1][:1200]
+    body = APP_JS.split("async function rerenderActiveFilterCharts")[1][:1400]
     assert "refreshMixInfo()" in body
+    # An OPEN panel is re-requested at the new mix (it used to keep quoting the
+    # old price beside re-priced charts until a tab switch closed it).
+    assert "refreshDetailPanel()" in body
+    refresh = _js_function("refreshDetailPanel")
+    assert 'callPyRaw("model_detail"' in refresh and "readMix()" in refresh
+    assert "detailMix" in refresh and "detailProvider" in refresh
 
 
 def _js_function(name: str) -> str:
@@ -476,3 +514,256 @@ def test_prerendered_figures_equal_the_default_live_render(built, fid, live):
     assert pre["layout"].get("xaxis", {}).get("title") == now["layout"].get("xaxis", {}).get("title")
     assert [t.get("x") for t in pre["data"]] == [t.get("x") for t in now["data"]]
     assert [t.get("hovertemplate") for t in pre["data"]] == [t.get("hovertemplate") for t in now["data"]]
+
+
+# ── Review fixes (2026-10-27) ────────────────────────────────────────────────
+
+_SUBCENT = re.compile(r"\$0\.0+(?![0-9])")     # "$0.00", "$0.000": a cost rounded away
+
+
+def test_budget_never_prints_a_sub_cent_cost_as_zero():
+    """At agentic and the Budget box's minimum (0.1M tokens) the cheapest bill
+    is about $0.001: the bar text (.3f), the hover (,.2f) and the answer card
+    (toFixed(3)) all printed it as $0.00 / $0.000."""
+    out = json.loads(api.update_cost_calc(0.1, None, 0, "", 0, None, ["agentic", None, None]))
+    best = out["best"]
+    assert 0 < best["monthly_cost"] < 0.01
+    bars = next(t for t in _decoded(json.dumps(out["figure"]))["data"] if t.get("customdata"))
+    assert "%{x:,.2f}" not in bars["hovertemplate"]
+    assert "Monthly cost: %{customdata[5]}" in bars["hovertemplate"]
+    texts = list(bars["text"]) + [c[5] for c in bars["customdata"]]
+    assert not [t for t in texts if _SUBCENT.fullmatch(t)], texts[:5]
+    assert texts[0] == fmt_price(best["monthly_cost"])
+    card = _js_function("renderBudgetAnswer")
+    assert "fmtPrice(best.monthly_cost)" in card and "c.toFixed(3)" not in card
+
+
+def test_budget_cost_text_is_unchanged_from_a_cent_up():
+    out = json.loads(api.update_cost_calc(100, None, 0, "", 0))
+    bars = next(t for t in _decoded(json.dumps(out["figure"]))["data"] if t.get("customdata"))
+    for text, c in zip(bars["text"], [cd[5] for cd in bars["customdata"]]):
+        assert text == c
+        v = float(text.lstrip("$").replace(",", ""))
+        assert text == (f"${v:,.2f}" if v >= 1 else f"${v:.3f}")
+
+
+def test_the_budget_answer_carries_the_fill_flag():
+    import components.charts.cost_calc as cc
+    frame = pd.concat([_row(4.0, 20.0, 0.2), _row(4.0, 20.0)], ignore_index=True)
+    frame.loc[1, "model"] = "Y"
+    frame.loc[1, "price_in"] = 0.01           # cheapest, and no cache price
+    best = cc.cheapest_above(apply_mix(frame, resolve_mix("agentic")))
+    assert best["model"] == "Y" and best["cache_price_filled"] is True
+    assert best["fill_key"].startswith("* ")
+    default = cc.cheapest_above(frame)
+    assert default["cache_price_filled"] is False and default["fill_key"] == ""
+
+
+# With the conservative fill a filled row never undercuts its published
+# neighbours, so on the live catalogue none reach the Value top 25. The marking
+# is pinned on a copy where the cheapest half of the catalogue has no AA cache
+# price, which puts filled rows on every chart's cheap end.
+def _half_unpriced_cache():
+    frame = DF.copy()
+    cheap = frame["price"].rank(method="first") <= len(frame) / 2
+    frame.loc[cheap, "cache_hit_price"] = float("nan")
+    return frame
+
+
+def _figs(mix):
+    from components.charts.bump_chart import build_value_leaders
+    from components.charts.cost_calc import build_cost_calc
+    from components.charts.pareto import build_pareto_scatter
+    from components.charts.quadrant import build_quadrant
+    from components.charts.rankings import build_rankings
+    basis = resolve_mix(mix)
+    f = apply_mix(_half_unpriced_cache(), basis)
+    return {
+        "pareto": build_pareto_scatter(f, full_df=f, basis=basis),
+        "quadrant": build_quadrant(f, full_df=f, basis=basis),
+        "value_leaders": build_value_leaders(f, basis=basis),
+        "cost_calc": build_cost_calc(f, monthly_tokens_m=1, basis=basis),
+        "rankings": build_rankings(f, metric="value", basis=basis),
+    }
+
+
+def test_rankings_value_names_the_fill_in_and_marks_its_rows():
+    fig = _decoded(_figs("agentic")["rankings"].to_json())
+    title = fig["layout"]["title"]["text"]
+    assert "no AA cache price" in title
+    # The note leads the subtitle so a narrow card cannot clip it.
+    assert title.index("no AA cache price") < title.index("dashed lines")
+    bars = next(t for t in fig["data"] if t.get("customdata"))
+    flagged = [c for c in bars["customdata"] if "no AA cache price" in c[2]]
+    assert flagged and all("*/M" in c[2] for c in flagged)
+    # The live wiring: the static API reaches the same builder at the mix.
+    live = _decoded(api.update_rankings(None, 0, "", "value", None, ["agentic", None, None]))
+    assert "agentic" in live["layout"]["title"]["text"]
+    from components.charts.rankings import build_rankings
+    plain = build_rankings(apply_mix(_half_unpriced_cache(), resolve_mix("agentic")),
+                           metric="intelligence", basis=resolve_mix("agentic"))
+    assert "no AA cache price" not in plain.layout.title.text
+
+
+@pytest.mark.parametrize("fid", ["pareto", "quadrant", "value_leaders", "cost_calc"])
+def test_filled_rows_are_marked_point_by_point(fid):
+    """A subtitle count is not enough: the hover of every filled point says so."""
+    fig = _decoded(_figs("agentic")[fid].to_json())
+    title = fig["layout"]["title"]["text"]
+    span = title.split("<span", 1)[1]
+    # First thing in the subtitle (Plotly titles do not wrap).
+    assert span.split(">", 1)[1].lstrip(" ·").startswith("* "), (fid, span[:120])
+    rows = [c for t in fig["data"] for c in (t.get("customdata") or [])]
+    marked = [c for c in rows if any("no AA cache price" in str(x) for x in c)]
+    assert marked, fid
+    assert all(any(str(x).endswith("*") for x in c) for c in marked), fid
+    default = _decoded(_figs(None)[fid].to_json())
+    assert "no AA cache price" not in json.dumps(default)
+
+
+@pytest.mark.parametrize("call", [
+    lambda m: api.update_overview(None, 0, "", "price", None, m),
+    lambda m: api.update_overview(None, 0, "", "speed", None, m),
+    lambda m: json.dumps(json.loads(api.update_cost_calc(1, None, 0, "", 0, None, m))["figure"]),
+])
+def test_the_live_charts_mark_their_filled_rows(call):
+    fig = _decoded(call(["agentic", None, None]))
+    rows = [c for t in fig["data"] for c in (t.get("customdata") or [])]
+    assert any("no AA cache price" in str(x) for c in rows for x in c)
+
+
+def test_the_table_marks_filled_rows():
+    agentic = json.loads(api.update_table(None, 0, "", "price", "asc", None,
+                                          ["agentic", None, None]))
+    assert any(r["cache_price_filled"] for r in agentic)
+    assert all(isinstance(r["cache_price_filled"], bool) for r in agentic)
+    default = json.loads(api.update_table(None, 0, "", "price", "asc"))
+    assert "cache_price_filled" not in default[0]
+    rows = _js_function("renderTableRows")
+    assert "r.cache_price_filled" in rows
+
+
+def test_the_quadrant_size_note_names_the_mix_and_the_cap():
+    fig = _decoded(api.update_overview(None, 0, "", "speed", None, ["agentic", None, None]))
+    title = fig["layout"]["title"]["text"]
+    assert "affordability at agentic" in title and "share the max size" in title
+    default = _decoded(api.update_overview(None, 0, "", "speed", None, None))
+    assert "bubble size ∝ affordability (log)  ·  shape" in default["layout"]["title"]["text"]
+
+
+def test_the_observed_preset_states_an_end_of_window_lower_bound():
+    p = next(p for p in MIX_PRESETS if p.key == "observed")
+    assert "≈15:1" not in p.label + p.short
+    assert "at least 15:1" in p.note.lower()
+    assert "end-of-window" in p.note
+    assert "Nov 2024-Nov 2025" in p.note       # the study's data window, named once
+    assert p.note.count("Nov 2024-Nov 2025") == 1
+
+
+def test_agent_stack_prices_name_their_basis():
+    """MIX is hidden on Agent Stack and its tiers are cut on the default blend;
+    the chips said a bare $x/M beside a header floor at the visitor's mix."""
+    out = json.loads(api.update_recommend(["__all__"], "api", None, None, None, None))
+    chips = re.findall(r'title="([^"]*)">(\$[^<]*)</span>', out["cards_html"])
+    assert chips
+    for title, text in chips:
+        assert text.endswith("/M · 1:3 in:out"), text
+        assert "does not follow the MIX" in title
+
+
+# ── Static site: custom MIX boxes, prefill and the floor key ─────────────────
+
+def test_custom_prefill_tracks_the_mix_actually_showing():
+    """lastMix was a closure captured before applyUrlState and never updated by
+    Reset: ?m=agentic -> Custom filled 1:3 / 0%."""
+    assert "let lastMix =" not in APP_JS
+    assert "rememberMix()" in _js_function("applyUrlState")
+    reset = APP_JS.split('getElementById("preset-all").onclick')[1][:600]
+    assert "rememberMix()" in reset
+    wiring = _js_function("wireGlobalControls")
+    assert "mixEl.dataset.prev" in wiring and 'prev !== "custom"' in wiring
+
+
+def test_custom_prefill_overwrites_stale_boxes():
+    if not NODE:
+        pytest.skip("node not available")
+    script = """
+      const els = { "mix-ratio": { value: "20" }, "mix-cache": { value: "50" } };
+      var document = { getElementById: id => els[id] };
+      var window = { AF: { manifest: { mix_options: %s } } };
+    """ % json.dumps(mix_options()) + _js_function("prefillCustomMix") + """
+      prefillCustomMix("agentic");
+      process.stdout.write(JSON.stringify([els["mix-ratio"].value, els["mix-cache"].value]));
+    """
+    out = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == ["300", "90"]
+
+
+def test_clamped_custom_numbers_are_written_back():
+    if not NODE:
+        pytest.skip("node not available")
+    info_args = json.loads(api.mix_info(["custom", 2000, -5]))["args"]
+    assert info_args == ["custom", 1000.0, 0.0]
+    script = """
+      const els = { "mix-ratio": { value: "2000", placeholder: "" },
+                    "mix-cache": { value: "", placeholder: "" } };
+      var document = { getElementById: id => els[id] };
+      let synced = 0, lastMixInfoKey = null;
+      function readGlobalFilters() {} function syncUrl() { synced++; }
+      function readMix() { return ["custom", 1000, null]; }
+    """ + _js_function("syncCustomBoxes") + """
+      syncCustomBoxes(%s);
+      process.stdout.write(JSON.stringify([els["mix-ratio"].value, els["mix-cache"].value,
+                                           els["mix-cache"].placeholder, synced]));
+    """ % json.dumps(info_args)
+    out = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == ["1000", "", "0", 1]
+    assert "syncCustomBoxes(info.args)" in _js_function("refreshMixInfo")
+
+
+def test_the_floor_star_has_a_visible_key():
+    body = _js_function("refreshMixInfo")
+    assert "l.textContent = info.floor_label + (info.floor_filled" in body
+    assert "fill_key" in json.loads(api.mix_info(["agentic", None, None]))
+
+
+# ── Dash parity for the review fixes ────────────────────────────────────────
+
+def test_dash_floor_stat_marks_a_filled_floor_like_the_static_site(dash_app, monkeypatch):
+    frame = pd.concat([_row(4.0, 20.0, 0.2), _row(4.0, 20.0)], ignore_index=True)
+    frame.loc[1, ["model", "price_in"]] = ["Y", 0.01]
+    frame["price"] = (frame["price_in"] + 3 * frame["price_out"]) / 4
+    monkeypatch.setattr(dash_app, "df", frame)
+    monkeypatch.setattr(api, "_DF", frame)
+    info = json.loads(api.mix_info(["agentic", None, None]))
+    assert info["floor_filled"] is True and info["floor_model"] == "Y"
+    value, label = dash_app._floor_stat(resolve_mix("agentic"))
+    assert value.children == info["floor_price"] + "*"
+    assert info["fill_key"] in value.title and label.endswith(info["fill_key"])
+    plain_value, plain_label = dash_app._floor_stat(resolve_mix(None))
+    assert plain_value == json.loads(api.mix_info(None))["floor_price"]
+    assert plain_label == info["floor_label"].replace("agentic 300:1 in:out · 90% cached",
+                                                       "ours 1:3 in:out (not AA's)")
+
+
+def test_dash_custom_starts_from_the_preset_that_was_showing(dash_app):
+    style, r, h, prev = dash_app.toggle_mix_custom("custom", "agentic")
+    assert style["display"] == "inline-flex" and (r, h, prev) == (300.0, 90.0, "custom")
+    # First call on load (a shared ?m=custom&mr=20 link) keeps the URL's numbers.
+    _, r, h, _ = dash_app.toggle_mix_custom("custom", None)
+    assert r is dash_app.no_update and h is dash_app.no_update
+    style, r, _, prev = dash_app.toggle_mix_custom("agentic", "custom")
+    assert style == {"display": "none"} and r is dash_app.no_update and prev == "agentic"
+
+
+def test_dash_open_detail_panel_follows_the_mix(dash_app, monkeypatch):
+    class _Ctx:
+        triggered_id = "filter-mix"
+    monkeypatch.setattr(dash_app, "ctx", _Ctx)
+    model = DF[DF["cache_hit_price"].notna()].iloc[0]["model"]
+    cls, body, name = dash_app.toggle_detail_panel(None, None, "agentic", None, None, model)
+    assert cls == "detail-panel open" and name == model and "agentic" in str(body)
+    closed = dash_app.toggle_detail_panel(None, None, "agentic", None, None, None)
+    assert all(x is dash_app.no_update for x in closed)

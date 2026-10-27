@@ -5,7 +5,7 @@ Bars within 5% of the top score are bracketed in the same tier.
 import pandas as pd
 import plotly.graph_objects as go
 
-from data.workload_mix import resolve_mix, fmt_price
+from data.workload_mix import resolve_mix, fill_note, fill_hover, mark_price, filled_flags
 
 from components.charts.constants import (
     plot_text,
@@ -85,9 +85,11 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     speed_str = ranked["speed"].apply(
         lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
     )
-    price_str = ranked["price"].apply(
-        lambda p: f"{fmt_price(p)}/M · {basis.short}" if pd.notna(p) and p > 0 else "N/A"
-    )
+    _flags = filled_flags(ranked)
+    price_str = pd.Series([
+        f"{mark_price(p, f)}/M · {basis.short}{h}" if pd.notna(p) and p > 0 else "N/A"
+        for p, f, h in zip(ranked["price"], _flags, fill_hover(ranked))
+    ], index=ranked.index)
     latency_str = ranked["latency"].apply(
         lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
     )
@@ -148,7 +150,8 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         if row.get("self_host"):
             price_tag = "  <span style='color:#555'>self-host</span>"
         elif pd.notna(row["price"]) and row["price"] > 0:
-            price_tag = f"  <span style='color:#555'>{fmt_price(row['price'])}/M</span>"
+            price_tag = (f"  <span style='color:#555'>"
+                         f"{mark_price(row['price'], row.get('cache_price_filled'))}/M</span>")
         else:
             price_tag = ""
         annotations.append(dict(
@@ -204,7 +207,11 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
             text=(
                 f"Top {top_n} Models by {title_metric}"
                 f"  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                f"  ·  {x_label}{_self_host_note}"
+                # Value divides by the price, so a row priced with no AA cache
+                # price is ranked on that assumption; the note leads (titles
+                # do not wrap). Other metrics ignore price: no note.
+                + (fill_note(ranked, basis) if metric == "value" else "")
+                + f"  ·  {x_label}{_self_host_note}"
                 f"  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

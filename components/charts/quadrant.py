@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from data.workload_mix import resolve_mix, fmt_price
+from data.workload_mix import resolve_mix, fill_note, fill_hover, price_marks
 
 from components.charts.constants import (
     plot_text,
@@ -81,6 +81,21 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     # within 0.43 px of each other while every model over $20 drew identically.
     plot_df["size"] = bubble_size(plot_df["price"], BUBBLE_PRICE_REF, invert=True,
                                   log=True, floor=BUBBLE_PRICE_FLOOR).values
+    # The fixed scale stops at BUBBLE_PRICE_FLOOR. At a cheap mix (agentic: 25
+    # of 96 families on 2026-10-27) everything below it draws at the same
+    # maximum size, so models 10x apart in price look identical. Off the
+    # default the subtitle names the mix and says how many share the cap,
+    # rather than letting size imply a difference it cannot show.
+    _priced = plot_df["price"].notna() & (plot_df["price"] > 0)
+    _n_pinned = int((_priced & (plot_df["price"] <= BUBBLE_PRICE_FLOOR)).sum())
+    _size_note = (
+        "  ·  bubble size ∝ affordability (log)"
+        if basis.is_default else
+        f"  ·  bubble size ∝ affordability at {basis.short} (log"
+        + (f"; {_n_pinned} at ≤ ${BUBBLE_PRICE_FLOOR:g} share the max size"
+           if _n_pinned > 1 else "")
+        + ")"
+    )
 
     # Correlation on log speed, matching the axis the reader is looking at.
     # (Correlation describes what is plotted, so it stays on plot_df.)
@@ -164,8 +179,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             # looks the row up by them. [0] and [1] are escaped for the hover
             # text, so a name containing & or < never matched its own row.
             customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
-                                pdf["price"].map(fmt_price), latency_str,
-                                _rate_pair(pdf),
+                                price_marks(pdf), latency_str,
+                                [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))],
                                 pdf["model"].astype(str), pdf["provider"].astype(str))),
             hovertemplate=hover,
         ))
@@ -249,7 +264,9 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             text=(
                 "Speed vs. Intelligence"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  bubble size ∝ affordability (log)  ·  shape = provider family"
+                + fill_note(plot_df, basis)
+                + _size_note
+                + "  ·  shape = provider family"
                 f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
                 + (f"  ·  {_untimed} without a measured speed not shown"
                    if _untimed else "")

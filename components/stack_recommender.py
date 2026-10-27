@@ -22,6 +22,20 @@ except ImportError:  # dash-free env (Pyodide): only the HTML-string renderer is
 
 from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
 from data.local_models import FAMILY_COLORS as _FAMILY_COLORS, DEFAULT_FAMILY_COLOR
+from data.workload_mix import DEFAULT_MIX, fmt_price
+
+# Agent Stack does not read the MIX setting: the global filter bar (MIX with it)
+# is hidden on this tab, and its tier caps below ($3 / $8) and the value sort
+# are cut on the dashboard's default blend. Its price chips used to print a
+# bare "$x/M", which beside a header floor stat at an agentic mix read as an
+# agentic price. They now name the basis, and their tooltip says why.
+_PRICE_BASIS_TAG = "1:3 in:out"
+_PRICE_BASIS_TITLE = (f"Price at {DEFAULT_MIX.long}. Agent Stack does not follow the MIX "
+                      "setting: its tiers (Fast ≤ $3/M, Balanced ≤ $8/M) are cut on this blend.")
+
+
+def _price_chip_text(price) -> str:
+    return f"{fmt_price(price)}/M · {_PRICE_BASIS_TAG}"
 
 _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 
@@ -260,8 +274,8 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
 
 # ── Shared chip helper ─────────────────────────────────────────────────────────
 
-def _chip(text: str, bg: str = "#1e2a1e") -> "html.Span":
-    return html.Span(text, style={
+def _chip(text: str, bg: str = "#1e2a1e", title: str | None = None) -> "html.Span":
+    return html.Span(text, title=title, style={
         "display": "inline-block",
         "padding": "2px 7px",
         "borderRadius": "3px",
@@ -288,7 +302,7 @@ def _api_row(row: pd.Series, is_top: bool = False) -> "html.Div":
     speed     = row["speed"]
     quality   = row["quality"]
 
-    price_str = f"${price:.4f}/M" if price < 0.01 else f"${price:.3f}/M" if price < 1 else f"${price:.2f}/M"
+    price_str = _price_chip_text(price)
     speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
     lat       = row.get("latency", float("nan"))
     lat_str   = f"{lat:.2f}s TTFT" if pd.notna(lat) and lat > 0 else None
@@ -298,7 +312,7 @@ def _api_row(row: pd.Series, is_top: bool = False) -> "html.Div":
         name = name[:35] + "…"
 
     chips = html.Div([
-        _chip(price_str, "#1a2a1a"),
+        _chip(price_str, "#1a2a1a", title=_PRICE_BASIS_TITLE),
         _chip(speed_str, "#1a1a2a"),
         *([_chip(lat_str, "#2a1a1a")] if lat_str else []),
     ], style={"marginTop": "5px", "display": "flex", "flexWrap": "wrap", "gap": "2px"})
@@ -615,11 +629,13 @@ def select_stack(
 
 # ── HTML-string renderer (Pyodide-safe, no Dash) ───────────────────────────────
 
-def _h(tag: str, inner: str = "", style: str | None = None, cls: str | None = None) -> str:
+def _h(tag: str, inner: str = "", style: str | None = None, cls: str | None = None,
+       title: str | None = None) -> str:
     """Minimal HTML tag builder mirroring dash.html structure."""
     s = f' style="{style}"' if style else ""
     c = f' class="{cls}"' if cls else ""
-    return f"<{tag}{c}{s}>{inner}</{tag}>"
+    t = f' title="{_escape(title, quote=True)}"' if title else ""
+    return f"<{tag}{c}{s}{t}>{inner}</{tag}>"
 
 
 def _dict_to_style(d: dict) -> str:
@@ -633,7 +649,7 @@ def _dict_to_style(d: dict) -> str:
     return ";".join(parts)
 
 
-def _chip_html(text: str, bg: str = "#1e2a1e") -> str:
+def _chip_html(text: str, bg: str = "#1e2a1e", title: str | None = None) -> str:
     style = _dict_to_style({
         "display": "inline-block",
         "padding": "2px 7px",
@@ -647,7 +663,7 @@ def _chip_html(text: str, bg: str = "#1e2a1e") -> str:
         "letterSpacing": "0.02em",
         "whiteSpace": "nowrap",
     })
-    return _h("span", text, style=style)
+    return _h("span", text, style=style, title=title)
 
 
 def _row_shell_html(name: str, quality: float, sub_label: str, sub_color: str,
@@ -721,7 +737,7 @@ def _api_row_html(row: pd.Series, is_top: bool = False) -> str:
     speed     = row["speed"]
     quality   = row["quality"]
 
-    price_str = f"${price:.4f}/M" if price < 0.01 else f"${price:.3f}/M" if price < 1 else f"${price:.2f}/M"
+    price_str = _price_chip_text(price)
     speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
     lat       = row.get("latency", float("nan"))
     lat_str   = f"{lat:.2f}s TTFT" if pd.notna(lat) and lat > 0 else None
@@ -731,7 +747,7 @@ def _api_row_html(row: pd.Series, is_top: bool = False) -> str:
         name = name[:35] + "…"
 
     chips_html = (
-        _chip_html(price_str, "#1a2a1a") +
+        _chip_html(price_str, "#1a2a1a", title=_PRICE_BASIS_TITLE) +
         _chip_html(speed_str, "#1a1a2a") +
         (_chip_html(lat_str, "#2a1a1a") if lat_str else "")
     )
