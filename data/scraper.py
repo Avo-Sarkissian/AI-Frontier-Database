@@ -51,6 +51,31 @@ Since ~2026-09-17 AA flags superseded-but-still-sold models deprecated, and on
 dropped only after several consecutive deprecated scrapes (see
 data/carried.deprecation_hysteresis), and coverage.json counts the drops.
 
+THE LATE AA FIELDS, 2026-10-27.
+The same records always carried more than this scrape kept, and seven of those
+fields are now appended to data/raw/aa_models.csv at indices 13..19:
+
+  cost_per_task      intelligenceIndexCostPerTask — USD to run one AA
+                     Intelligence Index task, from the token counts AA measured.
+                     Present on ~118 of 272 records; AA writes 0 for a handful
+                     it never costed, and those are kept blank, not $0.
+  cache_hit_price    cacheHitPrice   — USD / 1M cached-input tokens (0 is valid)
+  cache_write_price  cacheWritePrice — USD / 1M tokens written to the cache
+  is_open_weights    isOpenWeights   — "1" / "0" / "" (blank = AA did not say)
+  is_reasoning       isReasoning     — same encoding
+  release_date       releaseDate     — NOT in the metrics records: it lives in a
+                     separate releases array (one row per base model, ~516 rows)
+                     and is joined in _join_release_dates
+  aa_slug            slug            — the key both arrays share
+
+They are captured so their history accrues in data/raw/history/ from now on;
+nothing on the site charts them yet. None is health-checked in _COLUMN_HEALTH
+— each is legitimately sparse or boolean upstream — so a vanished key is
+reported by late_field_collapse() (a warning, never a refusal) and counted in
+coverage.json's field_coverage. The record finder still requires only `slug`
+and `intelligenceIndex`: if AA drops one of these fields, the scrape publishes
+the rest with that column blank rather than going dark.
+
 Falls back to the existing cache on any failure.
 
 Run standalone:  python -m data.scraper
@@ -58,6 +83,8 @@ Integrated:      from data.scraper import scrape_and_save; scrape_and_save()
 """
 
 import json
+import math
+import re
 import sys
 import threading
 import time
@@ -107,6 +134,125 @@ def _index_str(v) -> str:
         return str(round(float(v), 2))
     except (TypeError, ValueError):
         return ""
+
+
+def _num_str(v, positive_only: bool = False) -> str:
+    """A non-negative AA number as a CSV field, or "" when there is none.
+
+    `repr`-exact via str(float): small cache prices render in e-notation
+    ("5e-05"), which is why data/ingest.py reads these columns with
+    _parse_float and never _parse_numeric. `positive_only` blanks a 0 too —
+    AA's cost per task is 0 for models it never costed, and a $0 task is not a
+    measurement. A cache price of 0, by contrast, is a real published price.
+    """
+    if not _real(v) or isinstance(v, bool):
+        return ""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return ""
+    if not math.isfinite(f) or f < 0 or (positive_only and f == 0):
+        return ""
+    return str(f)
+
+
+def _bool_str(v) -> str:
+    """AA's booleans as "1" / "0", and "" when the record does not say.
+
+    Only a real JSON boolean counts. A missing key is "unknown", not False:
+    is_open_weights feeds an open-vs-closed comparison, and silently filing an
+    unlabelled model as closed would bias it.
+    """
+    if v is True:
+        return "1"
+    if v is False:
+        return "0"
+    return ""
+
+
+# The reasoning/effort qualifier AA appends to a VARIANT's slug, stripped once
+# to reach the base model's release slug: claude-sonnet-5-5-medium ->
+# claude-sonnet-5-5, nova-2-0-omni-reasoning-medium -> nova-2-0-omni,
+# qwen3-5-122b-a10b-non-reasoning -> qwen3-5-122b-a10b. Deliberately a closed
+# list of whole qualifiers and never a generic longest-prefix match: a prefix
+# join files gpt-6-1-sol under gpt-6 and dates a model by its predecessor.
+_EFFORT_SUFFIX = re.compile(
+    r"-(?:non-reasoning"
+    r"|reasoning(?:-(?:minimal|low|medium|high|xhigh|max))?"
+    r"|minimal|low|medium|high|xhigh|max)$"
+)
+# One trailing parenthetical on a published name: "Grok 4.7 (Low)" -> "Grok 4.7".
+_TRAILING_PAREN = re.compile(r"\s*\([^()]*\)\s*$")
+_ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+# Tier labels, in the order they are tried. Counted into coverage.json.
+RELEASE_JOIN_TIERS = ("record", "slug", "name", "effort_slug", "paren_name")
+
+
+def _join_release_dates(payload: str, models: list[dict]) -> None:
+    """Give each metrics record the release date AA publishes for its model.
+
+    The metrics records carry no releaseDate (checked 2026-10-27: 0 of 272).
+    It lives in a second array — one row per BASE model, keyed by slug, with
+    its own name — found here by its fields, like every other array this module
+    reads. Variants inherit their base model's date. Tiers, first hit wins:
+
+      record       the record already carries a releaseDate (AA may add it)
+      slug         exact slug                           (182 of 272 live)
+      name         the record's name, when exactly one release has it
+      effort_slug  the slug with one _EFFORT_SUFFIX stripped, exact
+      paren_name   the name with one trailing parenthetical stripped, when
+                   exactly one release has it
+
+    A name two releases share ("GPT-6 Sol" is listed twice) never matches: a
+    blank date is honest, a coin-flip between two is not. Unmatched records
+    keep no date. Each record gets `_releaseJoin` naming its tier (or "") so
+    _parse_api_response can count them. Never raises: a missing releases array
+    blanks the column and the rest of the scrape publishes.
+    """
+    for m in models:
+        rd = m.get("releaseDate")
+        if _real(rd) and isinstance(rd, str) and _ISO_DAY.match(rd[:10]):
+            m["releaseDate"] = rd[:10]
+            m["_releaseJoin"] = "record"
+        else:
+            m["releaseDate"] = None
+            m["_releaseJoin"] = ""
+    try:
+        releases = find_records(payload, ("slug", "releaseDate")) or []
+    except Exception:
+        releases = []
+    by_slug: dict[str, str] = {}
+    names: dict[str, list[str]] = {}
+    for r in releases:
+        if not isinstance(r, dict):
+            continue
+        rd = r.get("releaseDate")
+        if not (_real(rd) and isinstance(rd, str) and _ISO_DAY.match(rd[:10])):
+            continue
+        slug, name = r.get("slug"), (r.get("name") or "").strip()
+        if isinstance(slug, str) and slug:
+            by_slug.setdefault(slug, rd[:10])
+        if name:
+            names.setdefault(name, []).append(rd[:10])
+    by_name = {n: d[0] for n, d in names.items() if len(d) == 1}
+
+    for m in models:
+        if m["_releaseJoin"]:
+            continue
+        slug = m.get("slug") if isinstance(m.get("slug"), str) else ""
+        name = (m.get("name") or "").strip()
+        base_slug = _EFFORT_SUFFIX.sub("", slug) if slug else ""
+        base_name = _TRAILING_PAREN.sub("", name) if name else ""
+        for tier, hit in (
+            ("slug", by_slug.get(slug)),
+            ("name", by_name.get(name)),
+            ("effort_slug", by_slug.get(base_slug) if base_slug != slug else None),
+            ("paren_name", by_name.get(base_name) if base_name != name else None),
+        ):
+            if hit:
+                m["releaseDate"], m["_releaseJoin"] = hit, tier
+                break
 
 
 def _names_by_slug(payload: str) -> dict[str, str]:
@@ -169,6 +315,7 @@ def _extract_models(html: str) -> list[dict]:
     if all((m.get("name") or "").strip() for m in models):
         for m in models:
             m["name"] = m["name"].strip()
+        _join_release_dates(payload, models)
         return models
 
     names = _names_by_slug(payload)
@@ -194,6 +341,7 @@ def _extract_models(html: str) -> list[dict]:
     if fell_back:
         print(f"[scraper] {fell_back} model(s) absent from the picker index — "
               f"published under shortName")
+    _join_release_dates(payload, models)
     return models
 
 
@@ -218,6 +366,7 @@ def _parse_api_response(models: list[dict],
     kept: set = set()
     deprecated: set = set()
     held: set = set()
+    join_tier: dict[str, str] = {}
 
     def _skip(reason: str, name: str) -> None:
         # A held model is still a deprecated one. If AA pulls its price or
@@ -313,7 +462,17 @@ def _parse_api_response(models: list[dict],
             _index_str(m.get("codingIndex")),
             _index_str(m.get("agenticIndex")),
             _index_str(m.get("omniscience")),
+            # The late AA fields, 13..19 (module docstring). Appended for the
+            # same reason as the four above: load_from_raw reads positionally.
+            _num_str(m.get("intelligenceIndexCostPerTask"), positive_only=True),
+            _num_str(m.get("cacheHitPrice")),
+            _num_str(m.get("cacheWritePrice")),
+            _bool_str(m.get("isOpenWeights")),
+            _bool_str(m.get("isReasoning")),
+            m.get("releaseDate") if isinstance(m.get("releaseDate"), str) else "",
+            m.get("slug") if isinstance(m.get("slug"), str) else "",
         ])
+        join_tier[model_name] = m.get("_releaseJoin") or ""
 
     dropped_no_score = sorted(n for n in skipped["no_score"] if n and n not in kept)
     dropped_no_price = sorted(n for n in skipped["no_price"] if n and n not in kept)
@@ -337,8 +496,72 @@ def _parse_api_response(models: list[dict],
         # Flagged deprecated upstream but still published, because the streak
         # is shorter than data/carried.DEPRECATED_DROP_AFTER_SCRAPES.
         "held_deprecated": sorted(n for n in held if n in kept),
+        # How many PUBLISHED rows carry each late AA field (module docstring).
+        # The signal a vanished upstream key leaves, since none of these is
+        # health-checked; see also late_field_collapse().
+        "field_coverage": _field_coverage(rows),
+        "release_date_join": {
+            **{t: sum(1 for v in join_tier.values() if v == t)
+               for t in RELEASE_JOIN_TIERS},
+            "unmatched": sorted(n for n, v in join_tier.items() if not v),
+        },
     })
     return rows
+
+
+# Raw-row positions of the late AA fields; must match data/ingest.load_from_raw.
+_LATE_FIELD_INDEX = {
+    "cost_per_task": 13, "cache_hit_price": 14, "cache_write_price": 15,
+    "is_open_weights": 16, "is_reasoning": 17, "release_date": 18, "aa_slug": 19,
+}
+
+
+def _field_coverage(rows: list[list]) -> dict:
+    out = {"rows": len(rows)}
+    for col, i in _LATE_FIELD_INDEX.items():
+        out[col] = sum(1 for r in rows if len(r) > i and str(r[i]).strip() != "")
+    return out
+
+
+# A late field populated on at least this many cached rows that falls below
+# half of that count is reported. Loose on purpose: the point is to notice a
+# key AA renamed (the count collapses to ~0), not normal churn.
+_COLLAPSE_MIN_ROWS = 10
+
+
+def late_field_collapse(df, cached) -> list[str]:
+    """Warnings for late AA fields that were populated and now are not.
+
+    The late fields are deliberately NOT in _COLUMN_HEALTH — they are sparse or
+    boolean upstream, and a density floor there would refuse healthy scrapes.
+    But a renamed key would otherwise blank a column silently, which is the
+    failure this project keeps paying for. So: compare against the cache being
+    replaced, and say so loudly in the run log. Never a reason to refuse.
+    """
+    from data.ingest import AA_LATE_FIELDS
+    import pandas as pd
+
+    if df is None or cached is None or getattr(cached, "empty", True):
+        return []
+
+    def _populated(frame, col) -> int:
+        if col not in frame.columns:
+            return 0
+        s = frame[col]
+        if str(s.dtype) == "boolean":
+            return int(s.notna().sum())
+        text = s.astype(str).str.strip()
+        return int((s.notna() & (text != "") & (text.str.lower() != "nan")
+                    & (text != "<NA>")).sum())
+
+    out: list[str] = []
+    for col in AA_LATE_FIELDS:
+        before, now = _populated(cached, col), _populated(df, col)
+        if before >= _COLLAPSE_MIN_ROWS and now < before / 2:
+            out.append(
+                f"late AA field '{col}' fell from {before} populated rows to "
+                f"{now} — upstream key renamed or dropped? (published anyway)")
+    return out
 
 
 # Populated by the last _parse_api_response call; written beside the cache so the
@@ -553,7 +776,11 @@ def _scrape_and_save() -> bool:
             print("[scraper] Parsed DataFrame is empty — skipping cache update")
             return False
 
-        df = _carry_dropped_columns(df, load_cached())
+        prior_cache = load_cached()
+        df = _carry_dropped_columns(df, prior_cache)
+        # Warn-only: the late AA fields are sparse upstream by nature.
+        for w in late_field_collapse(df, prior_cache):
+            print(f"[scraper] WARNING: {w}")
 
         violations = column_health_violations(df)
         # A shrink that holds for half a day is an upstream prune, not a broken
