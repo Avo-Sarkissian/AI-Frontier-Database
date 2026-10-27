@@ -1,54 +1,54 @@
 {
   "epoch_companies": {
-    "checked_at": "2026-10-27T14:36:17Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:36:17Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
     "rows": 186,
     "upstream_rows": 186
   },
   "epoch_hardware": {
-    "checked_at": "2026-10-27T14:36:17Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:36:17Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
     "rows": 183,
     "upstream_rows": 183
   },
   "getdeploying": {
-    "checked_at": "2026-10-27T14:14:12Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:14:12Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
     "rows": 16627,
     "upstream_rows": 16481
   },
   "hyperscaler": {
-    "checked_at": "2026-10-27T17:59:01Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T17:59:01Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
     "rows": 8,
     "upstream_rows": 8
   },
   "inferencex": {
-    "checked_at": "2026-10-27T14:36:17Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:36:17Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
-    "rows": 4305,
-    "upstream_rows": 4305
+    "rows": 4325,
+    "upstream_rows": 4313
   },
   "sofr": {
-    "checked_at": "2026-10-27T14:14:12Z",
+    "checked_at": "2026-10-27T20:12:48Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:14:12Z",
+    "fetched_at": "2026-10-27T20:12:48Z",
     "ok": true,
     "rows": 2140,
     "upstream_rows": 10
