@@ -151,13 +151,29 @@ def _staircase(recs: pd.DataFrame, asof: pd.Timestamp):
     return xs, ys
 
 
+def _iso(d) -> str:
+    return pd.Timestamp(d).date().isoformat()
+
+
+def _dated_note(model, date_, release) -> str:
+    """Hover line for a model dated by its score's first snapshot."""
+    if release is None or pd.isna(release) or pd.Timestamp(release) == pd.Timestamp(date_):
+        return ""
+    return (f"<br>dated {_iso(date_)}: first AA snapshot with this score; AA's "
+            f"release date {_iso(release)} is the base model's")
+
+
 def build_release_lag(recs: pd.DataFrame, summary: dict) -> go.Figure:
-    """Two record staircases by release date and the lag between them.
+    """Two record staircases by date and the lag between them.
 
     Closed records (#f2f2f2) and open records (accent), both filled. From each
-    closed record a dashed connector runs at its score to the release of the
-    first open model to reach it; a record nothing open has reached yet runs
-    dotted to the snapshot date and is counted as censored, not as a lag.
+    counted closed record an ACCENT connector runs at its score to the date of
+    the first open model to reach it (dashed, ending in a tick, labelled in
+    months); one nothing open has reached yet runs dotted to the snapshot date
+    and is censored, not a lag. The connectors are accent and drawn last
+    because each lies along the closed staircase's own step: in #f2f2f2 they
+    were invisible. A record the open side had already passed (lag 0) has no
+    connector; its marker's hover says so.
     """
     rec_c, rec_o = summary.get("closed_records"), summary.get("open_records")
     if rec_c is None or getattr(rec_c, "empty", True):
@@ -165,59 +181,92 @@ def build_release_lag(recs: pd.DataFrame, summary: dict) -> go.Figure:
     asof = pd.Timestamp(summary["asof"])
     fig = go.Figure()
 
-    for side, color, name in ((rec_c, CLOSED, "Closed-weights record"),
-                              (rec_o, ACCENT, "Open-weights record")):
+    lag_of = {}
+    for _, r in recs.iterrows():
+        if bool(r["censored"]):
+            lag_of[r["closed_model"]] = (f"no open model scores ≥ {r['closed_q']:.1f} yet: "
+                                         f"lag ≥ {r['lag_months']:.1f} months")
+        elif r["lag_months"] <= 0:
+            lag_of[r["closed_model"]] = (f"already matched: {plot_text(r['open_model'])} "
+                                         f"({r['open_q']:.1f}) was out on {_iso(r['open_date'])}")
+        else:
+            lag_of[r["closed_model"]] = (f"matched by {plot_text(r['open_model'])} "
+                                         f"({r['open_q']:.1f}) on {_iso(r['open_date'])}: "
+                                         f"lag {r['lag_months']:.1f} months")
+    uncounted = set(summary.get("uncounted") or [])
+
+    for side, color, name, is_closed in ((rec_c, CLOSED, "Closed-weights record", True),
+                                         (rec_o, ACCENT, "Open-weights record", False)):
         if side is None or side.empty:
             continue
         sx, sy = _staircase(side, asof)
         fig.add_trace(go.Scatter(x=sx, y=sy, mode="lines", line=dict(color=color, width=1.4,
                                  shape="hv"), name=name, legendgroup=name,
                                  hoverinfo="skip", showlegend=False))
+        notes = []
+        for _, r in side.iterrows():
+            note = _dated_note(r["model"], r["d"], r.get("release"))
+            if is_closed:
+                m = str(r["model"])
+                note += "<br>" + (lag_of.get(m) if m not in uncounted else
+                                  "oldest closed model AA still lists: a record only "
+                                  "because stronger ones were dropped, so not counted")
+            notes.append(note)
         fig.add_trace(go.Scatter(
-            x=[d.date().isoformat() for d in side["d"]], y=side["quality"].astype(float),
+            x=[_iso(d) for d in side["d"]], y=side["quality"].astype(float),
             mode="markers", name=name, legendgroup=name,
             marker=dict(color=color, size=8, line=dict(width=0.8, color=BG)),
-            customdata=list(zip(side["model"].map(plot_text), side["provider"].map(plot_text))),
+            customdata=list(zip(side["model"].map(plot_text), side["provider"].map(plot_text),
+                                notes)),
             hovertemplate=("<b>%{customdata[0]}</b><br>%{customdata[1]}<br>"
-                           "Released %{x}<br>AA index %{y:.1f}<br>"
-                           f"New {name.split('-')[0].lower()}-weights high when released"
-                           "<extra></extra>"),
+                           "%{x}  ·  AA index %{y:.1f}<br>"
+                           f"New {name.split('-')[0].lower()}-weights high"
+                           "%{customdata[2]}<extra></extra>"),
         ))
 
     lag_shown = cens_shown = False
+    labels = []
     for _, r in recs.iterrows():
-        d0 = pd.Timestamp(r["closed_date"]).date().isoformat()
+        d0 = _iso(r["closed_date"])
         if bool(r["censored"]):
-            end, dash, label = asof.date().isoformat(), "dot", "Not matched yet"
-            hover = (f"<b>{plot_text(r['closed_model'])}</b><br>No open model scores ≥ "
-                     f"{r['closed_q']:.1f} yet: lag ≥ {r['lag_months']:.1f} months")
+            end, dash, label = asof.date().isoformat(), "dot", "Not matched yet (≥ months)"
+            text = f"≥{r['lag_months']:.1f} mo"
             show = not cens_shown
             cens_shown = True
-        else:
-            end, dash, label = pd.Timestamp(r["open_date"]).date().isoformat(), "dash", \
+        elif r["lag_months"] > 0:
+            end, dash, label = _iso(r["open_date"]), "dash", \
                 "Lag to first open model ≥ that score"
-            hover = (f"<b>{plot_text(r['closed_model'])}</b> ({r['closed_q']:.1f})<br>"
-                     f"matched by {plot_text(r['open_model'])} ({r['open_q']:.1f}) "
-                     f"on {end}<br>lag {r['lag_months']:.1f} months")
+            text = f"{r['lag_months']:.1f} mo"
             show = not lag_shown
             lag_shown = True
+        else:
+            continue
         fig.add_trace(go.Scatter(
-            x=[d0, end], y=[r["closed_q"], r["closed_q"]], mode="lines",
-            line=dict(color="rgba(242,242,242,0.45)", width=1, dash=dash),
+            x=[d0, end], y=[r["closed_q"], r["closed_q"]], mode="lines+markers",
+            line=dict(color=ACCENT, width=1.6, dash=dash),
+            marker=dict(symbol="line-ns", size=[0, 9], color=ACCENT,
+                        line=dict(color=ACCENT, width=1.6)),
             name=label, legendgroup=label, showlegend=show,
-            hovertemplate=hover + "<extra></extra>",
+            hovertemplate=(f"<b>{plot_text(r['closed_model'])}</b> ({r['closed_q']:.1f})<br>"
+                           + lag_of[r["closed_model"]] + "<extra></extra>"),
         ))
+        mid = pd.Timestamp(d0) + (pd.Timestamp(end) - pd.Timestamp(d0)) / 2
+        labels.append(dict(x=mid.date().isoformat(), y=r["closed_q"], xref="x", yref="y",
+                           text=text, showarrow=False, yanchor="bottom", yshift=2,
+                           font=dict(color=ACCENT, size=10, family=FONT)))
 
     med = summary.get("median_lag_months")
-    note = (f"median lag {med:.1f} mo  ·  {summary['matched']} matched"
-            if med is not None else f"{summary['matched']} matched")
-    note += f"  ·  {summary['censored']} not yet matched"
+    m_n, c_n = summary["matched"], summary["censored"]
+    note = (f"median lag {med:.1f} mo (Kaplan–Meier: {m_n} matched + {c_n} not yet)"
+            if med is not None else
+            f"median not identifiable yet: {m_n} matched, {c_n} not yet matched")
     title = (
         "Open vs. Closed: Release Lag" + "  " + SUB
-        + note + f"  ·  models still listed by AA on {summary['asof']} only"
+        + note + f"  ·  only models AA still lists on {summary['asof']}"
         + "</span>"
     )
-    _layout(fig, title, "Release date", "AA Intelligence Index (current scale)")
+    _layout(fig, title, "Release date (or first snapshot with the score)",
+            "AA Intelligence Index (current scale)", annotations=labels)
     return fig
 
 
@@ -292,9 +341,13 @@ def build_iso_price(ratios: pd.DataFrame, summary: dict) -> go.Figure:
                                 xanchor="left", yanchor="bottom", xshift=3,
                                 font=dict(color=ACCENT, size=10, family=FONT)))
     below = summary.get("share_below_1")
+    basis = ("AA-measured scores only"
+             + (f" ({summary['n_estimated_rows']} estimated rows left out)"
+                if summary.get("n_estimated_rows") else "")
+             if summary.get("measured_only") else "incl. AA-estimated scores")
     title = (
         "Open Weights at Equal Score: Price Ratio" + "  " + SUB
-        + f"{summary['n']} open families"
+        + f"{summary['n']} open families, {basis}"
         + (f"  ·  {below:.0%} have a cheaper closed peer" if below is not None else "")
         + (f"  ·  {summary['n_excluded']} with no closed peer at their score"
            if summary.get("n_excluded") else "")

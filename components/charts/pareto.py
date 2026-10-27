@@ -318,9 +318,12 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             font=dict(color="#666666", size=10, family=FONT),
         ))
 
-    # Each key appears only when its encoding is on screen.
-    hollow = (("  ·  hollow = open weights" if row_is_open(plot_df).any() else "")
-              + ("  ·  centre dot = speed not yet measured"
+    # Each key appears only when its encoding is on screen. Terse on purpose:
+    # Plotly titles do not wrap, and the longer "hollow = open weights  ·
+    # centre dot = speed not yet measured" pushed the tail of every Overview
+    # subtitle off the card at 1366 px. The keys come LAST, after the counts.
+    hollow = (("  ·  hollow = open" if row_is_open(plot_df).any() else "")
+              + ("  ·  centre dot = no speed yet"
                  if (~_speed_measured(plot_df)).any() else ""))
     if task:
         # The count leads (Plotly titles do not wrap): how many families on
@@ -336,7 +339,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             "  <span style='font-size:12px;color:#777777;font-weight:400'>"
             f"{len(plot_df)} of {n_fam} model families have an AA cost per task"
             f" ({n_fam - len(plot_df)} lack one; not imputed)"
-            "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+            "  ·  size = tok/s  ·  shape = provider"
             + hollow + "</span>"
         )
         # Two lines: on one it overflowed a 390 px plot at both ends.
@@ -354,9 +357,9 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             # The fill note leads: Plotly titles do not wrap, and at 1300 px
             # the tail of this subtitle ran off the card.
             + fill_note(plot_df, basis)
-            + "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+            + f"  ·  {len(plot_df)} of {len(df)} rows, one per model family"
+            + "  ·  size = tok/s  ·  shape = provider"
             + hollow
-            + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
             + "</span>"
         )
         x_title = f"Price  (USD / 1M tokens, log)  ·  {basis.short}"

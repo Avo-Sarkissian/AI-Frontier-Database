@@ -14,7 +14,11 @@ answers, and says which one it used:
   3. the name appears in AA's open-weights catalogue —
      any committed revision of data/raw/aa_local_models.csv
      (the registry's catalogue rows) or the current file     -> "catalogue"
-  4. none of the above: treated as closed                   -> "inferred"
+  4. only the variant tag differs: the name with one trailing
+     parenthetical removed equals a known name with one removed
+     ("GLM-5" <-> "GLM-5 (Reasoning)"), and every known name with
+     that base agrees                                        -> "catalogue"
+  5. none of the above: treated as closed                   -> "inferred"
 
 The registry (data/carried/open_weight_names.csv, `name,open_weights,source,
 first_seen`) was seeded once from the git history of the open-weights catalogue
@@ -22,16 +26,22 @@ first_seen`) was seeded once from the git history of the open-weights catalogue
 (data/carried.learn_open_weights). It is what lets the gap history classify a
 model that has since left both catalogues.
 
-Name matching is EXACT. On 2026-10-27 the AA flag and an exact-name join to the
-open-weights catalogue agreed on all 84 open and 78 closed hosted rows; a
+Name matching is EXACT first. On 2026-10-27 the AA flag and an exact-name join
+to the open-weights catalogue agreed on all 84 open and 78 closed hosted rows; a
 closed model that reused an open model's exact name would be misread, which is
-why step 4 is labelled "inferred" rather than claimed.
+why step 5 is labelled "inferred" rather than claimed. Step 4 exists because
+AA's earliest snapshot (2026-02-25) named models without the variant tag it
+added a week later: "GLM-5", "Kimi K2.5" and "Qwen3.5 397B A17B" there are the
+registry's "GLM-5 (Reasoning)" etc., and exact matching alone counted all three
+as closed, doubling that day's score gap. A base shared by an open and a closed
+known name matches nothing (none on 2026-10-27).
 
 Imports only stdlib + pandas: this module runs in the browser (Pyodide) too.
 """
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -119,6 +129,17 @@ def catalogue_names(path: Path | None = None) -> set[str]:
     return {n for n in cat["name"] if n.strip()}
 
 
+# One trailing parenthetical: the variant tag AA appends ("(Reasoning)",
+# "(Max)", "(0902)"). Same pattern as components/charts/constants.
+# base_model_name, repeated here so this module stays stdlib + pandas.
+_VARIANT_TAG_RE = re.compile(r"\s*\([^)]*\)\s*$")
+
+
+def _base(name: str) -> str:
+    stripped = _VARIANT_TAG_RE.sub("", str(name)).strip()
+    return stripped or str(name)
+
+
 class Resolver:
     """Name -> (open, source) from the registry and the catalogue, built once."""
 
@@ -134,6 +155,14 @@ class Resolver:
                 self.aa[name] = f
             elif source == SOURCE_CATALOGUE and f is not False:
                 self.listed.add(name)
+        # base name -> the flags of every known name with that base (step 4).
+        flags: dict[str, set] = {}
+        for name, f in self.aa.items():
+            flags.setdefault(_base(name), set()).add(f)
+        for name in self.listed:
+            flags.setdefault(_base(name), set()).add(True)
+        self.by_base: dict[str, bool] = {b: next(iter(v)) for b, v in flags.items()
+                                         if len(v) == 1}
 
     def resolve(self, name, own_flag=None) -> tuple[bool, str]:
         f = _flag(own_flag) if own_flag is not None and not _isna(own_flag) else None
@@ -143,6 +172,9 @@ class Resolver:
             return self.aa[name], "aa"
         if name in self.listed:
             return True, "catalogue"
+        base = _base(name)
+        if base in self.by_base:
+            return self.by_base[base], "catalogue"
         return False, "inferred"
 
 

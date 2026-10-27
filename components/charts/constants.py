@@ -703,10 +703,38 @@ def marker_outline(width: float = 0.8) -> dict:
 # colour stays the provider and shape the provider family. Untimed models (no
 # measured speed) used to be the hollow ones; they now carry a centre dot.
 
-# Plotly draws no "-dot" variant for these two, so an untimed model of a
-# provider that uses one keeps its plain symbol and is told apart by its light
-# rim and fixed size alone (the hover says "not yet measured").
-_NO_DOT_SYMBOLS = frozenset({"hourglass", "bowtie"})
+# Base symbols Plotly gives a "-dot" (and "-open-dot") variant: plotly 6.5.2's
+# own symbol list, filtered to bases. Any other base — hourglass, bowtie, every
+# "-cross" / "-x" combo, the arrows — has none, and appending "-dot" made
+# go.Scatter raise ValueError (square-cross-dot for Microsoft, circle-cross-dot
+# for Cohere, ...). Such an untimed model keeps its plain symbol and is told
+# apart by its light rim and fixed size alone (the hover says "not yet
+# measured"). Read from the installed plotly when it can be; this copy is the
+# fallback, and tests pin it to plotly's list.
+_DOT_BASES_FALLBACK = frozenset({
+    "circle", "cross", "diamond", "diamond-tall", "diamond-wide", "hash",
+    "hexagon", "hexagon2", "hexagram", "octagon", "pentagon", "square", "star",
+    "star-diamond", "star-square", "star-triangle-down", "star-triangle-up",
+    "triangle-down", "triangle-left", "triangle-ne", "triangle-nw",
+    "triangle-right", "triangle-se", "triangle-sw", "triangle-up", "x",
+})
+_DOT_BASES: frozenset | None = None
+
+
+def plotly_dot_bases() -> frozenset:
+    """Bases s for which Plotly accepts both f"{s}-dot" and f"{s}-open-dot"."""
+    global _DOT_BASES
+    if _DOT_BASES is None:
+        try:
+            import plotly.graph_objects as _go
+            vals = {v for v in _go.scatter.Marker()._get_validator("symbol").values
+                    if isinstance(v, str)}
+            _DOT_BASES = frozenset(v[:-4] for v in vals if v.endswith("-dot")
+                                   and not v.endswith("-open-dot")
+                                   and f"{v[:-4]}-open-dot" in vals)
+        except Exception:  # pragma: no cover - plotly internals moved
+            _DOT_BASES = _DOT_BASES_FALLBACK
+    return _DOT_BASES
 
 # Rim colour for untimed markers: on a filled "-dot" symbol Plotly draws the
 # centre dot with the marker LINE colour, so the default background-coloured
@@ -728,7 +756,7 @@ def weights_symbol(base: str, is_open: bool, timed: bool = True) -> str:
             s = s[: -len(suffix)]
             break
     out = s + ("-open" if is_open else "")
-    if not timed and s not in _NO_DOT_SYMBOLS:
+    if not timed and s in plotly_dot_bases():
         out += "-dot"
     return out
 

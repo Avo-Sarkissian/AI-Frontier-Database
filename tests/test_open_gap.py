@@ -9,10 +9,16 @@ Pinned here:
   * no line is drawn across a rescale, and each one has a rule;
   * hand-checked gaps (2026-05-06 6.3 via Kimi K2.6, which only the registry
     still knows is open; 2026-10-21 11.3 / 19.6%);
-  * release lag right-censors an unmatched record instead of dropping it;
+  * release lag right-censors an unmatched record instead of dropping it,
+    takes a Kaplan-Meier median over matched AND censored records, does not
+    count the oldest surviving closed model (a "record" only because AA
+    dropped everything stronger), and dates a checkpoint updated in place by
+    its score's first snapshot;
+  * the 2026-02-25 snapshot's unsuffixed names ("GLM-5") resolve open, so its
+    gap is 7.0, not 15.0; an empty history never aborts the build;
   * the iso-quality ratio points the stated way, uses the stored price at the
-    default mix, moves with the mix by the hand-computed amount, and counts
-    what it excludes;
+    default mix, moves with the mix by the hand-computed amount, uses only
+    AA-measured scores (and says so), and counts what it excludes;
   * the three figures are pre-rendered, the history never ships, and the
     Economics charts never use hollow marks for open weights.
 """
@@ -103,10 +109,38 @@ def test_gap_values_match_hand_computed_snapshots(gap):
     assert "2026-03-07" not in by.index
 
 
-def test_every_snapshot_says_how_its_rows_were_classified(gap):
+def test_every_snapshot_says_how_its_models_were_classified(gap):
+    """Source counts are per MODEL, like n_open / n_closed beside them in the
+    hover (2026-03-06 has 708 host rows for 226 models)."""
     gh, _ = gap
     total = gh["src_aa"] + gh["src_catalogue"] + gh["src_inferred"]
     assert (total > 0).all()
+    assert (total == gh["n_open"] + gh["n_closed"]).all()
+
+
+def test_the_first_snapshot_resolves_its_unsuffixed_open_models(gap):
+    """2026-02-25 named models without AA's later variant tag: "GLM-5" is the
+    registry's "GLM-5 (Reasoning)". Exact matching alone counted GLM-5, Kimi
+    K2.5 and Qwen3.5 397B A17B as closed and drew 57.0 - 42.0 = 15.0."""
+    gh, _ = gap
+    feb = gh.set_index("date").loc["2026-02-25"]
+    assert feb["open_model"] == "GLM-5" and feb["open_q"] == pytest.approx(50.0)
+    assert feb["gap"] == pytest.approx(7.0)
+
+
+def test_an_empty_history_is_no_snapshots_not_an_exception():
+    gh, seg = og.gap_history(pd.DataFrame())
+    assert gh.empty and list(gh.columns)[:3] == ["date", "segment", "closed_model"]
+    assert seg == {"segments": {}, "breaks": [], "excluded": [], "steps": []}
+    assert og.snapshot_dates(pd.DataFrame()) == []
+    assert og.score_dates(pd.DataFrame(), DF) == {}
+    assert build_gap_history(gh, seg).layout.annotations    # the empty-figure note
+
+
+def test_the_build_survives_a_missing_history(monkeypatch):
+    monkeypatch.setattr(build_static, "load_history", lambda: pd.DataFrame())
+    figs = build_static.open_gap_figures(DF)
+    assert set(figs) == {"econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"}
 
 
 def test_no_gap_line_crosses_a_break(gap):
@@ -134,6 +168,7 @@ def _fam(rows):
 
 def test_release_lag_matches_open_leads_and_censors_the_unmatched():
     df = _fam([
+        ("Cold", "OpenAI", 30.0, "2025-06-01", False),  # oldest listed: not counted
         ("C1", "OpenAI", 40.0, "2026-01-01", False),
         ("O1", "Meta", 41.0, "2025-12-01", True),       # open got there first: lag 0
         ("C2", "OpenAI", 50.0, "2026-02-01", False),
@@ -149,17 +184,69 @@ def test_release_lag_matches_open_leads_and_censors_the_unmatched():
     assert bool(by.loc["C3", "censored"]) and by.loc["C3", "open_model"] is None
     assert by.loc["C3", "lag_months"] == pytest.approx(92 / og.DAYS_PER_MONTH)
     assert s["matched"] == 3 and s["censored"] == 1
+    assert s["uncounted"] == ["Cold"] and "Cold" in list(s["closed_records"]["model"])
     # matched lags: C1 0, C2 90 d, C0 107 d (O2 is the first open model >= 45)
     assert by.loc["C0", "lag_months"] == pytest.approx(107 / og.DAYS_PER_MONTH)
+    # Kaplan-Meier: 0 (S=3/4), 90 d (S=1/2) -> median 90 d
     assert s["median_lag_months"] == pytest.approx(by.loc["C2", "lag_months"])
+    assert s["median_matched_months"] == pytest.approx(by.loc["C2", "lag_months"])
+
+
+@pytest.mark.parametrize("times, censored, expected", [
+    ([1, 2, 3, 4, 5], [0, 1, 1, 1, 0], 5),      # matched-only median would be 3
+    ([1, 2, 3, 4, 5], [0, 0, 0, 0, 0], 3),
+    ([1, 4, 4, 5], [0, 0, 1, 0], 4),            # events count before a tie's censoring
+    ([1, 2, 3, 4], [0, 1, 1, 1], None),         # S never reaches 1/2: not identifiable
+    ([], [], None),
+])
+def test_km_median_counts_censored_records(times, censored, expected):
+    assert og.km_median(times, censored) == expected
+
+
+def test_a_checkpoint_renamed_with_a_higher_score_is_dated_by_its_snapshot():
+    base = {f"m{i}": 20.0 + i for i in range(25)}
+    h = pd.concat([_snap("2026-08-01", {**base, "Q Max": 40.0}),
+                   _snap("2026-08-10", {**base, "Q Max (0902)": 45.0, "R (Max)": 30.0}),
+                   _snap("2026-08-02", {**base, "R": 30.0})])
+    cur = pd.DataFrame({"model": ["Q Max (0902)", "R (Max)", "m0"],
+                        "quality": [45.0, 30.0, 20.0],
+                        "release_date": ["2026-07-01", "2026-07-01", "2026-07-01"]})
+    # Q: same base, +12.5% under a new name -> redated; R: renamed, same score -> not
+    assert og.score_dates(h, cur) == {"Q Max (0902)": pd.Timestamp("2026-08-10")}
+
+
+def test_the_live_lag_redates_qwen_max_and_skips_the_oldest_record(hist):
+    dated = og.score_dates(hist, DF)
+    assert dated.get("Qwen3.8 Max (0902)") == pd.Timestamp("2026-09-16")
+    recs, s = og.release_lag(DF, "2026-10-27", dated)
+    assert "Nova Micro" in s["uncounted"] and "Nova Micro" not in set(recs["closed_model"])
+    assert "Qwen3.8 Max (0902)" in s["redated"]
+    assert (recs["closed_date"] >= pd.Timestamp("2025-01-01")).all()
 
 
 def test_release_lag_on_the_live_catalogue_reports_both_counts():
     recs, s = og.release_lag(DF, "2026-10-27")
     assert s["matched"] + s["censored"] == len(recs) > 0
     fig = build_release_lag(recs, s)
-    assert f"{s['censored']} not yet matched" in fig.layout.title.text
-    assert "still listed" in fig.layout.title.text, "the survivorship limit must be on the chart"
+    title = fig.layout.title.text
+    assert f"{s['matched']} matched + {s['censored']} not yet" in title
+    assert "Kaplan–Meier" in title, "the median's basis must be on the chart"
+    assert "still lists" in title, "the survivorship limit must be on the chart"
+
+
+def test_lag_connectors_are_accent_and_labelled_not_hidden_on_the_staircase():
+    recs, s = og.release_lag(DF, "2026-10-27")
+    fig = build_release_lag(recs, s)
+    conns = [t for t in fig.data if t.legendgroup in (
+        "Lag to first open model ≥ that score", "Not matched yet (≥ months)")]
+    drawn = recs[recs["censored"] | (recs["lag_months"] > 0)]
+    assert len(conns) == len(drawn) > 0
+    assert all(t.line.color == "#00d4ff" for t in conns)
+    assert fig.data[-1] is conns[-1], "connectors are drawn above the staircases"
+    texts = [a.text for a in fig.layout.annotations]
+    for _, r in drawn.iterrows():
+        want = (f"≥{r['lag_months']:.1f} mo" if r["censored"] else f"{r['lag_months']:.1f} mo")
+        assert want in texts
 
 
 # ── Iso-quality price ─────────────────────────────────────────────────────────
@@ -199,11 +286,28 @@ def test_iso_ratio_moves_with_the_mix_by_the_hand_computed_amount():
     assert chat["ratio"].iloc[0] == pytest.approx(((3 + 2) / 2) / ((1 + 4) / 2))
 
 
+def test_iso_ratio_uses_only_measured_scores_and_says_so():
+    df = _priced([
+        ("Open A", "Meta", 40.0, 1.0, 1.0, True),
+        ("Closed Est", "Sapiens AI", 45.0, 0.1, 0.1, False),   # cheap, AA estimate
+        ("Closed X", "OpenAI", 45.0, 2.0, 2.0, False),
+    ]).assign(quality_estimated=[False, True, False])
+    out, s = og.iso_quality_ratios(df)
+    assert out.iloc[0]["closed_model"] == "Closed X"
+    assert s["measured_only"] and s["n_estimated_rows"] == 1
+    every, s2 = og.iso_quality_ratios(df, measured_only=False)
+    assert every.iloc[0]["closed_model"] == "Closed Est" and s2["n_estimated_rows"] == 0
+    assert "AA-measured scores only (1 estimated rows left out)" in \
+        build_iso_price(out, s).layout.title.text
+
+
 def test_the_live_iso_price_figure_asserts_no_headline():
     out, s = og.iso_quality_ratios(DF)
     fig = build_iso_price(out, s)
     title = fig.layout.title.text
-    assert f"{s['n']} open families" in title and "priced at" in title
+    assert f"{s['n']} open families, AA-measured scores only" in title and "priced at" in title
+    est = set(DF.loc[DF["quality_estimated"].eq(True), "model"])
+    assert not (set(out["closed_model"]) | set(out["open_model"])) & est
     assert s["share_below_1"] is not None and 0 < s["share_below_1"] < 1, \
         "the distribution runs both ways on 2026-10-27; the chart must show it"
     assert any(sh.x0 == 1 for sh in fig.layout.shapes), "missing the 1x rule"
@@ -237,7 +341,8 @@ def test_the_economics_caption_cites_its_sources_and_limits():
     c = CAPTIONS["economics_open_gap"]
     for needle in ("artificialanalysis.ai", "epoch.ai/data-insights/open-closed-eci-gap",
                    "CC BY 4.0", "openrouter.ai/data/newsletter/the-token-state-of-play",
-                   "quoted, not scraped", "nousresearch.com",
+                   "quoted, not scraped", "nousresearch.com", "August 2025",
+                   "Kaplan–Meier",
                    "2026-06-16", "2026-09-05", "2026-09-08", "2026-03-07", "survivor"):
         assert needle in c, needle
 
@@ -246,3 +351,10 @@ def test_the_hosted_captions_explain_hollow():
     assert "Hollow = open weights" in CAPTIONS["overview_price"]
     assert "Hollow = open weights" in CAPTIONS["overview_speed"]
     assert "Outlined bars = open weights" in CAPTIONS["rankings_intelligence"]
+
+
+def test_the_readme_no_longer_claims_the_index_scale_never_moved():
+    readme = (ROOT / "README.md").read_text()
+    assert "without changing the scale" not in readme
+    for d in ("2026-09-05", "2026-09-08"):
+        assert d in readme

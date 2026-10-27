@@ -29,7 +29,9 @@ from components.charts.video_chart import build_video_rankings, build_video_scat
 from components.charts.open_gap import (
     build_gap_history, build_release_lag, build_iso_price,
 )
-from data.open_gap import gap_history, release_lag, iso_quality_ratios, snapshot_dates
+from data.open_gap import (
+    gap_history, release_lag, iso_quality_ratios, snapshot_dates, score_dates,
+)
 
 from captions import CAPTIONS
 from data import scrape_status
@@ -101,11 +103,14 @@ def open_gap_figures(df) -> dict:
     visitor setting could move them.
     """
     hist = load_history()
-    dates = snapshot_dates(hist) if not hist.empty else []
+    # Every data/open_gap function treats a missing or empty history (a bare
+    # pd.DataFrame()) as no snapshots, so this never aborts the build.
+    dates = snapshot_dates(hist)
     asof = dates[-1] if dates else None
     return {
         "econ_open_gap_history": build_gap_history(*gap_history(hist)),
-        "econ_open_gap_lag":     build_release_lag(*release_lag(df, asof)),
+        "econ_open_gap_lag":     build_release_lag(*release_lag(df, asof,
+                                                                score_dates(hist, df))),
         "econ_open_gap_price":   build_iso_price(*iso_quality_ratios(df, None)),
     }
 

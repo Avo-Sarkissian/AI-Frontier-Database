@@ -247,7 +247,7 @@ def test_overview_draws_open_weights_hollow_on_both_axes(x):
     assert sym["FreeSlow"].endswith("-open-dot")
     assert sym["ShutSlow"].endswith("-dot") and "-open" not in sym["ShutSlow"]
     title = str(fig.layout.title.text)
-    assert "hollow = open weights" in title and "centre dot = speed not yet measured" in title
+    assert "hollow = open" in title and "centre dot = no speed yet" in title
     hover = {cd[5]: cd[10] for t in _marker_traces(fig) for cd in t.customdata}
     assert hover == {"Shut": "Closed · AA flag", "Free": "Open · AA flag",
                      "FreeSlow": "Open · name match", "ShutSlow": "Closed · inferred"}
@@ -280,7 +280,7 @@ def test_speed_view_draws_open_weights_hollow():
     fig = build_quadrant(_mixed_frame())
     sym = _symbols(fig)
     assert sym["Free"].endswith("-open") and not sym["Shut"].endswith("-open")
-    assert "hollow = open weights" in str(fig.layout.title.text)
+    assert "hollow = open" in str(fig.layout.title.text)
     assert all(t.legendgroup == t.name for t in _marker_traces(fig))
 
 
@@ -410,3 +410,83 @@ def test_dash_csv_export_honours_weights(dash_app):
                               None, None, None, None, None, "open")
     exported = pd.read_csv(io.StringIO(out["content"]))
     assert len(exported) == int(DF["open_weights"].sum()) and exported["open_weights"].all()
+
+
+# ── Valid Plotly symbols for every provider shape ────────────────────────────
+
+def _plotly_symbols():
+    return {v for v in go.scatter.Marker()._get_validator("symbol").values
+            if isinstance(v, str)}
+
+
+@pytest.mark.parametrize("is_open", [False, True])
+@pytest.mark.parametrize("timed", [False, True])
+def test_every_provider_shape_gives_a_valid_symbol(is_open, timed):
+    """Appending "-dot" blindly made square-cross-dot (Microsoft),
+    circle-cross-dot (Cohere) and arrow-*-dot, which go.Scatter rejects: a
+    provider promoted to the spotlight would crash Overview for its untimed
+    models."""
+    from components.charts.constants import weights_symbol, DEFAULT_SHAPE
+    valid = _plotly_symbols()
+    for prov, base in {**PROVIDER_SHAPES, "default": DEFAULT_SHAPE}.items():
+        sym = weights_symbol(base, is_open, timed=timed)
+        assert sym in valid, (prov, sym)
+        go.Scatter(marker=dict(symbol=sym))
+        assert sym.endswith("-open") or sym.endswith("-open-dot") if is_open \
+            else "-open" not in sym
+
+
+def test_dot_bases_fallback_matches_plotly():
+    from components.charts.constants import plotly_dot_bases, _DOT_BASES_FALLBACK
+    valid = _plotly_symbols()
+    derived = {v[:-4] for v in valid if v.endswith("-dot") and not v.endswith("-open-dot")}
+    assert plotly_dot_bases() == _DOT_BASES_FALLBACK == frozenset(derived)
+    assert "square-cross" not in derived and "hourglass" not in derived
+
+
+def test_variant_tag_fallback_resolves_unsuffixed_names_and_refuses_conflicts():
+    reg = pd.DataFrame({"name": ["GLM-5 (Reasoning)", "Mix (A)", "Mix (B)"],
+                        "open_weights": ["1", "1", "0"],
+                        "source": [ow.SOURCE_AA] * 3, "first_seen": [""] * 3})
+    r = ow.Resolver(reg, set())
+    assert r.resolve("GLM-5") == (True, "catalogue")
+    assert r.resolve("GLM-5 (Non-reasoning)") == (True, "catalogue")
+    assert r.resolve("GLM-5 (Reasoning)") == (True, "aa")
+    assert r.resolve("Mix") == (False, "inferred"), "open and closed share the base"
+    assert r.resolve("GLM-50") == (False, "inferred")
+
+
+# ── Overview subtitles fit the card ──────────────────────────────────────────
+
+def _visible(title: str) -> str:
+    return re.sub(r"<[^>]+>", "", title)
+
+
+def test_overview_subtitles_stay_within_their_pre_weights_length():
+    """Plotly titles do not wrap. Before the WEIGHTS keys the price and
+    cost/task subtitles were 168 and 204 characters and fit the card at
+    1366 px; the keys pushed them to 198 / 234 and clipped the tail (the
+    centre-dot key, the row count at MIX=agentic). Measured in the browser
+    after the fix: price-at-agentic ends at 1190 px and cost/task at 1162 px
+    against a 1333 px card."""
+    from data.workload_mix import apply_mix, resolve_mix
+    df = get_models()
+    price = _visible(build_pareto_scatter(df).layout.title.text)
+    task = _visible(build_pareto_scatter(df, x="task").layout.title.text)
+    m = resolve_mix("agentic")
+    agentic = _visible(build_pareto_scatter(apply_mix(df, m), basis=m).layout.title.text)
+    assert len(price) <= 168 and len(task) <= 204 and len(agentic) <= 215, \
+        (len(price), len(task), len(agentic))
+    assert price.index("rows") < price.index("hollow"), "the count leads the keys"
+
+
+def test_speed_subtitle_moves_its_keys_to_a_second_line_off_the_default_mix():
+    from data.workload_mix import apply_mix, resolve_mix
+    df = get_models()
+    default = build_quadrant(df)
+    assert "<br>" not in default.layout.title.text
+    m = resolve_mix("agentic")
+    fig = build_quadrant(apply_mix(df, m), basis=m)
+    first, second = fig.layout.title.text.split("<br>")
+    assert "rows" in _visible(first) and "affordability at agentic" in _visible(second)
+    assert fig.layout.margin.t > default.layout.margin.t

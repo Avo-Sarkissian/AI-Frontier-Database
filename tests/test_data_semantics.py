@@ -568,8 +568,10 @@ def test_the_estimated_flag_is_not_health_checked_like_a_dense_column():
 
 
 def test_the_intelligence_scale_has_not_been_rescaled():
-    """AA rebuilt the index's eval suite in 2026-09 WITHOUT moving the scale.
-    QUALITY_INDEX_MAX, the MIN SCORE ladder (up to 50) and the Agent Stack
+    """AA rebuilt the index's eval suite in 2026-09 and the scale moved with
+    it (x0.76 on 2026-09-05, x0.89 on 2026-09-08, found by data/open_gap.
+    index_segments); the thresholds were rechecked on the new scale on
+    2026-09-08. This band is the tripwire for the next rescale. QUALITY_INDEX_MAX, the MIN SCORE ladder (up to 50) and the Agent Stack
     quality floors (28.0 / 30.0) are all absolute numbers on this scale, so a
     silent rescale would miscalibrate every one of them at once."""
     from components.charts.constants import QUALITY_INDEX_MAX

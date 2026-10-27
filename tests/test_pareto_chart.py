@@ -141,7 +141,7 @@ def test_legend_providers_have_unique_colors(fig):
 
 
 def test_legend_providers_have_unique_shapes(fig):
-    """The subtitle claims 'shape = provider family'; it must be true for
+    """The subtitle claims 'shape = provider'; it must be true for
     every provider the legend actually names."""
     shapes = [s[3].removesuffix("-open") for s in _series(fig) if s[0] != "Other"]
     assert len(shapes) == len(set(shapes)), f"duplicate provider shapes: {shapes}"
@@ -333,7 +333,7 @@ def test_unmeasured_speed_is_not_encoded_as_slowest():
     hover = " ".join(str(cd[2]) for cd in untimed.customdata)
     assert "not yet measured" in hover
     title = str(out.layout.title.text)
-    assert "centre dot = speed not yet measured" in title
+    assert "centre dot = no speed yet" in title
     assert "hollow" not in title, "no open-weights model is drawn, so no hollow key"
 
 

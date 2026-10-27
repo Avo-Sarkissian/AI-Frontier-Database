@@ -421,8 +421,8 @@ app.layout = html.Div([
             style={"width": "150px"},
         ),
         html.Div(className="filter-sep"),
-        # Open or closed weights (data/open_weights.py): AA's flag, else an
-        # exact-name match to its open-weights list. Hollow marks = open.
+        # Open or closed weights (data/open_weights.py): AA's flag, else a
+        # name match to its open-weights list. Hollow marks = open.
         html.Span("WEIGHTS", className="filter-label",
                   title="Open or closed weights, from Artificial Analysis's flag"),
         dcc.Dropdown(

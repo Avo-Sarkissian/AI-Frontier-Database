@@ -90,14 +90,22 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     # rather than letting size imply a difference it cannot show.
     _priced = plot_df["price"].notna() & (plot_df["price"] > 0)
     _n_pinned = int((_priced & (plot_df["price"] <= BUBBLE_PRICE_FLOOR)).sum())
+    # Off the default the note names the preset only ("agentic"): the full
+    # basis is in the MIX control, and with it the subtitle ran ~450 px past
+    # the card at 1366 px. It also moves to a second subtitle line there
+    # (below), since the fill note leads the first.
     _size_note = (
         "  ·  bubble size ∝ affordability (log)"
         if basis.is_default else
-        f"  ·  bubble size ∝ affordability at {basis.short} (log"
+        f"size ∝ affordability at {basis.short.split()[0]} (log"
         + (f"; {_n_pinned} at ≤ ${BUBBLE_PRICE_FLOOR:g} share the max size"
            if _n_pinned > 1 else "")
         + ")"
     )
+    _sub = "<span style='font-size:12px;color:#777777;font-weight:400'>"
+    _keys = (_size_note + "  ·  shape = provider"
+             + ("  ·  hollow = open" if row_is_open(plot_df).any() else ""))
+    _two_lines = not basis.is_default
 
     # Correlation on log speed, matching the axis the reader is looking at.
     # (Correlation describes what is plotted, so it stays on plot_df.)
@@ -280,15 +288,12 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
-                "Speed vs. Intelligence"
-                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+                "Speed vs. Intelligence  " + _sub
                 + fill_note(plot_df, basis)
-                + _size_note
-                + "  ·  shape = provider family"
-                + ("  ·  hollow = open weights" if row_is_open(plot_df).any() else "")
-                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
-                + (f"  ·  {_untimed} without a measured speed not shown"
-                   if _untimed else "")
+                + f"  ·  {len(plot_df)} of {len(df)} rows, one per model family"
+                + (f"  ·  {_untimed} without a measured speed not shown" if _untimed else "")
+                + ("</span><br>" + _sub if _two_lines else "")
+                + _keys
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
@@ -315,7 +320,7 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             range=[0, y_max],
         ),
         legend=legend_below(),
-        margin=CHART_MARGIN,
+        margin={**CHART_MARGIN, "t": CHART_MARGIN["t"] + (18 if _two_lines else 0)},
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
