@@ -34,9 +34,10 @@ from components.charts.open_gap import (
 from data.open_gap import (
     gap_history, release_lag, iso_quality_ratios, snapshot_dates, score_dates,
 )
-from data import serving_cost, econ_common
+from data import serving_cost, econ_common, gpu_tco
 from data import open_gap as open_gap_data
 from components.charts.econ_serve import build_econ_serve
+from components.charts.econ_compute import build_econ_compute
 
 from captions import CAPTIONS
 from data import scrape_status
@@ -94,6 +95,12 @@ DATA_CSVS = [
     # SemiAnalysis InferenceX $/GPU-hr marks (13 rows, archived by the bot's
     # econ step): Economics › Serve and the Run Local $/GPU-HR presets.
     "data/carried/econ/inferencex_rates.csv",
+    # Economics › Compute: hand-curated TCO inputs, financing presets and dated
+    # rental price points, each value with source_url / as_of / status
+    # (data/curated/), and the hyperscaler on-demand list prices the bot
+    # fetches weekly (~8 rows).
+    *gpu_tco.CURATED_FILES,
+    gpu_tco.HYPERSCALER_FILE,
 ]
 
 # Build-time slices of the economics archives, written straight into
@@ -109,13 +116,25 @@ DERIVED_DATA: dict[str, Callable[[], str]] = {
     # Economics › Labs ↓CSV: the rows of its three figures (the history they
     # come from never ships).
     open_gap_data.DERIVED_EXPORT: open_gap_data.export_csv_text,
+    # Economics › Compute: GetDeploying's four weekly series for the nine GPUs
+    # (last 104 weeks; the archive keeps every week), the newest SOFR fixing,
+    # and the nine Epoch AI hardware rows (TDP, chip release price).
+    gpu_tco.DERIVED_WEEKLY: gpu_tco.slim_weekly_csv,
+    gpu_tco.DERIVED_SOFR: gpu_tco.sofr_latest_csv,
+    gpu_tco.DERIVED_EPOCH: gpu_tco.epoch_specs_csv,
 }
 # Each derived file, and the whole data zip, stay small: every visitor
 # downloads pydata.zip on every hourly version. The Labs export grows by one
 # score-gap row (~150 B) per daily snapshot, so it gets its own budget
 # (~1.5 years of headroom; it deflates ~8x in the zip).
 MAX_DERIVED_BYTES = 40_000
-DERIVED_MAX_BYTES: dict[str, int] = {open_gap_data.DERIVED_EXPORT: 120_000}
+DERIVED_MAX_BYTES: dict[str, int] = {
+    open_gap_data.DERIVED_EXPORT: 120_000,
+    # 9 GPUs x 4 series x up to 104 weeks, ~35 B a row: ~45 KB with the 54
+    # weeks archived on 2026-10-27, bounded by SERIES_WEEKS at ~131 KB if every
+    # series were listed every week (it deflates ~6x in the zip).
+    gpu_tco.DERIVED_WEEKLY: 140_000,
+}
 MAX_DATA_BUNDLE_BYTES = 150_000
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
@@ -187,6 +206,9 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # Economics › Serve at its defaults; equals static_api.update_econ_serve().
         "econ_serve":           build_econ_serve(*serving_cost.serving_data(hosted=df),
                                                  axis_range=serving_cost.axis_range(df)),
+        # Economics › Compute at its defaults (econ_tco, econ_ladder,
+        # econ_rental_series); equals static_api.update_econ_compute().
+        **build_econ_compute(gpu_tco.compute()),
     }
     written = []
     for fid, fig in figures.items():
@@ -259,6 +281,10 @@ def export_default_figures(out_dir: Path) -> list[str]:
         # the Own/Rent default and the USE slider's default/min/max/step. The
         # browser declares none of these numbers itself.
         "econ_serve_options": serving_cost.serve_options(),
+        # Economics › Compute: GPU and financing-preset options, and per GPU /
+        # preset the resolved default of each input box (its placeholder) with
+        # its source, as-of and status (its tooltip).
+        "econ_compute_options": gpu_tco.compute_options(),
         "quality_options": quality_options(
             round(float(df["quality"].quantile(0.75)), 1),
             round(float(df["quality"].quantile(0.90)), 1)),
@@ -379,6 +405,7 @@ def build_pybundle(docs: Path | None = None):
         "components/charts/open_gap.py",
         "data/econ_common.py", "data/serving_cost.py",
         "components/charts/econ_serve.py",
+        "data/gpu_tco.py", "components/charts/econ_compute.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity
@@ -469,16 +496,19 @@ def shipped_derived():
     {rel: text}; clears the overrides and the serving caches on exit."""
     econ_common.clear_derived_overrides()
     serving_cost.reset_cache()
+    gpu_tco.reset_cache()
     texts: dict[str, str] = {}
     try:
         for rel, compute in DERIVED_DATA.items():
             texts[rel] = derived_text(rel, compute)
             econ_common.set_derived_override(rel, texts[rel])
             serving_cost.reset_cache()      # the next slice reads this one
+            gpu_tco.reset_cache()
         yield texts
     finally:
         econ_common.clear_derived_overrides()
         serving_cost.reset_cache()
+        gpu_tco.reset_cache()
 
 
 def build_data_bundle(docs: Path | None = None, derived: dict[str, str] | None = None):

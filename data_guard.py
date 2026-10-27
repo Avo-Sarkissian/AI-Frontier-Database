@@ -105,6 +105,10 @@ ARCHIVE_CSVS: dict[str, dict] = {
         {"min_rows": 30, "append_only": False, "watch": []},
     "data/raw/epoch/ai_companies_usage_reports.csv":
         {"min_rows": 40, "append_only": False, "watch": []},
+    # Azure + AWS on-demand list prices for the 8 GPU instance types Economics ›
+    # Compute prices (a current snapshot, ~8 rows; git history is the archive).
+    "data/raw/econ/hyperscaler_gpu_prices.csv":
+        {"min_rows": 6, "append_only": False, "watch": ["price_per_gpu_hr"]},
 }
 
 def _read(text: str):

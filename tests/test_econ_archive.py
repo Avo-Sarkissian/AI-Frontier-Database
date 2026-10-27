@@ -91,6 +91,12 @@ class FakeSession:
             return _Resp(_fx("ix_options.json"))
         if url.endswith("/availability"):
             return _Resp(_fx("ix_availability.json"))
+        if url == E.AZURE_PRICES_URL:
+            return _Resp(json.loads(_fx("azure_retail_gpu_page1.json")))
+        if url.startswith(E.AZURE_PRICES_URL + "?"):
+            return _Resp(json.loads(_fx("azure_retail_gpu_page2.json")))
+        if url == E.AWS_ONDEMAND_URL:
+            return _Resp(json.loads(_fx("aws_ondemand_gpu.json")))
         if url.endswith("/views/inference"):
             key = (params.get("model"), params.get("sequence"))
             if key in self.fail_views:
@@ -124,6 +130,7 @@ def sandbox(tmp_path, monkeypatch):
     """Archives in tmp, fixture-sized floors (the real floors assume full files)."""
     monkeypatch.setattr(E, "ECON_DIR", tmp_path / "econ")
     monkeypatch.setattr(E, "EPOCH_DIR", tmp_path / "epoch")
+    monkeypatch.setattr(E, "RAW_ECON_DIR", tmp_path / "raw_econ")
     monkeypatch.setattr(E, "GD_MIN_UPSTREAM_ROWS", 1)
     low = {k: {**v, "min_rows": 1} for k, v in data_guard.ARCHIVE_CSVS.items()}
     monkeypatch.setattr(data_guard, "ARCHIVE_CSVS", low)
@@ -513,8 +520,9 @@ def test_one_source_failing_never_stops_the_others(sandbox):
     s = FakeSession({E.GD_URL: requests.ConnectionError("forced")})
     out = E.run(now=NOW, session=s, sleep_s=0)
     assert out["getdeploying"]["status"] == "failed"
-    for name in ("epoch_hardware", "epoch_companies", "inferencex"):
+    for name in ("epoch_hardware", "epoch_companies", "hyperscaler", "inferencex"):
         assert out[name]["status"] == "ok", (name, out[name])
+    assert (sandbox / "raw_econ" / "hyperscaler_gpu_prices.csv").exists()
     assert (sandbox / "econ" / "inferencex_points.csv").exists()
     assert (sandbox / "epoch" / "ml_hardware.csv").exists()
     st = _state(sandbox)
@@ -541,6 +549,7 @@ def test_no_network_on_import_and_in_suite(sandbox, monkeypatch):
     # reload rebound the module globals; point them back at the sandbox
     monkeypatch.setattr(E, "ECON_DIR", sandbox / "econ")
     monkeypatch.setattr(E, "EPOCH_DIR", sandbox / "epoch")
+    monkeypatch.setattr(E, "RAW_ECON_DIR", sandbox / "raw_econ")
     out = E.run(now=NOW, session=NoNetwork(), sleep_s=0)
     assert all(r["status"] == "failed" and "network call" in r["error"] for r in out.values())
     assert "session" in inspect.signature(E.run).parameters
@@ -589,6 +598,7 @@ def test_committed_archives_have_the_documented_schema():
         E.SOFR_CSV: E.SOFR_HEADER,
         E.IX_RATES: E.IX_RATES_HEADER,
         E.IX_POINTS: E.IX_POINTS_HEADER,
+        E.HYPERSCALER: E.HYPERSCALER_HEADER,
     }
     assert E.GD_HEADER == ["gpu_slug", "date", "billing_type", "reservation_months", "min_price",
                            "max_price", "median_price", "provider_median_price",

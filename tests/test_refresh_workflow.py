@@ -436,6 +436,7 @@ def _econ_env(tmp_path, failing_hours: float) -> dict:
     return {**os.environ,
             "AI_FRONTIER_CARRIED_DIR": str(tmp_path),
             "AI_FRONTIER_EPOCH_DIR": str(tmp_path / "epoch"),
+            "AI_FRONTIER_RAW_ECON_DIR": str(tmp_path / "raw_econ"),
             "AI_FRONTIER_STATUS_PATH": str(tmp_path / "status.json")}
 
 

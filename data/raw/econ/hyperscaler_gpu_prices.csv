@@ -1,0 +1,9 @@
+cloud,sku,region,gpu_key,gpus_per_instance,price_per_instance_hr,price_per_gpu_hr,effective_date,observed_on,source_url
+aws,p6-b200.48xlarge,us-east-1,b200,8,113.933,14.2416,2026-10-23,2026-10-27,https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json
+aws,p6-b300.48xlarge,us-east-1,b300,8,142.416,17.802,2026-10-23,2026-10-27,https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json
+azure,Standard_ND128isr_NDR_GB200_v6,eastus,gb200,4,108.16,27.04,2025-04-01,2026-10-27,https://prices.azure.com/api/retail/prices
+aws,p5.48xlarge,us-east-1,h100,8,55.04,6.88,2026-10-23,2026-10-27,https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json
+azure,Standard_ND96isr_H100_v5,eastus,h100,8,98.32,12.29,2023-12-01,2026-10-27,https://prices.azure.com/api/retail/prices
+aws,p5en.48xlarge,us-east-1,h200,8,63.296,7.912,2026-10-23,2026-10-27,https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json
+azure,Standard_ND96isr_H200_v5,eastus2,h200,8,84.8,10.6,2025-04-01,2026-10-27,https://prices.azure.com/api/retail/prices
+azure,Standard_ND96isr_MI300X_v5,eastus2,mi300x,8,48,6,2025-10-01,2026-10-27,https://prices.azure.com/api/retail/prices

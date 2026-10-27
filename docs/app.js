@@ -29,7 +29,7 @@ const TAB_CAPTIONS = {
   local:     ["local"],
   // Every view's captions: each view pre-creates its [data-caption] elements,
   // which renderCaptions fills in place.
-  economics: ["economics_serve", "economics_open_gap"],
+  economics: ["economics_serve", "economics_compute", "economics_open_gap"],
   image:     ["image"],
   video:     ["video"],
 };
@@ -40,17 +40,21 @@ const TAB_CAPTIONS = {
 // captions: manifest.captions keys shown above them; controls: the spans of
 // #tab-controls-economics shown with the view; html: figure ids whose JSON is
 // {html} (a ledger table built and escaped in Python), set as innerHTML.
-// F inserts { view: "compute", ... } between serve and labs; G prepends its
-// Labs section (captions/charts) before the open-gap one and adds its ledger
-// to html.
+// G prepends its Labs section (captions/charts) before the open-gap one and
+// adds its ledger to html.
 const ECON_VIEWS = [
   { view: "serve", label: "Serve", charts: ["econ_serve"], captions: ["economics_serve"],
     controls: ["econ-shared-controls", "econ-serve-controls"], html: [] },
+  { view: "compute", label: "Compute",
+    charts: ["econ_tco", "econ_ladder", "econ_rental_series"],
+    captions: ["economics_compute"],
+    controls: ["econ-shared-controls", "econ-compute-controls"], html: [] },
   { view: "labs",  label: "Labs",
     charts: ["econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"],
     captions: ["economics_open_gap"], controls: [], html: [] },
 ];
-const ECON_CONTROL_SPANS = ["econ-shared-controls", "econ-serve-controls"];
+const ECON_CONTROL_SPANS = ["econ-shared-controls", "econ-serve-controls",
+  "econ-compute-controls"];
 
 function currentEconView() {
   const v = document.querySelector('input[name="econ-view"]:checked')?.value;
@@ -526,6 +530,7 @@ async function loadManifest() {
     mixSel.value = current || m.default_mix || m.mix_options[0].value;
   }
   fillEconControls(m.econ_serve_options);
+  fillEconComputeControls(m.econ_compute_options);
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
   // Video arenas come from the manifest for the same reason the tags do: a
@@ -581,6 +586,58 @@ function fillEconControls(o) {
     const out = document.getElementById("econ-util-value");
     if (out) out.textContent = u.value + "%";
   }
+}
+
+// Economics › Compute controls (data/gpu_tco.compute_options). The GPU and
+// PRESET selects are filled here; the seven boxes stay EMPTY and show the
+// resolved default as a placeholder, with its source / as-of / status as the
+// tooltip, so the browser declares no default and sends null for an empty box.
+function fillEconComputeControls(o) {
+  if (!o) return;
+  window.AF.econComputeOpts = o;
+  const fill = (id, items, dflt) => {
+    const sel = document.getElementById(id);
+    if (!sel || !Array.isArray(items)) return;
+    const current = sel.value;
+    sel.replaceChildren(...items.map(g => {
+      const opt = document.createElement("option");
+      opt.value = g.value; opt.textContent = g.label; opt.title = g.title || "";
+      return opt;
+    }));
+    sel.value = current || dflt;
+    if (!sel.value) sel.value = dflt;
+  };
+  fill("econ-compute-gpu", o.gpus, o.default_gpu);
+  fill("econ-compute-preset", o.presets, o.default_preset);
+  syncEconComputePlaceholders();
+}
+
+const ECON_COMPUTE_BOXES = ["econ-compute-life", "econ-compute-rate", "econ-compute-capex",
+  "econ-compute-kw", "econ-compute-pue", "econ-compute-kwh", "econ-compute-colo"];
+
+function syncEconComputePlaceholders() {
+  const o = window.AF.econComputeOpts;
+  if (!o) return;
+  const gpu = document.getElementById("econ-compute-gpu")?.value || o.default_gpu;
+  const preset = document.getElementById("econ-compute-preset")?.value || o.default_preset;
+  const g = (o.defaults || {})[gpu] || {};
+  const p = (o.preset_defaults || {})[preset] || {};
+  const f = o.facility || {};
+  const set = (id, value, title) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.placeholder = value === null || value === undefined ? "—" : String(value);
+    el.title = title || "";
+    const lbl = document.getElementById(id + "-label");
+    if (lbl) lbl.title = title || "";
+  };
+  set("econ-compute-life", p.life_years, p.life_title);
+  set("econ-compute-rate", p.rate_pct, p.rate_title);
+  set("econ-compute-capex", g.capex_k, g.capex_title);
+  set("econ-compute-kw", g.it_kw, g.kw_title);
+  set("econ-compute-pue", f.pue?.value, f.pue?.title);
+  set("econ-compute-kwh", f.usd_per_kwh?.value, f.usd_per_kwh?.title);
+  set("econ-compute-colo", f.colo_usd_kw_month?.value, f.colo_usd_kw_month?.title);
 }
 
 // Captions are written as text, never markup — they come from the manifest.
@@ -1372,11 +1429,33 @@ function econServeArgs() {
   return [gpu, basis, util];
 }
 
+// Compute's control values in update_econ_compute's order: gpu, preset, use,
+// life, rate, capex (USD; the box is $K), kW, PUE, $/kWh, colo. An empty box
+// is null, so Python owns every default (data/gpu_tco).
+function econComputeArgs() {
+  const gpu = document.getElementById("econ-compute-gpu")?.value || null;
+  const preset = document.getElementById("econ-compute-preset")?.value || null;
+  const capexK = numOrNull("econ-compute-capex");
+  return [gpu, preset, numOrNull("econ-util"), numOrNull("econ-compute-life"),
+    numOrNull("econ-compute-rate"), capexK === null ? null : capexK * 1000,
+    numOrNull("econ-compute-kw"), numOrNull("econ-compute-pue"),
+    numOrNull("econ-compute-kwh"), numOrNull("econ-compute-colo")];
+}
+
 const ECON_REFRESHERS = {
   serve: makeRefresher("economics-serve",
     () => econServeArgs(),
     (g, b, u) => window.AF.callPy("update_econ_serve", g, b, u),
     async (fig) => { await renderJsonFig("chart-econ_serve", fig); attachEconServeClick(); }),
+  compute: makeRefresher("economics-compute",
+    () => econComputeArgs(),
+    (g, p, u, life, rate, capex, kw, pue, kwh, colo) =>
+      window.AF.callPy("update_econ_compute", g, p, u, life, rate, capex, kw, pue, kwh, colo),
+    async (out) => {
+      await renderJsonFig("chart-econ_tco", out.tco);
+      await renderJsonFig("chart-econ_ladder", out.ladder);
+      await renderJsonFig("chart-econ_rental_series", out.series);
+    }),
 };
 
 // ---- Build model-table HTML from records ----
@@ -1722,6 +1801,7 @@ function wireGlobalControls() {
 function econExportArgs() {
   const view = currentEconView();
   if (view === "serve") return [view, ...econServeArgs()];
+  if (view === "compute") return [view, ...econComputeArgs()];
   return [view];
 }
 
@@ -2032,6 +2112,30 @@ function wireTabControls() {
   if (econGpu) econGpu.onchange = scheduleEcon;
   document.querySelectorAll('input[name="econ-serve-basis"]').forEach(r => {
     r.onchange = scheduleEcon;
+  });
+  // Compute: a GPU change clears the per-GPU boxes (CAPEX, kW) and a preset
+  // change the financing boxes (LIFE, RATE), so a typed value never silently
+  // carries over to a part or preset it was not typed for; placeholders and
+  // tooltips follow in the same tick.
+  const compGpu = document.getElementById("econ-compute-gpu");
+  if (compGpu) compGpu.onchange = () => {
+    ["econ-compute-capex", "econ-compute-kw"].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = "";
+    });
+    syncEconComputePlaceholders();
+    scheduleEcon();
+  };
+  const compPreset = document.getElementById("econ-compute-preset");
+  if (compPreset) compPreset.onchange = () => {
+    ["econ-compute-life", "econ-compute-rate"].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = "";
+    });
+    syncEconComputePlaceholders();
+    scheduleEcon();
+  };
+  ECON_COMPUTE_BOXES.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.oninput = scheduleEcon;
   });
   const econUtil = document.getElementById("econ-util");
   const econUtilOut = document.getElementById("econ-util-value");

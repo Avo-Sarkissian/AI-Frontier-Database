@@ -193,6 +193,7 @@ _TAB_EXPORTS = {
 # view the VIEW radio offers must be here: a view missing from it used to fall
 # back to Serve, so ↓CSV on Labs downloaded the serving-cost table.
 ECON_EXPORT_FILENAMES = {"serve": "ai_frontier_serving_cost.csv",
+                         "compute": "ai_frontier_gpu_tco.csv",
                          "labs": "ai_frontier_open_gap.csv"}
 
 
@@ -382,6 +383,13 @@ def econ_export(econ_args, hosted=None):
         gpu, basis, util = (list(rest) + [None, None, None])[:3]
         hosted = hosted if hosted is not None and len(hosted) else None
         return serving_frame(gpu, basis, util, hosted), name
+    if view == "compute":
+        # The TCO table (every GPU, every input with its source) and the
+        # selected GPU's ladder, for the same 10 arguments update_econ_compute
+        # takes: gpu, preset, util, life, rate, capex, kw, pue, kwh, colo.
+        from data import gpu_tco
+        args = (list(rest) + [None] * 10)[:10]
+        return gpu_tco.export_frame(gpu_tco.compute(*args)), name
     if view == "labs":
         # The three open-vs-closed figures' rows (a build-time slice: their
         # score history never ships). Labs has no controls, so no arguments.

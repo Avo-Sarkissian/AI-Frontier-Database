@@ -166,7 +166,9 @@ from static_helpers import (
 from data.open_weights import valid_weights as _valid_weights, weights_label as _weights_label
 from static_helpers import local_frame as _local_frame, with_local_rent_cost as _with_local_rent_cost
 from data import serving_cost as _serving_cost
+from data import gpu_tco as _gpu_tco
 from components.charts.econ_serve import build_econ_serve
+from components.charts.econ_compute import build_econ_compute
 
 
 _DIVERSE5    = _compute_diverse5(df)
@@ -261,6 +263,47 @@ def _econ_serve_figure(gpu=None, basis=None, util=None):
     """Economics › Serve, the same call static_api.update_econ_serve makes."""
     frame, meta = _serving_cost.serving_data(gpu, basis, util, hosted=df)
     return build_econ_serve(frame, meta, axis_range=_serving_cost.axis_range(df))
+
+
+# Economics › Compute: options, placeholders and tooltips from one source
+# (data/gpu_tco.compute_options), shared with the static site.
+_COMPUTE_OPTS = _gpu_tco.compute_options()
+_COMPUTE_BOXES = (  # (id suffix, label, step, width px)
+    ("life", "LIFE YR", 1, 56), ("rate", "RATE %", 0.1, 64), ("capex", "CAPEX $K", 1, 72),
+    ("kw", "kW", 0.01, 64), ("pue", "PUE", 0.01, 56), ("kwh", "$/kWh", 0.001, 68),
+    ("colo", "COLO $/kW-MO", 1, 64),
+)
+
+
+def _compute_placeholders(gpu=None, preset=None) -> dict:
+    """{box suffix: (placeholder, title)} for the GPU and preset on screen."""
+    o = _COMPUTE_OPTS
+    g = o["defaults"].get(_gpu_tco.coerce_gpu(gpu), {})
+    p = o["preset_defaults"].get(_gpu_tco.coerce_preset(preset), {})
+    f = o["facility"]
+    show = lambda v: "—" if v is None else f"{v:g}"
+    return {
+        "life": (show(p.get("life_years")), p.get("life_title", "")),
+        "rate": (show(p.get("rate_pct")), p.get("rate_title", "")),
+        "capex": (show(g.get("capex_k")), g.get("capex_title", "")),
+        "kw": (show(g.get("it_kw")), g.get("kw_title", "")),
+        "pue": (show(f["pue"]["value"]), f["pue"]["title"]),
+        "kwh": (show(f["usd_per_kwh"]["value"]), f["usd_per_kwh"]["title"]),
+        "colo": (show(f["colo_usd_kw_month"]["value"]), f["colo_usd_kw_month"]["title"]),
+    }
+
+
+def _compute_args(gpu=None, preset=None, util=None, life=None, rate=None, capex_k=None,
+                  kw=None, pue=None, kwh=None, colo=None) -> list:
+    """update_econ_compute's argument list; the CAPEX box is in $K."""
+    capex = None if capex_k in (None, "") else float(capex_k) * 1000.0
+    return [gpu, preset, util, life, rate, capex, kw, pue, kwh, colo]
+
+
+def _econ_compute_figures(*args):
+    """The three Compute figures, the same call static_api.update_econ_compute makes."""
+    figs = build_econ_compute(_gpu_tco.compute(*args))
+    return figs["econ_tco"], figs["econ_ladder"], figs["econ_rental_series"]
 
 
 def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str],
@@ -975,6 +1018,7 @@ app.layout = html.Div([
                 dcc.RadioItems(
                     id="econ-view",
                     options=[{"label": "Serve", "value": "serve"},
+                             {"label": "Compute", "value": "compute"},
                              {"label": "Labs", "value": "labs"}],
                     value="serve", inline=True,
                     inputStyle={"marginRight": "4px"},
@@ -1018,6 +1062,38 @@ app.layout = html.Div([
                                     "fontSize": "12px", "color": "#aaa"},
                     ),
                 ], style={"display": "inline-flex", "alignItems": "center", "gap": "8px"}),
+                html.Span(id="econ-compute-controls", children=[
+                    html.Div(className="filter-sep"),
+                    html.Span("GPU", className="filter-label"),
+                    dcc.Dropdown(
+                        id="econ-compute-gpu",
+                        options=[{"label": o["label"], "value": o["value"], "title": o["title"]}
+                                 for o in _COMPUTE_OPTS["gpus"]],
+                        value=_COMPUTE_OPTS["default_gpu"], clearable=False,
+                        style={"minWidth": "140px"},
+                    ),
+                    html.Div(className="filter-sep"),
+                    html.Span("PRESET", className="filter-label"),
+                    dcc.Dropdown(
+                        id="econ-compute-preset",
+                        options=[{"label": o["label"], "value": o["value"], "title": o["title"]}
+                                 for o in _COMPUTE_OPTS["presets"]],
+                        value=_COMPUTE_OPTS["default_preset"], clearable=False,
+                        style={"minWidth": "230px"},
+                    ),
+                    html.Div(className="filter-sep"),
+                    *[c for key, label, step, width in _COMPUTE_BOXES for c in (
+                        html.Span(label, id=f"econ-compute-{key}-label", className="filter-label",
+                                  title=_compute_placeholders()[key][1]),
+                        # dcc.Input takes no title: the tooltip rides a wrapper.
+                        html.Span(dcc.Input(id=f"econ-compute-{key}", type="number", min=0,
+                                            step=step, debounce=True,
+                                            placeholder=_compute_placeholders()[key][0],
+                                            style={"width": f"{width}px"}),
+                                  id=f"econ-compute-{key}-wrap",
+                                  title=_compute_placeholders()[key][1]),
+                    )],
+                ], style={"display": "none"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div(id="econ-view-serve", children=[
                 _desc(CAPTIONS["economics_serve"]),
@@ -1025,6 +1101,13 @@ app.layout = html.Div([
                     dcc.Graph(id="econ-serve-chart", figure=_econ_serve_figure(),
                               config=_GRAPH_CONFIG, style={"height": "640px"}),
                 ])], className="chart-card"),
+            ]),
+            html.Div(id="econ-view-compute", style={"display": "none"}, children=[
+                _desc(CAPTIONS["economics_compute"]),
+                *[html.Div([dcc.Loading(**_LOADING, children=[
+                    dcc.Graph(id=gid, config=_GRAPH_CONFIG, style={"minHeight": "460px"}),
+                ])], className="chart-card")
+                  for gid in ("econ-tco-chart", "econ-ladder-chart", "econ-rental-series-chart")],
             ]),
             html.Div(id="econ-view-labs", style={"display": "none"}, children=[
                 _desc(CAPTIONS["economics_open_gap"]),
@@ -1854,6 +1937,57 @@ def update_econ_serve(gpu, basis, util):
 
 
 @callback(
+    Output("econ-tco-chart",           "figure"),
+    Output("econ-ladder-chart",        "figure"),
+    Output("econ-rental-series-chart", "figure"),
+    Input("econ-compute-gpu",    "value"),
+    Input("econ-compute-preset", "value"),
+    Input("econ-util",           "value"),
+    *[Input(f"econ-compute-{key}", "value") for key, *_ in _COMPUTE_BOXES],
+)
+def update_econ_compute(gpu, preset, util, life=None, rate=None, capex_k=None, kw=None,
+                        pue=None, kwh=None, colo=None):
+    """Economics › Compute: the same three figures as the static site's
+    update_econ_compute, from the same data/gpu_tco.compute call."""
+    return _econ_compute_figures(*_compute_args(gpu, preset, util, life, rate, capex_k,
+                                                kw, pue, kwh, colo))
+
+
+@callback(
+    Output("econ-compute-capex", "value"),
+    Output("econ-compute-kw",    "value"),
+    Output("econ-compute-capex", "placeholder"),
+    Output("econ-compute-kw",    "placeholder"),
+    Output("econ-compute-capex-wrap", "title"),
+    Output("econ-compute-kw-wrap",    "title"),
+    Input("econ-compute-gpu", "value"),
+    prevent_initial_call=True,
+)
+def sync_econ_compute_gpu(gpu):
+    """A GPU change clears the per-GPU boxes, so a typed CAPEX or kW never
+    carries over to a part it was not typed for, and shows that part's
+    sourced defaults as placeholders."""
+    ph = _compute_placeholders(gpu)
+    return None, None, ph["capex"][0], ph["kw"][0], ph["capex"][1], ph["kw"][1]
+
+
+@callback(
+    Output("econ-compute-life", "value"),
+    Output("econ-compute-rate", "value"),
+    Output("econ-compute-life", "placeholder"),
+    Output("econ-compute-rate", "placeholder"),
+    Output("econ-compute-life-wrap", "title"),
+    Output("econ-compute-rate-wrap", "title"),
+    Input("econ-compute-preset", "value"),
+    prevent_initial_call=True,
+)
+def sync_econ_compute_preset(preset):
+    """A preset change clears LIFE and RATE and shows the preset's own."""
+    ph = _compute_placeholders(None, preset)
+    return None, None, ph["life"][0], ph["rate"][0], ph["life"][1], ph["rate"][1]
+
+
+@callback(
     Output("econ-view-serve",      "style"),
     Output("econ-view-labs",       "style"),
     Output("econ-serve-controls",  "style"),
@@ -1861,16 +1995,22 @@ def update_econ_serve(gpu, basis, util):
     Output("econ-open-gap-history-chart", "figure"),
     Output("econ-open-gap-lag-chart",     "figure"),
     Output("econ-open-gap-price-chart",   "figure"),
+    Output("econ-view-compute",     "style"),
+    Output("econ-compute-controls", "style"),
     Input("econ-view", "value"),
 )
 def toggle_econ_view(view):
-    """Serve shows the USE slider and its own controls; Labs shows neither.
-    Labs is built from the same open-gap builders as the static pre-render,
-    only when first opened (the score history reads every daily snapshot)."""
-    shown = {"display": "inline-flex", "alignItems": "center", "gap": "8px"}
+    """Serve and Compute show the shared USE slider and their own controls;
+    Labs shows neither. Labs is built from the same open-gap builders as the
+    static pre-render, only when first opened (the score history reads every
+    daily snapshot)."""
+    shown = {"display": "inline-flex", "alignItems": "center", "gap": "8px",
+             "flexWrap": "wrap"}
     hidden = {"display": "none"}
+    if view == "compute":
+        return (hidden, hidden, hidden, shown, no_update, no_update, no_update, {}, shown)
     if view != "labs":
-        return {}, hidden, shown, shown, no_update, no_update, no_update
+        return ({}, hidden, shown, shown, no_update, no_update, no_update, hidden, hidden)
     from data.ingest import load_history
     from data.open_gap import (gap_history, release_lag, iso_quality_ratios,
                                snapshot_dates, score_dates)
@@ -1882,7 +2022,7 @@ def toggle_econ_view(view):
     return ({"display": "none"}, {}, hidden, hidden,
             build_gap_history(*gap_history(hist)),
             build_release_lag(*release_lag(df, asof, score_dates(hist, df))),
-            build_iso_price(*iso_quality_ratios(df, None)))
+            build_iso_price(*iso_quality_ratios(df, None)), hidden, hidden)
 
 
 # ── Model detail panel ────────────────────────────────────────────────────────
@@ -2115,13 +2255,18 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
     State("econ-serve-gpu",  "value"),
     State("econ-serve-basis", "value"),
     State("econ-util",       "value"),
+    State("econ-compute-gpu",    "value"),
+    State("econ-compute-preset", "value"),
+    *[State(f"econ-compute-{key}", "value") for key, *_ in _COMPUTE_BOXES],
     prevent_initial_call=True,
 )
 def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
                vram_per_gpu=None, num_gpus=None, quant=None, ctx_tokens=None,
                hw_meta=None, tags=None, mix_key=None, mix_ratio=None, mix_cache=None,
                weights=None, gpu_rate=None, econ_view=None, econ_gpu=None,
-               econ_basis=None, econ_util=None):
+               econ_basis=None, econ_util=None, compute_gpu=None, compute_preset=None,
+               compute_life=None, compute_rate=None, compute_capex_k=None, compute_kw=None,
+               compute_pue=None, compute_kwh=None, compute_colo=None):
     """Export what is on screen, not always the hosted-LLM table.
 
     The global filter bar sits outside dcc.Tabs and four tabs consume none of
@@ -2142,7 +2287,13 @@ def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
         "tags": tags or None, "ctx_tokens": ctx_tokens,
         "fp16_tflops": hw.get("fp16_tflops"), "gpu_rate": gpu_rate,
     }
-    econ_args = [econ_view or "serve", econ_gpu, econ_basis, econ_util]
+    if econ_view == "compute":
+        econ_args = ["compute", *_compute_args(compute_gpu, compute_preset, econ_util,
+                                               compute_life, compute_rate, compute_capex_k,
+                                               compute_kw, compute_pue, compute_kwh,
+                                               compute_colo)]
+    else:
+        econ_args = [econ_view or "serve", econ_gpu, econ_basis, econ_util]
     frame, name = _export_frame_for_tab(tab, providers, min_quality, search,
                                         effort=effort, local_args=local_args,
                                         mix=_mix(mix_key, mix_ratio, mix_cache),

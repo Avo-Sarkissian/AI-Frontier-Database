@@ -19,6 +19,10 @@ window, and nobody publishes the history.
 - The NY Fed publishes SOFR daily (the "SOFR + spread" financing input).
 - Epoch AI's hardware and AI Companies CSVs are revised in place; they are
   mirrored, and git history is the archive.
+- Azure's Retail Prices API and AWS's public on-demand price list give the
+  hyperscalers' list price for each GPU instance (Economics › Compute's top
+  rung). data/raw/econ/hyperscaler_gpu_prices.csv is a current snapshot, not
+  an archive: git history is the archive, as for the Epoch mirrors.
 
 Each source has its own cadence (SOURCES), so most hourly bot runs fetch
 nothing. Every source is fetched, validated and written on its own: one failing
@@ -40,11 +44,14 @@ datasets the freshness badge reports on, so scrape_status is not touched.
     python -m data.econ_archive                 # whatever is due
     python -m data.econ_archive --force         # everything, now
     python -m data.econ_archive --only sofr,inferencex
+    python -m data.econ_archive --only hyperscaler
     python -m data.econ_archive --allow-shrink  # upstream really pruned (see run())
     python -m data.econ_archive --seed-getdeploying PATH   # one-time, archive wins
 
 Terms (checked 2026-10-27): GetDeploying and Epoch AI data are CC BY 4.0. The
-NY Fed reference-rate API is public. InferenceX code is Apache-2.0 and its data
+NY Fed reference-rate API is public. Azure and AWS publish their list prices
+through public, keyless pricing endpoints; they are shown as list prices with
+the vendor named. InferenceX code is Apache-2.0 and its data
 is published as freely available, with no formal data licence; the name is a
 SemiAnalysis trademark, so credit it and link the runs. Vast.ai, RunPod, Ornn,
 Silicon Data and OpenRouter's rankings are excluded on purpose: their terms
@@ -73,6 +80,8 @@ ECON_DIR = Path(
     os.environ.get("AI_FRONTIER_CARRIED_DIR") or ROOT / "data" / "carried"
 ) / "econ"
 EPOCH_DIR = Path(os.environ.get("AI_FRONTIER_EPOCH_DIR") or ROOT / "data" / "raw" / "epoch")
+RAW_ECON_DIR = Path(os.environ.get("AI_FRONTIER_RAW_ECON_DIR")
+                    or ROOT / "data" / "raw" / "econ")
 STATE_FILE = "fetch_state.json"
 
 ESCALATE_AFTER_H = 24.0
@@ -85,6 +94,7 @@ GPU_PRICES = "data/carried/econ/gpu_prices_weekly.csv"
 SOFR_CSV = "data/carried/econ/sofr.csv"
 IX_RATES = "data/carried/econ/inferencex_rates.csv"
 IX_POINTS = "data/carried/econ/inferencex_points.csv"
+HYPERSCALER = "data/raw/econ/hyperscaler_gpu_prices.csv"
 EPOCH_FILES = {
     "ml_hardware.csv": "data/raw/epoch/ml_hardware.csv",
     "ai_companies_revenue_reports.csv": "data/raw/epoch/ai_companies_revenue_reports.csv",
@@ -100,6 +110,11 @@ SOFR_FIRST_DATE = "2018-04-02"     # first published SOFR (NY Fed)
 IX_BASE = "https://inferencex.semianalysis.com/api/v1"
 IX_RUN_URL = "https://github.com/SemiAnalysisAI/InferenceX/actions/runs/{run_id}"
 EPOCH_BASE = "https://epoch.ai/data/"
+AZURE_PRICES_URL = "https://prices.azure.com/api/retail/prices"
+AZURE_TERMS_URL = ("https://learn.microsoft.com/en-us/rest/api/cost-management/"
+                   "retail-prices/azure-retail-prices")
+AWS_ONDEMAND_URL = ("https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/"
+                    "ec2-ondemand-without-sec-sel/US%20East%20(N.%20Virginia)/Linux/index.json")
 
 
 @dataclass(frozen=True)
@@ -147,6 +162,11 @@ SOURCES: dict[str, Source] = {
         "code Apache-2.0; data published as freely available (no formal data licence)",
         "SemiAnalysis InferenceX (per-run links to github.com/SemiAnalysisAI/InferenceX/actions/runs)",
         144, 6, (IX_RATES, IX_POINTS)),
+    "hyperscaler": Source(
+        "hyperscaler", AZURE_PRICES_URL, AZURE_TERMS_URL,
+        "list prices, public pricing APIs (Azure Retail Prices API; AWS public price list)",
+        "Azure Retail Prices API; AWS Price List (on-demand, US East)",
+        144, 6, (HYPERSCALER,)),
 }
 
 # Hosts whose terms forbid what a public dashboard does with their data.
@@ -199,6 +219,8 @@ def resolve(canonical: str) -> Path:
         return ECON_DIR / p.name
     if canonical.startswith("data/raw/epoch/"):
         return EPOCH_DIR / p.name
+    if canonical.startswith("data/raw/econ/"):
+        return RAW_ECON_DIR / p.name
     return ROOT / canonical
 
 
@@ -1005,11 +1027,187 @@ def run_epoch_companies(session, now: datetime, prev: dict, allow_shrink: bool =
                       allow_shrink)
 
 
+# ── Hyperscaler list prices (Azure, AWS) ──────────────────────────────────────
+
+# One row per instance type this dashboard prices: the GPU it carries and how
+# many, each count cited to the vendor's instance-type page (read 2026-10-27).
+HYPERSCALER_SKUS: tuple[dict, ...] = (
+    {"cloud": "azure", "sku": "Standard_ND96isr_H100_v5", "gpu_key": "h100", "gpus": 8,
+     "doc_url": "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/"
+                "gpu-accelerated/ndh100v5-series"},
+    {"cloud": "azure", "sku": "Standard_ND96isr_H200_v5", "gpu_key": "h200", "gpus": 8,
+     "doc_url": "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/"
+                "gpu-accelerated/nd-h200-v5-series"},
+    {"cloud": "azure", "sku": "Standard_ND96isr_MI300X_v5", "gpu_key": "mi300x", "gpus": 8,
+     "doc_url": "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/"
+                "gpu-accelerated/ndmi300xv5-series"},
+    # "two NVIDIA Grace CPUs and four NVIDIA Blackwell GPUs" per VM
+    {"cloud": "azure", "sku": "Standard_ND128isr_NDR_GB200_v6", "gpu_key": "gb200", "gpus": 4,
+     "doc_url": "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/"
+                "gpu-accelerated/nd-gb200-v6-series"},
+    {"cloud": "aws", "sku": "p5.48xlarge", "gpu_key": "h100", "gpus": 8,
+     "doc_url": "https://aws.amazon.com/ec2/instance-types/p5/"},
+    {"cloud": "aws", "sku": "p5en.48xlarge", "gpu_key": "h200", "gpus": 8,
+     "doc_url": "https://aws.amazon.com/ec2/instance-types/p5/"},
+    {"cloud": "aws", "sku": "p6-b200.48xlarge", "gpu_key": "b200", "gpus": 8,
+     "doc_url": "https://aws.amazon.com/ec2/instance-types/p6/"},
+    {"cloud": "aws", "sku": "p6-b300.48xlarge", "gpu_key": "b300", "gpus": 8,
+     "doc_url": "https://aws.amazon.com/ec2/instance-types/p6/"},
+)
+HYPERSCALER_HEADER = ["cloud", "sku", "region", "gpu_key", "gpus_per_instance",
+                      "price_per_instance_hr", "price_per_gpu_hr", "effective_date",
+                      "observed_on", "source_url"]
+# Azure list prices differ by region (H200 v5: $84.80 in eastus2, $169.60 in
+# brazilsouth, 2026-10-23), so the first US region in this order that lists
+# the SKU is used and recorded.
+AZURE_REGIONS = ("eastus", "eastus2", "westus2", "westus3", "southcentralus",
+                 "centralus", "northcentralus")
+AWS_REGION_NAME = "US East (N. Virginia)"
+HYPERSCALER_MIN_ROWS = 6
+# A per-GPU on-demand list price outside this band is a units or parsing fault
+# (the 2026-10-27 range is $6.00 to $27.04).
+HYPERSCALER_GPU_HR_RANGE = (0.5, 100.0)
+_AZURE_MAX_PAGES = 20
+
+
+def azure_filter() -> str:
+    skus = " or ".join(f"armSkuName eq '{s['sku']}'" for s in HYPERSCALER_SKUS
+                       if s["cloud"] == "azure")
+    return (f"serviceName eq 'Virtual Machines' and priceType eq 'Consumption' "
+            f"and ({skus})")
+
+
+def _azure_on_demand_linux(item: dict) -> bool:
+    """Pay-as-you-go Linux: Spot and Low Priority are separate meters, and a
+    Windows licence is a separate product, all under priceType Consumption."""
+    meter = f"{item.get('meterName', '')} {item.get('skuName', '')}"
+    return (item.get("type") == "Consumption"
+            and item.get("currencyCode", "USD") == "USD"
+            and str(item.get("unitOfMeasure", "")).strip() == "1 Hour"
+            and "spot" not in meter.lower() and "low priority" not in meter.lower()
+            and "windows" not in str(item.get("productName", "")).lower())
+
+
+def parse_azure(items: list[dict], today: date) -> tuple[list[list[str]], list[str]]:
+    """Azure Retail Prices items -> (rows without observed_on, missing skus).
+    Per SKU: the first preferred region that lists it; within it, the price
+    whose effectiveStartDate is latest but not in the future."""
+    rows, missing = [], []
+    for spec in (s for s in HYPERSCALER_SKUS if s["cloud"] == "azure"):
+        cands = [i for i in items or [] if i.get("armSkuName") == spec["sku"]
+                 and _azure_on_demand_linux(i) and (_num(i.get("retailPrice")) or 0) > 0]
+        pick = None
+        for region in AZURE_REGIONS:
+            here = [i for i in cands if i.get("armRegionName") == region
+                    and (_parse_date(i.get("effectiveStartDate", "")) or today) <= today]
+            if here:
+                pick = max(here, key=lambda i: str(i.get("effectiveStartDate", "")))
+                break
+        if pick is None:
+            missing.append(spec["sku"])
+            continue
+        price = float(pick["retailPrice"])
+        eff = _parse_date(pick.get("effectiveStartDate", ""))
+        rows.append(["azure", spec["sku"], pick["armRegionName"], spec["gpu_key"],
+                     str(spec["gpus"]), _g(price), _g(price / spec["gpus"]),
+                     eff.isoformat() if eff else "", "", AZURE_PRICES_URL])
+    return rows, missing
+
+
+def parse_aws(payload: dict) -> tuple[list[list[str]], list[str]]:
+    """AWS's public on-demand price map (Linux, US East) -> (rows, missing).
+    The effective date is the file's own publication date (manifest
+    hawkFilePublicationDate): AWS publishes no per-price date there."""
+    manifest = (payload or {}).get("manifest") or {}
+    pub = _parse_date(str(manifest.get("hawkFilePublicationDate", "")))
+    region = ((payload or {}).get("regions") or {}).get(AWS_REGION_NAME) or {}
+    by_type: dict[str, float] = {}
+    for rec in region.values():
+        t = rec.get("Instance Type")
+        price = _num(rec.get("price"))
+        if t and price and price > 0 and rec.get("Operating System", "Linux") == "Linux":
+            by_type.setdefault(t, price)
+    rows, missing = [], []
+    for spec in (s for s in HYPERSCALER_SKUS if s["cloud"] == "aws"):
+        price = by_type.get(spec["sku"])
+        if price is None:
+            missing.append(spec["sku"])
+            continue
+        rows.append(["aws", spec["sku"], "us-east-1", spec["gpu_key"], str(spec["gpus"]),
+                     _g(price), _g(price / spec["gpus"]), pub.isoformat() if pub else "",
+                     "", AWS_ONDEMAND_URL])
+    return rows, missing
+
+
+def merge_hyperscaler(prev_rows: list[list[str]], new_rows: list[list[str]],
+                      today: date) -> list[list[str]]:
+    """The current snapshot, sorted, with observed_on = the day the bot first
+    saw THIS price for the SKU (kept while region, price and effective date
+    are unchanged). An unchanged upstream therefore writes identical bytes."""
+    prev = {(r[0], r[1]): r for r in prev_rows if len(r) == len(HYPERSCALER_HEADER)}
+    out = []
+    for r in new_rows:
+        old = prev.get((r[0], r[1]))
+        same = old is not None and (old[2], old[5], old[7]) == (r[2], r[5], r[7])
+        out.append(r[:8] + [old[8] if same else today.isoformat()] + r[9:])
+    return sorted(out, key=lambda r: (r[3], r[0], r[1]))
+
+
+def validate_hyperscaler(rows: list[list[str]]) -> list[str]:
+    problems = []
+    if len(rows) < HYPERSCALER_MIN_ROWS:
+        problems.append(f"only {len(rows)} priced instance types (floor {HYPERSCALER_MIN_ROWS})")
+    lo, hi = HYPERSCALER_GPU_HR_RANGE
+    for r in rows:
+        v = _num(r[6])
+        if v is None or not lo <= v <= hi:
+            problems.append(f"{r[1]}: {r[6]} $/GPU-hr outside [{lo:g}, {hi:g}] (units?)")
+    return problems
+
+
+def _azure_items(session) -> list[dict]:
+    items: list[dict] = []
+    resp = _get(session, AZURE_PRICES_URL, {"$filter": azure_filter()}).json()
+    for _ in range(_AZURE_MAX_PAGES):
+        items.extend((resp or {}).get("Items") or [])
+        nxt = (resp or {}).get("NextPageLink")
+        if not nxt:
+            return items
+        if not str(nxt).startswith(AZURE_PRICES_URL):
+            raise SourceError(f"unexpected NextPageLink host: {str(nxt)[:80]}")
+        resp = _get(session, nxt).json()
+    raise SourceError(f"more than {_AZURE_MAX_PAGES} pages of Azure prices")
+
+
+def run_hyperscaler(session, now: datetime, prev: dict, allow_shrink: bool = False,
+                    **_) -> Outcome:
+    az_rows, az_missing = parse_azure(_azure_items(session), now.date())
+    aws_rows, aws_missing = parse_aws(_get(session, AWS_ONDEMAND_URL).json())
+    rows = az_rows + aws_rows
+    problems = validate_hyperscaler(rows)
+    if problems:
+        raise SourceError("; ".join(problems[:4]))
+    path = resolve(HYPERSCALER)
+    before = _read_text(path)
+    _, old = _parse_csv(before)
+    merged = merge_hyperscaler(old, sanitise_rows(rows), now.date())
+    text = _csv_text(HYPERSCALER_HEADER, merged)
+    problems = _guard(HYPERSCALER, before, text, allow_shrink)
+    if problems:
+        raise SourceError("; ".join(problems))
+    wrote = [HYPERSCALER] if _write_if_changed(path, text) else []
+    missing = az_missing + aws_missing
+    return Outcome(True, rows=len(merged), upstream_rows=len(rows), wrote=wrote,
+                   notes=[f"{r[1]} {r[2]} ${r[6]}/GPU-hr" for r in merged],
+                   warn=(f"no list price found for {', '.join(missing)}" if missing else ""))
+
+
 RUNNERS: dict[str, Callable[..., Outcome]] = {
     "sofr": run_sofr,
     "getdeploying": run_getdeploying,
     "epoch_hardware": run_epoch_hardware,
     "epoch_companies": run_epoch_companies,
+    "hyperscaler": run_hyperscaler,
     "inferencex": run_inferencex,           # last: the long one, under the budget
 }
 

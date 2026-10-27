@@ -26,6 +26,15 @@
     "rows": 16627,
     "upstream_rows": 16481
   },
+  "hyperscaler": {
+    "checked_at": "2026-10-27T17:59:01Z",
+    "error": "",
+    "failing_since": null,
+    "fetched_at": "2026-10-27T17:59:01Z",
+    "ok": true,
+    "rows": 8,
+    "upstream_rows": 8
+  },
   "inferencex": {
     "checked_at": "2026-10-27T14:36:17Z",
     "error": "",

@@ -1,0 +1,111 @@
+{
+ "manifest": {
+  "serviceId": "ec2",
+  "accessType": "publish",
+  "hawkFilePublicationDate": "2026-10-23T22:13:55Z",
+  "ETLIngestionTriggerDate": "2026-10-23T22:13:55Z",
+  "currencyCode": "USD",
+  "source": "ec2-ondemand-without-sec-sel"
+ },
+ "sets": {},
+ "regions": {
+  "US East (N. Virginia)": {
+   "m5 large US East N. Virginia Linux": {
+    "rateCode": "6C86BEPQVG73ZGGR.JRTCKXETXF.6YS6EN2CT7",
+    "price": "0.0960000000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "General purpose",
+    "vCPU": "2",
+    "Instance Type": "m5.large",
+    "Memory": "8 GiB",
+    "Storage": "EBS only",
+    "Network Performance": "Up to 10 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "General Purpose",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   },
+   "p5 48xlarge US East N. Virginia Linux": {
+    "rateCode": "3D4V8UAYEMB38GU2.JRTCKXETXF.6YS6EN2CT7",
+    "price": "55.0400000000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "GPU instance",
+    "vCPU": "192",
+    "Instance Type": "p5.48xlarge",
+    "Memory": "2048 GiB",
+    "Storage": "8 x 3840 GB SSD",
+    "Network Performance": "3200 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "Accelerated Computing",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   },
+   "p5en 48xlarge US East N. Virginia Linux": {
+    "rateCode": "XMKUY5HX43BTVY62.JRTCKXETXF.6YS6EN2CT7",
+    "price": "63.2960000000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "GPU instance",
+    "vCPU": "192",
+    "Instance Type": "p5en.48xlarge",
+    "Memory": "2048 GiB",
+    "Storage": "8 x 3840 NVMe SSD",
+    "Network Performance": "3200 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "Accelerated Computing",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   },
+   "p6-b200 48xlarge US East N. Virginia Linux": {
+    "rateCode": "JU8KS3Q3UCS3GM6X.JRTCKXETXF.6YS6EN2CT7",
+    "price": "113.9328000000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "GPU instance",
+    "vCPU": "192",
+    "Instance Type": "p6-b200.48xlarge",
+    "Memory": "2048 GiB",
+    "Storage": "8 x 3840 NVMe SSD",
+    "Network Performance": "3200 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "Accelerated Computing",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   },
+   "p6-b300 48xlarge US East N. Virginia Linux": {
+    "rateCode": "G2B25BSJJUB6HQPQ.JRTCKXETXF.6YS6EN2CT7",
+    "price": "142.4160000000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "GPU instance",
+    "vCPU": "192",
+    "Instance Type": "p6-b300.48xlarge",
+    "Memory": "4096 GiB",
+    "Storage": "8 x 3840 NVMe SSD",
+    "Network Performance": "6400 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "Accelerated Computing",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   },
+   "p4d 24xlarge US East N. Virginia Linux": {
+    "rateCode": "H7NGEAC6UEHNTKSJ.JRTCKXETXF.6YS6EN2CT7",
+    "price": "21.9576420000",
+    "Location": "US East (N. Virginia)",
+    "Instance Family": "GPU instance",
+    "vCPU": "96",
+    "Instance Type": "p4d.24xlarge",
+    "Memory": "1152 GiB",
+    "Storage": "8 x 1000 SSD",
+    "Network Performance": "400 Gigabit",
+    "plc:OperatingSystem": "Linux",
+    "plc:InstanceFamily": "Accelerated Computing",
+    "Operating System": "Linux",
+    "Pre Installed S/W": "NA",
+    "License Model": "No License required"
+   }
+  }
+ }
+}

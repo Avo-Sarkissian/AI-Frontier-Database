@@ -41,7 +41,9 @@ from data.workload_mix import (
 )
 from data.task_cost import median_token_burn, detail_rows, detail_note
 from data import serving_cost
+from data import gpu_tco
 from components.charts.econ_serve import build_econ_serve
+from components.charts.econ_compute import build_econ_compute
 from static_helpers import (
     index_label,
     apply_filters,
@@ -639,6 +641,36 @@ def update_econ_serve(gpu=None, basis=None, util_pct=None):
 
 def econ_serve_options():
     return json.dumps(serving_cost.serve_options())
+
+
+def update_econ_compute(gpu_key=None, preset=None, util_pct=None, life_years=None,
+                        rate_pct=None, capex_usd=None, it_kw=None, pue=None,
+                        usd_per_kwh=None, colo_usd_kw_month=None):
+    """Economics › Compute: the owned-TCO stack, the selected GPU's rental
+    ladder and its weekly GetDeploying series, in one call. None for any
+    argument is its default (data/gpu_tco: H100, the CoreWeave preset, the
+    shared 60% use, the curated inputs), which is exactly the pre-rendered
+    docs/figures/econ_tco.json, econ_ladder.json and econ_rental_series.json.
+    Parameters are only ever APPENDED (pyworker.js has no arity check)."""
+    result = gpu_tco.compute(gpu_key, preset, util_pct, life_years, rate_pct, capex_usd,
+                             it_kw, pue, usd_per_kwh, colo_usd_kw_month)
+    figs = build_econ_compute(result)
+    sel = result["selected"]
+    bd = sel["breakdown"]
+    return json.dumps({
+        "tco": json.loads(figs["econ_tco"].to_json()),
+        "ladder": json.loads(figs["econ_ladder"].to_json()),
+        "series": json.loads(figs["econ_rental_series"].to_json()),
+        "gpu": result["gpu"], "preset": result["financing"]["preset"],
+        "util_pct": result["util_pct"],
+        "breakdown": None if bd is None else {
+            k: bd[k] for k in ("capital", "power", "colo", "total_100", "total_at_util", "crf",
+                               "shares")},
+    })
+
+
+def econ_compute_options():
+    return json.dumps(gpu_tco.compute_options())
 
 
 def weights_options():
