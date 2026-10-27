@@ -8,6 +8,8 @@ const TABS = [
   { id: "budget",    label: "Budget",      charts: ["cost_calc"] },
   { id: "table",     label: "Table",       charts: [] },
   { id: "local",     label: "Run Local",   charts: ["local_scatter", "local_compat"] },
+  // Economics draws per VIEW (ECON_VIEWS below), so its own list is empty.
+  { id: "economics", label: "Economics",   charts: [] },
   { id: "image",     label: "Image Gen",   charts: ["image_faceted"] },
   { id: "video",     label: "Video Gen",   charts: ["video_rankings", "video_scatter"] },
 ];
@@ -25,9 +27,35 @@ const TAB_CAPTIONS = {
   budget:    ["budget"],
   table:     ["table"],
   local:     ["local"],
+  // Every view's captions: each view pre-creates its [data-caption] elements,
+  // which renderCaptions fills in place.
+  economics: ["economics_serve", "economics_open_gap"],
   image:     ["image"],
   video:     ["video"],
 };
+
+// ---- Economics views (one VIEW radio, one container per view) ----
+// Keys are `view:`, never `id:` — any `{ id: "…"` in this file reads as a tab.
+// charts: pre-rendered figure ids (docs/figures/<id>.json, #chart-<id>);
+// captions: manifest.captions keys shown above them; controls: the spans of
+// #tab-controls-economics shown with the view; html: figure ids whose JSON is
+// {html} (a ledger table built and escaped in Python), set as innerHTML.
+// F inserts { view: "compute", ... } between serve and labs; G prepends its
+// Labs section (captions/charts) before the open-gap one and adds its ledger
+// to html.
+const ECON_VIEWS = [
+  { view: "serve", label: "Serve", charts: ["econ_serve"], captions: ["economics_serve"],
+    controls: ["econ-shared-controls", "econ-serve-controls"], html: [] },
+  { view: "labs",  label: "Labs",
+    charts: ["econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"],
+    captions: ["economics_open_gap"], controls: [], html: [] },
+];
+const ECON_CONTROL_SPANS = ["econ-shared-controls", "econ-serve-controls"];
+
+function currentEconView() {
+  const v = document.querySelector('input[name="econ-view"]:checked')?.value;
+  return ECON_VIEWS.some(x => x.view === v) ? v : ECON_VIEWS[0].view;
+}
 
 // window.AF.state contract: { providers: string[], minQuality: number, search: string, tab: string }
 const COMPARE_MAX = 5;   // mirrors static_helpers.COMPARE_MAX
@@ -148,6 +176,38 @@ function buildTabsAndPanels() {
         <div id="compare-raw-table" class="chart-card" style="overflow-x:auto;padding:16px;"></div>`;
     } else if (t.id === "recommend") {
       panel.innerHTML = `<div id="recommend-cards" class="chart-card" style="padding:16px;"></div>`;
+    } else if (t.id === "economics") {
+      // One container per view. The captions are created HERE, empty, so
+      // renderCaptions fills them in place instead of inserting a sibling
+      // before some card of another view.
+      ECON_VIEWS.forEach((v, j) => {
+        const box = document.createElement("div");
+        box.id = "econ-view-" + v.view;
+        box.style.display = j === 0 ? "block" : "none";
+        (v.captions || []).forEach(key => {
+          const cap = document.createElement("div");
+          cap.className = "chart-caption";
+          cap.dataset.caption = key;
+          box.appendChild(cap);
+        });
+        (v.charts || []).forEach(c => {
+          const card = document.createElement("div");
+          card.className = "chart-card";
+          const div = document.createElement("div");
+          div.id = "chart-" + c;
+          div.style.minHeight = "460px";
+          card.appendChild(div);
+          box.appendChild(card);
+        });
+        (v.html || []).forEach(h => {
+          const card = document.createElement("div");
+          card.className = "chart-card";
+          card.id = "econ-html-" + h;
+          card.style.cssText = "overflow-x:auto;padding:16px;";
+          box.appendChild(card);
+        });
+        panel.appendChild(box);
+      });
     } else {
       panel.innerHTML = t.charts.map(c =>
         `<div class="chart-card"><div id="chart-${c}" style="min-height:400px"></div></div>`
@@ -159,7 +219,7 @@ function buildTabsAndPanels() {
 
 // Tabs that read none of PROVIDER / MIN SCORE / SEARCH — mirrors
 // static_helpers.TABS_WITHOUT_GLOBAL_FILTERS.
-const TABS_WITHOUT_GLOBAL_FILTERS = ["recommend", "local", "image", "video"];
+const TABS_WITHOUT_GLOBAL_FILTERS = ["recommend", "local", "image", "video", "economics"];
 
 // Show/hide per-tab control rows
 function showTabControls(id) {
@@ -194,6 +254,7 @@ function showTabControls(id) {
   // Show controls for the active tab
   const ctrl = document.getElementById("tab-controls-" + id);
   if (ctrl) ctrl.style.display = "flex";
+  if (id === "economics") syncEconControls(currentEconView());
 
   // For Agent Stack, also show providers/hw rows based on current mode
   if (id === "recommend") {
@@ -225,6 +286,7 @@ function switchTab(id) {
     document.getElementById("panel-" + t.id).style.display = t.id === id ? "block" : "none";
   });
   showTabControls(id);
+  if (id === "economics") showEconView(currentEconView());
   // First visit: draw the pre-rendered figures now, into a panel that is
   // already visible, so Plotly measures the real width. Drawing all twelve
   // into display:none panels at init laid every one out at Plotly's 700 px
@@ -258,7 +320,13 @@ function fitPlotsIn(tabId) {
 function loadStaticFigures(tabId) {
   const tab = TABS.find(t => t.id === tabId);
   if (!tab) return Promise.resolve();
-  return Promise.all(tab.charts
+  // Economics draws only the VISIBLE view: a figure drawn into a hidden view
+  // container would lay out at Plotly's 700 px default.
+  const econ = tabId === "economics"
+    ? ECON_VIEWS.find(v => v.view === currentEconView()) : null;
+  if (econ) loadEconHtml(econ);
+  const charts = econ ? econ.charts : tab.charts;
+  return Promise.all(charts
     .filter(c => !window.AF.drawn["chart-" + c])
     .map(c => {
       window.AF.drawn["chart-" + c] = "loading";     // one fetch per chart
@@ -283,6 +351,63 @@ async function renderFigure(divId, figId) {
   // react() drops event handlers, and the Python render that re-attaches the
   // click may be skipped by its memo.
   if (divId === "chart-pareto") attachParetoClickHandler();
+  if (divId === "chart-econ_serve") attachEconServeClick();
+}
+
+// A view's {html} figures (G's ledger): JSON built and escaped in Python,
+// fetched once per figure id.
+function loadEconHtml(view) {
+  (view.html || []).forEach(async h => {
+    const host = document.getElementById("econ-html-" + h);
+    if (!host || host.dataset.loaded) return;
+    host.dataset.loaded = "1";
+    try {
+      const r = await fetch(`figures/${h}.json?v=${window.AF.version || ""}`);
+      const j = await r.json();
+      host.innerHTML = typeof j.html === "string" ? j.html : "";
+    } catch (e) {
+      delete host.dataset.loaded;
+      console.error(`figure ${h} failed:`, e);
+    }
+  });
+}
+
+// Show one Economics view: its container, its control spans, its figures
+// (drawn once, now that the container is visible), then a resize pass.
+function syncEconControls(view) {
+  const v = ECON_VIEWS.find(x => x.view === view) || ECON_VIEWS[0];
+  ECON_CONTROL_SPANS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (v.controls || []).includes(id) ? "inline-flex" : "none";
+  });
+}
+
+function showEconView(view) {
+  const v = ECON_VIEWS.find(x => x.view === view) || ECON_VIEWS[0];
+  ECON_VIEWS.forEach(x => {
+    const box = document.getElementById("econ-view-" + x.view);
+    if (box) box.style.display = x.view === v.view ? "block" : "none";
+  });
+  syncEconControls(v.view);
+  const drawn = loadStaticFigures("economics");
+  requestAnimationFrame(() => fitPlotsIn("economics"));
+  return drawn;
+}
+
+// A measured point carries its InferenceX run link (customdata[1], raw).
+// Only a GitHub Actions run of SemiAnalysisAI/InferenceX is ever opened.
+const IX_RUN_PREFIX = "https://github.com/SemiAnalysisAI/InferenceX/actions/runs/";
+function attachEconServeClick() {
+  const div = document.getElementById("chart-econ_serve");
+  if (!div || !div.on) return;
+  div.removeAllListeners && div.removeAllListeners("plotly_click");
+  div.on("plotly_click", (ev) => {
+    const cd = ev.points?.[0]?.customdata;
+    const url = Array.isArray(cd) ? String(cd[1] || "") : "";
+    if (url.startsWith(IX_RUN_PREFIX) && /^\d+\/?$/.test(url.slice(IX_RUN_PREFIX.length))) {
+      window.open(url, "_blank", "noopener");
+    }
+  });
 }
 
 async function loadManifest() {
@@ -385,6 +510,7 @@ async function loadManifest() {
     }));
     mixSel.value = current || m.default_mix || m.mix_options[0].value;
   }
+  fillEconControls(m.econ_serve_options);
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
   // Video arenas come from the manifest for the same reason the tags do: a
@@ -398,6 +524,41 @@ async function loadManifest() {
     }));
   }
   renderCaptions(m.captions);
+}
+
+// Economics › Serve controls, every option and default from the manifest
+// (data/serving_cost.serve_options): no number is declared here.
+function fillEconControls(o) {
+  if (!o) return;
+  const gpu = document.getElementById("econ-serve-gpu");
+  if (gpu && Array.isArray(o.gpus)) {
+    const current = gpu.value;
+    gpu.replaceChildren(...o.gpus.map(g => {
+      const opt = document.createElement("option");
+      opt.value = g.value; opt.textContent = g.label; opt.title = g.title || "";
+      return opt;
+    }));
+    gpu.value = current || o.default_gpu;
+    if (!gpu.value) gpu.value = o.default_gpu;
+  }
+  if (!document.querySelector('input[name="econ-serve-basis"]:checked')) {
+    const b = document.querySelector(`input[name="econ-serve-basis"][value="${o.default_basis}"]`);
+    if (b) b.checked = true;
+  }
+  if (!document.querySelector('input[name="local-rate-basis"]:checked')) {
+    const b = document.querySelector(`input[name="local-rate-basis"][value="${o.default_local_basis}"]`);
+    if (b) b.checked = true;
+  }
+  const u = document.getElementById("econ-util");
+  if (u) {
+    u.min = String(o.util_min); u.max = String(o.util_max); u.step = String(o.util_step);
+    if (!u.dataset.userSet) u.value = String(o.default_util_pct);
+    u.title = o.util_title || "";
+    const lbl = document.getElementById("econ-util-label");
+    if (lbl) lbl.title = o.util_title || "";
+    const out = document.getElementById("econ-util-value");
+    if (out) out.textContent = u.value + "%";
+  }
 }
 
 // Captions are written as text, never markup — they come from the manifest.
@@ -582,6 +743,9 @@ async function populateDynamicSelects() {
         vram_gb: o.vram_gb, bandwidth_gbps: o.bandwidth_gbps,
         hw_type: o.hw_type, fp16_tflops: o.fp16_tflops ?? null,
         memory_note: o.memory_note ?? null,
+        // InferenceX $/GPU-hr marks, null on cards it does not price.
+        rate_own: o.rate_own ?? null, rate_rent: o.rate_rent ?? null,
+        rate_source: o.rate_source ?? null, rate_date: o.rate_date ?? null,
       };
     });
 
@@ -637,6 +801,7 @@ async function populateDynamicSelects() {
     const hw = window.AF.gpuMeta[DEFAULT_GPU];
     if (hw) {
       window.AF.localHwMeta = hw;
+      setRateFromPreset(false);
       setVramFromPreset("local-vram", hw, false);
       // Same default preset feeds the Agent Stack tab's VRAM cap.
       setVramFromPreset("recommend-vram", hw, false);
@@ -1015,8 +1180,30 @@ function localArgs() {
   // that shape.
   const ctx = numOrNull("local-context");
   const tags = multiVals("local-tags");
+  // $/GPU-HR rides LAST (LOCAL_ARG_NAMES' gpu_rate): blank is null.
+  const rate = numOrNull("local-gpu-rate");
   return [vram, gpus, quant, hw.bandwidth_gbps ?? null, hw.hw_type ?? null,
-    tags.length ? tags : null, ctx, hw.fp16_tflops ?? null];
+    tags.length ? tags : null, ctx, hw.fp16_tflops ?? null, rate];
+}
+
+// Fill $/GPU-HR from the preset's InferenceX mark at the chosen basis. A
+// consumer card has none: the box clears, OWN / RENT disable, and the hover
+// shows no $/M. A typed figure survives until the preset or basis changes
+// (`userChange`), the same rule as the VRAM box.
+function setRateFromPreset(userChange) {
+  const el = document.getElementById("local-gpu-rate");
+  if (!el) return;
+  if (!userChange && el.dataset.userTyped === "1") return;
+  const hw = window.AF.localHwMeta || {};
+  const basis = document.querySelector('input[name="local-rate-basis"]:checked')?.value || "rent";
+  const has = hw.rate_own != null || hw.rate_rent != null;
+  document.querySelectorAll('input[name="local-rate-basis"]').forEach(r => { r.disabled = !has; });
+  const v = basis === "own" ? hw.rate_own : hw.rate_rent;
+  el.value = v == null ? "" : String(v);
+  el.title = has && hw.rate_source
+    ? `${hw.rate_source}, observed ${hw.rate_date}: own $${hw.rate_own}/GPU-hr, rent $${hw.rate_rent}/GPU-hr`
+    : "No published hourly rate for this card: type your own to price it.";
+  delete el.dataset.userTyped;
 }
 
 async function refreshLocal() { return refreshers.local(); }
@@ -1094,8 +1281,9 @@ const refreshers = {
     // pyworker.js spreads this list straight into the Python function with no
     // arity check, so an argument inserted mid-list shifts every one after it
     // and fails silently.
-    (vram, gpus, quant, bw, hwType, tags, ctx, fp16, speedMode) =>
-      window.AF.callPy("update_local", vram, gpus, quant, bw, hwType, tags, ctx, speedMode, fp16),
+    // gpu_rate came later still, so it rides after fp16 in the call.
+    (vram, gpus, quant, bw, hwType, tags, ctx, fp16, rate, speedMode) =>
+      window.AF.callPy("update_local", vram, gpus, quant, bw, hwType, tags, ctx, speedMode, fp16, rate),
     (out) => {
       renderJsonFig("chart-local_scatter", out.scatter);
       return renderJsonFig("chart-local_compat", out.compat);
@@ -1124,6 +1312,10 @@ const refreshers = {
       return renderJsonFig("chart-video_scatter", out.scatter);
     }),
 
+  // Economics: one refresher per VIEW (ECON_REFRESHERS). A view with no live
+  // render (Labs is pre-render only) resolves to a no-op.
+  economics: () => (ECON_REFRESHERS[currentEconView()] || (() => Promise.resolve()))(),
+
   recommend: makeRefresher("refreshRecommend",
     () => {
       const mode = document.querySelector('input[name="recommend-mode"]:checked')?.value || "api";
@@ -1146,6 +1338,22 @@ const refreshers = {
       if (provRow) provRow.style.display = out.show_providers ? "flex" : "none";
       if (hwRow) hwRow.style.display = out.show_hw ? "flex" : "none";
     }),
+};
+
+// Serve's control values: null where the control is unset, so Python owns
+// every default (data/serving_cost).
+function econServeArgs() {
+  const gpu = document.getElementById("econ-serve-gpu")?.value || null;
+  const basis = document.querySelector('input[name="econ-serve-basis"]:checked')?.value || null;
+  const util = numOrNull("econ-util");
+  return [gpu, basis, util];
+}
+
+const ECON_REFRESHERS = {
+  serve: makeRefresher("economics-serve",
+    () => econServeArgs(),
+    (g, b, u) => window.AF.callPy("update_econ_serve", g, b, u),
+    async (fig) => { await renderJsonFig("chart-econ_serve", fig); attachEconServeClick(); }),
 };
 
 // ---- Build model-table HTML from records ----
@@ -1467,8 +1675,10 @@ function wireGlobalControls() {
       // exported "fits" for the default 32 GB card whatever was selected.
       const tab = window.AF.state.tab;
       const local = tab === "local" ? localArgs() : null;
-      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab, e, local, m, w);
-      const name = await window.AF.callPyRaw("export_csv_filename", tab);
+      // Economics exports the VIEW on screen at its control values (9th).
+      const econ = tab === "economics" ? econExportArgs() : null;
+      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab, e, local, m, w, econ);
+      const name = await window.AF.callPyRaw("export_csv_filename", tab, econ);
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = name || "ai_frontier_export.csv"; a.click();
@@ -1483,6 +1693,13 @@ function wireGlobalControls() {
   };
 
   document.getElementById("btn-refresh").onclick = doRefresh;
+}
+
+// [view, *view_args] for the ↓CSV; F and G add their views' arguments.
+function econExportArgs() {
+  const view = currentEconView();
+  if (view === "serve") return [view, ...econServeArgs()];
+  return [view];
 }
 
 // ---- Keep the URL in step with the state ----
@@ -1763,8 +1980,44 @@ function wireTabControls() {
       if (hw) {
         window.AF.localHwMeta = hw;
         setVramFromPreset("local-vram", hw, true);
+        setRateFromPreset(true);
       }
       scheduleLocal();
+    };
+  }
+  // $/GPU-HR: typing marks the box as the visitor's own figure; OWN / RENT
+  // re-fill it from the preset.
+  const localRate = document.getElementById("local-gpu-rate");
+  if (localRate) {
+    localRate.oninput = () => { localRate.dataset.userTyped = "1"; scheduleLocal(); };
+  }
+  document.querySelectorAll('input[name="local-rate-basis"]').forEach(r => {
+    r.onchange = () => { setRateFromPreset(true); scheduleLocal(); };
+  });
+
+  // Economics: VIEW switches containers and controls at once (pre-boot too,
+  // from the pre-rendered figures); the Serve controls go through a debounce
+  // into the view's coalescing refresher.
+  document.querySelectorAll('input[name="econ-view"]').forEach(r => {
+    r.onchange = () => {
+      showEconView(currentEconView());
+      rerenderActiveFilterCharts();
+    };
+  });
+  const scheduleEcon = debounce(() => refreshers.economics(), LOCAL_DEBOUNCE_MS);
+  const econGpu = document.getElementById("econ-serve-gpu");
+  if (econGpu) econGpu.onchange = scheduleEcon;
+  document.querySelectorAll('input[name="econ-serve-basis"]').forEach(r => {
+    r.onchange = scheduleEcon;
+  });
+  const econUtil = document.getElementById("econ-util");
+  const econUtilOut = document.getElementById("econ-util-value");
+  if (econUtil) {
+    const debouncedUtil = debounce(() => refreshers.economics(), 200);
+    econUtil.oninput = () => {
+      econUtil.dataset.userSet = "1";
+      if (econUtilOut) econUtilOut.textContent = econUtil.value + "%";
+      debouncedUtil();
     };
   }
   // Local VRAM, num GPUs, quant, context, speed, tags

@@ -58,7 +58,9 @@ def test_build_produces_figures_and_manifest(tmp_path):
     for fid in ["pareto", "treemap", "rankings", "radar", "cost_calc",
                 "local_scatter", "image_faceted", "video_rankings",
                 # Economics › Labs, pre-render only (data/open_gap.py)
-                "econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price"]:
+                "econ_open_gap_history", "econ_open_gap_lag", "econ_open_gap_price",
+                # Economics › Serve (data/serving_cost.py)
+                "econ_serve"]:
         p = figdir / f"{fid}.json"
         assert p.exists(), f"missing {p}"
         fig = json.loads(p.read_text())
@@ -67,6 +69,9 @@ def test_build_produces_figures_and_manifest(tmp_path):
     assert int(manifest["model_count"]) > 0
     assert manifest["provider_options"] and manifest["diverse5"]
     assert [o["value"] for o in manifest["weights_options"]] == ["", "open", "closed"]
+    from data import serving_cost
+    assert (manifest["econ_serve_options"]["default_util_pct"]
+            == serving_cost.DEFAULT_UTILISATION_PCT)
 
 @needs_lean_plotly
 def test_manifest_has_version_and_iso(tmp_path):
@@ -95,7 +100,9 @@ def test_data_only_rebuilds_the_data_zip_and_leaves_the_code_zip_alone(tmp_path)
     manifest = json.loads((tmp_path / "figures" / "manifest.json").read_text())
     assert manifest["code_version"] == version_before == build_static.code_version(tmp_path)
     with zipfile.ZipFile(tmp_path / build_static.DATA_BUNDLE) as z:
-        assert sorted(z.namelist()) == sorted(build_static.DATA_CSVS)
+        # Raw CSVs plus the build-time economics slices (DERIVED_DATA).
+        assert sorted(z.namelist()) == sorted(set(build_static.DATA_CSVS)
+                                              | set(build_static.DERIVED_DATA))
         for csv in build_static.DATA_CSVS:
             assert z.read(csv) == (ROOT / csv).read_bytes()
 
@@ -115,7 +122,8 @@ def test_the_data_zip_builds_without_a_code_zip(tmp_path):
     build_static.build_data_bundle(tmp_path)
     assert not (tmp_path / build_static.CODE_BUNDLE).exists()
     with zipfile.ZipFile(tmp_path / build_static.DATA_BUNDLE) as z:
-        assert sorted(z.namelist()) == sorted(build_static.DATA_CSVS)
+        assert sorted(z.namelist()) == sorted(set(build_static.DATA_CSVS)
+                                              | set(build_static.DERIVED_DATA))
     assert not (tmp_path / "pydata.zip.tmp").exists()
 
 

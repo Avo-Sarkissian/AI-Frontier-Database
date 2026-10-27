@@ -40,6 +40,8 @@ from data.workload_mix import (
     cache_label, filled_flags, mark_price,
 )
 from data.task_cost import median_token_burn, detail_rows, detail_note
+from data import serving_cost
+from components.charts.econ_serve import build_econ_serve
 from static_helpers import (
     index_label,
     apply_filters,
@@ -51,6 +53,7 @@ from static_helpers import (
     gpu_hw_meta,
     gpu_preset_options,
     local_frame,
+    with_local_rent_cost,
     compute_diverse5,
     ctx_to_k,
     quality_label,
@@ -422,21 +425,25 @@ def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None
 
 
 def export_csv(providers, min_quality, search, tab=None, effort=None, local_args=None,
-               mix=None, weights=None):
+               mix=None, weights=None, econ_args=None):
     """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
     on screen, not always the hosted-LLM table.
 
     `effort`, `local_args`, `mix` and `weights` are APPENDED, like
     update_local's late parameters: pyworker.js spreads the argument list with
     no arity check.
-    `local_args` is the same list docs/app.js sends to update_local."""
+    `local_args` is the same list docs/app.js sends to update_local, and
+    `econ_args` ([view, *view_args], 9th) the Economics view on screen."""
     frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search,
                                         effort=effort, local_args=local_args, mix=mix,
-                                        weights=weights)
+                                        weights=weights, econ_args=econ_args)
     return csv_safe(frame).to_csv(index=False)
 
 
-def export_csv_filename(tab=None):
+def export_csv_filename(tab=None, econ_args=None):
+    if tab == "economics":
+        from static_helpers import econ_view_args, ECON_EXPORT_FILENAMES
+        return ECON_EXPORT_FILENAMES[econ_view_args(econ_args)[0]]
     _frame, name = export_frame_for_tab(tab, _DF.head(0), None, 0, "")
     return name
 
@@ -466,7 +473,7 @@ def mix_info(mix=None):
 # ── Task 5: Local / Image / Video / Agent-Stack callbacks ─────────────────────
 
 def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
-                 ctx_tokens=None, speed_mode=None, fp16_tflops=None):
+                 ctx_tokens=None, speed_mode=None, fp16_tflops=None, gpu_rate=None):
     """Mirror app.py update_local_charts, returns {"scatter":.., "compat":..}.
 
     The three new parameters are APPENDED with None defaults, deliberately.
@@ -476,8 +483,10 @@ def update_local(vram_per_gpu, num_gpus, quant, bandwidth_gbps, hw_type, tags,
     """
     # static_helpers.local_frame is shared with the Run Local ↓CSV, so the
     # export is computed for exactly the hardware this chart shows.
+    # gpu_rate ($/GPU-HR, APPENDED last) adds the $/M readout to both hovers.
     ldf, vram_gb, ctx, quant = local_frame(vram_per_gpu, num_gpus, quant, bandwidth_gbps,
-                                           hw_type, tags, ctx_tokens, fp16_tflops)
+                                           hw_type, tags, ctx_tokens, fp16_tflops,
+                                           gpu_rate)
     mode = speed_mode or DEFAULT_SPEED_MODE
     return json.dumps({
         "scatter": json.loads(build_local_scatter(ldf, vram_gb=vram_gb, quant=quant,
@@ -611,9 +620,25 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
             fp16_tflops=tflops_for_gpu(gpu_preset or ""),
             gpu_count=gpu_count,
         )
+        local_df = with_local_rent_cost(local_df, gpu_preset, gpu_count)
 
     cards = build_stack_cards_html(_DF, providers, mode=mode, local_df=local_df)
     return json.dumps({"cards_html": cards, "show_providers": show_providers, "show_hw": show_hw})
+
+
+# ── Economics ─────────────────────────────────────────────────────────────────
+
+def update_econ_serve(gpu=None, basis=None, util_pct=None):
+    """Economics › Serve figure. None for any argument is its default
+    (data/serving_cost: cheapest GPU, owned rate, 60% use), which is exactly
+    the pre-rendered docs/figures/econ_serve.json."""
+    frame, meta = serving_cost.serving_data(gpu, basis, util_pct, hosted=_DF)
+    return build_econ_serve(frame, meta,
+                            axis_range=serving_cost.axis_range(_DF)).to_json()
+
+
+def econ_serve_options():
+    return json.dumps(serving_cost.serve_options())
 
 
 def weights_options():

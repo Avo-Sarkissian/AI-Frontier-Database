@@ -327,6 +327,10 @@ _GLOBAL_FNS = (api.update_overview, api.update_treemap, api.update_provider_lead
 @pytest.mark.parametrize("fn", _GLOBAL_FNS, ids=lambda f: f.__name__)
 def test_weights_is_the_last_parameter_of_every_global_filter_function(fn):
     params = list(inspect.signature(fn).parameters.values())
+    if fn is api.export_csv:
+        # export_csv appends Economics' econ_args after weights (plan 0.4).
+        assert params[-1].name == "econ_args" and params[-1].default is None
+        params = params[:-1]
     assert params[-1].name == "weights" and params[-1].default is None
     assert params[-2].name == "mix"
 

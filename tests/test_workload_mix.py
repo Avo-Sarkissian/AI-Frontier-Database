@@ -289,6 +289,10 @@ def test_mix_is_the_last_parameter_of_every_hosted_function():
                api.update_rankings, api.update_value_leaders, api.update_compare,
                api.update_cost_calc, api.update_table, api.export_csv, api.model_detail):
         params = list(inspect.signature(fn).parameters)
+        if fn is api.export_csv:
+            # Economics' econ_args rides after weights (economics_plan 0.4).
+            assert params[-1] == "econ_args"
+            params = params[:-1]
         tail = params[-2:] if params[-1] == "weights" else params[-1:]
         assert tail[0] == "mix", fn.__name__
         assert inspect.signature(fn).parameters["mix"].default is None
@@ -357,8 +361,13 @@ def test_every_hosted_refresher_sends_the_mix(fn):
     calls = re.findall(r'callPy(?:Raw)?\("' + fn + r'",([^)]*)\)', APP_JS)
     assert calls, f"docs/app.js never calls {fn}"
     for args in calls:
-        # MIX, then WEIGHTS last (economics_plan 0.4).
-        assert [a.strip() for a in args.strip().split(",")[-2:]] == ["m", "w"], (
+        # MIX, then WEIGHTS last (economics_plan 0.4); export_csv appends only
+        # the Economics view's econ_args after them.
+        parts = [a.strip() for a in args.strip().split(",")]
+        if fn == "export_csv":
+            assert parts[-1] == "econ"
+            parts = parts[:-1]
+        assert parts[-2:] == ["m", "w"], (
             f"{fn} is called without the mix and weights as its LAST arguments: {args!r}")
 
 

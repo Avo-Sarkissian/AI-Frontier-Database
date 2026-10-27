@@ -164,6 +164,9 @@ from static_helpers import (
     model_options as _model_options,
 )
 from data.open_weights import valid_weights as _valid_weights, weights_label as _weights_label
+from static_helpers import local_frame as _local_frame, with_local_rent_cost as _with_local_rent_cost
+from data import serving_cost as _serving_cost
+from components.charts.econ_serve import build_econ_serve
 
 
 _DIVERSE5    = _compute_diverse5(df)
@@ -226,10 +229,11 @@ def _apply_filters(providers, min_quality, search: str = "",
 
 
 def _export_frame_for_tab(tab, providers, min_quality, search,
-                          effort=None, local_args=None, mix=None, weights=None):
+                          effort=None, local_args=None, mix=None, weights=None,
+                          econ_args=None):
     return _export_frame_for_tab_shared(tab, df, providers, min_quality, search,
                                         effort=effort, local_args=local_args, mix=mix,
-                                        weights=weights)
+                                        weights=weights, econ_args=econ_args)
 
 
 def _mix_option_items() -> list[dict]:
@@ -240,6 +244,22 @@ def _mix_option_items() -> list[dict]:
 
 def _desc(text: str) -> html.Div:
     return html.Div(text, className="chart-caption")
+
+
+# Economics › Serve control options and the Run Local $/GPU-HR tooltip: one
+# source (data/serving_cost.serve_options), shared with the static site.
+_ECON_OPTS = _serving_cost.serve_options()
+_LOCAL_RATE_TITLE = (
+    "Your cost per GPU-hour. Picking a datacenter card fills SemiAnalysis "
+    "InferenceX's owning (Own) or renting (Rent) rate; consumer cards have no "
+    "published rate. The hover then prices this tab's max-throughput figure "
+    "per 1M output tokens at full use (decode only, uncalibrated).")
+
+
+def _econ_serve_figure(gpu=None, basis=None, util=None):
+    """Economics › Serve, the same call static_api.update_econ_serve makes."""
+    frame, meta = _serving_cost.serving_data(gpu, basis, util, hosted=df)
+    return build_econ_serve(frame, meta, axis_range=_serving_cost.axis_range(df))
 
 
 def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str],
@@ -875,6 +895,27 @@ app.layout = html.Div([
                     style={"width": "156px"},
                 ),
                 html.Div(className="filter-sep"),
+                html.Span("$/GPU-HR", className="filter-label", title=_LOCAL_RATE_TITLE),
+                dcc.Input(
+                    id="local-gpu-rate", type="number", min=0, step=0.01, debounce=True,
+                    value=None, placeholder="—",
+                    style={
+                        "background": "var(--bg-card)", "border": "1px solid var(--border)",
+                        "borderRadius": "4px", "color": "#f2f2f2",
+                        "fontFamily": "Inter, sans-serif", "fontSize": "13px",
+                        "padding": "6px 10px", "width": "72px", "outline": "none",
+                    },
+                ),
+                dcc.RadioItems(
+                    id="local-rate-basis",
+                    options=[{"label": o["label"], "value": o["value"]}
+                             for o in _serving_cost.serve_options()["bases"]],
+                    value=_serving_cost.DEFAULT_LOCAL_RATE_BASIS, inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "12px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+                html.Div(className="filter-sep"),
                 html.Span("TAGS", className="filter-label"),
                 dcc.Dropdown(
                     id="local-tags",
@@ -922,6 +963,74 @@ app.layout = html.Div([
                     config=_GRAPH_CONFIG_FIXED,
                 ),
             ])], className="chart-card chart-card--uncapped"),
+        ]),
+
+        # Economics ────────────────────────────────────────────────────────────
+        dcc.Tab(label="Economics", value="economics",
+                className="tab", selected_className="tab--selected", children=[
+            html.Div([
+                html.Span("VIEW", className="filter-label"),
+                dcc.RadioItems(
+                    id="econ-view",
+                    options=[{"label": "Serve", "value": "serve"},
+                             {"label": "Labs", "value": "labs"}],
+                    value="serve", inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "20px", "cursor": "pointer",
+                                "fontSize": "12px", "color": "#aaa"},
+                ),
+                html.Span(id="econ-shared-controls", children=[
+                    html.Div(className="filter-sep"),
+                    html.Span("USE", className="filter-label",
+                              title=_ECON_OPTS["util_title"]),
+                    html.Div(dcc.Slider(
+                        id="econ-util", min=_ECON_OPTS["util_min"],
+                        max=_ECON_OPTS["util_max"], step=_ECON_OPTS["util_step"],
+                        value=_ECON_OPTS["default_util_pct"], marks=None,
+                        updatemode="mouseup",
+                    ), style={"width": "170px"}),
+                    html.Span(id="econ-util-value", children=f"{_ECON_OPTS['default_util_pct']}%",
+                              style={"fontSize": "13px", "color": "#f2f2f2"}),
+                ], style={"display": "inline-flex", "alignItems": "center", "gap": "8px"}),
+                html.Span(id="econ-serve-controls", children=[
+                    html.Div(className="filter-sep"),
+                    html.Span("GPU", className="filter-label"),
+                    dcc.Dropdown(
+                        id="econ-serve-gpu",
+                        options=[{"label": o["label"], "value": o["value"], "title": o["title"]}
+                                 for o in _ECON_OPTS["gpus"]],
+                        value=_ECON_OPTS["default_gpu"], clearable=False,
+                        style={"minWidth": "260px"},
+                    ),
+                    html.Div(className="filter-sep"),
+                    html.Span("$/GPU-HR", className="filter-label"),
+                    dcc.RadioItems(
+                        id="econ-serve-basis",
+                        options=[{"label": o["label"], "value": o["value"]}
+                                 for o in _ECON_OPTS["bases"]],
+                        value=_ECON_OPTS["default_basis"], inline=True,
+                        inputStyle={"marginRight": "4px"},
+                        labelStyle={"marginRight": "12px", "cursor": "pointer",
+                                    "fontSize": "12px", "color": "#aaa"},
+                    ),
+                ], style={"display": "inline-flex", "alignItems": "center", "gap": "8px"}),
+            ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
+            html.Div(id="econ-view-serve", children=[
+                _desc(CAPTIONS["economics_serve"]),
+                html.Div([dcc.Loading(**_LOADING, children=[
+                    dcc.Graph(id="econ-serve-chart", figure=_econ_serve_figure(),
+                              config=_GRAPH_CONFIG, style={"height": "640px"}),
+                ])], className="chart-card"),
+            ]),
+            html.Div(id="econ-view-labs", style={"display": "none"}, children=[
+                _desc(CAPTIONS["economics_open_gap"]),
+                *[html.Div([dcc.Loading(**_LOADING, children=[
+                    dcc.Graph(id=f"{gid}-chart", config=_GRAPH_CONFIG,
+                              style={"minHeight": "460px"}),
+                ])], className="chart-card")
+                  for gid in ("econ-open-gap-history", "econ-open-gap-lag",
+                              "econ-open-gap-price")],
+            ]),
         ]),
 
         # Image Gen ────────────────────────────────────────────────────────────
@@ -1034,7 +1143,7 @@ app.layout = html.Div([
 # Overview.
 _VALID_TABS = {
     "overview", "recommend", "landscape", "rankings", "compare",
-    "budget", "table", "local", "image", "video",
+    "budget", "table", "local", "economics", "image", "video",
 }
 
 # ── URL: restore state on load ────────────────────────────────────────────────
@@ -1378,6 +1487,8 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
             fp16_tflops=tflops_for_gpu(gpu_preset or ""),
             gpu_count=gpu_count,
         )
+        # Local picks on a datacenter card are priced, not free (static_helpers).
+        local_df = _with_local_rent_cost(local_df, gpu_preset, gpu_count)
 
     cards = build_stack_cards(df, providers, mode=mode, local_df=local_df)
     return cards, prov_style, hw_style
@@ -1617,24 +1728,44 @@ def update_recommend_vram_note(vram, gpu_name):
 
 
 # ── Local tab ─────────────────────────────────────────────────────────────────
+def _preset_rate(gpu_name, basis):
+    """InferenceX's own/rent $/GPU-hr for a preset, or None (consumer cards)."""
+    r = _serving_cost.gpu_rates().get(gpu_name or "")
+    b = basis if basis in _serving_cost.BASES else _serving_cost.DEFAULT_LOCAL_RATE_BASIS
+    return r[b] if r else None
+
+
+@callback(
+    Output("local-gpu-rate", "value", allow_duplicate=True),
+    Input("local-rate-basis", "value"),
+    State("local-gpu-preset", "value"),
+    prevent_initial_call=True,
+)
+def update_local_rate_basis(basis, gpu_name):
+    return _preset_rate(gpu_name, basis)
+
+
 @callback(
     Output("local-vram",    "value"),
     Output("local-hw-meta", "data"),
+    Output("local-gpu-rate", "value"),
     Input("local-gpu-preset", "value"),
+    State("local-rate-basis", "value"),
     prevent_initial_call=True,
 )
-def update_local_hw(gpu_name: str):
+def update_local_hw(gpu_name: str, basis=None):
     gpu = GPU_BY_NAME.get(gpu_name)
     if not gpu:
-        return no_update, no_update
+        return no_update, no_update, no_update
     # fp16_tflops travels WITH the other two. There are four copies of this
     # shape (here, static_api.local_hw_for_gpu, the dcc.Store default, and
     # refreshLocal in docs/app.js); a field added to fewer than all four means
     # one render path computes a roofline and the other a bandwidth-only
     # estimate for the same card.
-    return gpu["vram_gb"], {"bandwidth_gbps": gpu["bandwidth_gbps"],
-                            "hw_type": gpu["hw_type"],
-                            "fp16_tflops": tflops_for_gpu(gpu_name)}
+    return (gpu["vram_gb"], {"bandwidth_gbps": gpu["bandwidth_gbps"],
+                             "hw_type": gpu["hw_type"],
+                             "fp16_tflops": tflops_for_gpu(gpu_name)},
+            _preset_rate(gpu_name, basis))
 
 
 @callback(
@@ -1647,9 +1778,11 @@ def update_local_hw(gpu_name: str):
     Input("local-speed-mode", "value"),
     Input("local-hw-meta",  "data"),
     Input("local-tags",     "value"),
+    Input("local-gpu-rate", "value"),
     prevent_initial_call=True,
 )
-def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, hw_meta, tags):
+def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, hw_meta, tags,
+                        gpu_rate=None):
     # Shared defaults: this used to assume 8GB while the public site assumed 32,
     # so a cleared VRAM box answered "which models fit?" two different ways.
     gpu_count      = int(_coerce_number(num_gpus, DEFAULT_GPU_COUNT, minimum=1))
@@ -1664,16 +1797,11 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, h
     # rather than a stand-in that would imply a ceiling was checked.
     tflops         = (hw_meta or {}).get("fp16_tflops")
 
-    local_df = get_local_df(
-        quant=quant or "Q4",
-        vram_gb=vram_gb,
-        bandwidth_gbps=eff_bw,
-        hw_type=hw_type,
-        tags=tags or None,
-        ctx_tokens=ctx,
-        fp16_tflops=tflops,
-        gpu_count=gpu_count,
-    )
+    # static_helpers.local_frame: the same frame (and $/GPU-HR readout) the
+    # static site's update_local and both ↓CSVs build.
+    local_df, vram_gb, ctx, _q = _local_frame(
+        vram_per_gpu, num_gpus, quant or "Q4", bandwidth_gbps, hw_type, tags or None,
+        ctx, tflops, gpu_rate)
     mode = speed_mode or DEFAULT_SPEED_MODE
     return (
         build_local_scatter(local_df, vram_gb=vram_gb, quant=quant or "Q4",
@@ -1681,6 +1809,52 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, h
         build_local_compat(local_df, quant=quant or "Q4", vram_gb=vram_gb,
                            ctx_tokens=ctx, speed_mode=mode),
     )
+
+
+# ── Economics tab ─────────────────────────────────────────────────────────────
+@callback(
+    Output("econ-serve-chart", "figure"),
+    Output("econ-util-value",  "children"),
+    Input("econ-serve-gpu",   "value"),
+    Input("econ-serve-basis", "value"),
+    Input("econ-util",        "value"),
+    prevent_initial_call=True,
+)
+def update_econ_serve(gpu, basis, util):
+    used = _serving_cost.coerce_util(util)
+    return _econ_serve_figure(gpu, basis, util), f"{used:g}%"
+
+
+@callback(
+    Output("econ-view-serve",      "style"),
+    Output("econ-view-labs",       "style"),
+    Output("econ-serve-controls",  "style"),
+    Output("econ-shared-controls", "style"),
+    Output("econ-open-gap-history-chart", "figure"),
+    Output("econ-open-gap-lag-chart",     "figure"),
+    Output("econ-open-gap-price-chart",   "figure"),
+    Input("econ-view", "value"),
+)
+def toggle_econ_view(view):
+    """Serve shows the USE slider and its own controls; Labs shows neither.
+    Labs is built from the same open-gap builders as the static pre-render,
+    only when first opened (the score history reads every daily snapshot)."""
+    shown = {"display": "inline-flex", "alignItems": "center", "gap": "8px"}
+    hidden = {"display": "none"}
+    if view != "labs":
+        return {}, hidden, shown, shown, no_update, no_update, no_update
+    from data.ingest import load_history
+    from data.open_gap import (gap_history, release_lag, iso_quality_ratios,
+                               snapshot_dates, score_dates)
+    from components.charts.open_gap import (build_gap_history, build_release_lag,
+                                            build_iso_price)
+    hist = load_history()
+    dates = snapshot_dates(hist)
+    asof = dates[-1] if dates else None
+    return ({"display": "none"}, {}, hidden, hidden,
+            build_gap_history(*gap_history(hist)),
+            build_release_lag(*release_lag(df, asof, score_dates(hist, df))),
+            build_iso_price(*iso_quality_ratios(df, None)))
 
 
 # ── Model detail panel ────────────────────────────────────────────────────────
@@ -1908,12 +2082,18 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
     State("mix-ratio",       "value"),
     State("mix-cache",       "value"),
     State("filter-weights",  "value"),
+    State("local-gpu-rate",  "value"),
+    State("econ-view",       "value"),
+    State("econ-serve-gpu",  "value"),
+    State("econ-serve-basis", "value"),
+    State("econ-util",       "value"),
     prevent_initial_call=True,
 )
 def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
                vram_per_gpu=None, num_gpus=None, quant=None, ctx_tokens=None,
                hw_meta=None, tags=None, mix_key=None, mix_ratio=None, mix_cache=None,
-               weights=None):
+               weights=None, gpu_rate=None, econ_view=None, econ_gpu=None,
+               econ_basis=None, econ_util=None):
     """Export what is on screen, not always the hosted-LLM table.
 
     The global filter bar sits outside dcc.Tabs and four tabs consume none of
@@ -1932,12 +2112,13 @@ def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
         "vram_per_gpu": vram_per_gpu, "num_gpus": num_gpus, "quant": quant,
         "bandwidth_gbps": hw.get("bandwidth_gbps"), "hw_type": hw.get("hw_type"),
         "tags": tags or None, "ctx_tokens": ctx_tokens,
-        "fp16_tflops": hw.get("fp16_tflops"),
+        "fp16_tflops": hw.get("fp16_tflops"), "gpu_rate": gpu_rate,
     }
+    econ_args = [econ_view or "serve", econ_gpu, econ_basis, econ_util]
     frame, name = _export_frame_for_tab(tab, providers, min_quality, search,
                                         effort=effort, local_args=local_args,
                                         mix=_mix(mix_key, mix_ratio, mix_cache),
-                                        weights=weights)
+                                        weights=weights, econ_args=econ_args)
     return dcc.send_data_frame(_csv_safe(frame).to_csv, name, index=False)
 
 

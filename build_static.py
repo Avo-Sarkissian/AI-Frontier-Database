@@ -2,6 +2,7 @@
 import hashlib, json, shutil, sys, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import pandas as pd
 
@@ -32,6 +33,8 @@ from components.charts.open_gap import (
 from data.open_gap import (
     gap_history, release_lag, iso_quality_ratios, snapshot_dates, score_dates,
 )
+from data import serving_cost
+from components.charts.econ_serve import build_econ_serve
 
 from captions import CAPTIONS
 from data import scrape_status
@@ -86,7 +89,24 @@ DATA_CSVS = [
     # Open-weights name registry (data/open_weights.py): classifies a hosted
     # row that carries no AA flag of its own. Grown hourly by the bot.
     "data/carried/open_weight_names.csv",
+    # SemiAnalysis InferenceX $/GPU-hr marks (13 rows, archived by the bot's
+    # econ step): Economics › Serve and the Run Local $/GPU-HR presets.
+    "data/carried/econ/inferencex_rates.csv",
 ]
+
+# Build-time slices of the economics archives, written straight into
+# pydata.zip (never committed; data/derived/ is git-ignored). The browser reads
+# each through data/econ_common.read_derived, which computes the same CSV text
+# from the archives wherever the file is absent (local runs, Dash, tests).
+# The archives themselves never ship: the InferenceX points alone are ~700 KB.
+DERIVED_DATA: dict[str, Callable[[], str]] = {
+    serving_cost.DERIVED_POINTS: serving_cost.derived_points_csv,
+    serving_cost.DERIVED_CALIBRATION: serving_cost.calibration_csv,
+}
+# Each derived file, and the whole data zip, stay small: every visitor
+# downloads pydata.zip on every hourly version.
+MAX_DERIVED_BYTES = 40_000
+MAX_DATA_BUNDLE_BYTES = 150_000
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
 # pure logic lives in static_helpers (imported above).
@@ -154,6 +174,9 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "video_rankings":       build_video_rankings(vdf, full_df=vdf),
         "video_scatter":        build_video_scatter(vdf, full_df=vdf),
         **open_gap_figures(df),
+        # Economics › Serve at its defaults; equals static_api.update_econ_serve().
+        "econ_serve":           build_econ_serve(*serving_cost.serving_data(hosted=df),
+                                                 axis_range=serving_cost.axis_range(df)),
     }
     written = []
     for fid, fig in figures.items():
@@ -222,6 +245,10 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "effort_options":  effort_options(),
         # WEIGHTS: All | Open | Closed (data/open_weights.WEIGHTS_OPTIONS).
         "weights_options": weights_options(),
+        # Economics › Serve controls: GPU presets with their InferenceX rates,
+        # the Own/Rent default and the USE slider's default/min/max/step. The
+        # browser declares none of these numbers itself.
+        "econ_serve_options": serving_cost.serve_options(),
         "quality_options": quality_options(
             round(float(df["quality"].quantile(0.75)), 1),
             round(float(df["quality"].quantile(0.90)), 1)),
@@ -340,6 +367,8 @@ def build_pybundle(docs: Path | None = None):
         "data/workload_mix.py", "data/task_cost.py",
         "data/open_weights.py", "data/open_gap.py",
         "components/charts/open_gap.py",
+        "data/econ_common.py", "data/serving_cost.py",
+        "components/charts/econ_serve.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity
@@ -434,11 +463,30 @@ def build_data_bundle(docs: Path | None = None):
         with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as z:
             for rel in DATA_CSVS:
                 z.write(ROOT / rel, rel)
+            for rel, compute in DERIVED_DATA.items():
+                text = derived_text(rel, compute)
+                z.writestr(rel, text)
         staged.replace(bundle)
     except Exception:
         staged.unlink(missing_ok=True)
         raise
     print(f"{DATA_BUNDLE}: {bundle.stat().st_size / 1e3:.0f} KB")
+
+
+def derived_text(rel: str, compute: Callable[[], str]) -> str:
+    """One DERIVED_DATA file's CSV text. A failure or an oversized slice is
+    printed and shipped empty (read_derived then shows an empty state): it must
+    never block the hourly AA publish."""
+    try:
+        text = compute() or ""
+    except Exception as exc:
+        print(f"  WARNING: derived {rel} failed: {exc}")
+        return ""
+    if len(text.encode()) > MAX_DERIVED_BYTES:
+        print(f"  WARNING: derived {rel} is {len(text.encode())} B "
+              f"(> {MAX_DERIVED_BYTES}); shipped empty")
+        return ""
+    return text
 
 
 def code_version(docs: Path | None = None) -> str:

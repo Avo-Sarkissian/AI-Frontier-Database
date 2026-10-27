@@ -22,7 +22,7 @@ from components.charts.constants import (
     LOCAL_THROUGHPUT_REF,
 )
 from components.charts.local_compat import (
-    KV_NOTE, ESTIMATED_KV_NOTE, ctx_labels, speed_notes,
+    KV_NOTE, ESTIMATED_KV_NOTE, ctx_labels, speed_notes, cost_notes,
 )
 from data.local_models import (
     FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
@@ -82,7 +82,7 @@ def build_local_scatter(
     df["kv_note"] = (df["kv_source"] if "kv_source" in df else "none") \
         .map(KV_NOTE).fillna(ESTIMATED_KV_NOTE)
     df["ctx_label"], _n_capped = ctx_labels(df, ctx_tokens)
-    df["speed_note"] = speed_notes(df, speed_mode)
+    df["speed_note"] = [s + c for s, c in zip(speed_notes(df, speed_mode), cost_notes(df))]
     for _c in ("weights_gb", "kv_gb", "sessions", "total_tps"):
         if _c not in df:
             df[_c] = 0

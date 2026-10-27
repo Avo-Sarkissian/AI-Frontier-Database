@@ -19,7 +19,7 @@ Hosted free on GitHub Pages. The full interactive dashboard runs entirely in you
 
 Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens of others. Each makes different tradeoffs — some excel at reasoning but cost more, some are fast but less capable, and some punch well above their price point.
 
-**AI Frontier** makes those tradeoffs visible. A GitHub Actions bot scrapes live benchmark data from [Artificial Analysis](https://artificialanalysis.ai/) every hour and surfaces the full competitive landscape through 10 interactive tabs — no sign-in, no API key required.
+**AI Frontier** makes those tradeoffs visible. A GitHub Actions bot scrapes live benchmark data from [Artificial Analysis](https://artificialanalysis.ai/) every hour and surfaces the full competitive landscape through 11 interactive tabs — no sign-in, no API key required.
 
 ---
 
@@ -28,13 +28,14 @@ Every week, new AI models ship from OpenAI, Google, Anthropic, Meta, and dozens 
 | Tab | Description |
 |---|---|
 | **Overview** | Bubble scatter of every model, togglable between Price, Speed and Cost / task on the x-axis (y = AA Intelligence Index every time). Dotted Pareto frontier highlights best value per dollar. Cost / task plots AA's measured cost per Intelligence Index task for the families AA has costed, says in the title how many it has not (never imputed), and is not moved by MIX; the hover and detail panel add **token burn** = cost per task ÷ list price per token, in blend-equivalent tokens per task and as a multiple of the catalogue median. The nine largest providers each get a distinct colour AND marker shape — a redundant encoding that survives colour-vision deficiency; the remaining providers share a grey "Other" series. **Hollow = open weights**, filled = closed (colour stays the provider); a model AA has not timed yet draws at a fixed size with a centre dot. The **WEIGHTS** filter (All · Open · Closed, `?w=`) applies to every tab the filter bar drives. |
-| **Agent Stack** | Pick a workflow — API Only, Hybrid (fast local), Hybrid (fast + balanced local), or Local Only — plus a provider checklist, and get a three-tier model recommendation: Fast, Balanced, and Reasoning. Hybrid/Local modes add GPU, VRAM, and quantization controls. |
+| **Agent Stack** | Pick a workflow — API Only, Hybrid (fast local), Hybrid (fast + balanced local), or Local Only — plus a provider checklist, and get a three-tier model recommendation: Fast, Balanced, and Reasoning. Hybrid/Local modes add GPU, VRAM, and quantization controls. Local picks have a cost too: on a datacenter card each carries a `$/M rent` chip (SemiAnalysis InferenceX's renting $/GPU-hr over the tab's own throughput, full use); consumer cards show none. |
 | **Landscape** | Treemap of the AI industry: tile area = model count per provider, color intensity = average intelligence. Followed by a provider leaderboard. |
 | **Rankings** | Top 25 models by Intelligence, Value (score/$), or Speed, with tier-separator lines marking meaningful performance gaps — plus a "Value Leaders" chart ranking the top models by intelligence-per-dollar. Open-weights bars are drawn as provider-colour outlines over a faint fill. |
 | **Compare** | Head-to-head radar chart across five dimensions: Intelligence, Speed, Affordability, Context Window, and Latency. Supports up to 5 models simultaneously, with a raw-value table below the chart. |
 | **Budget** | Enter a monthly token volume and see projected API cost per model, sorted cheapest-first, at the workload MIX chosen in the filter bar (input:output ratio and cache-hit rate). |
 | **Table** | Full sortable table of every tracked model with every available metric. |
-| **Run Local** | Select a GPU, quantization level, and capability tags (code, reasoning, vision, audio) to see which open-weight models fit in VRAM, with estimated inference speed. |
+| **Run Local** | Select a GPU, quantization level, and capability tags (code, reasoning, vision, audio) to see which open-weight models fit in VRAM, with estimated inference speed. **$/GPU-HR** (Own · Rent presets from SemiAnalysis InferenceX on datacenter cards, or your own figure) adds a serving cost per 1M output tokens to both hovers, at the max-throughput figure and full use (decode only, uncalibrated). |
+| **Economics** | **VIEW** radio. **Serve**: GPU serving cost per 1M output tokens for every open-weights model with an AA price, against that price on a log–log chart with a 1× break-even line: cost = $/GPU-hr ÷ (output tok/s per GPU × 3,600) × 1M ÷ USE. Diamonds are [SemiAnalysis InferenceX™](https://inferencex.semianalysis.com) measurements at its 8k-in/1k-out workload with every user ≥ 35 tok/s (click one to open its GitHub Actions run); circles are this dashboard's Run Local roofline in a tensor-parallel FP8 mode with a per-GPU bandwidth correction fitted to the like-for-like InferenceX runs (±2×; the hover gives the fit). GPU (cheapest per model, or one of 7 InferenceX-priced parts), $/GPU-HR Own · Rent (InferenceX's published marks) and USE (default 60%, InferenceX's profit-estimator default). Markups compare like units: output price ÷ output cost (a floor, since prefill time is charged to output) and the 8k:1k same-mix bill ÷ the same cost. DeepSeek's CC0 inference disclosure (≈ $0.30/M against R1's $2.19) is quoted as a sanity anchor. **Labs**: the open-vs-closed gap (score history, release lag, iso-score price ratio). Prices: Artificial Analysis. |
 | **Image Gen** | ELO-based leaderboard of image generation models, filterable by provider and style tag, from the AA Image Arena. |
 | **Video Gen** | Arena-Elo leaderboard of video generation models with per-minute pricing, from the AA Video Arena. Text-to-video and image-to-video are separate Elo pools with separate prices, so MODE switches between them. |
 
@@ -247,6 +248,8 @@ data/
   open_gap.py              # Open-vs-closed gap: score per snapshot, release lag, iso-price
   scrape_status.py         # Per-dataset ok/fetched_at/rows — drives the freshness badge
   econ_archive.py          # Bot-only: GPU prices, SOFR, InferenceX, Epoch archives (own cadence)
+  econ_common.py           # Economics: read_derived (build-time slices in pydata.zip) + status vocabulary
+  serving_cost.py          # Economics › Serve: $/GPU-hr ÷ tok/s, InferenceX measured + calibrated roofline
   image_models.py, local_models.py, video_models.py   # Per-domain data access helpers
   raw/                     # Live cache, coverage, scrape status + daily snapshots
 assets/style.css           # Global dark theme, typography (copied into docs/ by the build)

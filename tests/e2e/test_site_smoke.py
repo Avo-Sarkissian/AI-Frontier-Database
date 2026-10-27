@@ -55,6 +55,7 @@ TAB_CHARTS = {
     "compare":   ["radar"],
     "budget":    ["cost_calc"],
     "local":     ["local_scatter", "local_compat"],
+    "economics": ["econ_serve"],
     "image":     ["image_faceted"],
     "video":     ["video_rankings", "video_scatter"],
 }

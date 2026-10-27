@@ -1,0 +1,13 @@
+point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_offload,precision,concurrency,gpu_count,tensor_parallel,expert_parallel,interactivity_tok_s_user,tput_tok_s_chip,output_tput_tok_s_chip,input_tput_tok_s_chip,run_date,run_id,first_seen,gpu_count_upstream,prefill_gpus,decode_gpus
+40574,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,False,fp8,32,2,2,1,44.1347,6062.1,677.912,5384.19,2025-10-29,18924487526,2026-10-27,2,,
+40214,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,False,fp8,64,4,4,1,41.0244,5746.3,637.502,5108.8,2025-10-29,18924487526,2026-10-27,4,,
+41775,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,h100,H100,vllm,none,single-node,False,fp8,16,4,4,1,46.9232,1607.15,178.083,1429.07,2025-10-29,18924487526,2026-10-27,4,,
+42305,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,h100,H100,vllm,none,single-node,False,fp8,32,8,8,1,45.4421,1564.2,174.921,1389.28,2025-10-29,18924487526,2026-10-27,8,,
+40089,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,False,fp4,32,2,2,1,52.2916,7176.41,802.522,6373.89,2025-10-29,18924487526,2026-10-27,2,,
+40218,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,False,fp4,32,1,1,1,33.9683,9366.36,1047.42,8318.94,2025-10-29,18924487526,2026-10-27,1,,
+436927,MiniMax-M3,8k/1k,median_intvty,b200,B200,vllm,none,single-node,False,fp8,64,4,4,1,36.9635,5221.23,579.25,4641.98,2026-07-27,30208026609,2026-10-27,4,,
+436933,MiniMax-M3,8k/1k,median_intvty,b200,B200,vllm,none,single-node,False,fp8,64,4,4,4,35.606,5019.94,556.918,4463.02,2026-07-27,30208026609,2026-10-27,16,,
+437432,MiniMax-M3,8k/1k,median_intvty,b200,B200,vllm,mtp,single-node,False,fp4,512,2,2,2,51.7758,9281.98,1029.45,8252.54,2026-07-29,29984401390,2026-10-27,4,,
+438258,MiniMax-M3,8k/1k,median_intvty,b200,B200,dynamo-vllm,none,disagg,False,fp4,1024,16,4,1,55.0959,9917.77,1099.85,8817.91,2026-08-04,30828238642,2026-10-27,16,8.0,8.0
+438530,MiniMax-M3,8k/1k,median_intvty,b200,B200,dynamo-vllm,mtp,disagg,False,fp4,32,12,4,1,208.568,3552.92,395.703,3157.21,2026-08-04,30933463657,2026-10-27,12,4.0,8.0
+440929,MiniMax-M3,agentic-traces,p90_intvty,b200,B200,trt,mtp,single-node,True,fp4,5,4,4,1,281.69,8949.09,69.4922,8879.6,2026-09-01,33219853877,2026-10-27,4,,

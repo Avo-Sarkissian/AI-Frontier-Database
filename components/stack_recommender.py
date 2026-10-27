@@ -3,7 +3,8 @@ Stack Recommender — opinionated 3-tier model recommendations.
 
 Modes:
   api    — all tiers use cloud API models
-  hybrid — Fast tier = local (free), Balanced + Reasoning = API
+  hybrid — Fast tier = local (priced at the GPU's rental rate where InferenceX
+           publishes one), Balanced + Reasoning = API
   local  — all tiers use open-weight models filtered to user's hardware
 
 Tiers:
@@ -36,6 +37,27 @@ _PRICE_BASIS_TITLE = (f"Price at {DEFAULT_MIX.long}. Agent Stack does not follow
 
 def _price_chip_text(price) -> str:
     return f"{fmt_price(price)}/M · {_PRICE_BASIS_TAG}"
+
+
+# Local inference on a DATACENTER card is not free: the row carries
+# usd_per_m_out (static_api.with_local_rent_cost), SemiAnalysis InferenceX's
+# renting $/GPU-hr for the preset spread over the tab's own throughput at full
+# use. Consumer cards have no published hourly rate and get no chip.
+_RENT_TITLE = ("GPU cost per 1M output tokens: SemiAnalysis InferenceX's renting "
+               "$/GPU-hr for this card x the GPU count, over the throughput this tab "
+               "models for it, at full use. Decode only, uncalibrated; Economics › "
+               "Serve has the calibrated datacenter figure.")
+
+
+def _rent_chip_text(row) -> str | None:
+    v = row.get("usd_per_m_out") if hasattr(row, "get") else None
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return None
+    if not (v == v and v > 0):
+        return None
+    return (f"${v:.2f}/M rent" if v >= 0.01 else f"${v:.3g}/M rent")
 
 _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 
@@ -335,9 +357,11 @@ def _local_row(row: pd.Series, is_top: bool = False) -> "html.Div":
     if len(name) > 36:
         name = name[:35] + "…"
 
+    rent = _rent_chip_text(row)
     chips = html.Div([
         _chip(vram_str, "#1a1a2e"),
         _chip(speed_str, "#1a2a1a"),
+        *([_chip(rent, "#2a1a1a", title=_RENT_TITLE)] if rent else []),
     ], style={"marginTop": "5px", "display": "flex", "flexWrap": "wrap", "gap": "2px"})
 
     return _row_shell(name, quality, family, fcolor, chips, is_top)
@@ -769,7 +793,9 @@ def _local_row_html(row: pd.Series, is_top: bool = False) -> str:
     if len(name) > 36:
         name = name[:35] + "…"
 
-    chips_html = _chip_html(vram_str, "#1a1a2e") + _chip_html(speed_str, "#1a2a1a")
+    rent = _rent_chip_text(row)
+    chips_html = (_chip_html(vram_str, "#1a1a2e") + _chip_html(speed_str, "#1a2a1a")
+                  + (_chip_html(rent, "#2a1a1a", title=_RENT_TITLE) if rent else ""))
     return _row_shell_html(name, quality, family, fcolor, chips_html, is_top)
 
 

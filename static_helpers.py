@@ -177,7 +177,7 @@ def quality_options(p75: float | None = None, p90: float | None = None) -> list[
 # and live over content it did not touch: on ?tab=image&p=Anthropic&q=45 the bar
 # read "Anthropic · ≥ 45" above a chart plotting 72 models from a dozen other
 # providers.
-TABS_WITHOUT_GLOBAL_FILTERS = ("recommend", "local", "image", "video")
+TABS_WITHOUT_GLOBAL_FILTERS = ("recommend", "local", "image", "video", "economics")
 
 # What ↓CSV should hand you on each tab. Exporting the hosted-LLM catalogue from
 # the Image Gen tab produced a file with the LLM header and seven text models —
@@ -186,7 +186,11 @@ _TAB_EXPORTS = {
     "local": ("ai_frontier_local_models.csv", "local"),
     "image": ("ai_frontier_image_models.csv", "image"),
     "video": ("ai_frontier_video_models.csv", "video"),
+    "economics": ("ai_frontier_serving_cost.csv", "economics"),
 }
+
+# Economics exports per VIEW (econ_args[0]); F and G add their views.
+ECON_EXPORT_FILENAMES = {"serve": "ai_frontier_serving_cost.csv"}
 
 
 # The positional order of update_local's hardware arguments. docs/app.js builds
@@ -194,7 +198,7 @@ _TAB_EXPORTS = {
 # Run Local ↓CSV, so the export can never describe different hardware from the
 # chart beside it.
 LOCAL_ARG_NAMES = ("vram_per_gpu", "num_gpus", "quant", "bandwidth_gbps",
-                   "hw_type", "tags", "ctx_tokens", "fp16_tflops")
+                   "hw_type", "tags", "ctx_tokens", "fp16_tflops", "gpu_rate")
 
 
 def gpu_hw_meta(gpu_name) -> dict | None:
@@ -209,8 +213,18 @@ def gpu_hw_meta(gpu_name) -> dict | None:
     g = GPU_BY_NAME.get(gpu_name or "")
     if not g:
         return None
+    # $/GPU-hr presets for the Run Local readout: SemiAnalysis InferenceX's
+    # owning and renting marks where it prices this part (data/serving_cost
+    # .gpu_rates), None for every card it does not (consumer GPUs: your own
+    # hardware has no published hourly rate).
+    from data.serving_cost import gpu_rates
+    rate = gpu_rates().get(gpu_name)
     return {"vram_gb": g["vram_gb"], "bandwidth_gbps": g["bandwidth_gbps"],
-            "hw_type": g["hw_type"], "fp16_tflops": tflops_for_gpu(gpu_name)}
+            "hw_type": g["hw_type"], "fp16_tflops": tflops_for_gpu(gpu_name),
+            "rate_own": rate["own"] if rate else None,
+            "rate_rent": rate["rent"] if rate else None,
+            "rate_source": rate["source"] if rate else None,
+            "rate_date": rate["date"] if rate else None}
 
 
 def gpu_preset_options() -> list[dict]:
@@ -230,7 +244,8 @@ def gpu_preset_options() -> list[dict]:
 
 
 def local_frame(vram_per_gpu=None, num_gpus=None, quant=None, bandwidth_gbps=None,
-                hw_type=None, tags=None, ctx_tokens=None, fp16_tflops=None):
+                hw_type=None, tags=None, ctx_tokens=None, fp16_tflops=None,
+                gpu_rate=None):
     """(local_df, total_vram_gb, ctx_tokens, quant) for the Run Local controls.
 
     One place turns the raw control values into a frame, shared by the chart
@@ -260,7 +275,33 @@ def local_frame(vram_per_gpu=None, num_gpus=None, quant=None, bandwidth_gbps=Non
         fp16_tflops=fp16_tflops,
         gpu_count=gpu_count,
     )
+    # $/GPU-HR -> $ per 1M output tokens at the throughput this tab shows (its
+    # layer-split aggregate at the 10 tok/s floor), full use. NaN, never 0,
+    # where there is no rate or no throughput. Economics › Serve is the
+    # calibrated datacenter figure; this one is the tab's own physics.
+    from data.serving_cost import local_usd_per_m
+    rate = coerce_number(gpu_rate, default=float("nan"))
+    rate = rate if math.isfinite(rate) and rate > 0 else float("nan")
+    ldf = ldf.copy()
+    ldf["gpu_rate_usd_hr"] = rate
+    ldf["gpu_count"] = gpu_count
+    ldf["usd_per_m_out"] = [local_usd_per_m(rate, gpu_count, t)
+                            for t in ldf.get("total_tps", pd.Series(dtype=float))]
     return ldf, vram_gb, ctx, quant
+
+
+def with_local_rent_cost(local_df, gpu_preset, gpu_count):
+    """Agent Stack's local picks are not free on a datacenter GPU: price them at
+    SemiAnalysis InferenceX's renting rate for the preset (full use, the tab's
+    own throughput). Consumer cards have no published rate and get NaN, never 0.
+    Shared by app.py and static_api so both renderings price the same card."""
+    from data.serving_cost import gpu_rates, local_usd_per_m
+    rate = gpu_rates().get(gpu_preset or "")
+    rent = rate["rent"] if rate else float("nan")
+    out = local_df.copy()
+    out["usd_per_m_out"] = [local_usd_per_m(rent, gpu_count, t)
+                            for t in out.get("total_tps", pd.Series(dtype=float))]
+    return out
 
 
 def _local_kwargs(local_args) -> dict:
@@ -273,7 +314,8 @@ def _local_kwargs(local_args) -> dict:
 
 
 def export_frame_for_tab(tab, full_df, providers, min_quality, search,
-                         effort=None, local_args=None, mix=None, weights=None):
+                         effort=None, local_args=None, mix=None, weights=None,
+                         econ_args=None):
     """(DataFrame, filename) for the dataset the given tab is showing.
 
     The three non-LLM tabs export their own catalogue, because the global
@@ -288,6 +330,8 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search,
     `cache_price_filled` marks the 10%-of-input fill-ins.
     """
     name, kind = _TAB_EXPORTS.get(tab or "", ("ai_frontier_export.csv", "llm"))
+    if kind == "economics":
+        return econ_export(econ_args, full_df)
     if kind == "local":
         return local_frame(**_local_kwargs(local_args))[0], name
     if kind == "image":
@@ -315,6 +359,26 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search,
         frame = frame.copy()
         frame.insert(frame.columns.get_loc("price") + 1, "price_basis", m.long)
     return frame, name
+
+
+def econ_view_args(econ_args) -> tuple[str, list]:
+    """econ_args = [view, *view_args] from the browser (or None) -> (view, args).
+    An unknown view is Serve, the default: the list is user input."""
+    args = list(econ_args) if isinstance(econ_args, (list, tuple)) else []
+    view = args[0] if args and args[0] in ECON_EXPORT_FILENAMES else "serve"
+    return view, args[1:] if args and args[0] == view else []
+
+
+def econ_export(econ_args, hosted=None):
+    """(DataFrame, filename) for the Economics view on screen."""
+    view, rest = econ_view_args(econ_args)
+    name = ECON_EXPORT_FILENAMES[view]
+    if view == "serve":
+        from data.serving_cost import serving_frame
+        gpu, basis, util = (list(rest) + [None, None, None])[:3]
+        hosted = hosted if hosted is not None and len(hosted) else None
+        return serving_frame(gpu, basis, util, hosted), name
+    return pd.DataFrame(), name
 
 
 def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[str]:

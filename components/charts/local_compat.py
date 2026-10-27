@@ -138,6 +138,35 @@ def speed_notes(df: pd.DataFrame, speed_mode) -> list[str]:
     return notes
 
 
+def cost_notes(df: pd.DataFrame) -> list[str]:
+    """The $/GPU-HR readout appended to the speed line, one per row ("" when
+    the row has no price: no rate typed, a consumer card, or no throughput).
+
+    Priced at the tab's max-throughput figure (its layer-split aggregate at the
+    10 tok/s floor) and full use, so it says so, and says it is uncalibrated:
+    the calibrated tensor-parallel datacenter figure is on Economics › Serve,
+    and for the same card the two can differ by 2x or more."""
+    n = len(df)
+    usd = df["usd_per_m_out"] if "usd_per_m_out" in df else [float("nan")] * n
+    rate = df["gpu_rate_usd_hr"] if "gpu_rate_usd_hr" in df else [float("nan")] * n
+    gpus = df["gpu_count"] if "gpu_count" in df else [1] * n
+    out = []
+    for u, r, g in zip(usd, rate, gpus):
+        try:
+            u, r, g = float(u), float(r), int(g or 1)
+        except (TypeError, ValueError):
+            out.append("")
+            continue
+        if not (u == u and r == r and u > 0):
+            out.append("")
+            continue
+        price = f"${u:,.2f}" if u >= 0.1 else f"${u:.3g}"
+        out.append(f"<br>Serving cost: {price} / M output tok at ${r:,.2f}/GPU-hr ×{g}, "
+                   "full use, at the max-throughput figure<br>"
+                   "       (decode only, uncalibrated; datacenter figures are on Economics)")
+    return out
+
+
 def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                        ctx_tokens=None, speed_mode=DEFAULT_SPEED_MODE) -> go.Figure:
     """
@@ -193,7 +222,8 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     runnable["kv_note"] = (runnable["kv_source"] if "kv_source" in runnable
                            else "none").map(KV_NOTE).fillna(ESTIMATED_KV_NOTE)
     runnable["ctx_label"], n_capped = ctx_labels(runnable, ctx_tokens)
-    runnable["speed_note"] = speed_notes(runnable, speed_mode)
+    runnable["speed_note"] = [s + c for s, c in zip(speed_notes(runnable, speed_mode),
+                                                   cost_notes(runnable))]
     for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
         if _c not in runnable:
             runnable[_c] = 0

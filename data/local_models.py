@@ -205,6 +205,8 @@ _QUANT_STREAM_EFF: dict[str, float] = {
 # 70B — so this model over-predicts SMALL models on datacenter parts. A
 # per-preset MBU is the fix when someone measures one; splitting it on a guess
 # here would be the same unmeasured constant twice.
+# (Economics › Serve fits a per-preset bandwidth correction against InferenceX
+# runs for its tensor-parallel datacenter mode only: data/serving_cost.py.)
 #
 # amd / intel / qualcomm / cpu remain UNVALIDATED ESTIMATES, rebased only.
 # Treat the ordering as indicative and any absolute tok/s as ±30%.
@@ -338,6 +340,12 @@ SLO_FLOORS_TPS: dict[str, float] = {
     # "use cases where user engagement and responsiveness are paramount, such as
     # code assistants and real-time creative tools".
     "realtime":    33.3,
+    # NOT a Run Local choice: the Economics › Serve tensor-parallel mode
+    # (data/serving_cost.py). SemiAnalysis InferenceX's calculator target,
+    # options.calculator.defaults.target = 35 tok/s/user,
+    # https://inferencex.semianalysis.com/api/v1/views/options?format=json,
+    # fetched 2026-10-27. Run Local keeps its 10 tok/s layer-split semantics.
+    "datacenter":  35.0,
 }
 DEFAULT_SLO = "interactive"
 

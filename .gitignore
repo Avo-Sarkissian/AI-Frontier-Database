@@ -48,3 +48,4 @@ docs/pybundle [0-9]*.zip
 class-project/*
 !class-project/FinalReport_Sarkissian.pdf
 !class-project/AI_Frontier_Presentation.pptx
+data/derived/

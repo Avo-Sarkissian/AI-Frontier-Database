@@ -212,6 +212,22 @@
     <span class="filter-label" title="Single stream is one conversation at a time. Max throughput is the total across as many concurrent sessions as the KV cache fits in VRAM while each one still decodes at 10 tok/s or better — MLPerf Inference's Llama-3.1-8B Server floor. The two are 2-4x apart, so the chart shows one at a time.">SPEED</span>
     <select id="local-speed-mode" style="min-width:146px;"></select>
     <div class="filter-sep"></div>
+    <!-- $/GPU-HR: a datacenter preset fills it with SemiAnalysis InferenceX's
+         owning or renting rate (manifest via gpu_options); consumer cards leave
+         it blank and disable OWN / RENT. A typed value is kept until the preset
+         or the basis changes. -->
+    <span class="filter-label" title="Your cost per GPU-hour. Picking a datacenter card fills SemiAnalysis InferenceX's owning (Own) or renting (Rent) rate; consumer cards have no published rate. The hover then prices this tab's max-throughput figure per 1M output tokens at full use (decode only, uncalibrated; Economics › Serve has the calibrated datacenter figure).">$/GPU-HR</span>
+    <input id="local-gpu-rate" type="number" min="0" step="0.01" placeholder="—"
+      style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
+             color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
+             padding:6px 10px;width:72px;outline:none;" />
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="local-rate-basis" value="own" /> Own
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="local-rate-basis" value="rent" /> Rent
+    </label>
+    <div class="filter-sep"></div>
     <span class="filter-label">TAGS</span>
     <select id="local-tags" multiple style="min-width:160px;">
       <option value="code">Code</option>
@@ -219,6 +235,39 @@
       <option value="vision">Vision</option>
       <option value="audio">Audio</option>
     </select>
+  </div>
+
+  <!-- Economics tab controls. VIEW switches the panel's view; F inserts
+       Compute between Serve and Labs. Every option, default and slider bound
+       is filled from manifest.econ_serve_options (data/serving_cost.py). -->
+  <div id="tab-controls-economics" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="filter-label">VIEW</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="econ-view" value="serve" checked /> Serve
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
+      <input type="radio" name="econ-view" value="labs" /> Labs
+    </label>
+    <span id="econ-shared-controls" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="filter-sep"></div>
+      <span id="econ-util-label" class="filter-label">USE</span>
+      <input id="econ-util" type="range" style="width:150px;accent-color:#00d4ff;vertical-align:middle;" />
+      <span id="econ-util-value"
+        style="font-family:Inter,sans-serif;font-size:13px;color:#f2f2f2;min-width:34px;display:inline-block;"></span>
+    </span>
+    <span id="econ-serve-controls" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="filter-sep"></div>
+      <span class="filter-label">GPU</span>
+      <select id="econ-serve-gpu" style="min-width:220px;"></select>
+      <div class="filter-sep"></div>
+      <span class="filter-label">$/GPU-HR</span>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
+        <input type="radio" name="econ-serve-basis" value="own" /> Own
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
+        <input type="radio" name="econ-serve-basis" value="rent" /> Rent
+      </label>
+    </span>
   </div>
 
   <!-- Image Gen tab controls -->
