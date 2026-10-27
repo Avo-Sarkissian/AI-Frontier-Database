@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 272,
   "distinct_upstream_models": 272,
-  "kept": 163,
+  "kept": 162,
   "skipped_no_score": [
     "Cogito v2.1 (Reasoning)",
     "EXAONE 4.5 33B (Non-reasoning)",
@@ -38,6 +38,7 @@
     "Granite 4.0 H 350M",
     "Granite 4.0 H Small",
     "Granite 4.0 Micro",
+    "Granite 4.2 30B",
     "Hermes 4 - Llama-3.1 70B (Non-reasoning)",
     "Hermes 4 - Llama-3.1 70B (Reasoning)",
     "HyperCLOVA X SEED Think (32B)",
