@@ -310,11 +310,18 @@ def _value_violations(path: str, rev: str) -> list[str]:
 
 
 def archive_violations(path: str, before_text: str | None, after_text: str | None,
-                       max_drop_pct: float = DEFAULT_MAX_DROP_PCT) -> list[str]:
+                       max_drop_pct: float = DEFAULT_MAX_DROP_PCT,
+                       allow_shrink: bool = False) -> list[str]:
     """Violations for one economics archive or mirror; pure (texts in, list out).
 
     `before_text` is the committed copy (None when the file is new), `after_text`
     the candidate. Paths outside ARCHIVE_CSVS have no rules.
+
+    allow_shrink (econ_archive --allow-shrink, i.e. the workflow's allow_shrink
+    input) waives the two RELATIVE rules, the mirror row-drop limit and the
+    median shift, because an upstream that really pruned trips both on every
+    retry. The absolute floor and the append-only no-row-loss rule still hold:
+    a merge can never lose a row, so no upstream change excuses one.
     """
     rule = ARCHIVE_CSVS.get(path)
     if rule is None:
@@ -334,7 +341,8 @@ def archive_violations(path: str, before_text: str | None, after_text: str | Non
             if now < before:
                 out.append(f"{path}: {before} -> {now} rows; an append-only archive "
                            f"must never lose a row")
-        elif before and (before - now) / before * 100 > max_drop_pct:
+        elif (not allow_shrink and before
+              and (before - now) / before * 100 > max_drop_pct):
             out.append(f"{path}: {before} -> {now} rows, a "
                        f"{(before - now) / before * 100:.0f}% drop (limit {max_drop_pct:.0f}%)")
         if rule["watch"]:
@@ -344,7 +352,7 @@ def archive_violations(path: str, before_text: str | None, after_text: str | Non
                 if col not in now_m:
                     out.append(f"{path}: column '{col}' lost every usable value")
                     continue
-                if was == 0:
+                if was == 0 or allow_shrink:
                     continue
                 shift = abs(now_m[col] - was) / abs(was) * 100
                 if shift > _NUMERIC_MEDIAN_MAX_SHIFT_PCT:

@@ -1,18 +1,18 @@
 {
   "epoch_companies": {
-    "checked_at": "2026-10-27T14:14:12Z",
+    "checked_at": "2026-10-27T14:36:17Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:14:12Z",
+    "fetched_at": "2026-10-27T14:36:17Z",
     "ok": true,
     "rows": 186,
     "upstream_rows": 186
   },
   "epoch_hardware": {
-    "checked_at": "2026-10-27T14:14:12Z",
+    "checked_at": "2026-10-27T14:36:17Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:14:12Z",
+    "fetched_at": "2026-10-27T14:36:17Z",
     "ok": true,
     "rows": 183,
     "upstream_rows": 183
@@ -27,10 +27,10 @@
     "upstream_rows": 16481
   },
   "inferencex": {
-    "checked_at": "2026-10-27T14:14:12Z",
+    "checked_at": "2026-10-27T14:36:17Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-10-27T14:14:12Z",
+    "fetched_at": "2026-10-27T14:36:17Z",
     "ok": true,
     "rows": 4305,
     "upstream_rows": 4305

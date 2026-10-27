@@ -407,6 +407,9 @@ def test_econ_archive_step_is_wired_and_cannot_block_publish():
     assert "continue-on-error: true" in block, "a crash here would skip the AA publish"
     assert "timeout-minutes:" in block, "a hang here would skip the AA publish"
     assert '|| echo "failed=true" >> "$GITHUB_OUTPUT"' in block
+    # The archive refuses a pruned upstream before data_guard sees it, so the
+    # workflow's only remedy must reach the module too.
+    assert "inputs.allow_shrink && '--allow-shrink'" in block
     report = _step_block(txt, "Report archive failures")
     assert txt.index("git push") < txt.index("- name: Report archive failures")
     assert txt.index("- name: Report scrape failures") < txt.index("- name: Report archive failures")

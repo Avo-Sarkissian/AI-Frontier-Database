@@ -1,4 +1,4 @@
-valid_from,hw_key,label,vendor,arch,tdp_w,cost_own_usd_per_chip_hr,cost_rent_usd_per_chip_hr
+observed_on,hw_key,label,vendor,arch,tdp_w,cost_own_usd_per_chip_hr,cost_rent_usd_per_chip_hr
 2026-10-27,b200,B200,NVIDIA,Blackwell,1000,1.73,3.7
 2026-10-27,b300,B300,NVIDIA,Blackwell,1200,2.26,4.25
 2026-10-27,gb200,GB200 NVL72,NVIDIA,Blackwell,1200,1.86,4

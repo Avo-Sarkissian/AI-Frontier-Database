@@ -10,10 +10,12 @@ window, and nobody publishes the history.
 - GetDeploying's weekly GPU-price CSV keeps a rolling ~52 weeks. Between the
   2026-10-23 and 2026-10-27 downloads, the 145 rows of week 2025-10-20 left the
   window for good. The archive keeps every row it has ever seen.
-- SemiAnalysis InferenceX publishes per-chip throughput against interactivity
+- SemiAnalysis InferenceX publishes per-GPU throughput against interactivity
   and its own $/chip-hr marks (h = owning, r = renting). Its views show recent
   runs, and the marks are edited in place, so the archive is append-only for
-  points and a change log for the marks.
+  points and a change log for the marks. Two upstream conventions are
+  normalised on the way in (see parse_ix_view): gpu_count is the physical GPU
+  count, and every throughput is per GPU of the whole deployment.
 - The NY Fed publishes SOFR daily (the "SOFR + spread" financing input).
 - Epoch AI's hardware and AI Companies CSVs are revised in place; they are
   mirrored, and git history is the archive.
@@ -38,6 +40,7 @@ datasets the freshness badge reports on, so scrape_status is not touched.
     python -m data.econ_archive                 # whatever is due
     python -m data.econ_archive --force         # everything, now
     python -m data.econ_archive --only sofr,inferencex
+    python -m data.econ_archive --allow-shrink  # upstream really pruned (see run())
     python -m data.econ_archive --seed-getdeploying PATH   # one-time, archive wins
 
 Terms (checked 2026-10-27): GetDeploying and Epoch AI data are CC BY 4.0. The
@@ -255,10 +258,26 @@ def sanitise_rows(rows: Iterable[list[str]]) -> list[list[str]]:
     return [[sanitise_cell(c) for c in r] for r in rows]
 
 
-def _guard(canonical: str, before: str | None, after: str) -> list[str]:
-    """The publish guard's verdict on a candidate file, before it is written."""
+def _guard(canonical: str, before: str | None, after: str,
+           allow_shrink: bool = False) -> list[str]:
+    """The publish guard's verdict on a candidate file, before it is written.
+    allow_shrink waives the relative rules only (see data_guard)."""
     import data_guard
-    return data_guard.archive_violations(canonical, before, after)
+    return data_guard.archive_violations(canonical, before, after,
+                                         allow_shrink=allow_shrink)
+
+
+def _conform(header: list[str], rows: list[list[str]], target: list[str],
+             aliases: dict[str, str] | None = None) -> list[list[str]]:
+    """Archive rows written under an older header, re-laid out by column name
+    under `target`. A column the old file lacks is blank; `aliases` maps an
+    old name to its new one. Columns are only ever appended or renamed, so an
+    archive committed before a schema change still merges."""
+    if header == target or not rows:
+        return rows
+    names = [(aliases or {}).get(h, h) for h in header]
+    idx = [names.index(c) if c in names else None for c in target]
+    return [[(r[i] if i is not None and i < len(r) else "") for i in idx] for r in rows]
 
 
 # ── HTTP ──────────────────────────────────────────────────────────────────────
@@ -279,6 +298,21 @@ def _get(session, url: str, params: dict | None = None):
     return r
 
 
+def _utf8(resp) -> str:
+    """A CSV body decoded as UTF-8, never through `resp.text`.
+
+    epoch.ai serves `Content-Type: text/csv` with no charset, and for text/*
+    without one requests falls back to ISO-8859-1, so `.text` turned every
+    curly quote and en dash into mojibake (the funding-round Id "OpenAI, en
+    dash, Nvidia" was stored as "OpenAI" + U+00E2 U+0080 U+0093 + "Nvidia";
+    verified 2026-10-27). Both CSV hosts publish
+    UTF-8. A body that is not UTF-8 is refused rather than guessed at."""
+    try:
+        return resp.content.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise SourceError(f"response is not UTF-8 ({e})") from None
+
+
 class SourceError(Exception):
     """A fetch or validation failure; the message is recorded in fetch_state."""
 
@@ -291,6 +325,12 @@ class Outcome:
     error: str = ""
     wrote: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # A success with something wrong in it (main() prints it as ::warning).
+    warn: str = ""
+    # Per-view bookkeeping for multi-call sources (InferenceX): the views that
+    # raised, and the planned views not attempted (budget). None = not tracked.
+    failed_views: list[str] | None = None
+    pending_views: list[str] = field(default_factory=list)
 
 
 # ── GetDeploying ──────────────────────────────────────────────────────────────
@@ -366,17 +406,22 @@ def validate_getdeploying(header: list[str], rows: list[list[str]], now: datetim
     return problems
 
 
-def run_getdeploying(session, now: datetime, prev: dict, **_) -> Outcome:
-    text = _get(session, GD_URL).text
+def run_getdeploying(session, now: datetime, prev: dict, allow_shrink: bool = False,
+                     **_) -> Outcome:
+    text = _utf8(_get(session, GD_URL))
     header, rows = _parse_csv(text)
-    problems = validate_getdeploying(header, rows, now, prev.get("upstream_rows"))
+    # allow_shrink: upstream really did trim its window. Without it, the last
+    # successful count is the baseline forever and a real prune fails forever.
+    last = None if allow_shrink else prev.get("upstream_rows")
+    problems = validate_getdeploying(header, rows, now, last)
     if problems:
         raise SourceError("; ".join(problems))
-    return _merge_gd_into_archive(rows, upstream_wins=True, upstream_rows=len(rows))
+    return _merge_gd_into_archive(rows, upstream_wins=True, upstream_rows=len(rows),
+                                  allow_shrink=allow_shrink)
 
 
 def _merge_gd_into_archive(rows: list[list[str]], upstream_wins: bool,
-                           upstream_rows: int) -> Outcome:
+                           upstream_rows: int, allow_shrink: bool = False) -> Outcome:
     path = resolve(GPU_PRICES)
     before = _read_text(path)
     _, archive = _parse_csv(before)
@@ -384,7 +429,7 @@ def _merge_gd_into_archive(rows: list[list[str]], upstream_wins: bool,
     if len(merged) < len(archive):          # cannot happen; belt and braces
         raise SourceError(f"merge shrank the archive {len(archive)} -> {len(merged)}")
     text = _csv_text(GD_HEADER, merged)
-    problems = _guard(GPU_PRICES, before, text)
+    problems = _guard(GPU_PRICES, before, text, allow_shrink)
     if problems:
         raise SourceError("; ".join(problems))
     wrote = [GPU_PRICES] if _write_if_changed(path, text) else []
@@ -453,7 +498,8 @@ def sofr_request(archive_rows: list[list[str]], today: date) -> tuple[str, dict 
                              "endDate": today.isoformat()}
 
 
-def run_sofr(session, now: datetime, prev: dict, **_) -> Outcome:
+def run_sofr(session, now: datetime, prev: dict, allow_shrink: bool = False,
+             **_) -> Outcome:
     path = resolve(SOFR_CSV)
     before = _read_text(path)
     _, archive = _parse_csv(before)
@@ -464,7 +510,7 @@ def run_sofr(session, now: datetime, prev: dict, **_) -> Outcome:
         raise SourceError(f"newest SOFR {newest} is over {SOFR_MAX_AGE_DAYS} days old")
     merged = merge_sofr(archive, new)
     text = _csv_text(SOFR_HEADER, merged)
-    problems = _guard(SOFR_CSV, before, text)
+    problems = _guard(SOFR_CSV, before, text, allow_shrink)
     if problems:
         raise SourceError("; ".join(problems))
     wrote = [SOFR_CSV] if _write_if_changed(path, text) else []
@@ -474,14 +520,23 @@ def run_sofr(session, now: datetime, prev: dict, **_) -> Outcome:
 
 # ── InferenceX ────────────────────────────────────────────────────────────────
 
-IX_RATES_HEADER = ["valid_from", "hw_key", "label", "vendor", "arch", "tdp_w",
+# observed_on is the UTC date the bot first saw a mark, NOT an effective date:
+# SemiAnalysis publishes neither when a mark was set nor when it changed. Use
+# the latest row per hw_key as "current SemiAnalysis mark, observed <date>",
+# never as the mark that applied on a point's run_date.
+IX_RATES_HEADER = ["observed_on", "hw_key", "label", "vendor", "arch", "tdp_w",
                    "cost_own_usd_per_chip_hr", "cost_rent_usd_per_chip_hr"]
+IX_RATES_ALIASES = {"valid_from": "observed_on"}      # the name before 2026-10-27
 IX_POINTS_HEADER = ["point_id", "model", "sequence", "x_field", "hw_key", "gpu", "framework",
                     "spec_method", "deployment", "kv_offload", "precision", "concurrency",
                     "gpu_count", "tensor_parallel", "expert_parallel",
                     "interactivity_tok_s_user", "tput_tok_s_chip", "output_tput_tok_s_chip",
-                    "input_tput_tok_s_chip", "run_date", "run_id", "first_seen"]
+                    "input_tput_tok_s_chip", "run_date", "run_id", "first_seen",
+                    # appended 2026-10-27 (older rows conform with blanks)
+                    "gpu_count_upstream", "prefill_gpus", "decode_gpus"]
 IX_MIN_HARDWARE = 8
+# Tolerance for recognising which basis a point's output/input throughput uses.
+_IX_BASIS_TOL = 0.02
 
 
 def run_url(run_id) -> str:
@@ -492,7 +547,8 @@ def run_url(run_id) -> str:
 
 def parse_ix_options(payload: dict, fetched_on: str) -> list[list[str]]:
     """options.hardware -> rate rows. h = owning, r = renting, USD per chip-hour
-    (SemiAnalysis's large-hyperscaler-volume marks, not market prices)."""
+    (SemiAnalysis's large-hyperscaler-volume marks, not market prices).
+    `fetched_on` lands in observed_on: the source publishes no effective date."""
     rows, bad = [], []
     for hw in (payload or {}).get("hardware") or []:
         cost = hw.get("costPerHour") or {}
@@ -547,6 +603,10 @@ def plan_ix_requests(options: dict, availability: list[dict]) -> list[tuple[str,
     return sorted(pairs)
 
 
+def _view_key(model: str, sequence: str) -> str:
+    return f"{model} | {sequence}"
+
+
 def ix_view_params(options: dict, model: str, sequence: str) -> dict:
     """One call per (model, sequence) returns every point.
 
@@ -584,6 +644,52 @@ def _int_str(v) -> str:
     return "" if n is None else str(int(n))
 
 
+def physical_gpus(single_node: bool, upstream_gpus, tp, ep) -> int | None:
+    """The GPUs a configuration really runs on.
+
+    InferenceX's point.tp (= the topologyKey's GPU=) is TP x EP on single-node
+    expert-parallel configurations, not a GPU count: 'Single|GPU=64|TP=8|EP=8'
+    runs on one 8-GPU node. Its tpPerGpu is normalised by the 8 physical GPUs
+    (DeepSeek-V4-Pro 8k/1k, B200 vLLM, conc 64, 2026-09-03: 1977 tok/s/GPU
+    at 'GPU=64' against 1984 at 'Single|GPU=8|TP=8|EP=1'; verified live
+    2026-10-27 across 443 such points). There the expert-parallel group reuses
+    the tensor-parallel ranks, so the node holds max(TP, EP) GPUs. Multi-node
+    and prefill/decode labels already count GPUs (P-GPU + D-GPU = GPU on every
+    disaggregated point) and are kept.
+    """
+    g, t, e = _num(upstream_gpus), _num(tp), _num(ep)
+    if g is None:
+        return None
+    if single_node and t and e and e > 1 and g == t * e:
+        return int(max(t, e))
+    return int(g)
+
+
+def ix_rebase_throughput(tp: float, out_t: float | None, in_t: float | None,
+                         gpus: int | None, prefill: int | None,
+                         decode: int | None) -> tuple[float | None, float | None]:
+    """Output and input tok/s per GPU of the WHOLE deployment, whatever basis
+    upstream used.
+
+    Upstream's outputTputPerGpu / inputTputPerGpu are per total GPU almost
+    everywhere (output + input = tpPerGpu), but on fixed-sequence (8k/1k)
+    disaggregated points they are per DECODE GPU and per PREFILL GPU: point
+    438832 (GB300, P-GPU=60, D-GPU=12): 13716.5 x 72 / 9 / 9143.6 = 12.0
+    decode GPUs. Pricing that column at a per-chip rate would bill only the
+    decode pool (0.07 instead of 0.46 $/M output on point 424199). The basis
+    is recognised from the numbers, not from the sequence name: a point whose
+    basis matches neither is returned blank rather than guessed.
+    """
+    if out_t is None or in_t is None or not tp:
+        return out_t, in_t
+    if abs(out_t + in_t - tp) <= _IX_BASIS_TOL * tp:
+        return out_t, in_t
+    if gpus and prefill and decode and \
+            abs(out_t * decode + in_t * prefill - tp * gpus) <= _IX_BASIS_TOL * tp * gpus:
+        return out_t * decode / gpus, in_t * prefill / gpus
+    return None, None
+
+
 def parse_ix_view(payload: dict, model: str, sequence: str, fetched_on: str,
                   labels: dict[str, str] | None = None) -> tuple[list[list[str]], int]:
     """A view -> point rows, and the number of points dropped as invalid.
@@ -591,6 +697,16 @@ def parse_ix_view(payload: dict, model: str, sequence: str, fetched_on: str,
     hw_key is the hardware key (joins inferencex_rates.hw_key); gpu is its
     display label. x_field records whether interactivity is the median
     (fixed-sequence views) or p90 (agentic views): never mix the two.
+
+    Normalised so that gpu_count x tok/s/GPU is the deployment's throughput
+    and a per-chip-hour price applies to every throughput column alike:
+    - gpu_count is physical_gpus(); upstream's label is kept in
+      gpu_count_upstream;
+    - tput / output / input are per GPU of the whole deployment
+      (ix_rebase_throughput); upstream's per-pool values are
+      output x gpu_count / decode_gpus and input x gpu_count / prefill_gpus;
+    - prefill_gpus / decode_gpus come from the topologyKey (P-GPU, D-GPU) on
+      disaggregated points and are blank elsewhere.
     """
     labels = labels or {}
     x_field = str(((payload or {}).get("xAxis") or {}).get("field") or "")
@@ -604,18 +720,50 @@ def parse_ix_view(payload: dict, model: str, sequence: str, fetched_on: str,
             if not pid or x is None or x <= 0 or tp is None or tp <= 0:
                 dropped += 1
                 continue
-            topo = _topology(p.get("topologyKey"))
+            key = str(p.get("topologyKey") or "")
+            topo = _topology(key)
+            upstream_gpus = p.get("tp") if _num(p.get("tp")) is not None else topo.get("GPU")
+            gpus = physical_gpus(key.split("|", 1)[0] == "Single", upstream_gpus,
+                                 topo.get("TP"), topo.get("EP"))
+            pre, dec = _num(topo.get("P-GPU")), _num(topo.get("D-GPU"))
+            out_t, in_t = ix_rebase_throughput(
+                tp, _num(m.get("outputTputPerGpu")), _num(m.get("inputTputPerGpu")),
+                gpus, pre, dec)
             rows.append([
                 pid, model, sequence, x_field, hw, labels.get(hw, hw),
                 str(s.get("framework") or ""), str(s.get("specMethod") or ""),
                 str(s.get("deployment") or ""), str(bool(s.get("kvOffload"))).lower(),
                 str(p.get("precision") or ""), _int_str(p.get("concurrency")),
-                _int_str(p.get("tp")), topo.get("TP", ""), topo.get("EP", ""),
-                _g(x), _g(tp), _g(_num(m.get("outputTputPerGpu"))),
-                _g(_num(m.get("inputTputPerGpu"))),
+                "" if gpus is None else str(gpus), topo.get("TP", ""), topo.get("EP", ""),
+                _g(x), _g(tp), _g(out_t), _g(in_t),
                 str(p.get("date") or ""), _int_str(p.get("runId")), fetched_on,
+                _int_str(upstream_gpus), _int_str(pre), _int_str(dec),
             ])
     return sanitise_rows(rows), dropped
+
+
+_IX_COL = {c: i for i, c in enumerate(IX_POINTS_HEADER)}
+_IX_FIRST_SEEN = _IX_COL["first_seen"]
+
+
+def conform_ix_points(header: list[str], rows: list[list[str]]) -> list[list[str]]:
+    """Archive rows from before the 2026-10-27 schema change, laid out under
+    IX_POINTS_HEADER. Their gpu_count was upstream's label, so it moves to
+    gpu_count_upstream and gpu_count is recomputed (every single-node point is
+    a 'Single' topology). Their throughputs keep upstream's basis and their
+    prefill/decode split stays blank: a point still in the view is rewritten
+    with both on the next fetch (the merge is upstream-wins)."""
+    if header == IX_POINTS_HEADER:
+        return rows
+    out = _conform(header, rows, IX_POINTS_HEADER)
+    if "gpu_count_upstream" not in header:
+        c = _IX_COL
+        for r in out:
+            r[c["gpu_count_upstream"]] = r[c["gpu_count"]]
+            g = physical_gpus(r[c["deployment"]] == "single-node", r[c["gpu_count"]],
+                              r[c["tensor_parallel"]], r[c["expert_parallel"]])
+            r[c["gpu_count"]] = "" if g is None else str(g)
+    return out
 
 
 def _ix_key(r: list[str]) -> tuple[str, str]:
@@ -637,13 +785,14 @@ def merge_ix_points(archive_rows: list[list[str]], new_rows: list[list[str]]) ->
     for r in new_rows:
         k = _ix_key(r)
         if k in merged:
-            r = r[:-1] + [merged[k][-1]]
+            r = list(r)
+            r[_IX_FIRST_SEEN] = merged[k][_IX_FIRST_SEEN]
         merged[k] = r
     return sorted(merged.values(), key=_ix_sort)
 
 
 def run_inferencex(session, now: datetime, prev: dict, deadline: float | None = None,
-                   sleep_s: float = 1.0, **_) -> Outcome:
+                   sleep_s: float = 1.0, allow_shrink: bool = False, **_) -> Outcome:
     today = now.date().isoformat()
     options = _get(session, IX_BASE + "/views/options", {"format": "json"}).json()
     rate_rows = parse_ix_options(options, today)
@@ -656,11 +805,13 @@ def run_inferencex(session, now: datetime, prev: dict, deadline: float | None = 
     labels = {h["key"]: h.get("label") or h["key"] for h in options.get("hardware") or []}
 
     new_points: list[list[str]] = []
-    failed, done, dropped, budget_hit = [], 0, 0, False
+    failed, failed_keys, pending = [], [], []
+    done, dropped, budget_hit = 0, 0, False
     for i, (model, seq) in enumerate(plan):
-        if deadline is not None and time.monotonic() >= deadline:
+        if budget_hit or (deadline is not None and time.monotonic() >= deadline):
             budget_hit = True
-            break
+            pending.append(_view_key(model, seq))
+            continue
         if i and sleep_s:
             time.sleep(sleep_s)
         try:
@@ -672,14 +823,16 @@ def run_inferencex(session, now: datetime, prev: dict, deadline: float | None = 
             done += 1
         except Exception as e:                        # one view never sinks the rest
             failed.append(f"{model} {seq}: {type(e).__name__}: {str(e)[:120]}")
+            failed_keys.append(_view_key(model, seq))
 
     # Rates first: they come from one call that already succeeded.
     wrote = []
     rp = resolve(IX_RATES)
     before_r = _read_text(rp)
-    _, arch_r = _parse_csv(before_r)
+    head_r, arch_r = _parse_csv(before_r)
+    arch_r = _conform(head_r, arch_r, IX_RATES_HEADER, IX_RATES_ALIASES)
     text_r = _csv_text(IX_RATES_HEADER, merge_ix_rates(arch_r, rate_rows))
-    problems = _guard(IX_RATES, before_r, text_r)
+    problems = _guard(IX_RATES, before_r, text_r, allow_shrink)
     if problems:
         raise SourceError("; ".join(problems))
     if _write_if_changed(rp, text_r):
@@ -687,11 +840,12 @@ def run_inferencex(session, now: datetime, prev: dict, deadline: float | None = 
 
     pp = resolve(IX_POINTS)
     before_p = _read_text(pp)
-    _, arch_p = _parse_csv(before_p)
+    head_p, arch_p = _parse_csv(before_p)
+    arch_p = conform_ix_points(head_p, arch_p)
     merged = merge_ix_points(arch_p, new_points)
     if new_points:              # partial results still merge: the archive is append-only
         text_p = _csv_text(IX_POINTS_HEADER, merged)
-        problems = _guard(IX_POINTS, before_p, text_p)
+        problems = _guard(IX_POINTS, before_p, text_p, allow_shrink)
         if problems:
             raise SourceError("; ".join(problems))
         if _write_if_changed(pp, text_p):
@@ -702,26 +856,36 @@ def run_inferencex(session, now: datetime, prev: dict, deadline: float | None = 
     notes.append(_ix_summary(new_points))
     if failed:
         notes.append("failed views: " + " | ".join(failed[:5]))
-    error = ""
+    error = warn = ""
     if budget_hit:
         error = f"budget: stopped after {done + len(failed)}/{len(plan)} views"
     elif done * 2 <= len(plan):
         error = f"only {done}/{len(plan)} views succeeded"
+    elif failed:
+        # A minority failing is still a success (the rest merged), but never a
+        # silent one: it is a ::warning now, the source retries on its short
+        # interval, and a view failing for ESCALATE_AFTER_H turns the run red.
+        warn = f"{len(failed)}/{len(plan)} views failed: " + " | ".join(failed[:3])
     return Outcome(not error, rows=len(merged), upstream_rows=len(new_points),
-                   error=error, wrote=wrote, notes=notes)
+                   error=error, wrote=wrote, notes=notes, warn=warn,
+                   failed_views=failed_keys, pending_views=pending)
 
 
 def _ix_summary(rows: list[list[str]]) -> str:
-    """Distinct deployment / spec_method / precision values and the gpu_count
-    range, logged so a consumer can see what like-for-like slices exist."""
+    """Distinct deployment / spec_method / precision values, the physical
+    gpu_count range and how many points had an unrecognised throughput basis,
+    logged so a consumer can see what like-for-like slices exist."""
     if not rows:
         return "no points"
-    col = {c: i for i, c in enumerate(IX_POINTS_HEADER)}
+    col = _IX_COL
     def vals(c):
         return sorted({r[col[c]] for r in rows})
     counts = [int(r[col["gpu_count"]]) for r in rows if r[col["gpu_count"]]]
+    unknown = sum(1 for r in rows if r[col["output_tput_tok_s_chip"]] == "")
+    rng = f"{min(counts)}..{max(counts)}" if counts else "?"
     return (f"deployment={vals('deployment')} spec_method={vals('spec_method')} "
-            f"precision={vals('precision')} gpu_count={min(counts)}..{max(counts)}")
+            f"precision={vals('precision')} gpu_count={rng} "
+            f"unrecognised_throughput_basis={unknown}")
 
 
 # ── Epoch AI mirrors ──────────────────────────────────────────────────────────
@@ -795,28 +959,31 @@ def validate_epoch(basename: str, header: list[str], rows: list[list[str]],
     return problems
 
 
-def mirror_epoch_file(session, basename: str, today: date) -> tuple[bool, int, list[str]]:
+def mirror_epoch_file(session, basename: str, today: date,
+                      allow_shrink: bool = False) -> tuple[bool, int, list[str]]:
     """Fetch, validate, sanitise and write one Epoch CSV. Returns
-    (written, rows, problems); nothing is written when problems is non-empty."""
+    (written, rows, problems); nothing is written when problems is non-empty.
+    Decoded with _utf8: epoch.ai sends no charset (see there)."""
     canonical = EPOCH_FILES[basename]
-    header, rows = _parse_csv(_get(session, EPOCH_BASE + basename).text)
+    header, rows = _parse_csv(_utf8(_get(session, EPOCH_BASE + basename)))
     problems = validate_epoch(basename, header, rows, today)
     if problems:
         return False, len(rows), problems
     path = resolve(canonical)
     before = _read_text(path)
     text = _csv_text(sanitise_rows([header])[0], sanitise_rows(rows))
-    problems = _guard(canonical, before, text)
+    problems = _guard(canonical, before, text, allow_shrink)
     if problems:
         return False, len(rows), problems
     return _write_if_changed(path, text), len(rows), []
 
 
-def _run_epoch(session, now: datetime, basenames: list[str]) -> Outcome:
+def _run_epoch(session, now: datetime, basenames: list[str],
+               allow_shrink: bool = False) -> Outcome:
     wrote, problems, total = [], [], 0
     for b in basenames:
         try:
-            changed, n, p = mirror_epoch_file(session, b, now.date())
+            changed, n, p = mirror_epoch_file(session, b, now.date(), allow_shrink)
         except Exception as e:
             changed, n, p = False, 0, [f"{b}: {type(e).__name__}: {str(e)[:160]}"]
         total += n
@@ -827,12 +994,15 @@ def _run_epoch(session, now: datetime, basenames: list[str]) -> Outcome:
                    error="; ".join(problems), wrote=wrote)
 
 
-def run_epoch_hardware(session, now: datetime, prev: dict, **_) -> Outcome:
-    return _run_epoch(session, now, ["ml_hardware.csv"])
+def run_epoch_hardware(session, now: datetime, prev: dict, allow_shrink: bool = False,
+                       **_) -> Outcome:
+    return _run_epoch(session, now, ["ml_hardware.csv"], allow_shrink)
 
 
-def run_epoch_companies(session, now: datetime, prev: dict, **_) -> Outcome:
-    return _run_epoch(session, now, [b for b in EPOCH_FILES if b != "ml_hardware.csv"])
+def run_epoch_companies(session, now: datetime, prev: dict, allow_shrink: bool = False,
+                        **_) -> Outcome:
+    return _run_epoch(session, now, [b for b in EPOCH_FILES if b != "ml_hardware.csv"],
+                      allow_shrink)
 
 
 RUNNERS: dict[str, Callable[..., Outcome]] = {
@@ -860,8 +1030,10 @@ def save_state(state: dict, path: Path | None = None) -> bool:
 
 
 def due(state: dict, name: str, now: datetime, force: bool = False) -> bool:
-    """Never checked -> due. Otherwise the source's cadence after a success and
-    its shorter retry interval after a failure."""
+    """Never checked -> due. Otherwise the source's cadence after a clean
+    success, and its shorter retry interval after a failure or after a success
+    in which some views failed (so one dead view is retried, not left alone
+    for six days)."""
     if force:
         return True
     entry = state.get(name) or {}
@@ -869,19 +1041,27 @@ def due(state: dict, name: str, now: datetime, force: bool = False) -> bool:
     if checked is None:
         return True
     src = SOURCES[name]
-    wait_h = src.cadence_h if entry.get("ok") else src.retry_h
+    clean = entry.get("ok") and not entry.get("view_failing_since")
+    wait_h = src.cadence_h if clean else src.retry_h
     return (now - checked) >= timedelta(hours=wait_h)
 
 
 def escalate(state: dict, now: datetime) -> list[str]:
-    """Sources failing for ESCALATE_AFTER_H or longer: these fail the run."""
+    """Sources, and single views of a multi-call source, failing for
+    ESCALATE_AFTER_H or longer: these fail the run."""
     out = []
+    limit = timedelta(hours=ESCALATE_AFTER_H)
     for name in sorted(state):
         entry = state.get(name) or {}
         since = _parse_ts(entry.get("failing_since"))
-        if since is not None and now - since >= timedelta(hours=ESCALATE_AFTER_H):
+        if since is not None and now - since >= limit:
             hours = (now - since).total_seconds() / 3600
             out.append(f"{name}: failing for {hours:.0f}h: {entry.get('error', '')}")
+        for view, ts in sorted((entry.get("view_failing_since") or {}).items()):
+            vsince = _parse_ts(ts)
+            if vsince is not None and now - vsince >= limit:
+                hours = (now - vsince).total_seconds() / 3600
+                out.append(f"{name}: view '{view}' failing for {hours:.0f}h")
     return out
 
 
@@ -897,14 +1077,33 @@ def _record(state: dict, name: str, now: datetime, out: Outcome) -> None:
         "error": out.error[:500],
         "failing_since": None if out.ok else (prev.get("failing_since") or _iso(now)),
     }
+    # Per-view failure clocks. A view that failed keeps the time it first
+    # failed; one that succeeded (or left the plan) is dropped; one the budget
+    # never reached keeps its clock. A run that never got as far as the views
+    # (out.failed_views is None) leaves the clocks as they were.
+    prev_views = prev.get("view_failing_since") or {}
+    if out.failed_views is None:
+        views = dict(prev_views)
+    else:
+        views = {v: prev_views.get(v) or _iso(now) for v in out.failed_views}
+        views.update({v: prev_views[v] for v in out.pending_views if v in prev_views})
+    if views:
+        entry["view_failing_since"] = dict(sorted(views.items()))
     state[name] = entry
 
 
 def run(only: Iterable[str] | None = None, force: bool = False, now: datetime | None = None,
-        session=None, budget_s: float = DEFAULT_BUDGET_S, sleep_s: float = 1.0) -> dict:
+        session=None, budget_s: float = DEFAULT_BUDGET_S, sleep_s: float = 1.0,
+        allow_shrink: bool = False) -> dict:
     """Fetch every due source; each in its own try/except. Returns
     {source: {"status": skipped|ok|failed, ...}}. fetch_state.json is written
-    only when something was attempted."""
+    only when something was attempted.
+
+    allow_shrink is the remedy for an upstream that really pruned: it waives
+    the relative checks (GetDeploying's upstream-shrink, the mirror row-drop
+    limit, the median shift) for this run, which resets their baselines, and
+    makes every source whose last attempt failed due at once. Absolute floors,
+    validation ranges and the append-only rule still apply."""
     now = now or _utcnow()
     session = session or _Requests()
     state = load_state()
@@ -913,7 +1112,9 @@ def run(only: Iterable[str] | None = None, force: bool = False, now: datetime | 
     report: dict[str, dict] = {}
     attempted = False
     for name in names:
-        if not due(state, name, now, force):
+        entry = state.get(name) or {}
+        retry_now = allow_shrink and entry.get("checked_at") and not entry.get("ok")
+        if not (retry_now or due(state, name, now, force)):
             report[name] = {"status": "skipped"}
             continue
         if time.monotonic() >= deadline:
@@ -922,12 +1123,14 @@ def run(only: Iterable[str] | None = None, force: bool = False, now: datetime | 
         attempted = True
         prev = state.get(name) or {}
         try:
-            out = RUNNERS[name](session, now, prev, deadline=deadline, sleep_s=sleep_s)
+            out = RUNNERS[name](session, now, prev, deadline=deadline, sleep_s=sleep_s,
+                                allow_shrink=allow_shrink)
         except Exception as e:
             out = Outcome(False, error=f"{type(e).__name__}: {str(e)[:400]}")
         _record(state, name, now, out)
         report[name] = {"status": "ok" if out.ok else "failed", "error": out.error,
-                        "rows": out.rows, "wrote": out.wrote, "notes": out.notes}
+                        "rows": out.rows, "wrote": out.wrote, "notes": out.notes,
+                        "warn": out.warn}
     if attempted:
         save_state(state)
     return report
@@ -937,6 +1140,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Archive external economics sources.")
     ap.add_argument("--force", action="store_true", help="fetch every source now")
     ap.add_argument("--only", default="", help="comma-separated source names")
+    ap.add_argument("--allow-shrink", action="store_true",
+                    help="upstream really pruned: waive the relative row-drop and "
+                         "median checks for this run (the workflow's allow_shrink input)")
     ap.add_argument("--seed-getdeploying", metavar="PATH",
                     help="one-time: merge an older GetDeploying weekly.csv (archive wins)")
     args = ap.parse_args(argv)
@@ -953,7 +1159,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[econ] unknown source(s): {unknown}; known: {list(RUNNERS)}")
         return 2
     now = _utcnow()
-    report = run(only=only, force=args.force, now=now)
+    report = run(only=only, force=args.force, now=now, allow_shrink=args.allow_shrink)
     for name, r in report.items():
         line = f"[econ] {name}: {r['status']}"
         if r.get("reason"):
@@ -969,6 +1175,9 @@ def main(argv: list[str] | None = None) -> int:
             # A failure inside the grace period is a warning; escalate() below
             # turns a persistent one into a failed run.
             print(f"::warning title=Economics archive::{name} failed: {r.get('error', '')[:200]}")
+        elif r.get("warn"):
+            print(f"[econ]   warning: {r['warn']}")
+            print(f"::warning title=Economics archive::{name}: {r['warn'][:200]}")
     problems = escalate(load_state(), now)
     for p in problems:
         print(f"::error title=Economics archive stale::{p}")

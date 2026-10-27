@@ -37,12 +37,23 @@ def _rows(name: str) -> tuple[list[str], list[list[str]]]:
 
 
 class _Resp:
-    def __init__(self, body, status: int = 200):
-        self.body, self.status_code = body, status
+    """Mimics requests.Response: `.content` is bytes, and `.text` decodes them
+    with `.encoding`, which requests sets to ISO-8859-1 for a text/* response
+    with no charset (what epoch.ai sends, verified 2026-10-27)."""
+
+    def __init__(self, body, status: int = 200, encoding: str = "utf-8"):
+        self.body, self.status_code, self.encoding = body, status, encoding
+
+    @property
+    def content(self) -> bytes:
+        if isinstance(self.body, bytes):
+            return self.body
+        s = self.body if isinstance(self.body, str) else json.dumps(self.body)
+        return s.encode("utf-8")
 
     @property
     def text(self):
-        return self.body if isinstance(self.body, str) else json.dumps(self.body)
+        return self.content.decode(self.encoding or "utf-8", errors="replace")
 
     def json(self):
         return json.loads(self.body) if isinstance(self.body, str) else self.body
@@ -63,11 +74,13 @@ class FakeSession:
     def get(self, url, params=None, headers=None, timeout=None):
         params = dict(params or {})
         self.calls.append((url, params))
+        # epoch.ai: Content-Type text/csv with no charset -> requests' Latin-1
+        enc = "ISO-8859-1" if url.startswith(E.EPOCH_BASE) else "utf-8"
         for key, body in self.overrides.items():
             if url.endswith(key):
                 if isinstance(body, Exception):
                     raise body
-                return _Resp(body)
+                return _Resp(body, encoding=enc)
         if url == E.GD_URL:
             return _Resp(_fx("getdeploying_weekly_2026-10-27.csv"))
         if url == E.SOFR_SEARCH_URL:
@@ -97,7 +110,7 @@ class FakeSession:
         }
         for base, fx in epoch.items():
             if url == E.EPOCH_BASE + base:
-                return _Resp(_fx(fx))
+                return _Resp(_fx(fx), encoding=enc)
         raise AssertionError(f"unexpected URL in test: {url}")
 
 
@@ -318,7 +331,8 @@ def test_ix_points_parse():
     pts = {str(p["id"]): (s, p) for s in payload["series"] for p in s["points"]}
     for r in rows:
         s, p = pts[r[col["point_id"]]]
-        assert r[col["gpu_count"]] == str(p["tp"])
+        assert r[col["gpu_count_upstream"]] == str(p["tp"])
+        assert r[col["gpu_count"]] == str(p["tp"])         # disagg: P-GPU + D-GPU, kept
         assert r[col["framework"]] == s["framework"] and r[col["spec_method"]] == s["specMethod"]
         topo = dict(t.split("=", 1) for t in p["topologyKey"].split("|") if "=" in t)
         assert r[col["tensor_parallel"]] == ("" if topo["TP"] == "?" else topo["TP"])
@@ -348,7 +362,7 @@ def test_ix_merge_dedupes_by_point_id_and_keeps_first_seen():
     new, _ = E.parse_ix_view(payload, "DeepSeek-V4-Pro", "8k/1k", "2026-10-27")
     merged = E.merge_ix_points(old, new + new)
     assert len(merged) == len(old)
-    assert {r[-1] for r in merged} == {"2026-10-20"}
+    assert {r[E._IX_FIRST_SEEN] for r in merged} == {"2026-10-20"}
     gone = E.merge_ix_points(merged, new[:1])
     assert len(gone) == len(merged), "points that left the view were deleted"
 
@@ -594,3 +608,219 @@ def test_committed_archives_have_the_documented_schema():
             for col in E.EPOCH_REQUIRED[base]:
                 assert col.lower() in got, (rel, col)
     assert set(data_guard.ARCHIVE_CSVS) == set(expect) | set(E.EPOCH_FILES.values())
+
+
+# ── review fixes (2026-10-27) ────────────────────────────────────────────────
+
+def test_epoch_mirror_is_decoded_as_utf8_not_latin1(sandbox):
+    """epoch.ai sends text/csv with no charset, so requests' .text is Latin-1
+    and every en dash / curly quote became mojibake in the committed mirrors.
+    FakeSession serves Epoch exactly that way."""
+    assert "OpenAI–Nvidia" in _fx("epoch_funding_head.csv"), "fixture premise"
+    out = E.run(only=["epoch_hardware", "epoch_companies"], now=NOW, session=FakeSession(), sleep_s=0)
+    assert out["epoch_companies"]["status"] == "ok", out
+    fund = (sandbox / "epoch" / "ai_companies_funding_rounds.csv").read_text(encoding="utf-8")
+    rev = (sandbox / "epoch" / "ai_companies_revenue_reports.csv").read_text(encoding="utf-8")
+    assert "OpenAI–Nvidia" in fund
+    assert "DeepSeek’s" in rev
+    for p in (sandbox / "epoch").iterdir():
+        assert "â\u0080" not in p.read_text(encoding="utf-8"), f"mojibake in {p.name}"
+
+
+def test_non_utf8_body_is_refused_not_guessed():
+    with pytest.raises(E.SourceError, match="not UTF-8"):
+        E._utf8(_Resp("café,1\n".encode("latin-1"), encoding="ISO-8859-1"))
+    assert E._utf8(_Resp("﻿a,b\n1,2\n")) == "a,b\n1,2\n"          # BOM stripped
+
+
+def test_committed_epoch_mirrors_have_no_mojibake():
+    for rel in E.EPOCH_FILES.values():
+        p = ROOT / rel
+        if p.exists():
+            text = p.read_text(encoding="utf-8")
+            for bad in ("â\u0080", "Â "):
+                assert bad not in text, f"{rel} holds Latin-1-decoded UTF-8 ({bad!r})"
+
+
+def test_allow_shrink_accepts_a_real_getdeploying_prune(sandbox):
+    E.run(only=["getdeploying"], now=NOW, session=FakeSession(), sleep_s=0)
+    state_path = sandbox / "econ" / "fetch_state.json"
+    st = json.loads(state_path.read_text())
+    real = st["getdeploying"]["upstream_rows"]
+    st["getdeploying"]["upstream_rows"] = real * 2          # upstream then halved its window
+    state_path.write_text(json.dumps(st))
+    later = NOW + timedelta(hours=1)
+    out = E.run(only=["getdeploying"], now=later, force=True, session=FakeSession(), sleep_s=0)
+    assert out["getdeploying"]["status"] == "failed" and ">20%" in out["getdeploying"]["error"]
+    # A failed source is not due again for retry_h; --allow-shrink retries it
+    # now, accepts the candidate and resets the baseline.
+    assert not E.due(_state(sandbox), "getdeploying", later + timedelta(minutes=5))
+    out = E.run(only=["getdeploying"], now=later + timedelta(minutes=5), session=FakeSession(),
+                sleep_s=0, allow_shrink=True)
+    assert out["getdeploying"]["status"] == "ok", out
+    st = _state(sandbox)["getdeploying"]
+    assert st["upstream_rows"] == real and st["failing_since"] is None
+    # ...and the next ordinary run passes on its own.
+    out = E.run(only=["getdeploying"], now=later, force=True, session=FakeSession(), sleep_s=0)
+    assert out["getdeploying"]["status"] == "ok", out
+
+
+def test_allow_shrink_accepts_an_epoch_prune_but_keeps_floors(sandbox):
+    E.run(only=["epoch_hardware"], now=NOW, session=FakeSession(), sleep_s=0)
+    header, rows = _rows("epoch_ml_hardware_head.csv")
+    shrunk = E._csv_text(header, rows[:3])                     # 40% drop
+    s = FakeSession({"ml_hardware.csv": shrunk})
+    out = E.run(only=["epoch_hardware"], now=NOW, force=True, session=s, sleep_s=0)
+    assert out["epoch_hardware"]["status"] == "failed"
+    out = E.run(only=["epoch_hardware"], now=NOW, force=True, session=s, sleep_s=0,
+                allow_shrink=True)
+    assert out["epoch_hardware"]["status"] == "ok", out
+    assert len(E._parse_csv((sandbox / "epoch" / "ml_hardware.csv").read_text())[1]) == 3
+
+
+def test_allow_shrink_waives_only_the_relative_rules():
+    h = ["Hardware name", "TDP (W)"]
+    before = E._csv_text(h, [[f"c{i}", "700"] for i in range(200)])
+    after = E._csv_text(h, [[f"c{i}", "70"] for i in range(155)])     # -22%, median x0.1
+    path = "data/raw/epoch/ml_hardware.csv"
+    found = data_guard.archive_violations(path, before, after)
+    assert any("drop" in p for p in found) and any("median" in p for p in found)
+    assert data_guard.archive_violations(path, before, after, allow_shrink=True) == []
+    tiny = E._csv_text(h, [[f"c{i}", "700"] for i in range(10)])
+    assert data_guard.archive_violations(path, before, tiny, allow_shrink=True), "floor waived"
+    sofr_h = ["effective_date", "percent_rate", "volume_bn", "revision_indicator"]
+    rows = [[f"2020-01-{i:02d}", "1.50", "1000", ""] for i in range(1, 29)] * 50
+    lost = data_guard.archive_violations("data/carried/econ/sofr.csv", E._csv_text(sofr_h, rows),
+                                         E._csv_text(sofr_h, rows[:-1]), allow_shrink=True)
+    assert any("never lose a row" in p for p in lost), "append-only waived"
+
+
+def test_allow_shrink_flag_reaches_the_module(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(E, "run", lambda **kw: seen.update(kw) or {})
+    monkeypatch.setattr(E, "load_state", lambda *a: {})
+    assert E.main(["--allow-shrink"]) == 0 and seen["allow_shrink"] is True
+    assert E.main([]) == 0 and seen["allow_shrink"] is False
+
+
+def test_ix_minority_view_failure_warns_retries_and_escalates(sandbox, capsys, monkeypatch):
+    dead = ("Kimi-K3", "agentic-traces")
+    out = E.run(only=["inferencex"], now=NOW, session=FakeSession(fail_views={dead}), sleep_s=0)
+    r = out["inferencex"]
+    assert r["status"] == "ok" and "1/" in r["warn"] and "Kimi-K3" in r["warn"]
+    st = _state(sandbox)["inferencex"]
+    assert st["view_failing_since"] == {"Kimi-K3 | agentic-traces": E._iso(NOW)}
+    # retried on the short interval, not after six days
+    assert E.due(_state(sandbox), "inferencex", NOW + timedelta(hours=6))
+    assert E.escalate(_state(sandbox), NOW + timedelta(hours=23)) == []
+    t2 = NOW + timedelta(hours=24)
+    E.run(only=["inferencex"], now=t2, session=FakeSession(fail_views={dead}), sleep_s=0)
+    st = _state(sandbox)["inferencex"]
+    assert st["view_failing_since"]["Kimi-K3 | agentic-traces"] == E._iso(NOW), "clock reset"
+    esc = E.escalate(_state(sandbox), t2)
+    assert esc and "Kimi-K3 | agentic-traces" in esc[0]
+    # recovery clears the clock and the short retry
+    E.run(only=["inferencex"], now=t2 + timedelta(hours=6), session=FakeSession(), sleep_s=0)
+    st = _state(sandbox)["inferencex"]
+    assert "view_failing_since" not in st and E.escalate(_state(sandbox), t2 + timedelta(hours=7)) == []
+    assert not E.due(_state(sandbox), "inferencex", t2 + timedelta(hours=13))
+    # main() prints the warning for GitHub
+    monkeypatch.setattr(E, "run", lambda **kw: {"inferencex": {
+        "status": "ok", "rows": 1, "wrote": [], "notes": [], "error": "", "warn": "1/5 views failed: x"}})
+    monkeypatch.setattr(E, "load_state", lambda *a: {})
+    assert E.main([]) == 0
+    assert "::warning title=Economics archive::inferencex: 1/5 views failed" in capsys.readouterr().out
+
+
+def test_ix_view_clock_survives_a_budget_stop_and_a_crash():
+    st = {"inferencex": {"view_failing_since": {"A | 8k/1k": "2026-10-26T00:00:00Z",
+                                                "B | 8k/1k": "2026-10-26T00:00:00Z"}}}
+    E._record(st, "inferencex", NOW, E.Outcome(False, error="budget", failed_views=[],
+                                               pending_views=["A | 8k/1k"]))
+    assert st["inferencex"]["view_failing_since"] == {"A | 8k/1k": "2026-10-26T00:00:00Z"}
+    E._record(st, "inferencex", NOW, E.Outcome(False, error="ConnectionError"))
+    assert st["inferencex"]["view_failing_since"] == {"A | 8k/1k": "2026-10-26T00:00:00Z"}
+
+
+def test_ix_disagg_throughput_is_per_gpu_of_the_whole_deployment():
+    """8k/1k disaggregated points: upstream's output is per DECODE GPU and its
+    input per PREFILL GPU. Point 438832 (GB300, P-GPU=60, D-GPU=12)."""
+    payload = json.loads(_fx("ix_inference_dsv4_8k1k.json"))
+    up = {str(p["id"]): p for s in payload["series"] for p in s["points"]}
+    rows, _ = E.parse_ix_view(payload, "DeepSeek-V4-Pro", "8k/1k", "2026-10-27")
+    col = E._IX_COL
+    r = {x[col["point_id"]]: x for x in rows}["438832"]
+    assert (r[col["gpu_count"]], r[col["prefill_gpus"]], r[col["decode_gpus"]]) == ("72", "60", "12")
+    m = up["438832"]["metrics"]
+    assert m["outputTputPerGpu"] * 12 == pytest.approx(m["tpPerGpu"] * 72 / 9, rel=1e-3)  # premise
+    tput, out, inp = (float(r[col[c]]) for c in
+                      ("tput_tok_s_chip", "output_tput_tok_s_chip", "input_tput_tok_s_chip"))
+    assert out == pytest.approx(tput / 9, rel=1e-3) and inp == pytest.approx(tput * 8 / 9, rel=1e-3)
+    # upstream's value is recoverable from the stored split
+    assert out * 72 / 12 == pytest.approx(m["outputTputPerGpu"], rel=1e-5)
+    # every row now satisfies output + input = total, whatever its deployment
+    for x in rows:
+        assert float(x[col["output_tput_tok_s_chip"]]) + float(x[col["input_tput_tok_s_chip"]]) \
+            == pytest.approx(float(x[col["tput_tok_s_chip"]]), rel=E._IX_BASIS_TOL)
+    # point 424199 (56 GPUs, 8 decode): all-chip output pricing, not decode-only
+    cost_view = json.loads(_fx("ix_inference_dsv4_8k1k_costhOutput_gb300.json"))
+    r = E.parse_ix_view(cost_view, "DeepSeek-V4-Pro", "8k/1k", "2026-10-27")[0][0]
+    assert r[col["point_id"]] == "424199" and r[col["decode_gpus"]] == "8"
+    assert 2.31e6 / (3600 * float(r[col["output_tput_tok_s_chip"]])) == pytest.approx(0.4637, abs=1e-3)
+
+
+def test_ix_unrecognised_throughput_basis_is_blank_not_guessed():
+    assert E.ix_rebase_throughput(100.0, 10.0, 90.0, 8, None, None) == (10.0, 90.0)
+    assert E.ix_rebase_throughput(100.0, 300.0, 50.0, 8, None, None) == (None, None)
+    o, i = E.ix_rebase_throughput(100.0, 150.0, 100.0, 8, 4, 4)   # 150*4 + 100*4 = 1000 != 800
+    assert (o, i) == (None, None)
+
+
+def test_ix_single_node_gpu_count_is_physical():
+    """'Single|GPU=64|TP=8|EP=8' runs on one 8-GPU node: tpPerGpu matches the
+    TP=8/EP=1 run in the same sweep (real points 440984 / 440998)."""
+    rows, _ = E.parse_ix_view(json.loads(_fx("ix_inference_dsv4_8k1k_b200_single.json")),
+                              "DeepSeek-V4-Pro", "8k/1k", "2026-10-27")
+    col = E._IX_COL
+    by = {r[col["point_id"]]: r for r in rows}
+    assert (by["440984"][col["gpu_count"]], by["440984"][col["gpu_count_upstream"]]) == ("8", "64")
+    assert (by["440998"][col["gpu_count"]], by["440998"][col["gpu_count_upstream"]]) == ("8", "8")
+    a, b = (float(by[k][col["tput_tok_s_chip"]]) for k in ("440984", "440998"))
+    assert a == pytest.approx(b, rel=0.01), "per-GPU throughput says both run on 8 GPUs"
+    assert by["440984"][col["prefill_gpus"]] == "" and by["440984"][col["decode_gpus"]] == ""
+    assert E.physical_gpus(True, 16, 4, 4) == 4 and E.physical_gpus(True, 4, 2, 2) == 2
+    assert E.physical_gpus(True, 8, 8, 1) == 8
+    assert E.physical_gpus(False, 32, 8, 32) == 32          # multi-node EP: a real count
+    assert E.physical_gpus(True, 4, 8, 1) == 4              # TPU: TP counts cores
+
+
+def test_ix_old_schema_archives_conform_and_keep_first_seen(sandbox):
+    """Archives written before the schema change still merge: rows are re-laid
+    out by column name, gpu_count is recomputed, first_seen survives."""
+    rows = []
+    for fx in ("ix_inference_dsv4_8k1k_b200_single.json", "ix_inference_dsv4_8k1k.json"):
+        rows += E.parse_ix_view(json.loads(_fx(fx)), "DeepSeek-V4-Pro", "8k/1k", "2026-10-20")[0]
+    old_h = E.IX_POINTS_HEADER[:22]
+    c = E._IX_COL
+    # the old layout: 22 columns, gpu_count = upstream's label
+    old = [r[:12] + [r[c["gpu_count_upstream"]]] + r[13:22] for r in rows]
+    assert {r[0]: r[12] for r in old if r[0] in ("440984", "440998")} == {"440984": "64",
+                                                                            "440998": "8"}
+    conformed = E.conform_ix_points(old_h, old)
+    by = {r[0]: r for r in conformed}
+    assert all(len(r) == len(E.IX_POINTS_HEADER) for r in conformed)
+    assert (by["440984"][c["gpu_count"]], by["440984"][c["gpu_count_upstream"]]) == ("8", "64")
+    (sandbox / "econ").mkdir(parents=True, exist_ok=True)
+    (sandbox / "econ" / "inferencex_points.csv").write_text(E._csv_text(old_h, old))
+    old_rates = ["valid_from"] + E.IX_RATES_HEADER[1:]
+    (sandbox / "econ" / "inferencex_rates.csv").write_text(
+        E._csv_text(old_rates, E.parse_ix_options(_options(), "2026-10-27")))
+    out = E.run(only=["inferencex"], now=NOW, session=FakeSession(), sleep_s=0)
+    assert out["inferencex"]["status"] == "ok", out
+    header, body = E._parse_csv((sandbox / "econ" / "inferencex_points.csv").read_text())
+    assert header == E.IX_POINTS_HEADER and all(len(r) == len(header) for r in body)
+    kept = {r[0]: r for r in body}
+    assert kept["440984"][c["first_seen"]] == "2026-10-20", "points left the view are kept as-is"
+    rh, rrows = E._parse_csv((sandbox / "econ" / "inferencex_rates.csv").read_text())
+    assert rh == E.IX_RATES_HEADER and rh[0] == "observed_on"
+    assert len(rrows) == 13, "a renamed column re-logged the marks"

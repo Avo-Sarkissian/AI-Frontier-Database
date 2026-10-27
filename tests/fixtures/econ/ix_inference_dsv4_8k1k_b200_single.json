@@ -1,0 +1,59 @@
+{
+ "xAxis": {
+  "mode": "interactivity",
+  "statistic": "median",
+  "field": "median_intvty",
+  "label": "Median Interactivity (tok/s/user)"
+ },
+ "series": [
+  {
+   "hwKey": "b200_vllm",
+   "gpu": "b200",
+   "framework": "vllm",
+   "specMethod": "none",
+   "label": "B200 (vLLM)",
+   "vendor": "NVIDIA",
+   "deployment": "single-node",
+   "kvOffload": false,
+   "bestPerSku": false,
+   "points": [
+    {
+     "id": 440984,
+     "precision": "fp4",
+     "x": 29.606016418726647,
+     "y": 1976.7785574843792,
+     "concurrency": 64,
+     "topologyKey": "Single|GPU=64|DP=?|TP=8|EP=8|PP=?|DCP=1|PCP=1|DPA=0|offload=off",
+     "tp": 64,
+     "date": "2026-09-03",
+     "runId": 33554397154,
+     "frontier": false,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 1976.7785574843792,
+      "outputTputPerGpu": 219.3063289073109,
+      "inputTputPerGpu": 1757.4722285770683
+     }
+    },
+    {
+     "id": 440998,
+     "precision": "fp4",
+     "x": 29.778686371134036,
+     "y": 1984.055516322294,
+     "concurrency": 64,
+     "topologyKey": "Single|GPU=8|DP=?|TP=8|EP=1|PP=?|DCP=1|PCP=1|DPA=0|offload=off",
+     "tp": 8,
+     "date": "2026-09-03",
+     "runId": 33554397154,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 1984.055516322294,
+      "outputTputPerGpu": 220.11364398178418,
+      "inputTputPerGpu": 1763.9418723405097
+     }
+    }
+   ]
+  }
+ ]
+}

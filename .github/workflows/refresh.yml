@@ -92,7 +92,9 @@ jobs:
         id: econ
         continue-on-error: true
         timeout-minutes: 8
-        run: python -m data.econ_archive || echo "failed=true" >> "$GITHUB_OUTPUT"
+        # allow_shrink reaches the archive's own pre-write checks too: they
+        # refuse a pruned upstream before data_guard ever sees it.
+        run: python -m data.econ_archive ${{ inputs.allow_shrink && '--allow-shrink' || '' }} || echo "failed=true" >> "$GITHUB_OUTPUT"
       - name: Change guard — stop if no data moved
         id: guard
         run: |
