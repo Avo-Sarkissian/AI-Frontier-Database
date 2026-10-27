@@ -1,0 +1,271 @@
+{
+ "view": "inference",
+ "apiVersion": "v1",
+ "params": {
+  "model": "Kimi-K3",
+  "sequence": "agentic-traces",
+  "precisions": [
+   "fp4"
+  ],
+  "metric": "y_tpPerGpu",
+  "xmode": "interactivity",
+  "xstat": null,
+  "xmetric": "p90_ttft",
+  "percentile": "p90",
+  "date": null,
+  "runId": null,
+  "gpus": [
+   "b200",
+   "b300",
+   "gb200",
+   "gb300",
+   "h100",
+   "h200",
+   "jalapeno",
+   "mi300x",
+   "mi325x",
+   "mi355x",
+   "rtx6000pro",
+   "tpuv7",
+   "vr200"
+  ],
+  "vendors": [],
+  "frameworks": [],
+  "deployment": [],
+  "spec": [],
+  "topologies": [],
+  "optimal": false,
+  "best": false,
+  "format": "json",
+  "tcoBasis": "internal",
+  "power": [],
+  "allPoints": false,
+  "userCosts": {},
+  "userPowers": {},
+  "priceSource": "normalized",
+  "dates": [],
+  "unofficialrun": null,
+  "serviceCompare": false,
+  "serviceBaseline": null,
+  "serviceComparator": null,
+  "serviceTarget": null,
+  "roleShare": false,
+  "powerFit": false
+ },
+ "metric": {
+  "key": "tpPerGpu",
+  "configKey": "y_tpPerGpu",
+  "label": "Token Throughput per Chip (tok/s/chip)",
+  "labelZh": "\u6bcf\u82af\u7247 token \u541e\u5410\u91cf\uff08tok/s/chip\uff09",
+  "unit": "tok/s/chip",
+  "polarity": "higher",
+  "direction": "upper_left"
+ },
+ "xAxis": {
+  "mode": "interactivity",
+  "statistic": "p90",
+  "field": "p90_intvty",
+  "label": "P90 Interactivity (tok/s/user)"
+ },
+ "frontier": {
+  "direction": "upper_left",
+  "points": 82
+ },
+ "hardware": [
+  {
+   "key": "vr200_dynamo-vllm",
+   "label": "Vera Rubin NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb300_dynamo-vllm",
+   "label": "GB300 NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_dynamo-vllm",
+   "label": "GB200 NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_vllm",
+   "label": "B300 (vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_dynamo-vllm",
+   "label": "B200 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "mi355x_atom",
+   "label": "MI355X (ATOM\u00b9)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_vllm",
+   "label": "MI355X (vLLM)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_vllm-disagg",
+   "label": "MI355X (MoRI vLLM)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "h200_vllm",
+   "label": "H200 (vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "tpuv7_vllm",
+   "label": "TPU7x (vLLM)",
+   "vendor": "Google"
+  }
+ ],
+ "series": [
+  {
+   "hwKey": "vr200_dynamo-vllm",
+   "gpu": "vr200",
+   "framework": "dynamo-vllm",
+   "specMethod": "mtp",
+   "label": "Vera Rubin NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA",
+   "deployment": "disagg",
+   "kvOffload": true,
+   "bestPerSku": true,
+   "points": [
+    {
+     "id": 446545,
+     "precision": "fp4",
+     "x": 102.3541453428864,
+     "y": 44755.07235,
+     "concurrency": 256,
+     "topologyKey": "PD|GPU=32|DP=?|TP=16|EP=1|PP=1|DCP=16|PCP=1|DPA=0|P-GPU=16|D-GPU=16|P-workers=2|D-workers=1|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 32,
+     "date": "2026-10-23",
+     "runId": 40034981619,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 44755.07235,
+      "outputTputPerGpu": 312.72412,
+      "inputTputPerGpu": 44442.34824
+     }
+    },
+    {
+     "id": 446541,
+     "precision": "fp4",
+     "x": 171.2328767123288,
+     "y": 31704.84098,
+     "concurrency": 160,
+     "topologyKey": "PD|GPU=32|DP=?|TP=16|EP=1|PP=1|DCP=16|PCP=1|DPA=0|P-GPU=16|D-GPU=16|P-workers=2|D-workers=1|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 32,
+     "date": "2026-10-23",
+     "runId": 40034981619,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 31704.84098,
+      "outputTputPerGpu": 225.73815,
+      "inputTputPerGpu": 31479.10282
+     }
+    },
+    {
+     "id": 446539,
+     "precision": "fp4",
+     "x": 250,
+     "y": 21174.05605,
+     "concurrency": 64,
+     "topologyKey": "PD|GPU=24|DP=?|TP=16|EP=1|PP=1|DCP=16|PCP=1|DPA=0|P-GPU=8|D-GPU=16|P-workers=1|D-workers=1|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 24,
+     "date": "2026-10-23",
+     "runId": 40034981619,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 21174.05605,
+      "outputTputPerGpu": 145.49957,
+      "inputTputPerGpu": 21028.55648
+     }
+    }
+   ]
+  },
+  {
+   "hwKey": "gb300_dynamo-vllm",
+   "gpu": "gb300",
+   "framework": "dynamo-vllm",
+   "specMethod": "mtp",
+   "label": "GB300 NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA",
+   "deployment": "mixed",
+   "kvOffload": true,
+   "bestPerSku": true,
+   "points": [
+    {
+     "id": 446312,
+     "precision": "fp4",
+     "x": 55.40166204986149,
+     "y": 23781.20786,
+     "concurrency": 240,
+     "topologyKey": "PD|GPU=40|DP=?|TP=8|EP=1|PP=1|DCP=8|PCP=1|DPA=0|P-GPU=16|D-GPU=24|P-workers=2|D-workers=3|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 40,
+     "date": "2026-10-23",
+     "runId": 39658127161,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 23781.20786,
+      "outputTputPerGpu": 173.45735,
+      "inputTputPerGpu": 23607.75051
+     }
+    },
+    {
+     "id": 446313,
+     "precision": "fp4",
+     "x": 64.80881399870383,
+     "y": 19555.46434,
+     "concurrency": 240,
+     "topologyKey": "PD|GPU=56|DP=?|TP=8|EP=1|PP=1|DCP=8|PCP=1|DPA=0|P-GPU=24|D-GPU=32|P-workers=3|D-workers=4|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 56,
+     "date": "2026-10-23",
+     "runId": 39658127161,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 19555.46434,
+      "outputTputPerGpu": 140.32867,
+      "inputTputPerGpu": 19415.13568
+     }
+    },
+    {
+     "id": 446310,
+     "precision": "fp4",
+     "x": 82.16926869350863,
+     "y": 14931.12926,
+     "concurrency": 64,
+     "topologyKey": "PD|GPU=24|DP=?|TP=8|EP=1|PP=1|DCP=8|PCP=1|DPA=0|P-GPU=8|D-GPU=16|P-workers=1|D-workers=2|P-TP=8|P-EP=8|P-PP=1|P-DCP=8|P-PCP=1|P-DPA=0|offload=on",
+     "tp": 24,
+     "date": "2026-10-23",
+     "runId": 39658127161,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 14931.12926,
+      "outputTputPerGpu": 108.50407,
+      "inputTputPerGpu": 14822.6252
+     }
+    }
+   ]
+  }
+ ],
+ "count": 114,
+ "comparisons": [],
+ "overlays": [],
+ "pricing": {
+  "source": "normalized",
+  "inputPerMillion": 1,
+  "cachedInputPerMillion": 0.1,
+  "outputPerMillion": 1
+ }
+}

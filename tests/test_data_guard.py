@@ -66,3 +66,61 @@ def test_defaults_cover_every_scraped_csv():
         "data/raw/aa_image_models.csv",
         "data/raw/aa_video_models.csv",
     }
+
+
+# ── Economics archives (data/econ_archive.py) ────────────────────────────────
+
+def _csv(header: str, rows: list[str]) -> str:
+    return header + "\n" + "\n".join(rows) + "\n"
+
+
+_SOFR = "data/carried/econ/sofr.csv"
+_SOFR_H = "effective_date,percent_rate,volume_bn,revision_indicator"
+
+
+def _sofr_rows(n: int, rate: str = "3.93") -> list[str]:
+    return [f"2020-01-{i % 28 + 1:02d}x{i},{rate},3000," for i in range(n)]
+
+
+def test_append_only_archive_losing_one_row_is_a_violation():
+    before = _csv(_SOFR_H, _sofr_rows(1200))
+    after = _csv(_SOFR_H, _sofr_rows(1199))
+    problems = data_guard.archive_violations(_SOFR, before, after)
+    assert problems and "never lose a row" in problems[0]
+    assert data_guard.archive_violations(_SOFR, before, _csv(_SOFR_H, _sofr_rows(1201))) == []
+
+
+def test_epoch_mirror_drop_limits(monkeypatch):
+    path = "data/raw/epoch/ai_companies_revenue_reports.csv"
+    h = "Company,Date"
+    rows = [f"Lab{i},2026-01-01" for i in range(100)]
+    before = _csv(h, rows)
+    assert data_guard.archive_violations(path, before, _csv(h, rows[:85])) == []      # 15%
+    assert data_guard.archive_violations(path, before, _csv(h, rows[:75]))            # 25%
+    floor = data_guard.archive_violations(path, _csv(h, rows[:41]), _csv(h, rows[:39]))
+    assert floor and "floor" in floor[0]                                              # < 40 rows
+    # --allow-shrink waives check_archives exactly as it waives check()
+    monkeypatch.setattr(data_guard, "check", lambda **k: [])
+    monkeypatch.setattr(data_guard, "check_archives", lambda rev="HEAD": ["x: a 25% drop"])
+    monkeypatch.setattr(data_guard, "baseline_problem", lambda: None)
+    monkeypatch.setattr("sys.argv", ["data_guard.py", "--allow-shrink"])
+    assert data_guard.main() == 0
+    monkeypatch.setattr("sys.argv", ["data_guard.py"])
+    assert data_guard.main() == 1
+
+
+def test_archive_median_shift_guard():
+    """SOFR in basis points instead of percent is a units change, not a market."""
+    before = _csv(_SOFR_H, _sofr_rows(1200))
+    after = _csv(_SOFR_H, _sofr_rows(1200, rate="393") + _sofr_rows(1, rate="393"))
+    problems = data_guard.archive_violations(_SOFR, before, after)
+    assert problems and "units change" in problems[0]
+
+
+def test_archive_rules_cover_only_known_paths():
+    assert data_guard.archive_violations("data/raw/other.csv", None, "a\n1\n") == []
+    assert data_guard.archive_violations(_SOFR, None, "")
+
+
+def test_real_repo_archives_pass_against_head():
+    assert data_guard.check_archives() == []

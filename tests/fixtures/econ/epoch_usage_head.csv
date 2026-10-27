@@ -1,0 +1,12 @@
+Id,Company,Active users,Active users time period,Daily tokens,Daily messages,Date,Report date,Source 1,Source 2,Graph note,Notes,Source type,Product,Confidence,Exclude from graph view
+Dec 2023 tokens,Z.ai (Zhipu),,,2100000000.0,,2023-12-31,2025-12-30,https://www1.hkexnews.hk/listedco/listconews/sehk/2025/1230/2025123000017.pdf,,,"From IPO Prospectus (pg. 173):
+
+""Token consumption volume. Our average daily token consumption volume was 0.5 billion, 2.1 billion, 0.2 trillion and 4.6 trillion in December 2022, 2023 and 2024 and June 2025, respectively.""
+
+Z.ai develops open-weight models. Prospectus discusses Z.ai self-hosted and on-prem (customer-hosted) deployments of Z.ai models. It is not clear whether this token count includes on-prem tokens, or just Z.ai-hosted tokens. It presumably does not count tokens from non-customer third parties that download Z.ai models.",Company disclosure,Full company,Likely,
+100B words per day,OpenAI,,,133000000000.0,,2024-02-09,2024-02-09,https://x.com/sama/status/1756089361609981993,,,"Tweet from Sam Altman: ""openai now generates about 100 billion words per day. all people on earth generate about 100 trillion words per day.""",Company disclosure,All products,Confident,
+Google 9.7T monthly tokens,Google,,,323000000000.0,,2024-04-15,2025-05-20,https://x.com/Google/status/1924874729091170423,https://www.interconnects.ai/p/people-use-ai-more-than-you-think,,"April 2024 - Source 2 links to Google I/O keynote video (https://www.youtube.com/live/o8NiE3XMPrM?t=394s)
+
+9.7T / 30 days/month = 323B",Company disclosure,Google (all AI products),Confident,
+ChatGPT 50M WAU,OpenAI,50000000.0,Weekly,,,2023-03-25,2025-09-14,https://cdn.openai.com/pdf/a253471f-8260-40c6-a2cc-aa93fe9f142e/economic-research-chatgpt-usage-paper.pdf,https://www.nber.org/papers/w34255,,"From Figure 3, weekly active ChatGPT users on consumer plans (Free, Plus, Pro). Number extracted using plotdigitizer and rounded to the nearest 5M.",Company disclosure,ChatGPT,Likely,
+ChatGPT 80M WAU,OpenAI,80000000.0,Weekly,,,2023-09-20,2025-09-14,https://cdn.openai.com/pdf/a253471f-8260-40c6-a2cc-aa93fe9f142e/economic-research-chatgpt-usage-paper.pdf,https://www.nber.org/papers/w34255,,"From Figure 3, weekly active ChatGPT users on consumer plans (Free, Plus, Pro). Number extracted using plotdigitizer and rounded to the nearest 5M.",Company disclosure,ChatGPT,Likely,

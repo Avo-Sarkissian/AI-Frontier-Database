@@ -78,6 +78,21 @@ jobs:
           if [ -n "$failed" ]; then
             echo "::error title=Scrape failed::no fresh data for:$failed (served cache instead)"
           fi
+      # External economics sources (GetDeploying GPU prices, NY Fed SOFR,
+      # SemiAnalysis InferenceX, Epoch AI) on their own cadences: SOFR about
+      # daily, the rest about weekly, so most hourly runs fetch nothing and
+      # this step takes a second. It sits before the change guard so whatever
+      # it archives goes through the guard, data_guard, the rebuild and the
+      # commit below with no further wiring. It must never cost the AA publish:
+      # continue-on-error and the step timeout mean a hang or a crash here
+      # cannot skip the steps that follow. A source failing for 24h or more
+      # makes the module exit non-zero, and "Report archive failures" at the
+      # end turns the run red after publishing.
+      - name: Archive economics sources (own cadence; never blocks the AA publish)
+        id: econ
+        continue-on-error: true
+        timeout-minutes: 8
+        run: python -m data.econ_archive || echo "failed=true" >> "$GITHUB_OUTPUT"
       - name: Change guard — stop if no data moved
         id: guard
         run: |
@@ -158,4 +173,13 @@ jobs:
         if: steps.scrape.outputs.failed != ''
         run: |
           echo "::error title=Stale datasets published::${{ steps.scrape.outputs.failed }} served from cache — the upstream endpoint is failing."
+          exit 1
+
+      # After the AA report, and !cancelled() so a red AA report cannot hide it.
+      # data/carried/econ/fetch_state.json says which source and since when.
+      - name: Report archive failures
+        if: ${{ !cancelled() && (steps.econ.outcome == 'failure' || steps.econ.outputs.failed == 'true') }}
+        run: |
+          echo "::error title=Economics archive failing::a source has failed for 24h or more (or the step crashed); see fetch_state.json below."
+          cat data/carried/econ/fetch_state.json || true
           exit 1

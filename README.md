@@ -95,6 +95,17 @@ An **hourly GitHub Actions workflow** (`.github/workflows/refresh.yml`) is the s
 
 The live site auto-loads the latest published snapshot on open.
 
+**Economics archives.** The same job runs `python -m data.econ_archive`, which archives external cost data on its own cadence, because these sources publish only "now" or a rolling window and nobody keeps their history. Most hourly runs fetch nothing.
+
+| Source | Cadence | Stored as | Licence / credit |
+|---|---|---|---|
+| [GetDeploying weekly GPU prices](https://getdeploying.com/dataset/gpu-prices) ($/GPU-hr min/median/max by GPU and billing type) | ~weekly | `data/carried/econ/gpu_prices_weekly.csv`, append-only: keeps the weeks that leave upstream's rolling ~52-week window | CC BY 4.0, GetDeploying |
+| [NY Fed SOFR](https://www.newyorkfed.org/markets/reference-rates/sofr) (% p.a., daily since 2018-04-02) | ~daily | `data/carried/econ/sofr.csv`, append-only | Federal Reserve Bank of New York |
+| [SemiAnalysis InferenceX](https://inferencex.semianalysis.com) per-chip throughput vs interactivity for every model and chip it benchmarks, plus its owning (h) and renting (r) $/chip-hr marks | ~weekly | `data/carried/econ/inferencex_points.csv` (append-only, each point keeps its `run_id`, i.e. `github.com/SemiAnalysisAI/InferenceX/actions/runs/<run_id>`) and `inferencex_rates.csv` (a change log; the latest row per chip is current) | InferenceX™ by SemiAnalysis; code Apache-2.0, data published as freely available. The h/r marks are SemiAnalysis's hyperscaler-volume figures, not market rental prices |
+| [Epoch AI](https://epoch.ai/data) ML hardware and AI Companies (revenue, compute spend, funding, usage) | ~weekly | `data/raw/epoch/*.csv`, sanitised mirrors; git history is the archive | CC BY 4.0, Epoch AI ("Data on Machine Learning Hardware"; "Data on AI companies", Josh You, John Croxton, Venkat Somala, Yafah Edelman) |
+
+Each source is validated before anything is written (header, row floor, units ranges such as SOFR in [0, 25]% and GPU medians in (0, 200] $/hr), and `data_guard.py` holds the archives to the same rules: an append-only archive may never lose a row. A failing source never blocks the AA publish (the step has `continue-on-error` and a timeout); one that keeps failing for 24 hours turns the run red. Per-source status lives in `data/carried/econ/fetch_state.json`. None of these files ships to the browser raw. Vast.ai, RunPod, Ornn, Silicon Data and OpenRouter's rankings are deliberately not collected, because their terms forbid this use.
+
 **GitHub does not honour the schedule.** Since 2026-08-26 GitHub's schedule
 service has been dropping cron runs outright — no run is created, nothing
 fails — and this repo fell from 21–23 scheduled runs a day to 2–8, with gaps of
@@ -231,6 +242,7 @@ data/
   rsc.py                   # Next.js RSC payload parsing shared by the image + video scrapers
   ingest.py                # Parses scraper output, manages CSV cache and daily history
   scrape_status.py         # Per-dataset ok/fetched_at/rows — drives the freshness badge
+  econ_archive.py          # Bot-only: GPU prices, SOFR, InferenceX, Epoch archives (own cadence)
   image_models.py, local_models.py, video_models.py   # Per-domain data access helpers
   raw/                     # Live cache, coverage, scrape status + daily snapshots
 assets/style.css           # Global dark theme, typography (copied into docs/ by the build)

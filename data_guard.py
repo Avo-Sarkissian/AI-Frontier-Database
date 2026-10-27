@@ -75,6 +75,38 @@ _WATCHED_COLUMNS = {
 }
 
 
+# Economics archives and mirrors written by data/econ_archive.py on their own
+# cadence. They are NOT in DATA_CSVS: they are not hourly scrapes, the MIN_ROWS
+# floor of 50 does not fit them, and an append-only archive must never lose a
+# single row, which the 20% rule would allow. econ_archive runs these same
+# rules on every candidate file BEFORE writing it, so a fetch cannot produce a
+# file that trips the publish guard; only a hand-edited archive can.
+#   min_rows     absolute floor
+#   append_only  True: any row loss is a violation; False (a mirror of an
+#                upstream that revises in place): DEFAULT_MAX_DROP_PCT applies
+#   watch        columns under the _NUMERIC_MEDIAN_MAX_SHIFT_PCT units check
+ARCHIVE_CSVS: dict[str, dict] = {
+    "data/carried/econ/gpu_prices_weekly.csv":
+        {"min_rows": 8000, "append_only": True, "watch": ["median_price"]},
+    "data/carried/econ/sofr.csv":
+        {"min_rows": 1000, "append_only": True, "watch": ["percent_rate"]},
+    "data/carried/econ/inferencex_rates.csv":
+        {"min_rows": 8, "append_only": True,
+         "watch": ["cost_own_usd_per_chip_hr", "cost_rent_usd_per_chip_hr"]},
+    "data/carried/econ/inferencex_points.csv":
+        {"min_rows": 200, "append_only": True, "watch": ["tput_tok_s_chip"]},
+    "data/raw/epoch/ml_hardware.csv":
+        {"min_rows": 150, "append_only": False, "watch": ["TDP (W)"]},
+    "data/raw/epoch/ai_companies_revenue_reports.csv":
+        {"min_rows": 40, "append_only": False, "watch": []},
+    "data/raw/epoch/ai_companies_compute_spend.csv":
+        {"min_rows": 8, "append_only": False, "watch": []},
+    "data/raw/epoch/ai_companies_funding_rounds.csv":
+        {"min_rows": 30, "append_only": False, "watch": []},
+    "data/raw/epoch/ai_companies_usage_reports.csv":
+        {"min_rows": 40, "append_only": False, "watch": []},
+}
+
 def _read(text: str):
     import pandas as pd
     return pd.read_csv(io.StringIO(text))
@@ -277,6 +309,73 @@ def _value_violations(path: str, rev: str) -> list[str]:
     return out
 
 
+def archive_violations(path: str, before_text: str | None, after_text: str | None,
+                       max_drop_pct: float = DEFAULT_MAX_DROP_PCT) -> list[str]:
+    """Violations for one economics archive or mirror; pure (texts in, list out).
+
+    `before_text` is the committed copy (None when the file is new), `after_text`
+    the candidate. Paths outside ARCHIVE_CSVS have no rules.
+    """
+    rule = ARCHIVE_CSVS.get(path)
+    if rule is None:
+        return []
+    if not after_text or not after_text.strip():
+        return [f"{path}: empty"]
+    try:
+        now = _row_count(after_text)
+    except Exception as e:                        # a file pandas cannot read
+        return [f"{path}: unreadable ({type(e).__name__}: {e})"]
+    out = []
+    if now < rule["min_rows"]:
+        out.append(f"{path}: only {now} rows (floor {rule['min_rows']})")
+    if before_text and before_text.strip():
+        before = _row_count(before_text)
+        if rule["append_only"]:
+            if now < before:
+                out.append(f"{path}: {before} -> {now} rows; an append-only archive "
+                           f"must never lose a row")
+        elif before and (before - now) / before * 100 > max_drop_pct:
+            out.append(f"{path}: {before} -> {now} rows, a "
+                       f"{(before - now) / before * 100:.0f}% drop (limit {max_drop_pct:.0f}%)")
+        if rule["watch"]:
+            was_m = _medians(before_text, rule["watch"])
+            now_m = _medians(after_text, rule["watch"])
+            for col, was in was_m.items():
+                if col not in now_m:
+                    out.append(f"{path}: column '{col}' lost every usable value")
+                    continue
+                if was == 0:
+                    continue
+                shift = abs(now_m[col] - was) / abs(was) * 100
+                if shift > _NUMERIC_MEDIAN_MAX_SHIFT_PCT:
+                    out.append(
+                        f"{path}: median '{col}' moved {was:.4g} -> {now_m[col]:.4g} "
+                        f"({shift:.0f}%, limit {_NUMERIC_MEDIAN_MAX_SHIFT_PCT:.0f}%) — "
+                        f"a units change or parsing fault")
+    return out
+
+
+def check_archives(rev: str = "HEAD", paths: list[str] | None = None) -> list[str]:
+    """archive_violations for every ARCHIVE_CSVS file against `rev`.
+
+    A file absent both here and at `rev` has simply not been archived yet; one
+    that was committed and is now gone is a violation.
+    """
+    problems: list[str] = []
+    for path in paths if paths is not None else ARCHIVE_CSVS:
+        before = _show(path, rev)
+        p = ROOT / path
+        if not p.exists():
+            if before:
+                problems.append(f"{path}: missing")
+            continue
+        after = p.read_text(encoding="utf-8")
+        found = archive_violations(path, before, after)
+        if not found:
+            print(f"  {path}: {_row_count(after)} rows")
+        problems.extend(found)
+    return problems
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--max-drop", type=float, default=DEFAULT_MAX_DROP_PCT,
@@ -291,6 +390,8 @@ def main() -> int:
 
     print(f"Comparing data/raw against {args.rev} (max drop {args.max_drop:.0f}%)")
     problems = check(max_drop_pct=args.max_drop, rev=args.rev)
+    print(f"Comparing the economics archives against {args.rev}")
+    problems += check_archives(rev=args.rev)
 
     # Not folded into check(): the suite calls check() from shallow CI
     # checkouts too, and a missing baseline is a property of the checkout, not

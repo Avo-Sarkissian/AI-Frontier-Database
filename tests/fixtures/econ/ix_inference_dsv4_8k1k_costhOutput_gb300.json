@@ -1,0 +1,113 @@
+{
+ "view": "inference",
+ "apiVersion": "v1",
+ "params": {
+  "model": "DeepSeek-V4-Pro",
+  "sequence": "8k/1k",
+  "precisions": [
+   "fp4",
+   "fp8"
+  ],
+  "metric": "y_costhOutput",
+  "xmode": "interactivity",
+  "xstat": "median",
+  "xmetric": "p90_ttft",
+  "percentile": "p90",
+  "date": null,
+  "runId": null,
+  "gpus": [
+   "gb300"
+  ],
+  "vendors": [],
+  "frameworks": [],
+  "deployment": [],
+  "spec": [],
+  "topologies": [],
+  "optimal": true,
+  "best": true,
+  "format": "json",
+  "tcoBasis": "internal",
+  "power": [],
+  "allPoints": false,
+  "userCosts": {},
+  "userPowers": {},
+  "priceSource": "normalized",
+  "dates": [],
+  "unofficialrun": null,
+  "serviceCompare": false,
+  "serviceBaseline": null,
+  "serviceComparator": null,
+  "serviceTarget": null,
+  "roleShare": false,
+  "powerFit": false
+ },
+ "metric": {
+  "key": "costhOutput",
+  "configKey": "y_costhOutput",
+  "label": "Cost per Million Output Tokens ($)",
+  "labelZh": "\u6bcf\u767e\u4e07\u8f93\u51fa token \u6210\u672c\uff08$\uff09",
+  "unit": "$",
+  "polarity": "lower",
+  "direction": "lower_right"
+ },
+ "xAxis": {
+  "mode": "interactivity",
+  "statistic": "median",
+  "field": "median_intvty",
+  "label": "Median Interactivity (tok/s/user)"
+ },
+ "frontier": {
+  "direction": "lower_right",
+  "points": 37
+ },
+ "hardware": [
+  {
+   "key": "gb300_dynamo-trt_mtp",
+   "label": "GB300 NVL72 (Dynamo TRTLLM, MTP)",
+   "vendor": "NVIDIA"
+  }
+ ],
+ "series": [
+  {
+   "hwKey": "gb300_dynamo-trt_mtp",
+   "gpu": "gb300",
+   "framework": "dynamo-trt",
+   "specMethod": "mtp",
+   "label": "GB300 NVL72 (Dynamo TRTLLM, MTP)",
+   "vendor": "NVIDIA",
+   "deployment": "disagg",
+   "kvOffload": false,
+   "bestPerSku": true,
+   "points": [
+    {
+     "id": 424199,
+     "precision": "fp4",
+     "x": 21.9146376493805,
+     "y": 0.06624178692477896,
+     "concurrency": 4301,
+     "topologyKey": "PD|GPU=56|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=48|D-GPU=8|P-workers=12|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 56,
+     "date": "2026-06-15",
+     "runId": 27164980476,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "costhOutput": 0.06624178692477896,
+      "tpPerGpu": 12458.513193946796,
+      "outputTputPerGpu": 9686.73546496131,
+      "inputTputPerGpu": 12920.476148777709
+     }
+    }
+   ]
+  }
+ ],
+ "count": 10,
+ "comparisons": [],
+ "overlays": [],
+ "pricing": {
+  "source": "normalized",
+  "inputPerMillion": 1,
+  "cachedInputPerMillion": 0.1,
+  "outputPerMillion": 1
+ }
+}

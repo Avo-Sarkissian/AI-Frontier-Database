@@ -1,0 +1,568 @@
+{
+ "view": "inference",
+ "apiVersion": "v1",
+ "params": {
+  "model": "DeepSeek-V4-Pro",
+  "sequence": "8k/1k",
+  "precisions": [
+   "fp4",
+   "fp8"
+  ],
+  "metric": "y_tpPerGpu",
+  "xmode": "interactivity",
+  "xstat": "median",
+  "xmetric": "p90_ttft",
+  "percentile": "p90",
+  "date": null,
+  "runId": null,
+  "gpus": [
+   "b200",
+   "b300",
+   "gb200",
+   "gb300",
+   "h100",
+   "h200",
+   "jalapeno",
+   "mi300x",
+   "mi325x",
+   "mi355x",
+   "rtx6000pro",
+   "tpuv7",
+   "vr200"
+  ],
+  "vendors": [],
+  "frameworks": [],
+  "deployment": [],
+  "spec": [],
+  "topologies": [],
+  "optimal": false,
+  "best": false,
+  "format": "json",
+  "tcoBasis": "internal",
+  "power": [],
+  "allPoints": false,
+  "userCosts": {},
+  "userPowers": {},
+  "priceSource": "normalized",
+  "dates": [],
+  "unofficialrun": null,
+  "serviceCompare": false,
+  "serviceBaseline": null,
+  "serviceComparator": null,
+  "serviceTarget": null,
+  "roleShare": false,
+  "powerFit": false
+ },
+ "metric": {
+  "key": "tpPerGpu",
+  "configKey": "y_tpPerGpu",
+  "label": "Token Throughput per Chip (tok/s/chip)",
+  "labelZh": "\u6bcf\u82af\u7247 token \u541e\u5410\u91cf\uff08tok/s/chip\uff09",
+  "unit": "tok/s/chip",
+  "polarity": "higher",
+  "direction": "upper_left"
+ },
+ "xAxis": {
+  "mode": "interactivity",
+  "statistic": "median",
+  "field": "median_intvty",
+  "label": "Median Interactivity (tok/s/user)"
+ },
+ "frontier": {
+  "direction": "upper_left",
+  "points": 374
+ },
+ "hardware": [
+  {
+   "key": "gb300_dynamo-sglang",
+   "label": "GB300 NVL72 (Dynamo SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb300_dynamo-sglang_mtp",
+   "label": "GB300 NVL72 (Dynamo SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb300_dynamo-trt",
+   "label": "GB300 NVL72 (Dynamo TRTLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb300_dynamo-trt_mtp",
+   "label": "GB300 NVL72 (Dynamo TRTLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb300_dynamo-vllm",
+   "label": "GB300 NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_dynamo-sglang",
+   "label": "GB200 NVL72 (Dynamo SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_dynamo-sglang_mtp",
+   "label": "GB200 NVL72 (Dynamo SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_dynamo-vllm",
+   "label": "GB200 NVL72 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_dynamo-vllm_mtp",
+   "label": "GB200 NVL72 (Dynamo vLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "gb200_llmd-vllm",
+   "label": "GB200 NVL72 (llm-d vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_dynamo-sglang",
+   "label": "B300 (Dynamo SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_dynamo-sglang_mtp",
+   "label": "B300 (Dynamo SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_dynamo-vllm",
+   "label": "B300 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_sglang",
+   "label": "B300 (SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_sglang_mtp",
+   "label": "B300 (SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_trt",
+   "label": "B300 (TRTLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_trt_mtp",
+   "label": "B300 (TRTLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_vllm",
+   "label": "B300 (vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b300_vllm_mtp",
+   "label": "B300 (vLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_dynamo-sglang",
+   "label": "B200 (Dynamo SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_dynamo-sglang_mtp",
+   "label": "B200 (Dynamo SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_dynamo-vllm",
+   "label": "B200 (Dynamo vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_dynamo-vllm_mtp",
+   "label": "B200 (Dynamo vLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_sglang",
+   "label": "B200 (SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_trt",
+   "label": "B200 (TRTLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_trt_mtp",
+   "label": "B200 (TRTLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_vllm",
+   "label": "B200 (vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "b200_vllm_mtp",
+   "label": "B200 (vLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "mi355x_atom",
+   "label": "MI355X (ATOM\u00b9)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_atom_mtp",
+   "label": "MI355X (ATOM\u00b9, MTP)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_mooncake-atom",
+   "label": "MI355X (Mooncake ATOMesh\u00b9)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_mori-sglang",
+   "label": "MI355X (MoRI SGLang)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_mori-sglang_mtp",
+   "label": "MI355X (MoRI SGLang, MTP)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_sglang",
+   "label": "MI355X (SGLang)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_sglang_mtp",
+   "label": "MI355X (SGLang, MTP)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_vllm",
+   "label": "MI355X (vLLM)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi355x_vllm_mtp",
+   "label": "MI355X (vLLM, MTP)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "h200_sglang",
+   "label": "H200 (SGLang)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "h200_sglang_mtp",
+   "label": "H200 (SGLang, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "h200_vllm",
+   "label": "H200 (vLLM)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "h200_vllm_mtp",
+   "label": "H200 (vLLM, MTP)",
+   "vendor": "NVIDIA"
+  },
+  {
+   "key": "mi325x_vllm",
+   "label": "MI325X (vLLM)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi325x_vllm_mtp",
+   "label": "MI325X (vLLM, MTP)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi300x_vllm",
+   "label": "MI300X (vLLM)",
+   "vendor": "AMD"
+  },
+  {
+   "key": "mi300x_vllm_mtp",
+   "label": "MI300X (vLLM, MTP)",
+   "vendor": "AMD"
+  }
+ ],
+ "series": [
+  {
+   "hwKey": "gb300_dynamo-sglang",
+   "gpu": "gb300",
+   "framework": "dynamo-sglang",
+   "specMethod": "none",
+   "label": "GB300 NVL72 (Dynamo SGLang)",
+   "vendor": "NVIDIA",
+   "deployment": "disagg",
+   "kvOffload": false,
+   "bestPerSku": false,
+   "points": [
+    {
+     "id": 438832,
+     "precision": "fp4",
+     "x": 12.936530874233352,
+     "y": 13716.50470355161,
+     "concurrency": 12000,
+     "topologyKey": "PD|GPU=72|DP=?|TP=12|EP=12|PP=1|DCP=1|PCP=1|DPA=1|P-GPU=60|D-GPU=12|P-workers=15|D-workers=1|P-TP=4|P-EP=4|P-PP=1|P-DCP=1|P-PCP=1|P-DPA=1|offload=off",
+     "tp": 72,
+     "date": "2026-08-07",
+     "runId": 31024844958,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 13716.50470355161,
+      "outputTputPerGpu": 9143.621250863835,
+      "inputTputPerGpu": 14631.081394089164
+     }
+    },
+    {
+     "id": 438827,
+     "precision": "fp4",
+     "x": 21.723873787966888,
+     "y": 13128.999542028478,
+     "concurrency": 8192,
+     "topologyKey": "PD|GPU=72|DP=?|TP=16|EP=16|PP=1|DCP=1|PCP=1|DPA=1|P-GPU=56|D-GPU=16|P-workers=14|D-workers=1|P-TP=4|P-EP=4|P-PP=1|P-DCP=1|P-PCP=1|P-DPA=1|offload=off",
+     "tp": 72,
+     "date": "2026-08-07",
+     "runId": 31024844958,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 13128.999542028478,
+      "outputTputPerGpu": 6563.724050633543,
+      "inputTputPerGpu": 15004.792539569888
+     }
+    },
+    {
+     "id": 438829,
+     "precision": "fp4",
+     "x": 35.15022328877247,
+     "y": 10323.532268347797,
+     "concurrency": 3000,
+     "topologyKey": "PD|GPU=72|DP=?|TP=24|EP=24|PP=1|DCP=1|PCP=1|DPA=1|P-GPU=48|D-GPU=24|P-workers=12|D-workers=1|P-TP=4|P-EP=4|P-PP=1|P-DCP=1|P-PCP=1|P-DPA=1|offload=off",
+     "tp": 72,
+     "date": "2026-08-07",
+     "runId": 31024844958,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 10323.532268347797,
+      "outputTputPerGpu": 3441.555892248036,
+      "inputTputPerGpu": 13764.520456397679
+     }
+    },
+    {
+     "id": 438831,
+     "precision": "fp4",
+     "x": 39.59744366371254,
+     "y": 9001.938595481208,
+     "concurrency": 2500,
+     "topologyKey": "PD|GPU=72|DP=?|TP=32|EP=32|PP=1|DCP=1|PCP=1|DPA=1|P-GPU=40|D-GPU=32|P-workers=10|D-workers=1|P-TP=4|P-EP=4|P-PP=1|P-DCP=1|P-PCP=1|P-DPA=1|offload=off",
+     "tp": 72,
+     "date": "2026-08-07",
+     "runId": 31024844958,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 9001.938595481208,
+      "outputTputPerGpu": 2252.0273994182166,
+      "inputTputPerGpu": 14401.8675523316
+     }
+    }
+   ]
+  },
+  {
+   "hwKey": "gb300_dynamo-sglang_mtp",
+   "gpu": "gb300",
+   "framework": "dynamo-sglang",
+   "specMethod": "mtp",
+   "label": "GB300 NVL72 (Dynamo SGLang, MTP)",
+   "vendor": "NVIDIA",
+   "deployment": "disagg",
+   "kvOffload": false,
+   "bestPerSku": true,
+   "points": [
+    {
+     "id": 419001,
+     "precision": "fp4",
+     "x": 26.9671439344186,
+     "y": 12233.463496245979,
+     "concurrency": 8192,
+     "topologyKey": "PD|GPU=40|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=32|D-GPU=8|P-workers=8|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 40,
+     "date": "2026-06-03",
+     "runId": 26856602694,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 12233.463496245979,
+      "outputTputPerGpu": 6795.214205359314,
+      "inputTputPerGpu": 13593.025818967644
+     }
+    },
+    {
+     "id": 419000,
+     "precision": "fp4",
+     "x": 44.117923723301274,
+     "y": 11633.940340878113,
+     "concurrency": 4096,
+     "topologyKey": "PD|GPU=32|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=24|D-GPU=8|P-workers=6|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 32,
+     "date": "2026-06-03",
+     "runId": 26856602694,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 11633.940340878113,
+      "outputTputPerGpu": 5169.251003712194,
+      "inputTputPerGpu": 13788.836786600086
+     }
+    },
+    {
+     "id": 419002,
+     "precision": "fp4",
+     "x": 68.267004773066,
+     "y": 9746.094670656963,
+     "concurrency": 1024,
+     "topologyKey": "PD|GPU=24|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=16|D-GPU=8|P-workers=4|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 24,
+     "date": "2026-06-03",
+     "runId": 26856602694,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 9746.094670656963,
+      "outputTputPerGpu": 3248.972986719746,
+      "inputTputPerGpu": 12994.655512625572
+     }
+    },
+    {
+     "id": 418999,
+     "precision": "fp4",
+     "x": 87.09458524617882,
+     "y": 7294.566246121672,
+     "concurrency": 512,
+     "topologyKey": "PD|GPU=16|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=8|D-GPU=8|P-workers=2|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 16,
+     "date": "2026-06-03",
+     "runId": 26856602694,
+     "frontier": true,
+     "bestPerSku": true,
+     "metrics": {
+      "tpPerGpu": 7294.566246121672,
+      "outputTputPerGpu": 1620.8984426909906,
+      "inputTputPerGpu": 12968.234049552353
+     }
+    }
+   ]
+  },
+  {
+   "hwKey": "gb300_dynamo-trt",
+   "gpu": "gb300",
+   "framework": "dynamo-trt",
+   "specMethod": "none",
+   "label": "GB300 NVL72 (Dynamo TRTLLM)",
+   "vendor": "NVIDIA",
+   "deployment": "disagg",
+   "kvOffload": false,
+   "bestPerSku": false,
+   "points": [
+    {
+     "id": 424158,
+     "precision": "fp4",
+     "x": 17.367063346754133,
+     "y": 12219.722149418085,
+     "concurrency": 4301,
+     "topologyKey": "PD|GPU=48|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=40|D-GPU=8|P-workers=10|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 48,
+     "date": "2026-06-15",
+     "runId": 27164980476,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 12219.722149418085,
+      "outputTputPerGpu": 8143.774971312903,
+      "inputTputPerGpu": 13034.91158503912
+     }
+    },
+    {
+     "id": 424172,
+     "precision": "fp4",
+     "x": 23.09588112541227,
+     "y": 11190.522386018338,
+     "concurrency": 2253,
+     "topologyKey": "PD|GPU=32|DP=?|TP=8|EP=8|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=24|D-GPU=8|P-workers=6|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 32,
+     "date": "2026-06-15",
+     "runId": 27164980476,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 11190.522386018338,
+      "outputTputPerGpu": 4977.412147150251,
+      "inputTputPerGpu": 13261.5591323077
+     }
+    },
+    {
+     "id": 424206,
+     "precision": "fp4",
+     "x": 32.29228064319703,
+     "y": 9935.84325850132,
+     "concurrency": 2253,
+     "topologyKey": "PD|GPU=52|DP=?|TP=16|EP=16|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=36|D-GPU=16|P-workers=9|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 52,
+     "date": "2026-06-15",
+     "runId": 27164980476,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 9935.84325850132,
+      "outputTputPerGpu": 3590.718376867607,
+      "inputTputPerGpu": 12755.898761449636
+     }
+    },
+    {
+     "id": 424186,
+     "precision": "fp4",
+     "x": 36.764753126137954,
+     "y": 8043.211920760834,
+     "concurrency": 1229,
+     "topologyKey": "PD|GPU=36|DP=?|TP=16|EP=16|PP=?|DCP=?|PCP=?|DPA=1|P-GPU=20|D-GPU=16|P-workers=5|D-workers=1|P-TP=4|P-EP=4|P-PP=?|P-DCP=?|P-PCP=?|P-DPA=1|offload=off",
+     "tp": 36,
+     "date": "2026-06-15",
+     "runId": 27164980476,
+     "frontier": true,
+     "bestPerSku": false,
+     "metrics": {
+      "tpPerGpu": 8043.211920760834,
+      "outputTputPerGpu": 2011.5850451979525,
+      "inputTputPerGpu": 12868.513421211139
+     }
+    }
+   ]
+  }
+ ],
+ "count": 441,
+ "comparisons": [],
+ "overlays": [],
+ "pricing": {
+  "source": "normalized",
+  "inputPerMillion": 1,
+  "cachedInputPerMillion": 0.1,
+  "outputPerMillion": 1
+ }
+}

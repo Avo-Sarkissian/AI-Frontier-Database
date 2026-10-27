@@ -1,0 +1,20 @@
+Id,Company,Close date,Status,Funding (equity),Funding (debt),Valuation (post-money),Report date,Source 1,Source 2,Source 3,Graph note,Notes,Type,Confidence,Exclude from graph view
+May 2026 965B Series H,Anthropic,2026-05-28,Closed,65000000000.0,,965000000000.0,,	https://www.anthropic.com/news/series-h,,,,"""Anthropic has raised $65 billion in Series H funding led by Altimeter Capital, Dragoneer, Greenoaks, and Sequoia Capital, valuing the company at $965 billion post-money."" ... ""The round was co-led by Capital Group, Coatue, D1 Capital Partners, GIC, ICONIQ, and XN. Significant investors in this round include AMP PBC, Baillie Gifford, Blackstone, Brookfield, D.E. Shaw Ventures, DST Global, Fidelity Management & Research Company, General Catalyst, Insight Partners, Jane Street, Lightspeed Venture Partners, MGX, NTTVC, NX1 Capital, Situational Awareness LP, T. Rowe Price Associates, Inc., T. Rowe Price Investment Management, Inc., and Temasek. It also includes $15 billion of previously committed investments from hyperscalers, including $5 billion from Amazon."" ",Primary,Confident,
+OpenAI–Nvidia,OpenAI,,Late discussions,100000000000.0,,,2025-09-22,https://openai.com/index/openai-nvidia-systems-partnership/,https://fortune.com/2025/12/02/nvidia-openai-deal-not-signed-yet-100-billion-rally-colette-kress/,https://finance.yahoo.com/news/nvidia-ceo-jensen-huang-100b-123431494.html,,"Likely cancelled/on hold per Nvidia statements: https://finance.yahoo.com/news/nvidia-ceo-jensen-huang-100b-123431494.html 
+
+Nvidia has agreed to invest $100B in OpenAI as part of an AI data center deal. This will be phased in as each GW is deployed, so nothing is closed yet.
+
+""Strategic partnership enables OpenAI to build and deploy at least 10 gigawatts of AI datacenters with NVIDIA systems representing millions of GPUs for OpenAI’s next-generation AI infrastructure. 
+To support the partnership, NVIDIA intends to invest up to $100 billion in OpenAI progressively as each gigawatt is deployed.
+The first gigawatt of NVIDIA systems will be deployed in the second half of 2026 on NVIDIA’s Vera Rubin platform.""
+
+As of December 2025, deal has not been formally signed:
+
+""Speaking Tuesday at the UBS Global Technology and AI Conference in Scottsdale, Nvidia EVP and CFO Colette Kress told investors that the much-hyped OpenAI partnership is still at the letter-of-intent stage.
+
+“We still haven’t completed a definitive agreement,” Kress said when asked how much of the 10-gigawatt commitment is actually locked in.""",Primary,Confident,
+Microsoft/Nvidia,Anthropic,,Late discussions,15000000000.0,,350000000000.0,2025-11-18,https://www.anthropic.com/news/microsoft-nvidia-anthropic-announce-strategic-partnerships,https://www.cnbc.com/2025/11/18/anthropic-ai-azure-microsoft-nvidia.html,https://www.bloomberg.com/news/articles/2026-01-21/anthropic-s-revenue-run-rate-tops-9-billion-as-vcs-pile-in,,"""As part of the partnership, NVIDIA and Microsoft are committing to invest up to $10 billion and up to $5 billion respectively in Anthropic.""
+
+Status or timing not completely clear given the language about ""committing to invest"".
+
+Per CNBC, ""The investments have pushed Anthropic’s valuation to the range of $350 billion, up from its $183 billion valuation as of September, according to a source close to the deal who asked not to be named because the details are confidential. The terms of the company’s next round are still being finalized, the person said.""",,Uncertain,

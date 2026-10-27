@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -380,3 +381,74 @@ def test_stale_threshold_survives_githubs_dropped_cron_runs():
         "threshold is back under the observed p90 gap between bot runs; it will "
         "warn about GitHub's scheduling, not about the data"
     )
+
+
+# ---------------------------------------------------------------------------
+# Economics archives (data/econ_archive.py). A second publisher in the same job
+# must never cost the AA refresh, and must never fail silently either.
+# ---------------------------------------------------------------------------
+
+def _step_block(txt: str, name: str) -> str:
+    i = txt.index(f"- name: {name}")
+    j = txt.find("\n      - ", i + 1)
+    return txt[i:j if j != -1 else len(txt)]
+
+
+def test_econ_archive_step_is_wired_and_cannot_block_publish():
+    txt = WF.read_text()
+    assert "python -m data.econ_archive" in txt
+    i = txt.index("python -m data.econ_archive")
+    assert txt.index("python -m data.video_scraper") < i < txt.index("Change guard"), (
+        "the archive step must run after the scrapers and before the change guard, "
+        "so its files go through the guard, data_guard, the rebuild and the commit"
+    )
+    block = _step_block(txt, "Archive economics sources")
+    assert "id: econ" in block
+    assert "continue-on-error: true" in block, "a crash here would skip the AA publish"
+    assert "timeout-minutes:" in block, "a hang here would skip the AA publish"
+    assert '|| echo "failed=true" >> "$GITHUB_OUTPUT"' in block
+    report = _step_block(txt, "Report archive failures")
+    assert txt.index("git push") < txt.index("- name: Report archive failures")
+    assert txt.index("- name: Report scrape failures") < txt.index("- name: Report archive failures")
+    assert "!cancelled()" in report, "a red AA report would hide a dead archive source"
+    assert "steps.econ.outputs.failed == 'true'" in report
+    assert "steps.econ.outcome == 'failure'" in report
+    assert "exit 1" in report
+
+
+def _econ_env(tmp_path, failing_hours: float) -> dict:
+    from datetime import datetime, timedelta, timezone
+    from data import econ_archive as E
+
+    now = datetime.now(timezone.utc)
+    since = E._iso(now - timedelta(hours=failing_hours))
+    ok = E._iso(now - timedelta(minutes=5))
+    state = {name: {"checked_at": ok, "ok": True, "failing_since": None, "error": ""}
+             for name in E.SOURCES}
+    state["sofr"] = {"checked_at": since, "ok": False, "failing_since": since,
+                     "error": "ConnectionError: earlier"}
+    econ = tmp_path / "econ"
+    econ.mkdir(parents=True)
+    (econ / "fetch_state.json").write_text(json.dumps(state))
+    return {**os.environ,
+            "AI_FRONTIER_CARRIED_DIR": str(tmp_path),
+            "AI_FRONTIER_EPOCH_DIR": str(tmp_path / "epoch"),
+            "AI_FRONTIER_STATUS_PATH": str(tmp_path / "status.json")}
+
+
+def test_econ_archive_exits_nonzero_only_when_escalated(tmp_path):
+    """A source failing for 24h+ fails the module (so the run goes red); one
+    inside the grace period is a warning and exits 0. The network is forced
+    down, and every file is redirected into tmp_path."""
+    red = subprocess.run([sys.executable, "-c", _FAIL_DRIVER.format(mod="data.econ_archive")],
+                         cwd=ROOT, capture_output=True, text=True,
+                         env=_econ_env(tmp_path / "red", 25))
+    assert red.returncode == 1, red.stdout + red.stderr
+    assert "sofr: failing for 25h" in red.stdout
+    green = subprocess.run([sys.executable, "-c", _FAIL_DRIVER.format(mod="data.econ_archive")],
+                           cwd=ROOT, capture_output=True, text=True,
+                           env=_econ_env(tmp_path / "green", 1))
+    assert green.returncode == 0, green.stdout + green.stderr
+    # the forced outage was recorded in the redirected state, not the real one
+    st = json.loads((tmp_path / "red" / "econ" / "fetch_state.json").read_text())
+    assert st["sofr"]["ok"] is False and "forced failure" in st["sofr"]["error"]
