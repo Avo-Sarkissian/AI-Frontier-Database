@@ -143,6 +143,17 @@ CAPTIONS: dict[str, str] = {
         "Bubble size = affordability (larger = cheaper). Click any bubble for full "
         "details."
     ),
+    'overview_task': (
+        "Each bubble is one model FAMILY — its best-scoring variant that Artificial "
+        "Analysis has costed. X = AA's measured cost per Intelligence Index task (USD, "
+        "log scale): the tokens each provider reported running the index, reasoning "
+        "and cache traffic included, at that provider's prices. MIX does not move it. "
+        "Models AA has not costed are counted in the title, never estimated. Y = AA "
+        "Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto "
+        "frontier on cost per task. Token burn in the hover and detail panel = cost "
+        "per task ÷ list price per token. Source: artificialanalysis.ai. Click any "
+        "bubble for full details."
+    ),
     'overview_price_dyn': (
 "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
         "collapse to one point rather than five near-duplicates at the same price. X = price "

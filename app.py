@@ -56,6 +56,9 @@ from data.workload_mix                      import (
     cache_label as _cache_label, mark_price as _mark_price,
     filled_flags as _filled_flags, FILL_MARK, FILL_SHORT,
 )
+from data.task_cost                         import (
+    median_token_burn, detail_rows as _task_detail_rows, detail_note as _task_detail_note,
+)
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df = get_models()
@@ -465,6 +468,7 @@ app.layout = html.Div([
                     options=[
                         {"label": "Price",  "value": "price"},
                         {"label": "Speed",  "value": "speed"},
+                        {"label": "Cost / task", "value": "task"},
                     ],
                     value="price",
                     inline=True,
@@ -1362,6 +1366,10 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
         # that decide "Fast · Smart" and the frontier are market-wide claims,
         # so they must not move when the user narrows the frame.
         return build_quadrant(filtered, full_df=base, basis=basis), desc
+    if xaxis == "task":
+        # AA's cost per task: MIX reaches only the hover's price line.
+        return (build_pareto_scatter(filtered, full_df=base, basis=basis, x="task"),
+                _desc(CAPTIONS["overview_task"]))
     desc = _desc(CAPTIONS["overview_price_dyn"])
     return build_pareto_scatter(filtered, full_df=base, basis=basis), desc
 
@@ -1732,6 +1740,11 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
         _metric("Price",   f"{_mark_price(row['price'], row.get('cache_price_filled'))}"
                            f" / 1M  ·  {basis.short}"),
         _metric("Cached in", cache_str),
+        # Cost per task and token burn: shared with static_api via data/task_cost.
+        *[_metric(lbl, val) for lbl, val in _task_detail_rows(row, median_token_burn(df))],
+        *([html.Div(_task_detail_note(row), style={"fontSize": "10px", "color": "var(--text-3)",
+                                                   "marginTop": "2px"})]
+          if _task_detail_note(row) else []),
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
         _metric("Context", str(row.get("context", "N/A")) or "N/A"),

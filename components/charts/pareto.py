@@ -1,6 +1,12 @@
 """
 Pareto Frontier scatter: Cost (x) vs Quality (y), sized by speed.
 Highlights the Pareto-optimal models (best quality for their price tier).
+
+Two x axes share this builder (Overview's X AXIS radio):
+  x="price": $/1M tokens at the workload MIX;
+  x="task":  AA's cost per Intelligence Index task (data/task_cost.py). The
+             axis is AA-measured, so MIX does not move it; rows AA has not
+             costed are counted in the title, never imputed.
 """
 import math
 import numpy as np
@@ -15,6 +21,13 @@ from components.charts.constants import (
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
 from data.workload_mix import resolve_mix, fill_note, fill_hover, price_marks
+from data.task_cost import (
+    task_costs, token_burn, fmt_task_cost, burn_text, list_blend_short,
+    rank_flip_share,
+)
+
+# Overview X AXIS values this builder draws, and the frame column each plots.
+X_COLUMNS = {"price": "price", "task": "cost_per_task"}
 
 
 def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
@@ -30,11 +43,11 @@ def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
     return log_ticks(lo, hi, fmt=_fmt)
 
 
-def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
+def _pareto_frontier(df: pd.DataFrame, xcol: str = "price") -> pd.DataFrame:
     """
     O(n log n) Pareto frontier.
-    Sort by price ascending; keep a model only if its quality exceeds
-    every cheaper model seen so far.
+    Sort by `xcol` (price, or cost per task) ascending; keep a model only if
+    its quality exceeds every cheaper model seen so far.
 
     The secondary quality key is load-bearing, not cosmetic. A bare
     ``sort_values("price")`` is an unstable quicksort, so when two models share a
@@ -43,8 +56,10 @@ def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
     labelled "Pareto Frontier". Sorting quality descending within a price tie
     means only the best model at that price can ever clear ``max_q``.
     """
-    sub = df[(df["price"] > 0) & (df["quality"] > 0)].sort_values(
-        ["price", "quality"], ascending=[True, False], kind="stable"
+    if xcol not in df.columns:
+        return pd.DataFrame(columns=df.columns)
+    sub = df[(df[xcol] > 0) & (df["quality"] > 0)].sort_values(
+        [xcol, "quality"], ascending=[True, False], kind="stable"
     )
     pareto, max_q = [], 0.0
     for _, row in sub.iterrows():
@@ -54,14 +69,21 @@ def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(pareto) if pareto else pd.DataFrame(columns=sub.columns)
 
 
-def _plottable(df: pd.DataFrame) -> pd.DataFrame:
-    """The rows this chart draws: priced, scored, one row per model family."""
+def _plottable(df: pd.DataFrame, xcol: str = "price") -> pd.DataFrame:
+    """The rows this chart draws: priced, scored, one row per model family.
+
+    On the task axis a row also needs AA's cost per task, and the filter runs
+    BEFORE the family dedupe, so a family is drawn by its best-scoring variant
+    that AA has costed rather than dropped because its top tier was not."""
     sub = df[
         (df["price"] > 0) &
         (df["quality"] > 0) &
         df["price"].notna() &
         df["quality"].notna()
     ].copy()
+    if xcol == "cost_per_task":
+        sub["cost_per_task"] = task_costs(sub)
+        sub = sub[sub["cost_per_task"].notna()]
     return dedupe_to_best_variant(sub)
 
 
@@ -82,7 +104,7 @@ def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
 
 
 def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
-                         basis=None) -> go.Figure:
+                         basis=None, x: str = "price") -> go.Figure:
     """Build the Cost vs Quality Pareto scatter figure.
 
     ``full_df`` is the unfiltered catalogue. The frontier is a claim about the
@@ -93,15 +115,21 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
 
     ``basis`` is the workload MIX (data/workload_mix.Mix) the frame was priced
     at; every price label names it. None = the dashboard's default blend.
+
+    ``x`` is "price" (default) or "task": AA's cost per Intelligence Index
+    task on the x axis. In task mode the MIX only reaches the hover's price
+    line; the axis, frontier and counts are AA's numbers.
     """
     basis = resolve_mix(basis)
-    plot_df = _plottable(df)
-    ref_df = plot_df if full_df is None else _plottable(full_df)
+    task = x == "task"
+    xcol = X_COLUMNS["task" if task else "price"]
+    plot_df = _plottable(df, xcol)
+    ref_df = plot_df if full_df is None else _plottable(full_df, xcol)
 
     plot_df["size"] = bubble_size(plot_df["speed"], BUBBLE_SPEED_REF).values
 
-    valid_c = plot_df[plot_df["price"] > 0]
-    _corr_r = safe_corr(np.log10(valid_c["price"]), valid_c["quality"])
+    valid_c = plot_df[plot_df[xcol] > 0]
+    _corr_r = safe_corr(np.log10(valid_c[xcol]), valid_c["quality"])
 
     fig = go.Figure()
 
@@ -121,8 +149,11 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
-            "Price: %{customdata[7]}/M tokens  ·  " + basis.short + "<br>"
-            "Rates: %{customdata[4]}<br>"
+            + ("Cost / task: %{customdata[8]}  ·  AA-measured<br>" if task else "")
+            + "Price: %{customdata[7]}/M tokens  ·  " + basis.short + "<br>"
+            + ("Token burn: %{customdata[9]}  ·  at " + list_blend_short() + "<br>"
+               if task else "")
+            + "Rates: %{customdata[4]}<br>"
             "Speed: %{customdata[2]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
@@ -140,12 +171,17 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         # [7] is the price as text (workload_mix.fmt_price), so a sub-cent
         # agentic price never hovers as "$0.004"; it carries a '*' and [4]
         # a key line where the model has no AA cache price.
+        # [8] AA's cost per task and [9] the token burn (data/task_cost), as
+        # text, in BOTH x modes so every index after them means one thing.
+        # [9] is the last index; the next field appended goes at [10].
         rates = [r + h for r, h in zip(_rate_pair(pdf), fill_hover(pdf))]
         customdata = pd.Series(list(zip(
             pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
             speed_str, latency_str, rates,
             pdf["model"].astype(str), pdf["provider"].astype(str),
             price_marks(pdf),
+            task_costs(pdf).map(fmt_task_cost),
+            token_burn(pdf).map(burn_text),
         )), index=pdf.index)
 
         # A model AA has not timed yet has no size to draw: the floor would
@@ -166,7 +202,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             if part.empty:
                 continue
             fig.add_trace(go.Scatter(
-                x=part["price"],
+                x=part[xcol],
                 y=part["quality"],
                 mode="markers",
                 name=provider,
@@ -182,13 +218,13 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     # --- Pareto frontier line ---
     # Membership is decided against the full catalogue, then intersected with
     # what is on screen: a filter may HIDE a frontier point, never invent one.
-    frontier_models = set(_pareto_frontier(ref_df)["model"])
+    frontier_models = set(_pareto_frontier(ref_df, xcol)["model"])
     pareto_df = plot_df[plot_df["model"].isin(frontier_models)].sort_values(
-        ["price", "quality"], ascending=[True, False], kind="stable"
+        [xcol, "quality"], ascending=[True, False], kind="stable"
     )
     if not pareto_df.empty:
         fig.add_trace(go.Scatter(
-            x=pareto_df["price"],
+            x=pareto_df[xcol],
             y=pareto_df["quality"],
             mode="lines",
             name="Pareto Frontier",
@@ -201,7 +237,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         spaced_rows, spaced_pos = [], []
         last_log_price = -math.inf
         for _, prow in pareto_df.iterrows():
-            log_p = math.log10(prow["price"])
+            log_p = math.log10(prow[xcol])
             if log_p - last_log_price >= 0.4:
                 spaced_rows.append(prow)
                 spaced_pos.append("top center" if len(spaced_rows) % 2 == 1 else "bottom center")
@@ -209,7 +245,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         if spaced_rows:
             label_df = pd.DataFrame(spaced_rows)
             fig.add_trace(go.Scatter(
-                x=label_df["price"],
+                x=label_df[xcol],
                 y=label_df["quality"],
                 mode="text",
                 text=label_df["model"].apply(
@@ -224,16 +260,22 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
 
     if not plot_df.empty:
         tickvals, ticktext = _log_price_ticks(
-            float(plot_df["price"].min()), float(plot_df["price"].max())
+            float(plot_df[xcol].min()), float(plot_df[xcol].max())
         )
     else:
         tickvals, ticktext = [], []
 
     # Correlation annotation
     corr_text = (
-        f"r = {_corr_r:.2f}  (log price vs quality)"
+        f"r = {_corr_r:.2f}  (log {'cost/task' if task else 'price'} vs quality)"
         if _corr_r is not None else ""
     )
+    if task and corr_text:
+        # Why the axis exists: list price per token mis-orders cost per task.
+        flips = rank_flip_share(plot_df)
+        if flips is not None:
+            corr_text += (f"  ·  {flips[0]:.0%} of {flips[1]:,} pairs: cheaper per "
+                          "token, dearer per task")
 
     annotations = []
     if corr_text:
@@ -246,23 +288,42 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             font=dict(color="#666666", size=10, family=FONT),
         ))
 
+    hollow = ("  ·  hollow = speed not yet measured"
+              if (~_speed_measured(plot_df)).any() else "")
+    if task:
+        # The count leads (Plotly titles do not wrap): how many families on
+        # screen AA has costed, and how many it has not. None is imputed.
+        n_fam = len(_plottable(df))
+        title_text = (
+            "Cost per Task vs. Intelligence"
+            "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+            f"{len(plot_df)} of {n_fam} model families have an AA cost per task"
+            f" ({n_fam - len(plot_df)} lack one; not imputed)"
+            "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+            + hollow + "</span>"
+        )
+        x_title = ("Cost per Intelligence Index task  (USD, log, AA-measured)"
+                   "  ·  MIX does not apply")
+    else:
+        title_text = (
+            "Cost vs. Intelligence"
+            "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+            # The fill note leads: Plotly titles do not wrap, and at 1300 px
+            # the tail of this subtitle ran off the card.
+            + fill_note(plot_df, basis)
+            + "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
+            + hollow
+            + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
+            + "</span>"
+        )
+        x_title = f"Price  (USD / 1M tokens, log)  ·  {basis.short}"
+
     fig.update_layout(
         paper_bgcolor=BG,
         plot_bgcolor=BG,
         font=dict(family=FONT, color="#999999", size=12),
         title=dict(
-            text=(
-                "Cost vs. Intelligence"
-                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                # The fill note leads: Plotly titles do not wrap, and at 1300 px
-                # the tail of this subtitle ran off the card.
-                + fill_note(plot_df, basis)
-                + "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
-                + ("  ·  hollow = speed not yet measured"
-                   if (~_speed_measured(plot_df)).any() else "")
-                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
-                + "</span>"
-            ),
+            text=title_text,
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
             xanchor="left",
@@ -270,7 +331,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         ),
         xaxis=dict(
             title=dict(
-                text=f"Price  (USD / 1M tokens, log)  ·  {basis.short}",
+                text=x_title,
                 font=dict(color=AXIS, size=12),
                 standoff=12,
             ),

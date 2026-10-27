@@ -1639,11 +1639,17 @@ const OVERVIEW_CAPTIONS = {
   price: "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers collapse to one point rather than five near-duplicates at the same price. X = price per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details.",
   speed: "Speed (tok/s) vs. AA Intelligence Index, one bubble per model family (best-scoring variant). Top-right = fast and smart. Bubble size = affordability (larger = cheaper, log-scaled). Click any bubble for full details.",
 };
+// Cost / task has no copy here: its caption comes from the manifest
+// (captions.py overview_task), the one source both renderings read.
 function updateOverviewCaption() {
   const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
   const el = document.getElementById("overview-desc");
-  if (el) el.textContent = OVERVIEW_CAPTIONS[x] || OVERVIEW_CAPTIONS.price;
+  const text = x === "task" ? window.AF.manifest?.captions?.overview_task : OVERVIEW_CAPTIONS[x];
+  if (el) el.textContent = text || OVERVIEW_CAPTIONS.price;
 }
+
+// Pre-rendered figure per Overview x axis (docs/figures/<id>.json).
+const OVERVIEW_FIGURES = { price: "pareto", speed: "quadrant", task: "pareto_task" };
 
 // ---- Wire per-tab controls ----
 function wireTabControls() {
@@ -1659,7 +1665,7 @@ function wireTabControls() {
       const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
       if (!window.AF.pyReady) {
         try {
-          await renderFigure("chart-pareto", x === "speed" ? "quadrant" : "pareto");
+          await renderFigure("chart-pareto", OVERVIEW_FIGURES[x] || "pareto");
         } catch (e) { console.error("pre-boot overview render failed:", e); }
       }
       updateOverviewCaption();

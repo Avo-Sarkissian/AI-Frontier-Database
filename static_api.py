@@ -39,6 +39,7 @@ from data.workload_mix import (
     apply_mix, resolve_mix, fmt_price, mix_summary, table_price_header,
     cache_label, filled_flags, mark_price,
 )
+from data.task_cost import median_token_burn, detail_rows, detail_note
 from static_helpers import (
     index_label,
     apply_filters,
@@ -255,6 +256,16 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
         f"${p_in:,.2f} in  ·  ${p_out:,.2f} out"
         if pd.notna(p_in) and pd.notna(p_out) and p_out > 0 else "—"
     )
+    # AA's cost per task and the token burn it implies (data/task_cost). The
+    # burn divides by the LIST blend and is compared with the median over the
+    # unmixed catalogue, so neither moves with MIX; the note names the blend.
+    task_html = "".join(_metric(lbl, html.escape(val, quote=True))
+                        for lbl, val in detail_rows(row, median_token_burn(_DF)))
+    note = detail_note(row)
+    task_note = (
+        f'<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'
+        f'{html.escape(note, quote=True)}</div>' if note else ""
+    )
 
     return (
         f'<div style="color:{color};font-size:10px;font-family:{_FONT};">{provider_str}</div>'
@@ -265,6 +276,8 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
         + _metric("Price", price_str)
         + _metric("Rates", rates_str)
         + _metric("Cached in", html.escape(_cache_label(row), quote=True))
+        + task_html
+        + task_note
         + _metric("Speed", speed_str)
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)
@@ -283,14 +296,20 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
 # fails silently in someone's browser. docs/app.js sends readMix() last.
 
 def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None):
+    """xaxis: "price" | "speed" | "task". On "task" the x axis is AA's cost per
+    Intelligence Index task, which MIX does not re-price: `mix` reaches only
+    the hover's price line."""
     basis = resolve_mix(mix)
     base = _base(basis)
     f = apply_filters(base, providers, min_quality, search or "", effort)
     # `base` is the unfiltered catalogue at this mix: medians, axis bounds and
     # frontier membership are market-wide claims and must not move with the
     # user's filter.
-    fig = (build_quadrant(f, full_df=base, basis=basis) if xaxis == "speed"
-           else build_pareto_scatter(f, full_df=base, basis=basis))
+    if xaxis == "speed":
+        fig = build_quadrant(f, full_df=base, basis=basis)
+    else:
+        fig = build_pareto_scatter(f, full_df=base, basis=basis,
+                                   x="task" if xaxis == "task" else "price")
     return fig.to_json()
 
 

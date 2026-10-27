@@ -101,6 +101,8 @@ def export_default_figures(out_dir: Path) -> list[str]:
     figures = {
         "pareto":               build_pareto_scatter(df),
         "quadrant":             build_quadrant(df),
+        # Overview's "Cost / task" x axis; equals update_overview(..., "task").
+        "pareto_task":          build_pareto_scatter(df, full_df=df, x="task"),
         "treemap":              build_treemap(df),
         "provider_leaderboard": build_provider_leaderboard(df),
         "rankings":             build_rankings(ranking_frame(df), top_n=25, metric="intelligence"),
@@ -300,7 +302,7 @@ def build_pybundle(docs: Path | None = None):
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
-        "data/workload_mix.py",
+        "data/workload_mix.py", "data/task_cost.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity
