@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import math
 import re
 from datetime import date
 from pathlib import Path
@@ -15,6 +16,7 @@ import build_static
 import static_api as api
 from captions import CAPTIONS
 from components.charts import lab_economics as C
+from components.charts.constants import DEFAULT_COLOR
 from data import lab_economics as L
 from data.econ_common import STATUS_VALUES
 from static_helpers import econ_export, export_frame_for_tab
@@ -108,6 +110,28 @@ def test_filed_margins_recompute_from_their_inputs():
     assert by_id["zhipu_gm_fy25"] == 41.0
 
 
+def test_anthropic_gross_margin_uses_note_8_cost_of_revenue():
+    """S-1 Note 8 gives operating expenses by function, cost of revenue
+    included (FY23 $26M ... H1'26 $2,380M): a filed gross margin exists."""
+    m = L.load_ledger().set_index("row_id")
+    want = {"fy24": (386, 752, -94.8, "audited"), "h1_25": (1163, 1019, 12.4, "unaudited"),
+            "fy25": (4585, 2773, 39.5, "audited"), "h1_26": (16286, 2380, 85.4, "unaudited")}
+    for suf, (rev, cor, pct, fs) in want.items():
+        r = m.loc[f"anthropic_gm_{suf}"]
+        assert r["numerator"] == rev - cor and r["denominator"] == rev
+        assert r["value"] == pct and r["filing_status"] == fs
+        assert r["badge"] == "disclosed" and r["status"] == "derived"
+        assert "Note 8" in r["label"] and "Note 8" in r["note"]
+    rows = L.margin_rows()
+    labels = list(dict.fromkeys(rows["label"]))
+    gm = "Anthropic · gross margin (S-1 Note 8)"
+    assert labels.index(gm) < labels.index("Anthropic · revenue − all compute (S-1, derived)")
+    # nobody claims any more that the S-1 has no cost-of-revenue line
+    blob = " ".join(_ledger_csv()["definition"]) + CAPTIONS["economics_labs"] \
+        + (ROOT / "README.md").read_text()
+    assert "no cost-of-revenue" not in blob and "Note 8" in CAPTIONS["economics_labs"]
+
+
 def test_anthropic_derived_margin_matches_the_s1():
     m = L.load_ledger().set_index("row_id")
     assert abs(m.loc["anthropic_rev_less_compute_fy25", "value"] - (-59.8)) <= 0.05
@@ -164,6 +188,38 @@ def test_curated_token_rows_do_not_duplicate_epoch():
             assert not (gaps <= L.TOKEN_DEDUP_DAYS).any(), pal
 
 
+def test_an_api_or_hidden_epoch_row_never_drops_an_all_products_disclosure(monkeypatch):
+    """Dedup needs the same company AND scope, and an Epoch row Epoch draws."""
+    ep = L.load_epoch_tokens()
+    api = ep[ep["product"] == "Gemini API"].copy()
+    assert api["graph_excluded"].all() and (api["scope"] == "api").all()
+    api["epoch_id"], api["date"] = "synthetic api", "2026-05-20"
+    hidden_all = ep[(ep["company"] == "Google") & (ep["scope"] == "all")].tail(1).copy()
+    hidden_all["epoch_id"], hidden_all["date"] = "synthetic hidden", "2026-05-18"
+    hidden_all["graph_excluded"] = True
+    shown_api = api.assign(epoch_id="synthetic shown api", graph_excluded=False)
+    more = pd.concat([ep, api, hidden_all, shown_api], ignore_index=True)
+    monkeypatch.setattr(L, "load_epoch_tokens", lambda: more)
+    t = L.token_rows()
+    assert "google_tokens_2026_05" in set(t["ref"])
+    g = next(tr for tr in _data_traces(C.build_labs_tokens(t))
+             if tr.meta == {"entity": "Google", "scope": "all"})
+    assert "2026-05-19" in list(g.x)
+
+
+def test_token_dedup_pairs_on_epoch_company_not_colour(monkeypatch):
+    """Curated rows pair with Epoch by epoch_company; a blank one never pairs,
+    and a shared colour never pairs two different companies."""
+    led = L.load_ledger()
+    g = led[led["row_id"] == "google_tokens_2026_05"].copy()
+    near = L.load_epoch_tokens()
+    near = near[(near["company"] == "Google") & (near["scope"] == "all")].iloc[[0]]
+    g["as_of"] = near["date"].iloc[0]
+    g["epoch_company"] = ""
+    monkeypatch.setattr(L, "load_ledger", lambda include_excluded=False: g)
+    assert "google_tokens_2026_05" in set(L.token_rows()["ref"])
+
+
 def test_a_curated_token_row_near_an_epoch_row_is_dropped(monkeypatch):
     led = L.load_ledger()
     g = led[led["row_id"] == "google_tokens_2026_05"].copy()
@@ -197,6 +253,77 @@ def test_commitment_pairing_rule(monkeypatch):
     assert "92 days" in c2.loc["synthetic", "flag"]
     fig = C.build_labs_commitments(c2.reset_index())
     assert len(_data_traces(fig)) == 3
+
+
+def _with_ledger(monkeypatch, edit):
+    led = L._ledger_all().copy()
+    edit(led)
+    monkeypatch.setattr(L, "_ledger_all", lambda: led)
+
+
+@pytest.mark.parametrize("den", [None, 0.0, -5.0])
+def test_a_missing_quarterly_denominator_is_flagged_not_charted(monkeypatch, den):
+    def edit(led):
+        led.loc[led["row_id"] == "coreweave_rpo_2026_06", "denominator"] = den
+    _with_ledger(monkeypatch, edit)
+    c = L.commitment_rows().set_index("row_id").loc["coreweave_rpo_2026_06"]
+    assert not c["charted"] and pd.isna(c["multiple"]) and pd.isna(c["den_usd"])
+    assert c["flag"] == "no quarterly revenue denominator; not charted"
+    row = next(r for r in C.ledger_rows()
+               if r["metric"] == "remaining performance obligations")
+    assert "nan" not in row["value"].lower() and "not charted" in row["value"]
+    fig = C.build_labs_commitments()
+    assert all(math.isfinite(x) for t in _data_traces(fig) for x in t.x)
+
+
+def test_commitments_pair_on_epoch_company_never_on_colour(monkeypatch):
+    def edit(led):
+        led.loc[led["row_id"] == "anthropic_noncancellable_2025", "epoch_company"] = ""
+        # an unmapped lab shares the blank palette with every unmapped Epoch company
+        led.loc[led["row_id"] == "anthropic_fixed_min_2026_06",
+                ["palette_name", "epoch_company"]] = ["", "Nobody Labs"]
+    _with_ledger(monkeypatch, edit)
+    c = L.commitment_rows().set_index("row_id")
+    a = c.loc["anthropic_noncancellable_2025"]
+    assert not a["charted"] and "epoch_company" in a["flag"]
+    b = c.loc["anthropic_fixed_min_2026_06"]
+    assert not b["charted"] and "no Epoch run-rate" in b["flag"]
+
+
+def test_usd_shows_filed_precision():
+    assert L._usd(103.7e9) == "$103.7B" and L._usd(265.6e9) == "$265.6B"
+    assert L._usd(9e9) == "$9B" and L._usd(47e9) == "$47B" and L._usd(2575e6) == "$2.575B"
+    assert L._usd(None) == "—"
+    vals = {r["entity"] + r["metric"]: r["value"] for r in C.ledger_rows()}
+    assert any(v.startswith("$103.7B") for v in vals.values())
+    assert any(v.startswith("~$265.6B") for v in vals.values())
+
+
+def test_numerator_and_denominator_only_hold_a_ratio():
+    """numerator ÷ denominator is the row's ratio (pct rows) or, for a
+    quarterly_revenue_x4 commitment, the denominator alone is its quarter;
+    nothing else stores figures there (CoreWeave's debt addends live in the note)."""
+    for _, r in L.load_ledger(include_excluded=True).iterrows():
+        n, d = r["numerator"], r["denominator"]
+        has_n, has_d = pd.notna(n), pd.notna(d)
+        if r["unit"] == "pct" and has_n and has_d:
+            continue
+        if r["denominator_basis"] == "quarterly_revenue_x4":
+            assert not has_n and has_d and d > 0, r["row_id"]
+            continue
+        assert not has_n and not has_d, r["row_id"]
+    debt = L.load_ledger().set_index("row_id").loc["coreweave_debt_2026_06"]
+    assert "31,405" in debt["note"] and "3,663" in debt["note"]
+
+
+def test_ledger_epoch_company_names_an_epoch_company():
+    df = _ledger_csv()
+    for _, r in df[df["epoch_company"] != ""].iterrows():
+        assert r["epoch_company"] in L.EPOCH_TO_PALETTE, r["row_id"]
+        assert L.EPOCH_TO_PALETTE[r["epoch_company"]] == r["palette_name"], r["row_id"]
+    ship = df[(df["view"] == "commitment") & (df["ledger_state"] == "ship")
+              & (df["denominator_basis"] == "epoch_runrate")]
+    assert (ship["epoch_company"] != "").all()
 
 
 # ── The Epoch slices ─────────────────────────────────────────────────────────
@@ -258,7 +385,8 @@ def test_runrate_figure():
     fig = C.build_labs_runrate()
     traces = _data_traces(fig)
     assert {t.meta["company"] for t in traces} == set(rr["company"])
-    assert len(traces) == rr["company"].nunique()
+    pairs = set(zip(rr["company"], rr["revenue_type"].map(C.runrate_basis)))
+    assert len(traces) == len(pairs)
     assert fig.layout.yaxis.type == "log"
     for t in traces:
         badges = [cd[7] for cd in t.customdata]
@@ -266,7 +394,26 @@ def test_runrate_figure():
     notes = " ".join(a.text for a in fig.layout.annotations)
     assert "×13" in notes and "gross" in notes
     keys = [t.name for t in fig.data if t.legendgroup == "badge"]
-    assert len(keys) == 3
+    assert len(keys) == len(set(rr["badge"]))
+
+
+def test_runrate_never_joins_period_interpolation_to_a_run_rate():
+    """Epoch's 'Period interpolation' rows (booked period revenue × 2 or × 4)
+    and its run-rate/ARR snapshots are two definitions: never one line."""
+    rr = L.runrate_frame()
+    fig = C.build_labs_runrate()
+    for t in _data_traces(fig):
+        co, basis = t.meta["company"], t.meta["basis"]
+        ids = [cd[5] for cd in t.customdata]
+        types = set(rr[rr["epoch_id"].isin(ids)]["revenue_type"])
+        assert {C.runrate_basis(x) for x in types} == {basis}, (co, types)
+        assert t.line.dash == ("dot" if basis == "period" else "solid")
+    zh = [t for t in _data_traces(fig) if t.meta["company"] == "Z.ai (Zhipu)"]
+    assert {t.meta["basis"] for t in zh} == {"period", "snapshot"}
+    # one legend entry per company
+    shown = [t.meta["company"] for t in _data_traces(fig) if t.showlegend is not False]
+    assert sorted(shown) == sorted(set(rr["company"]))
+    assert "economics_labs" in CAPTIONS and "dotted line" in CAPTIONS["economics_labs"]
 
 
 def test_badge_symbols_follow_the_economics_convention():
@@ -309,8 +456,90 @@ def test_tokens_figure_is_log_scale_per_day_and_never_joins_scopes():
         assert {cd[2] for cd in t.customdata} == {L.SCOPE_LABELS[t.meta["scope"]]}
     g = next(t for t in traces if t.meta == {"entity": "Google", "scope": "all"})
     assert max(g.y) == pytest.approx(3.2e15 / 30)
+    # hover: a curated row states its figure, an Epoch row is named as a row
+    curated = [cd[3] for cd in hovers if "quadrillion" in cd[3]]
+    assert curated and all(x.startswith("Stated: ") for x in curated)
+    assert any(cd[3] == "Epoch row: Dec 2023 tokens" for cd in hovers)
+    assert not any(cd[3].startswith("Stated: Dec 2023") for cd in hovers)
     # Epoch's own "exclude from graph view" rows are not drawn
     assert not any("Codex" in str(cd[1]) for cd in hovers)
+
+
+def test_tokens_legend_has_no_two_identical_keys_and_no_shared_colour():
+    fig = C.build_labs_tokens()
+    keys = [(t.marker.symbol, t.marker.color) for t in fig.data
+            if t.x is not None and all(v is None for v in t.x)]
+    assert len(keys) == len(set(keys))
+    assert not any(t.legendgroup == "badge" and t.marker.symbol in L.SCOPE_SYMBOLS.values()
+                   for t in fig.data)
+    colors = {}
+    for t in _data_traces(fig):
+        colors.setdefault(t.meta["entity"], set()).add(t.marker.color)
+    flat = [next(iter(c)) for c in colors.values()]
+    assert all(len(c) == 1 for c in colors.values()) and len(flat) == len(set(flat))
+    assert DEFAULT_COLOR not in flat
+    by = {e: next(iter(c)) for e, c in colors.items()}
+    assert by["ByteDance (Doubao)"] == "#3c8bff"
+    # every point is disclosed today, so no badge key at all; the subtitle says so
+    if set(L.token_rows()["badge"]) == {"disclosed"}:
+        assert not any(t.legendgroup == "badge" for t in fig.data)
+        assert "every point disclosed" in fig.layout.title.text
+    # a reported point brings keys on a shape no scope uses
+    t = L.token_rows().copy()
+    t.loc[t.index[0], "badge"] = "reported"
+    keys = [k for k in C.build_labs_tokens(t).data if k.legendgroup == "badge"]
+    assert {k.marker.symbol for k in keys} == {"hexagon", "hexagon-open"}
+
+
+def test_badge_keys_list_only_badges_drawn():
+    for name, fig in C.build_labs_figures().items():
+        drawn = set()
+        for t in _data_traces(fig):
+            for cd in t.customdata:
+                drawn |= {v for v in cd if v in L.BADGES}
+        keys = {t.name for t in fig.data if t.legendgroup == "badge"}
+        assert keys <= {C.BADGE_TEXT[b] for b in drawn}, name
+    com = C.build_labs_commitments()
+    assert [t.name for t in com.data if t.legendgroup == "badge"] == [C.BADGE_TEXT["disclosed"]]
+
+
+def _apply_narrow(fig_json: dict) -> dict:
+    """Python twin of docs/app.js narrowFigure."""
+    n = fig_json["layout"]["meta"]["narrow"]
+    data = [dict(t, **n["data"].get(str(i), {})) for i, t in enumerate(fig_json["data"])]
+    layout = dict(fig_json["layout"])
+    for k, v in n["layout"].items():
+        cur = layout.get(k)
+        layout[k] = {**cur, **v} if isinstance(v, dict) and isinstance(cur, dict) else v
+    return {"data": data, "layout": layout}
+
+
+@pytest.mark.parametrize("name", ["econ_labs_margins", "econ_labs_commitments"])
+def test_phone_layout_moves_row_labels_above_the_rows(name):
+    fig = C.build_labs_figures()[name]
+    j = json.loads(fig.to_json())
+    n = j["layout"]["meta"]["narrow"]
+    assert n["max_width"] == C.NARROW_PX
+    data_idx = {i for i, t in enumerate(j["data"]) if t.get("x") and t["x"][0] is not None}
+    assert {int(i) for i in n["data"]} == data_idx
+    out = _apply_narrow(j)
+    assert out["layout"]["yaxis"]["showticklabels"] is False
+    assert out["layout"]["margin"]["l"] == 12 and "t" in out["layout"]["margin"]
+    labels = list(fig.layout.yaxis.tickvals)
+    notes = [a["text"] for a in out["layout"]["annotations"] if a.get("xref") == "paper"]
+    assert len(notes) == len(labels)
+    for t in (out["data"][i] for i in data_idx):
+        if name == "econ_labs_margins":
+            assert t["mode"] == "lines+markers"
+        else:
+            assert re.fullmatch(r"\d+\.\d×", t["text"][0])
+    if name == "econ_labs_margins":
+        assert any("off scale" in a["text"] and a["yanchor"] == "top"
+                   for a in out["layout"]["annotations"])
+    # the cached figure is untouched
+    assert j["layout"]["yaxis"].get("showticklabels") is not False
+    assert "function narrowFigure(fig, width)" in APP_JS
+    assert APP_JS.count("narrowFigure(") >= 3
 
 
 def test_charts_read_no_clock():
@@ -423,5 +652,8 @@ def test_the_short_commitments_box_matches_its_figure():
     and holds the box app.js names, which must be the figure's own height."""
     m = re.search(r"const ECON_CHART_MIN_HEIGHT = \{ econ_labs_commitments: (\d+) \};", APP_JS)
     assert m and int(m.group(1)) == C.build_labs_commitments().layout.height
+    # inline !important, so a stale cached shell.css cannot stretch it
+    assert ('div.style.setProperty("min-height", ECON_CHART_MIN_HEIGHT[c] + "px", '
+            '"important")') in APP_JS
     shell = (ROOT / "docs" / "assets" / "shell.css").read_text()
     assert '[id^="chart-"].chart--own-height' in shell

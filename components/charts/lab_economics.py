@@ -8,8 +8,15 @@
 
 Inside Economics, fill strength is strength of evidence: disclosed = filled,
 reported = open, estimated = open diamond (on the token chart, whose symbol
-already encodes scope, estimated = open with a centre dot). Every chart carries
-legend-only grey key traces that say so. Colours are the provider palette.
+already encodes scope, the keys use a hexagon, a shape no scope uses, and
+estimated = open with a centre dot). Each chart keys only the badges it
+draws, with legend-only grey traces. Colours are the provider palette; an
+entity with no palette colour gets an automatic one (auto_palette.resolve),
+kept apart from every other colour in the same chart.
+
+Margins and commitments carry layout.meta.narrow: the patch docs/app.js
+applies when the figure is drawn narrower than NARROW_PX (a phone), moving
+the row labels above their rows and shortening the point labels.
 Deterministic: no clock is read here, every range comes from the data and
 every sort is a stable mergesort, so the pre-rendered figure equals the live
 one.
@@ -23,8 +30,9 @@ import re
 import pandas as pd
 import plotly.graph_objects as go
 
+from components.charts import auto_palette
 from components.charts.constants import (
-    plot_text, empty_figure, PROVIDER_COLORS, DEFAULT_COLOR, BG, FONT,
+    plot_text, empty_figure, PROVIDER_COLORS, AA_CREATOR_COLORS, FONT,
 )
 from components.charts.open_gap import _layout, SUB, RULE
 from data import lab_economics as L
@@ -38,10 +46,44 @@ BADGE_TEXT = {
     "estimated": "estimated (analyst model or Epoch interpolation)",
 }
 EPOCH_SUB = "Epoch AI, CC BY 4.0"
+NARROW_PX = 500                          # app.js applies layout.meta.narrow below this
+KEY_BASE_TOKENS = "hexagon"              # not in L.SCOPE_SYMBOLS
 
 
-def _color(palette_name) -> str:
-    return PROVIDER_COLORS.get(str(palette_name or ""), DEFAULT_COLOR)
+def _entity_colors(pairs) -> dict[str, str]:
+    """entity -> colour for one chart: the provider palette where the entity
+    has a palette name in it; otherwise auto_palette.resolve from AA's own
+    colour for that name (AA_CREATOR_COLORS: ByteDance Seed) or, with none,
+    from the name, kept apart from every colour already in the chart, so no
+    two entities share the grey default. Order-independent (pairs sorted)."""
+    pairs = sorted({(str(e), str(p or "")) for e, p in pairs})
+    out = {e: PROVIDER_COLORS[p] for e, p in pairs if p in PROVIDER_COLORS}
+    taken = list(out.values())
+    for e, p in pairs:
+        if e not in out:
+            out[e] = auto_palette.resolve(p or e, AA_CREATOR_COLORS.get(p), taken)
+            taken.append(out[e])
+    return out
+
+
+def _present(badges) -> list[str]:
+    """The badges a chart actually draws, in BADGES order."""
+    have = set(badges)
+    return [b for b in L.BADGES if b in have]
+
+
+def _row_notes(labels: list[str]) -> list[dict]:
+    """Narrow layout: each row's label as a one-line annotation above its row,
+    from the plot's left edge (the y tick labels are hidden)."""
+    return [dict(x=0, xref="paper", y=lab, yref="y", xanchor="left", yanchor="bottom",
+                 yshift=8, showarrow=False, align="left", text=plot_text(lab),
+                 font=dict(color="#aaaaaa", size=10, family=FONT)) for lab in labels]
+
+
+def _narrow_meta(data: dict[int, dict], layout: dict) -> dict:
+    return {"narrow": {"max_width": NARROW_PX,
+                       "data": {str(i): u for i, u in data.items()},
+                       "layout": layout}}
 
 
 def badge_symbol(badge: str, base: str = "circle") -> str:
@@ -81,6 +123,16 @@ def _esc(v) -> str:
 
 # ── 1. Revenue run-rate ─────────────────────────────────────────────────────
 
+PERIOD_TYPE = "period interpolation"
+
+
+def runrate_basis(revenue_type) -> str:
+    """'period' for Epoch's annualised booked period revenue (half-year or
+    quarter × 2 or × 4, backward-looking), 'snapshot' for a run-rate or ARR
+    figure at a date. A line never joins the two."""
+    return "period" if str(revenue_type or "").strip().lower() == PERIOD_TYPE else "snapshot"
+
+
 RUNRATE_FOOTNOTE = (
     "Not like for like. Anthropic's run-rate = trailing-28-day consumption ×13 + "
     "subscriptions ×12, and it books cloud-marketplace sales gross<br>"
@@ -95,9 +147,15 @@ def build_labs_runrate(rr: pd.DataFrame | None = None) -> go.Figure:
         return empty_figure("No Epoch AI revenue rows available")
     fig = go.Figure()
     companies = list(dict.fromkeys(rr.sort_values(["company"], kind="mergesort")["company"]))
-    for co in companies:
-        d = rr[rr["company"] == co].sort_values(["date", "epoch_id"], kind="mergesort")
-        col = _color(d["palette_name"].iloc[0])
+    colors = _entity_colors(zip(rr["company"], rr["palette_name"]))
+    rr = rr.assign(_basis=rr["revenue_type"].map(runrate_basis))
+    for co, basis in [(c, b) for c in companies for b in ("snapshot", "period")]:
+        d = rr[(rr["company"] == co) & (rr["_basis"] == basis)].sort_values(
+            ["date", "epoch_id"], kind="mergesort")
+        if d.empty:
+            continue
+        col = colors[co]
+        has_snapshot = bool((rr[rr["company"] == co]["_basis"] == "snapshot").any())
         cds = [[plot_text(co), L._usd(v), plot_text(t or "—"), plot_text(c or "—"),
                 plot_text(s or "—"), plot_text(i), L.source_domain(u) or "—", b]
                for v, t, c, s, i, u, b in zip(d["annualized_usd"], d["revenue_type"],
@@ -106,22 +164,25 @@ def build_labs_runrate(rr: pd.DataFrame | None = None) -> go.Figure:
         fig.add_trace(go.Scatter(
             x=list(d["date"]), y=[float(v) for v in d["annualized_usd"]],
             mode="lines+markers", name=plot_text(co), legendgroup=co,
-            line=dict(color=col, width=1.3),
+            showlegend=basis == "snapshot" or not has_snapshot,
+            line=dict(color=col, width=1.3 if basis == "snapshot" else 1,
+                      dash="solid" if basis == "snapshot" else "dot"),
             marker=dict(color=col, size=7, symbol=[badge_symbol(b) for b in d["badge"]],
                         line=dict(color=col, width=1.5)),
-            customdata=cds, meta={"company": co},
+            customdata=cds, meta={"company": co, "basis": basis},
             hovertemplate=("<b>%{customdata[0]}</b>  %{x}<br>%{customdata[1]}/yr  "
                            "(%{customdata[2]})<br>Badge: %{customdata[7]} · Epoch "
                            "confidence: %{customdata[3]}<br>Source type: %{customdata[4]} "
                            "· %{customdata[6]}<br>Epoch row: %{customdata[5]}<extra></extra>"),
         ))
-    for k in _badge_keys():
+    for k in _badge_keys(_present(rr["badge"])):
         fig.add_trace(k)
     lo, hi = float(rr["annualized_usd"].min()), float(rr["annualized_usd"].max())
     ticks = _decades(lo, hi)
     title = ("Lab Revenue Run-Rate" + "  " + SUB
              + f"annualised revenue, USD/yr (log) · {len(rr)} reports, "
-               f"{len(companies)} companies · {EPOCH_SUB}</span>")
+               f"{len(companies)} companies · dotted = booked period revenue annualised, "
+               f"never joined to a run-rate · {EPOCH_SUB}</span>")
     _layout(fig, title, "Date of the figure", "Annualised revenue (USD/yr, log)",
             height=520,
             annotations=[dict(x=0.0, y=1.0, xref="paper", yref="paper", xanchor="left",
@@ -166,10 +227,11 @@ def build_labs_margins(rows: pd.DataFrame | None = None) -> go.Figure:
     lo, hi = MARGIN_RANGE
     labels = list(dict.fromkeys(rows.sort_values("row_order", kind="mergesort")["label"]))
     fig = go.Figure()
-    notes = []
+    notes, narrow_notes = [], []
+    colors = _entity_colors(zip(rows["entity"], rows["palette_name"]))
     for lab in labels:
         d = rows[rows["label"] == lab]
-        col = _color(d["palette_name"].iloc[0])
+        col = colors[str(d["entity"].iloc[0])]
         vals = [float(v) for v in d["value"]]
         xs = [min(max(v, lo), hi) for v in vals]
         off = [v < lo or v > hi for v in vals]
@@ -183,6 +245,12 @@ def build_labs_margins(rows: pd.DataFrame | None = None) -> go.Figure:
                     showarrow=False, yshift=6,
                     text=f"← {periods[i]} {vals[i]:.0f}% (off scale)".replace("-", "−"),
                     font=dict(color=col, size=10, family=FONT)))
+                # Narrow: below the point, clear of the row label above it.
+                narrow_notes.append(dict(
+                    x=xs[i], y=lab, xref="x", yref="y", xanchor="left", yanchor="top",
+                    showarrow=False, yshift=-7,
+                    text=f"{periods[i]} {vals[i]:.0f}%, off scale".replace("-", "−"),
+                    font=dict(color=col, size=9, family=FONT)))
         syms = [("triangle-left" if o else badge_symbol(b)) for o, b in zip(off, d["badge"])]
         q = [{">": ">", "~": "~"}.get(str(v), "") for v in d["value_qualifier"]]
         nd = []
@@ -210,7 +278,8 @@ def build_labs_margins(rows: pd.DataFrame | None = None) -> go.Figure:
                            "%{customdata[3]}<br>Inputs: %{customdata[6]}<br>"
                            "%{customdata[8]} · %{customdata[7]}<extra></extra>"),
         ))
-    for k in _badge_keys():
+    n_rows = len(fig.data)
+    for k in _badge_keys(_present(rows["badge"])):
         fig.add_trace(k)
     title = ("Lab Margins, One Definition per Row" + "  " + SUB
              + "rows are not comparable to each other · filed gross margins, a derived "
@@ -228,6 +297,12 @@ def build_labs_margins(rows: pd.DataFrame | None = None) -> go.Figure:
     fig.update_yaxes(categoryorder="array", categoryarray=labels, autorange="reversed",
                      showgrid=False, tickvals=labels,
                      ticktext=[plot_text(lab).replace(" · ", "<br>", 1) for lab in labels])
+    # On a phone the label column would leave ~110 px of plot: labels move
+    # above their rows and the period labels go (the hover keeps them).
+    fig.update_layout(meta=_narrow_meta(
+        {i: {"mode": "lines+markers"} for i in range(n_rows)},
+        {"yaxis": {"showticklabels": False}, "margin": {"l": 12},
+         "annotations": _row_notes(labels) + narrow_notes}))
     return fig
 
 
@@ -248,8 +323,11 @@ def build_labs_commitments(rows: pd.DataFrame | None = None) -> go.Figure:
     d = rows[rows["charted"]].sort_values("order", kind="mergesort")
     labels = list(d["label"])
     fig = go.Figure()
+    colors = _entity_colors(zip(d["entity"], d["palette_name"]))
+    short = {}
     for _, r in d.iterrows():
-        col = _color(r["palette_name"])
+        col = colors[str(r["entity"])]
+        short[len(fig.data)] = {"text": [f"{r['multiple']:.1f}×"]}
         q = {">": ">", "~": "~"}.get(str(r["value_qualifier"]), "")
         txt = (f"{r['multiple']:.1f}×  {q}{L._usd(r['value'])} ({_short_date(r['as_of'])}) "
                f"÷ {r['den_label']}")
@@ -270,7 +348,7 @@ def build_labs_commitments(rows: pd.DataFrame | None = None) -> go.Figure:
                            "÷ %{customdata[6]} = %{customdata[7]}×<br>%{customdata[8]}"
                            "<extra></extra>"),
         ))
-    for k in _badge_keys():
+    for k in _badge_keys(_present(d["badge"])):
         fig.add_trace(k)
     flagged = int((~rows["charted"]).sum())
     title = ("Compute Commitments ÷ Revenue Run-Rate" + "  " + SUB
@@ -285,6 +363,13 @@ def build_labs_commitments(rows: pd.DataFrame | None = None) -> go.Figure:
     fig.update_yaxes(categoryorder="array", categoryarray=labels, autorange="reversed",
                      showgrid=False, tickvals=labels,
                      ticktext=[plot_text(lab).replace(" · ", "<br>", 1) for lab in labels])
+    # Phone: labels above their rows, each point labelled with its multiple
+    # only; the x title goes (the chart title and the × ticks carry it), as
+    # the legend row would otherwise sit on it in a 314 px strip.
+    fig.update_layout(meta=_narrow_meta(
+        short, {"yaxis": {"showticklabels": False}, "margin": {"l": 12},
+                "xaxis": {"range": [0, hi * 1.4], "title": {"text": ""}},
+                "annotations": _row_notes(labels)}))
     return fig
 
 
@@ -306,12 +391,15 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
         return empty_figure("No token-volume disclosures available")
     fig = go.Figure()
     seen = set()
+    colors = _entity_colors(zip(d0["entity"], d0["palette_name"]))
     for (ent, scope), d in d0.groupby(["entity", "scope"], sort=True):
         d = d.sort_values("date", kind="mergesort")
-        col = _color(d["palette_name"].iloc[0])
+        col = colors[str(ent)]
         base = L.SCOPE_SYMBOLS.get(scope, "circle")
+        # Epoch's usage file names a row but carries only the per-day figure.
         cds = [[plot_text(ent), plot_text(p or "—"), L.SCOPE_LABELS.get(scope, scope),
-                plot_text(s), L.human_tokens(float(t)), b,
+                ("Epoch row: " if o == "epoch" else "Stated: ") + plot_text(s),
+                L.human_tokens(float(t)), b,
                 ("Epoch AI usage_reports" if o == "epoch" else plot_text(sn)),
                 L.source_domain(u) or "—"]
                for p, s, t, b, o, sn, u in zip(d["product"], d["statement"],
@@ -326,7 +414,7 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
                         line=dict(color=col, width=1.6)),
             customdata=cds, meta={"entity": ent, "scope": scope},
             hovertemplate=("<b>%{customdata[0]}</b>  %{x}<br>%{customdata[1]} "
-                           "(%{customdata[2]})<br>Stated: %{customdata[3]}<br>"
+                           "(%{customdata[2]})<br>%{customdata[3]}<br>"
                            "≈ %{customdata[4]} tokens/day<br>Badge: %{customdata[5]} · "
                            "%{customdata[6]} · %{customdata[7]}<extra></extra>"),
         ))
@@ -336,14 +424,18 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
             x=[None], y=[None], mode="markers", name=L.SCOPE_LABELS[scope],
             marker=dict(symbol=L.SCOPE_SYMBOLS[scope], color=KEY_GREY, size=8),
             legendgroup="scope", showlegend=True, hoverinfo="skip"))
-    present = [b for b in L.BADGES if b in set(d0["badge"])] or ["disclosed"]
-    for k in _badge_keys(present, base="square"):
-        fig.add_trace(k)
+    # Symbol is scope here, so badge keys (only when some point is not
+    # disclosed) use a shape no scope uses; when all are, the subtitle says so.
+    present = _present(d0["badge"])
+    if present != ["disclosed"]:
+        for k in _badge_keys(present, base=KEY_BASE_TOKENS):
+            fig.add_trace(k)
     lo, hi = float(d0["tokens_per_day"].min()), float(d0["tokens_per_day"].max())
     ticks = _decades(lo, hi)
     title = ("Disclosed Token Volumes" + "  " + SUB
              + "tokens per day (log) · monthly ÷ 30, weekly ÷ 7, per-minute × 1,440, Epoch "
                "AI's convention · symbol = what is counted · lines join one scope only · "
+             + ("every point disclosed · " if present == ["disclosed"] else "")
              + EPOCH_SUB + " + cited disclosures</span>")
     _layout(fig, title, "Date of the figure", "Tokens per day (log)", height=480)
     fig.update_yaxes(type="log", tickvals=ticks, ticktext=[_tok_tick(t) for t in ticks],

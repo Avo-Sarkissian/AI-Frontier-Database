@@ -18,7 +18,10 @@ Two inputs:
   BADGE (disclosed = filing or on-record company statement; reported = press
   citing people or documents; estimated = analyst model or Epoch
   interpolation), the filing's audit status, a provenance `status`
-  (econ_common.STATUS_VALUES) and `ledger_state` (ship | excluded). Excluded
+  (econ_common.STATUS_VALUES), `ledger_state` (ship | excluded) and, for a
+  company Epoch tracks, `epoch_company` (Epoch's exact company name: the key
+  that pairs a commitment with its run-rate and a token row with Epoch's
+  rows; blank = Epoch has no rows for it, so nothing is paired). Excluded
   rows (a leaked draft figure, a projection mislabelled as commitments) stay
   in the ledger with their reason and are never charted.
 
@@ -73,6 +76,7 @@ LEDGER_COLUMNS = (
     "denominator", "nd_unit", "period_label", "period_start", "period_end", "badge",
     "filing_status", "derived", "denominator_basis", "source_name", "source_url",
     "source_date", "retrieved", "ledger_state", "as_of", "status", "note",
+    "epoch_company",
 )
 REVENUE_COLUMNS = ("epoch_id", "company", "palette_name", "date", "annualized_usd",
                    "revenue_type", "scope", "confidence", "source_type", "badge",
@@ -400,11 +404,13 @@ def margin_rows() -> pd.DataFrame:
 def commitment_rows(max_gap_days: int = COMMITMENT_MAX_GAP_DAYS) -> pd.DataFrame:
     """Shipped commitment rows with their denominator and multiple (×).
 
-    A lab's denominator is its latest Epoch 'Full company' run-rate dated on or
-    before the commitment's as_of and at most `max_gap_days` earlier; a row
-    with none is kept, flagged and not charted. A row whose
-    denominator_basis is 'quarterly_revenue_x4' uses its own filed quarterly
-    revenue × 4 (CoreWeave: the sell side, a different definition)."""
+    A lab's denominator is the latest Epoch 'Full company' run-rate of the
+    company named in its `epoch_company` (never matched by colour), dated on
+    or before the commitment's as_of and at most `max_gap_days` earlier; a
+    row with no company or no such run-rate is kept, flagged and not
+    charted. A row whose denominator_basis is 'quarterly_revenue_x4' uses its
+    own filed quarterly revenue × 4 (CoreWeave: the sell side, a different
+    definition); a missing or non-positive quarter is flagged likewise."""
     led = load_ledger()
     led = led[(led["view"] == "commitment") & led["value"].notna()]
     rr = runrate_frame()
@@ -417,13 +423,20 @@ def commitment_rows(max_gap_days: int = COMMITMENT_MAX_GAP_DAYS) -> pd.DataFrame
         rec.update(den_usd=None, den_date="", den_badge="", den_label="", den_source="",
                    den_epoch_id="", multiple=None, charted=False, flag="")
         basis = r["denominator_basis"]
-        if basis == "quarterly_revenue_x4" and r["denominator"]:
-            rec.update(den_usd=r["denominator"] * 4, den_date=r["as_of"],
-                       den_badge=r["badge"], den_source=r["source_url"],
-                       den_label=f"Q revenue {_usd(r['denominator'])} × 4")
+        company = str(r.get("epoch_company", "") or "").strip()
+        if basis == "quarterly_revenue_x4":
+            q = _num(r["denominator"])
+            if q is not None and q > 0:
+                rec.update(den_usd=q * 4, den_date=r["as_of"],
+                           den_badge=r["badge"], den_source=r["source_url"],
+                           den_label=f"Q revenue {_usd(q)} × 4")
+            else:
+                rec["flag"] = "no quarterly revenue denominator; not charted"
+        elif basis == "epoch_runrate" and not company:
+            rec["flag"] = "no Epoch company named (epoch_company); not charted"
         elif basis == "epoch_runrate":
             asof = _iso(r["as_of"])
-            cand = rr[rr["palette_name"] == r["palette_name"]] if asof else rr.iloc[0:0]
+            cand = rr[rr["company"] == company] if asof else rr.iloc[0:0]
             if asof is not None and not cand.empty:
                 d = pd.to_datetime(cand["date"])
                 gap = (pd.Timestamp(asof) - d).dt.days
@@ -440,9 +453,10 @@ def commitment_rows(max_gap_days: int = COMMITMENT_MAX_GAP_DAYS) -> pd.DataFrame
                                f"{r['as_of']}; not charted")
         else:
             rec["flag"] = f"unknown denominator basis {basis!r}; not charted"
-        if rec["den_usd"]:
-            rec["multiple"] = r["value"] / rec["den_usd"]
-            rec["charted"] = True
+        den = _num(rec["den_usd"])
+        if den is not None and den > 0:
+            rec["multiple"] = r["value"] / den
+            rec["charted"] = math.isfinite(rec["multiple"])
         out.append(rec)
     cols = ["row_id", "entity", "palette_name", "label", "definition", "value",
             "value_qualifier", "as_of", "badge", "filing_status", "source_url", "source_name",
@@ -465,7 +479,14 @@ def token_rows() -> pd.DataFrame:
     """Epoch's usage rows plus the curated token rows, all in tokens per day.
 
     A curated row is dropped when Epoch already has a row for the same company
-    within TOKEN_DEDUP_DAYS days (Epoch's own normalisation then wins)."""
+    (`epoch_company`, never the colour) AND the same scope, within
+    TOKEN_DEDUP_DAYS days, that Epoch itself draws (not 'Exclude from graph
+    view'): Epoch's own normalisation then wins. An API-only or hidden Epoch
+    row never removes an all-products disclosure.
+
+    `statement` is the quoted figure for a curated row and Epoch's row name
+    for an Epoch row (its usage file carries only the per-day normalisation,
+    not the raw count and period), so the hover labels them differently."""
     ep = load_epoch_tokens()
     rows = []
     for _, r in ep.iterrows():
@@ -476,7 +497,7 @@ def token_rows() -> pd.DataFrame:
             "statement": r["statement"], "value": None, "per": "day",
             "source_url": r["source_url"], "source_name": "Epoch AI usage_reports",
             "origin": "epoch", "ref": r["epoch_id"],
-            "graph_excluded": bool(r["graph_excluded"]),
+            "graph_excluded": bool(r["graph_excluded"]), "epoch_company": r["company"],
         })
     led = load_ledger()
     led = led[(led["view"] == "token") & led["value"].notna()]
@@ -493,18 +514,20 @@ def token_rows() -> pd.DataFrame:
             "value": r["value"], "per": r["per"], "source_url": r["source_url"],
             "source_name": r["source_name"], "origin": "curated", "ref": r["row_id"],
             "graph_excluded": False,
+            "epoch_company": str(r.get("epoch_company", "") or "").strip(),
         })
     cols = ["entity", "palette_name", "scope", "product", "date", "tokens_per_day", "badge",
             "statement", "value", "per", "source_url", "source_name", "origin", "ref",
-            "graph_excluded"]
+            "graph_excluded", "epoch_company"]
     df = pd.DataFrame(rows, columns=cols)
     if df.empty:
         return df
-    ep_dates = df[df["origin"] == "epoch"]
+    drawn = df[(df["origin"] == "epoch") & ~df["graph_excluded"].astype(bool)]
     keep = []
     for _, r in df.iterrows():
-        if r["origin"] == "curated" and r["palette_name"]:
-            same = ep_dates[ep_dates["palette_name"] == r["palette_name"]]
+        if r["origin"] == "curated" and r["epoch_company"]:
+            same = drawn[(drawn["epoch_company"] == r["epoch_company"])
+                         & (drawn["scope"] == r["scope"])]
             gaps = (pd.to_datetime(same["date"]) - pd.Timestamp(r["date"])).abs().dt.days
             if (gaps <= TOKEN_DEDUP_DAYS).any():
                 keep.append(False)
@@ -517,13 +540,15 @@ def token_rows() -> pd.DataFrame:
 # ── Formatting shared by the charts, the ledger and the export ──────────────
 
 def _usd(v) -> str:
+    """Up to four significant digits, trailing zeros dropped, so a filed
+    $103.7B or ~$265.6B reads as filed ($9B stays $9B)."""
     v = _num(v)
     if v is None:
         return "—"
     for base, suf in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
         if abs(v) >= base:
             x = v / base
-            return f"${x:.3g}{suf}" if x < 100 else f"${x:,.0f}{suf}"
+            return f"${x:.4g}{suf}" if abs(x) < 1000 else f"${x:,.0f}{suf}"
     return f"${v:,.0f}"
 
 

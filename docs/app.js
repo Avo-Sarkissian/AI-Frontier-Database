@@ -218,6 +218,10 @@ function buildTabsAndPanels() {
             div.id = "chart-" + c;
             div.style.minHeight = (ECON_CHART_MIN_HEIGHT[c] || 460) + "px";
             if (ECON_CHART_MIN_HEIGHT[c]) {
+              // Inline !important beats the site-wide clamp's stylesheet
+              // !important even when a browser still holds an older shell.css
+              // (no version query) without the chart--own-height rule.
+              div.style.setProperty("min-height", ECON_CHART_MIN_HEIGHT[c] + "px", "important");
               div.classList.add("chart--own-height");
               div.style.setProperty("--chart-min", ECON_CHART_MIN_HEIGHT[c] + "px");
             }
@@ -377,6 +381,26 @@ function pinFigureHeight(divId, layout) {
   el.style.height = h > 0 ? `${h}px` : "";
 }
 
+// A figure may carry layout.meta.narrow = {max_width, data: {index: trace
+// update}, layout: {key: value}} (Labs margins and commitments): the patch
+// that keeps it legible when drawn narrower than max_width (a phone). It is
+// applied to a copy, never to the cached figure; an object value is merged
+// one level deep into the layout key, anything else replaces it.
+function narrowFigure(fig, width) {
+  const n = fig.layout && fig.layout.meta && fig.layout.meta.narrow;
+  if (!n || !(width > 0) || width >= n.max_width) return fig;
+  const data = fig.data.map((t, i) =>
+    (n.data && n.data[i]) ? Object.assign({}, t, n.data[i]) : t);
+  const layout = Object.assign({}, fig.layout);
+  for (const [k, v] of Object.entries(n.layout || {})) {
+    const cur = layout[k];
+    layout[k] = (v && typeof v === "object" && !Array.isArray(v)
+                 && cur && typeof cur === "object" && !Array.isArray(cur))
+      ? Object.assign({}, cur, v) : v;
+  }
+  return { data, layout };
+}
+
 async function renderFigure(divId, figId) {
   let fig = window.AF.figCache[figId];
   if (!fig) {
@@ -387,8 +411,10 @@ async function renderFigure(divId, figId) {
   // The fetch can outlive a Python render of the same div; the live answer wins.
   if (window.AF.drawn[divId] === "py") return;
   window.AF.drawn[divId] = "static";
-  pinFigureHeight(divId, fig.layout);
-  await Plotly.react(divId, fig.data, fig.layout, PLOT_CONFIG);
+  const host = document.getElementById(divId);
+  const shown = narrowFigure(fig, host ? host.clientWidth : 0);
+  pinFigureHeight(divId, shown.layout);
+  await Plotly.react(divId, shown.data, shown.layout, PLOT_CONFIG);
   // react() drops event handlers, and the Python render that re-attaches the
   // click may be skipped by its memo.
   if (divId === "chart-pareto") attachParetoClickHandler();
@@ -1062,8 +1088,10 @@ function readGlobalFilters() {
 
 async function renderJsonFig(divId, figObj) {
   window.AF.drawn[divId] = "py";
-  pinFigureHeight(divId, figObj.layout);
-  return Plotly.react(divId, figObj.data, figObj.layout, PLOT_CONFIG);
+  const host = document.getElementById(divId);
+  const shown = narrowFigure(figObj, host ? host.clientWidth : 0);
+  pinFigureHeight(divId, shown.layout);
+  return Plotly.react(divId, shown.data, shown.layout, PLOT_CONFIG);
 }
 
 // ---- Coalescing refresher: one per tab ----
