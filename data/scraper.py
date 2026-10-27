@@ -58,7 +58,9 @@ fields are now appended to data/raw/aa_models.csv at indices 13..19:
   cost_per_task      intelligenceIndexCostPerTask — USD to run one AA
                      Intelligence Index task, from the token counts AA measured.
                      Present on ~118 of 272 records; AA writes 0 for a handful
-                     it never costed, and those are kept blank, not $0.
+                     with no published price ($0/$0, so tokens x $0 = $0), and
+                     those are kept blank, not $0 (the no-price filter drops
+                     such models anyway).
   cache_hit_price    cacheHitPrice   — USD / 1M cached-input tokens (0 is valid)
   cache_write_price  cacheWritePrice — USD / 1M tokens written to the cache
   is_open_weights    isOpenWeights   — "1" / "0" / "" (blank = AA did not say)
@@ -142,8 +144,8 @@ def _num_str(v, positive_only: bool = False) -> str:
     `repr`-exact via str(float): small cache prices render in e-notation
     ("5e-05"), which is why data/ingest.py reads these columns with
     _parse_float and never _parse_numeric. `positive_only` blanks a 0 too —
-    AA's cost per task is 0 for models it never costed, and a $0 task is not a
-    measurement. A cache price of 0, by contrast, is a real published price.
+    AA's cost per task is 0 for models with no published price ($0/$0, so
+    tokens x $0 = $0), and a $0 task is not a measurement. A cache price of 0, by contrast, is a real published price.
     """
     if not _real(v) or isinstance(v, bool):
         return ""

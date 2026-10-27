@@ -105,8 +105,9 @@ def test_small_cache_prices_survive_e_notation():
 
 
 def test_a_zero_cost_per_task_is_not_a_free_task():
-    """AA publishes 0 for five models it never costed (2026-10-27). $0 would put
-    them at the cheap end of any cost-per-task chart."""
+    """AA publishes 0 for five models (2026-10-27), all with no published price
+    ($0/$0, so tokens x $0 = $0). $0 would put them at the cheap end of any
+    cost-per-task chart."""
     row = _row_for(_record(intelligenceIndexCostPerTask=0))
     assert pd.isna(row["cost_per_task"])
 

@@ -129,8 +129,9 @@ def load_from_raw(raw_rows: list) -> pd.DataFrame:
         def _at(i):
             return row[i] if len(row) > i else None
         cost_per_task     = _parse_float(_at(13))
-        # AA publishes 0 for five models whose index runs were never costed;
-        # a $0 task is not a measurement, so it reads as "not published".
+        # AA's 0 entries (five on 2026-10-27) belong to models with no published
+        # price ($0/$0), so tokens x $0 = $0: not a measurement, read as "not
+        # published". Such models are dropped by the no-price filter anyway.
         if not cost_per_task > 0:
             cost_per_task = float("nan")
         cache_hit_price   = _parse_float(_at(14))
