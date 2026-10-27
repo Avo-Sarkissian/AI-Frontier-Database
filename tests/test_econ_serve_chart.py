@@ -296,9 +296,9 @@ def test_the_run_local_rate_box_is_filled_from_the_preset():
 
 def test_agent_stack_prices_datacenter_local_and_not_consumer():
     dc = json.loads(api.update_recommend([], "hybrid", "NVIDIA H100 SXM", 80, 1, "Q4"))
-    assert "/M rent" in dc["cards_html"]
+    assert "/M out · rent, " in dc["cards_html"]
     consumer = json.loads(api.update_recommend([], "hybrid", "NVIDIA RTX 5090", 32, 1, "Q4"))
-    assert "/M rent" not in consumer["cards_html"]
+    assert "· rent, " not in consumer["cards_html"]
     assert "free" not in CAPTIONS["recommend"].lower()
     from components import stack_recommender
     assert "(free)" not in inspect.getsource(stack_recommender)
@@ -312,14 +312,17 @@ def test_new_modules_ship_to_the_browser():
                 "components/charts/econ_serve.py"):
         assert f'"{mod}"' in src
     assert "data/carried/econ/inferencex_rates.csv" in build_static.DATA_CSVS
-    assert set(build_static.DERIVED_DATA) == {sc.DERIVED_POINTS, sc.DERIVED_CALIBRATION}
+    from data import open_gap
+    assert set(build_static.DERIVED_DATA) == {sc.DERIVED_POINTS, sc.DERIVED_CALIBRATION,
+                                              open_gap.DERIVED_EXPORT}
     assert (ROOT / ".gitignore").read_text().count("data/derived/") >= 1
 
 
 def test_derived_files_and_the_data_zip_stay_small(tmp_path):
     for rel, compute in build_static.DERIVED_DATA.items():
         text = compute()
-        assert len(text.encode()) < build_static.MAX_DERIVED_BYTES, rel
+        limit = build_static.DERIVED_MAX_BYTES.get(rel, build_static.MAX_DERIVED_BYTES)
+        assert len(text.encode()) < limit, rel
     build_static.build_data_bundle(tmp_path)
     z = tmp_path / build_static.DATA_BUNDLE
     assert z.stat().st_size < build_static.MAX_DATA_BUNDLE_BYTES

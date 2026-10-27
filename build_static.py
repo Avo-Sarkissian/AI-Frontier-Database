@@ -1,5 +1,6 @@
 """Pre-render default figures + bundle Python for the static Pyodide site."""
 import hashlib, json, shutil, sys, zipfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -33,7 +34,8 @@ from components.charts.open_gap import (
 from data.open_gap import (
     gap_history, release_lag, iso_quality_ratios, snapshot_dates, score_dates,
 )
-from data import serving_cost
+from data import serving_cost, econ_common
+from data import open_gap as open_gap_data
 from components.charts.econ_serve import build_econ_serve
 
 from captions import CAPTIONS
@@ -99,13 +101,21 @@ DATA_CSVS = [
 # each through data/econ_common.read_derived, which computes the same CSV text
 # from the archives wherever the file is absent (local runs, Dash, tests).
 # The archives themselves never ship: the InferenceX points alone are ~700 KB.
+# ORDER MATTERS: a later slice may read an earlier one (the calibration is
+# fitted on the points slice), and shipped_derived() computes them in order.
 DERIVED_DATA: dict[str, Callable[[], str]] = {
     serving_cost.DERIVED_POINTS: serving_cost.derived_points_csv,
     serving_cost.DERIVED_CALIBRATION: serving_cost.calibration_csv,
+    # Economics › Labs ↓CSV: the rows of its three figures (the history they
+    # come from never ships).
+    open_gap_data.DERIVED_EXPORT: open_gap_data.export_csv_text,
 }
 # Each derived file, and the whole data zip, stay small: every visitor
-# downloads pydata.zip on every hourly version.
+# downloads pydata.zip on every hourly version. The Labs export grows by one
+# score-gap row (~150 B) per daily snapshot, so it gets its own budget
+# (~1.5 years of headroom; it deflates ~8x in the zip).
 MAX_DERIVED_BYTES = 40_000
+DERIVED_MAX_BYTES: dict[str, int] = {open_gap_data.DERIVED_EXPORT: 120_000}
 MAX_DATA_BUNDLE_BYTES = 150_000
 
 # Do NOT import app.py — it starts background scrapers at import time. Shared
@@ -449,12 +459,39 @@ def build_pybundle(docs: Path | None = None):
     staged.replace(bundle)
 
 
-def build_data_bundle(docs: Path | None = None):
+@contextmanager
+def shipped_derived():
+    """Compute every DERIVED_DATA text ONCE, through derived_text (so a failed
+    or oversized slice is "" here exactly as in the zip), and make read_derived
+    return those texts while the block runs. The pre-rendered figures and
+    pydata.zip are then built from the same bytes, and a slice shipped empty
+    pre-renders empty too instead of from the full archive. Yields
+    {rel: text}; clears the overrides and the serving caches on exit."""
+    econ_common.clear_derived_overrides()
+    serving_cost.reset_cache()
+    texts: dict[str, str] = {}
+    try:
+        for rel, compute in DERIVED_DATA.items():
+            texts[rel] = derived_text(rel, compute)
+            econ_common.set_derived_override(rel, texts[rel])
+            serving_cost.reset_cache()      # the next slice reads this one
+        yield texts
+    finally:
+        econ_common.clear_derived_overrides()
+        serving_cost.reset_cache()
+
+
+def build_data_bundle(docs: Path | None = None, derived: dict[str, str] | None = None):
     """Build pydata.zip from the data CSVs, staged and swapped like the code zip.
 
     Built from scratch every time, so unlike the old in-place CSV swap it needs
-    no existing bundle and cannot carry a stale member forward.
+    no existing bundle and cannot carry a stale member forward. `derived` is
+    shipped_derived()'s texts (the ones the figures were pre-rendered from);
+    without it they are computed here the same way.
     """
+    if derived is None:
+        with shipped_derived() as texts:
+            return build_data_bundle(docs, texts)
     docs = DOCS if docs is None else docs
     docs.mkdir(parents=True, exist_ok=True)
     bundle = docs / DATA_BUNDLE
@@ -463,9 +500,8 @@ def build_data_bundle(docs: Path | None = None):
         with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as z:
             for rel in DATA_CSVS:
                 z.write(ROOT / rel, rel)
-            for rel, compute in DERIVED_DATA.items():
-                text = derived_text(rel, compute)
-                z.writestr(rel, text)
+            for rel in DERIVED_DATA:
+                z.writestr(rel, derived[rel])
         staged.replace(bundle)
     except Exception:
         staged.unlink(missing_ok=True)
@@ -482,9 +518,10 @@ def derived_text(rel: str, compute: Callable[[], str]) -> str:
     except Exception as exc:
         print(f"  WARNING: derived {rel} failed: {exc}")
         return ""
-    if len(text.encode()) > MAX_DERIVED_BYTES:
+    limit = DERIVED_MAX_BYTES.get(rel, MAX_DERIVED_BYTES)
+    if len(text.encode()) > limit:
         print(f"  WARNING: derived {rel} is {len(text.encode())} B "
-              f"(> {MAX_DERIVED_BYTES}); shipped empty")
+              f"(> {limit}); shipped empty")
         return ""
     return text
 
@@ -561,9 +598,10 @@ def rebuild_data_only(docs: Path | None = None):
         print("escalating to a full build so the browser runs the same code as the figures")
         main(docs)
         return
-    export_default_figures(docs / "figures")
-    copy_css(docs)
-    build_data_bundle(docs)
+    with shipped_derived() as derived:
+        export_default_figures(docs / "figures")
+        copy_css(docs)
+        build_data_bundle(docs, derived)
     stamp_code_version(docs)
     print("Data-only rebuild complete →", docs)
 
@@ -577,11 +615,12 @@ def main(docs: Path | None = None):
     # bundle, which is exactly the half-state the manifest version tells every
     # client to go and fetch.
     _preflight_environment()
-    export_default_figures(docs / "figures")
-    copy_css(docs)
-    (docs / ".nojekyll").write_text("")
-    build_pybundle(docs)
-    build_data_bundle(docs)
+    with shipped_derived() as derived:
+        export_default_figures(docs / "figures")
+        copy_css(docs)
+        (docs / ".nojekyll").write_text("")
+        build_pybundle(docs)
+        build_data_bundle(docs, derived)
     stamp_code_version(docs)
     print("Static build complete →", docs)
 

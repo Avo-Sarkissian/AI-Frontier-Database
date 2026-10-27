@@ -468,3 +468,38 @@ def iso_quality_ratios(df: pd.DataFrame, mix=None,
         "n_estimated_rows": n_est,
     }
     return out, summary
+
+
+# ── ↓CSV on Economics › Labs ──────────────────────────────────────────────────
+# The history this reads never ships to the browser, so the export is a
+# build-time slice in pydata.zip (build_static.DERIVED_DATA), read through
+# data/econ_common.read_derived; Dash and local runs compute the same text.
+DERIVED_EXPORT = "data/derived/econ_open_gap.csv"
+EXPORT_CHARTS = ("score_gap", "release_lag", "iso_price")
+
+
+def export_frame(hist: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
+    """Every row behind the three Labs figures in one table, the same calls
+    build_static.open_gap_figures makes. `chart` (first column) names the
+    figure: score_gap (gap_history), release_lag (release_lag records) or
+    iso_price (iso_quality_ratios); columns a figure does not have are blank."""
+    dates = snapshot_dates(hist)
+    asof = dates[-1] if dates else None
+    frames = (gap_history(hist)[0],
+              release_lag(df, asof, score_dates(hist, df))[0],
+              iso_quality_ratios(df, None)[0])
+    parts = [f.assign(chart=name) for name, f in zip(EXPORT_CHARTS, frames)
+             if f is not None and len(f)]
+    if not parts:
+        return pd.DataFrame(columns=["chart"])
+    out = pd.concat(parts, ignore_index=True, sort=False)
+    return out[["chart"] + [c for c in out.columns if c != "chart"]]
+
+
+def export_csv_text() -> str:
+    """export_frame over the committed history and the current catalogue, as
+    CSV text (DERIVED_DATA). Floats to 6 significant digits keep the slice
+    small; every chart shows fewer."""
+    from data.ingest import get_models, load_history
+    return export_frame(load_history(), get_models()).to_csv(index=False,
+                                                             float_format="%.6g")

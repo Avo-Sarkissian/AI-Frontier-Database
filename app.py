@@ -250,10 +250,11 @@ def _desc(text: str) -> html.Div:
 # source (data/serving_cost.serve_options), shared with the static site.
 _ECON_OPTS = _serving_cost.serve_options()
 _LOCAL_RATE_TITLE = (
-    "Your cost per GPU-hour. Picking a datacenter card fills SemiAnalysis "
-    "InferenceX's owning (Own) or renting (Rent) rate; consumer cards have no "
-    "published rate. The hover then prices this tab's max-throughput figure "
-    "per 1M output tokens at full use (decode only, uncalibrated).")
+    f"Your cost per GPU-hour. Picking {_serving_cost.priced_cards_phrase()} "
+    "fills its large-hyperscaler-volume owning (Own) or renting (Rent) rate; "
+    "other cards have no published rate — type your own. The hover then prices "
+    "this tab's max-throughput figure per 1M output tokens at full use (decode "
+    "only, uncalibrated).")
 
 
 def _econ_serve_figure(gpu=None, basis=None, util=None):
@@ -362,6 +363,7 @@ app.layout = html.Div([
     dcc.Store(id="refresh-sink"),
     dcc.Store(id="share-sink"),
     dcc.Store(id="resize-sink"),
+    dcc.Store(id="econ-click-sink"),
     dcc.Store(id="table-data-store", data=(lambda _df: _df.assign(
         value=_df.apply(lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1)
     ).sort_values("quality", ascending=False, kind="mergesort")[
@@ -1003,10 +1005,12 @@ app.layout = html.Div([
                         style={"minWidth": "260px"},
                     ),
                     html.Div(className="filter-sep"),
-                    html.Span("$/GPU-HR", className="filter-label"),
+                    html.Span("$/GPU-HR", className="filter-label",
+                              title=_ECON_OPTS["basis_title"]),
                     dcc.RadioItems(
                         id="econ-serve-basis",
-                        options=[{"label": o["label"], "value": o["value"]}
+                        options=[{"label": html.Span(o["label"], title=o["title"]),
+                                  "value": o["value"]}
                                  for o in _ECON_OPTS["bases"]],
                         value=_ECON_OPTS["default_basis"], inline=True,
                         inputStyle={"marginRight": "4px"},
@@ -1366,6 +1370,30 @@ clientside_callback(
     """,
     Output("share-sink", "data"),
     Input("btn-share", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# ── Economics › Serve: a measured point opens its InferenceX run ──────────────
+# The caption and every measured hover promise "click to open the run"; the
+# static site does it in docs/app.js attachEconServeClick, and this is the same
+# rule for Dash: customdata[1] must be an InferenceX GitHub Actions run URL
+# (prefix + digits), opened with noopener. Anything else does nothing.
+clientside_callback(
+    """
+    function(clickData) {
+        var pts = clickData && clickData.points;
+        var cd = pts && pts.length ? pts[0].customdata : null;
+        var url = Array.isArray(cd) ? String(cd[1] || '') : '';
+        var prefix = '""" + _serving_cost.IX_RUNS_PREFIX + """';
+        if (url.indexOf(prefix) === 0 && /^\\d+\\/?$/.test(url.slice(prefix.length))) {
+            window.open(url, '_blank', 'noopener');
+            return url;
+        }
+        return null;
+    }
+    """,
+    Output("econ-click-sink", "data"),
+    Input("econ-serve-chart", "clickData"),
     prevent_initial_call=True,
 )
 

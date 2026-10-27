@@ -8,14 +8,19 @@ THE FORMULA (units checked against InferenceX's own cost metric below)
 
   R  SemiAnalysis InferenceX's published owning (h) or renting (r) rate for the
      GPU, $/chip-hr (data/carried/econ/inferencex_rates.csv, archived by the
-     hourly bot; latest row per hw_key is the current mark).
+     hourly bot; latest row per hw_key is the current mark). InferenceX says
+     these reflect "large-hyperscaler-volume ownership and rental pricing"
+     (IX_ABOUT_URL): the cheapest an operator pays, not the market rate.
   T  output tokens per second per GPU at InferenceX's 8k-in / 1k-out workload,
-     with every user still decoding at >= 35 tok/s (InferenceX's calculator
-     target). MEASURED where InferenceX ran the model on that GPU (best
-     configuration of any kind: FP8/FP4, MTP, disaggregated); MODELLED
-     everywhere else, by this dashboard's Run Local roofline in a
+     at a 35 tok/s per-user floor (InferenceX's calculator target). MEASURED
+     where InferenceX ran the model on that GPU (best configuration of any
+     kind: FP8/FP4, MTP, disaggregated); there the floor is on InferenceX's
+     MEDIAN per-user interactivity (its fixed-sequence views publish the
+     median), so up to half the users of a measured point decode slower.
+     MODELLED everywhere else, by this dashboard's Run Local roofline in a
      tensor-parallel FP8-class mode, with a per-GPU bandwidth correction k
-     fitted to the like-for-like InferenceX runs.
+     fitted to the like-for-like InferenceX runs; the roofline gives every
+     session the same rate, so there EVERY session is at >= 35 tok/s.
   u  utilisation: the share of paid GPU-hours spent serving at that throughput.
      Default 60%, InferenceX's own profit-estimator default.
 
@@ -60,6 +65,16 @@ SERVING_SEQUENCE = "8k/1k"
 SERVING_QUANT = "Q8"
 GPU_COUNTS = (1, 2, 4, 8)             # one node; InferenceX's like-for-like set
 MIN_INTERACTIVITY = SLO_FLOORS_TPS[SERVING_SLO]
+# The modelled scan's session cap per GPU count: the largest concurrency
+# InferenceX itself swept at 8k/1k on one node with that many GPUs, so the
+# roofline never extrapolates past the measured evidence. Run Local's display
+# bound (data/local_models.MAX_REPORTED_CONCURRENCY = 256) is NOT a serving
+# limit and used to set the cost of 33 of 58 modelled points. Read from
+# data/carried/econ/inferencex_points.csv (sequence 8k/1k, single-node rows:
+# max concurrency 1,024 on 1, 2 and 4 GPUs, 4,096 on 8), archive as of
+# 2026-10-27; source https://inferencex.semianalysis.com/api/v1/views/inference
+# (status: published). A test re-derives it from the archive.
+SERVING_MAX_SESSIONS: dict[int, int] = {1: 1024, 2: 1024, 4: 1024, 8: 4096}
 
 # ── Controls ──────────────────────────────────────────────────────────────────
 # InferenceX profit estimator: "utilization ... default 60",
@@ -71,10 +86,22 @@ DEFAULT_SERVE_BASIS = "own"
 DEFAULT_LOCAL_RATE_BASIS = "rent"
 BASES = ("own", "rent")
 BASIS_LABELS = {"own": "Own", "rent": "Rent"}
+# InferenceX's about page: its cost marks reflect "large-hyperscaler-volume
+# ownership and rental pricing" (https://inferencex.semianalysis.com/about,
+# read 2026-10-27). Most providers pay more than either.
+BASIS_TITLES = {
+    "own": "InferenceX's large-hyperscaler-volume OWNING $/GPU-hr: the cheapest "
+           "cost any operator has",
+    "rent": "InferenceX's large-hyperscaler-volume RENTING $/GPU-hr",
+}
+BASIS_TITLE = ("SemiAnalysis InferenceX's $/GPU-hr marks, which reflect "
+               "large-hyperscaler-volume ownership and rental pricing "
+               "(inferencex.semianalysis.com/about). Most providers pay more.")
 
 IX_OPTIONS_URL = "https://inferencex.semianalysis.com/api/v1/views/options?format=json"
 IX_OPENAPI_URL = "https://inferencex.semianalysis.com/api/openapi.json"
 IX_SITE_URL = "https://inferencex.semianalysis.com/"
+IX_ABOUT_URL = "https://inferencex.semianalysis.com/about"
 IX_RUNS_PREFIX = "https://github.com/SemiAnalysisAI/InferenceX/actions/runs/"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 
@@ -141,17 +168,35 @@ IX_KNOWN_ABSENT = frozenset({"GLM-5.3"})
 # DeepSeek's own disclosure, quoted in the caption as a sanity anchor. CC0-1.0,
 # https://github.com/deepseek-ai/open-infra-index/blob/main/202502OpenSourceWeek/
 # day_6_one_more_thing_deepseekV3R1_inference_system_overview.md, read
-# 2026-10-27 (status: published). Window 2025-02-27/28 UTC+8: $2 per H800-hour
-# assumed, ~14.8k output tok/s per 8xH800 node in decode, R1 output $2.19/M,
-# 545% theoretical cost-profit margin.
+# 2026-10-27 (status: published). Window 2025-02-27 12:00 to 02-28 12:00 UTC+8:
+# $2 per H800-hour assumed, ~14.8k output tok/s per 8xH800 node in decode,
+# total daily cost $87,072 (prefill and decode nodes, average 226.75 nodes in
+# use), 168B output tokens that day, R1 output $2.19/M, 545% theoretical
+# cost-profit margin. Two figures follow from it (deepseek_anchor()):
+#   decode only  $16/node-hr / (14.8k x 3,600) ~ $0.30/M: decode GPUs alone,
+#                before prefill, at full use; NOT the chart's basis.
+#   whole day    $87,072 / 168,000 M ~ $0.52/M: every node, prefill charged to
+#                output tokens, at the day's real utilisation, which is the
+#                chart's basis (y = all GPU time / output tokens).
 DEEPSEEK_ANCHOR = {
     "source_url": ("https://github.com/deepseek-ai/open-infra-index/blob/main/"
                    "202502OpenSourceWeek/day_6_one_more_thing_deepseekV3R1_"
                    "inference_system_overview.md"),
     "as_of": "2025-02-28", "read_on": "2026-10-27", "status": "published",
     "usd_per_node_hr": 16.0, "decode_tok_s_per_node": 14800.0,
+    "total_daily_cost_usd": 87072.0, "output_tokens_day": 168e9,
     "r1_output_price": 2.19, "cost_profit_margin_pct": 545,
 }
+
+
+def deepseek_anchor() -> dict:
+    """The two $/1M-output figures DEEPSEEK_ANCHOR implies (status: derived):
+    decode-only and whole-day, each with its ratio to R1's output price."""
+    a = DEEPSEEK_ANCHOR
+    decode = a["usd_per_node_hr"] * 1e6 / (a["decode_tok_s_per_node"] * 3600.0)
+    day = a["total_daily_cost_usd"] / (a["output_tokens_day"] / 1e6)
+    return {"decode_usd_per_m": decode, "decode_ratio": a["r1_output_price"] / decode,
+            "day_usd_per_m": day, "day_ratio": a["r1_output_price"] / day}
 
 
 # ── Small pure helpers ────────────────────────────────────────────────────────
@@ -255,6 +300,13 @@ def preset_label(preset: str) -> str:
     return str(preset).replace("NVIDIA ", "").replace("AMD Instinct ", "")
 
 
+def priced_cards_phrase() -> str:
+    """Which cards a $/GPU-hr preset fills, for every tooltip that says so:
+    only the parts InferenceX prices, never "any datacenter card"."""
+    names = [preset_label(p) for p in IX_HARDWARE_TO_PRESET.values()]
+    return f"one of the {len(names)} datacenter cards InferenceX prices ({', '.join(names)})"
+
+
 # ── InferenceX measured points ────────────────────────────────────────────────
 
 _POINT_COLUMNS = ["point_id", "model", "hw_key", "framework", "spec_method", "deployment",
@@ -276,10 +328,12 @@ def _like_for_like(df: pd.DataFrame) -> pd.Series:
 def derived_points_csv(path: Path | None = None) -> str:
     """The slim slice of A2's points archive the browser needs, as CSV text.
 
-    8k/1k median-interactivity rows with every user at >= 35 tok/s; per
+    8k/1k rows whose MEDIAN per-user interactivity (InferenceX's fixed-sequence
+    views publish the median) is >= 35 tok/s, on the hardware Serve prices
+    (IX_HARDWARE_TO_PRESET) and for the models it maps (IX_MODEL_MAP); per
     (model, hardware) only the best row overall and the best like-for-like row
-    are kept, because measured_best only ever takes those maxima. ~100 rows
-    instead of 4,300, well inside the 40 KB derived-file budget."""
+    are kept, because measured_best only ever takes those maxima. ~50 rows
+    instead of 4,300, well inside the derived-file budget."""
     path = Path(path) if path is not None else ROOT / IX_POINTS_FILE
     if not path.exists():
         return ""
@@ -291,6 +345,10 @@ def derived_points_csv(path: Path | None = None) -> str:
     df = df[pd.to_numeric(df["interactivity_tok_s_user"], errors="coerce")
             >= MIN_INTERACTIVITY]
     df = df[pd.to_numeric(df["output_tput_tok_s_chip"], errors="coerce") > 0]
+    # Only what serving_cost ever reads: other chips and models were half the
+    # slice, and the archive it comes from is append-only.
+    df = df[df["hw_key"].isin(IX_HARDWARE_TO_PRESET)
+            & df["model"].isin({m["ix_name"] for m in IX_MODEL_MAP.values()})]
     if df.empty:
         return ""
     df = df[_POINT_COLUMNS].copy()
@@ -325,7 +383,7 @@ def measured_best(points: pd.DataFrame, ix_name: str, hw_key: str,
                   min_intvty: float = MIN_INTERACTIVITY,
                   calibration: bool = False) -> dict | None:
     """The highest output tok/s per GPU InferenceX measured for this model on
-    this hardware with every user at >= min_intvty tok/s, or None.
+    this hardware with its MEDIAN user at >= min_intvty tok/s, or None.
 
     calibration=False: any configuration counts (FP4, MTP, disaggregated,
     multi-node), because a measurement of what the hardware does is the point.
@@ -376,7 +434,9 @@ def serving_estimate(model_row, preset: str, k: float = 1.0) -> ServingEstimate 
     Tensor parallel: pooled VRAM = n x vram, bandwidth = n x bw x k, FLOPs =
     n x FP16 TFLOPS, through the same optimal_concurrency -> _step_seconds ->
     decode_roofline chain as Run Local, at the 8k/1k sequence length and a
-    35 tok/s/user floor. Run Local's own layer-split mode is untouched.
+    35 tok/s/user floor. Run Local's own layer-split mode is untouched. The
+    session scan stops at SERVING_MAX_SESSIONS[n], InferenceX's own sweep,
+    not Run Local's 256 display bound; binding "session_cap" when it binds.
 
     n is the count with the most tokens per GPU among those that fit the FP8
     weights plus at least one 9,216-token sequence and keep every session at
@@ -407,7 +467,8 @@ def serving_estimate(model_row, preset: str, k: float = 1.0) -> ServingEstimate 
             vram_gb=g["vram_gb"] * n, bandwidth_gbps=g["bandwidth_gbps"] * n * k,
             hw_type=g["hw_type"], ctx_tokens=SERVING_CTX, kv_bytes_tok=vb.kv_bytes_tok,
             weights_gib=vb.weights_gib, fp16_tflops=(tf * n if tf else None),
-            slo=SERVING_SLO, gpu_count=n, moe=moe)
+            slo=SERVING_SLO, gpu_count=n, moe=moe,
+            max_sessions=SERVING_MAX_SESSIONS[n])
         if c is None or c.per_session_tps < MIN_INTERACTIVITY:
             continue
         est = ServingEstimate(n, c.total_tps / n, c.sessions, c.per_session_tps,
@@ -753,11 +814,14 @@ def serve_options() -> dict:
             "value": preset,
             "label": f"{preset_label(preset)} · own ${r['own']:.2f} · rent ${r['rent']:.2f}",
             "title": (f"{r['source']}, observed {r['date']}: ${r['own']:.2f}/GPU-hr "
-                      f"owned, ${r['rent']:.2f}/GPU-hr rented"),
+                      f"owned, ${r['rent']:.2f}/GPU-hr rented, at large-hyperscaler "
+                      f"volume ({IX_ABOUT_URL})"),
         })
     return {
         "gpus": gpus, "default_gpu": DEFAULT_SERVE_GPU,
-        "bases": [{"value": b, "label": BASIS_LABELS[b]} for b in BASES],
+        "bases": [{"value": b, "label": BASIS_LABELS[b], "title": BASIS_TITLES[b]}
+                  for b in BASES],
+        "basis_title": BASIS_TITLE,
         "default_basis": DEFAULT_SERVE_BASIS,
         "default_util_pct": DEFAULT_UTILISATION_PCT,
         "util_min": UTIL_MIN_PCT, "util_max": UTIL_MAX_PCT, "util_step": UTIL_STEP,

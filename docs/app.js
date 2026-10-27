@@ -337,6 +337,20 @@ function loadStaticFigures(tabId) {
     }));
 }
 
+// A figure that sets layout.height keeps it. Plotly's responsive resize
+// (Plots.resize) deletes layout.height whenever layout.width is unset and
+// re-reads the height from the div, which has none of its own, so after any
+// window resize a 640 px chart fell to Plotly's 450 default (clipped by the
+// card) or collapsed its plot area under the legend. Giving the div the
+// figure's height makes that re-read return the figure's own number. A
+// figure without a height clears it.
+function pinFigureHeight(divId, layout) {
+  const el = document.getElementById(divId);
+  if (!el) return;
+  const h = Number(layout && layout.height);
+  el.style.height = h > 0 ? `${h}px` : "";
+}
+
 async function renderFigure(divId, figId) {
   let fig = window.AF.figCache[figId];
   if (!fig) {
@@ -347,6 +361,7 @@ async function renderFigure(divId, figId) {
   // The fetch can outlive a Python render of the same div; the live answer wins.
   if (window.AF.drawn[divId] === "py") return;
   window.AF.drawn[divId] = "static";
+  pinFigureHeight(divId, fig.layout);
   await Plotly.react(divId, fig.data, fig.layout, PLOT_CONFIG);
   // react() drops event handlers, and the Python render that re-attaches the
   // click may be skipped by its memo.
@@ -541,6 +556,13 @@ function fillEconControls(o) {
     gpu.value = current || o.default_gpu;
     if (!gpu.value) gpu.value = o.default_gpu;
   }
+  // InferenceX's marks are large-hyperscaler-volume figures; the titles say so.
+  const bl = document.getElementById("econ-serve-basis-label");
+  if (bl) bl.title = o.basis_title || "";
+  (o.bases || []).forEach(b => {
+    const inp = document.querySelector(`input[name="econ-serve-basis"][value="${b.value}"]`);
+    if (inp && inp.parentElement) inp.parentElement.title = b.title || "";
+  });
   if (!document.querySelector('input[name="econ-serve-basis"]:checked')) {
     const b = document.querySelector(`input[name="econ-serve-basis"][value="${o.default_basis}"]`);
     if (b) b.checked = true;
@@ -950,6 +972,7 @@ function readGlobalFilters() {
 
 async function renderJsonFig(divId, figObj) {
   window.AF.drawn[divId] = "py";
+  pinFigureHeight(divId, figObj.layout);
   return Plotly.react(divId, figObj.data, figObj.layout, PLOT_CONFIG);
 }
 

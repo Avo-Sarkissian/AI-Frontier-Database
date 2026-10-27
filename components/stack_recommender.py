@@ -3,8 +3,9 @@ Stack Recommender — opinionated 3-tier model recommendations.
 
 Modes:
   api    — all tiers use cloud API models
-  hybrid — Fast tier = local (priced at the GPU's rental rate where InferenceX
-           publishes one), Balanced + Reasoning = API
+  hybrid — Fast tier = local (priced at InferenceX's renting rate on the seven
+           datacenter cards it prices; other cards get no price chip),
+           Balanced + Reasoning = API
   local  — all tiers use open-weight models filtered to user's hardware
 
 Tiers:
@@ -39,14 +40,21 @@ def _price_chip_text(price) -> str:
     return f"{fmt_price(price)}/M · {_PRICE_BASIS_TAG}"
 
 
-# Local inference on a DATACENTER card is not free: the row carries
-# usd_per_m_out (static_api.with_local_rent_cost), SemiAnalysis InferenceX's
-# renting $/GPU-hr for the preset spread over the tab's own throughput at full
-# use. Consumer cards have no published hourly rate and get no chip.
-_RENT_TITLE = ("GPU cost per 1M output tokens: SemiAnalysis InferenceX's renting "
-               "$/GPU-hr for this card x the GPU count, over the throughput this tab "
-               "models for it, at full use. Decode only, uncalibrated; Economics › "
-               "Serve has the calibrated datacenter figure.")
+# Local inference on a datacenter card InferenceX prices is not free: the row
+# carries usd_per_m_out (static_helpers.with_local_rent_cost), SemiAnalysis
+# InferenceX's renting $/GPU-hr for the preset spread over the tab's MAX
+# CONCURRENT throughput (`sessions` streams at once) at full use. The tok/s chip
+# beside it is ONE stream, so the price chip names its own basis: per output
+# token, the session count it assumes, full use. A bare "$x/M rent" beside
+# "2,050 tok/s" read as 22-37x cheaper than that speed implies. Cards
+# InferenceX does not price get no chip.
+_RENT_TITLE = ("GPU cost per 1M OUTPUT tokens: SemiAnalysis InferenceX's renting "
+               "$/GPU-hr (large-hyperscaler volume) for this card x the GPU count, "
+               "over this tab's max-throughput figure, the total across the session "
+               "count shown, at full use. The tok/s chip is one stream, so the "
+               "price is far lower than one stream would cost. Decode only (no "
+               "prefill), uncalibrated; Economics › Serve has the calibrated "
+               "datacenter figure.")
 
 
 def _rent_chip_text(row) -> str | None:
@@ -57,7 +65,18 @@ def _rent_chip_text(row) -> str | None:
         return None
     if not (v == v and v > 0):
         return None
-    return (f"${v:.2f}/M rent" if v >= 0.01 else f"${v:.3g}/M rent")
+    money = f"${v:.2f}" if v >= 0.01 else f"${v:.3g}"
+    try:
+        n = int(float(row.get("sessions")))
+    except (TypeError, ValueError):
+        n = 0
+    if n > 1:
+        basis = f"{n:,} sessions, full use"
+    elif n == 1:
+        basis = "1 session, full use"
+    else:
+        basis = "full use"
+    return f"{money}/M out · rent, {basis}"
 
 _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 

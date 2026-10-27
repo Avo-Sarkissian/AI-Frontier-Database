@@ -189,8 +189,11 @@ _TAB_EXPORTS = {
     "economics": ("ai_frontier_serving_cost.csv", "economics"),
 }
 
-# Economics exports per VIEW (econ_args[0]); F and G add their views.
-ECON_EXPORT_FILENAMES = {"serve": "ai_frontier_serving_cost.csv"}
+# Economics exports per VIEW (econ_args[0]); F and G add their views. Every
+# view the VIEW radio offers must be here: a view missing from it used to fall
+# back to Serve, so ↓CSV on Labs downloaded the serving-cost table.
+ECON_EXPORT_FILENAMES = {"serve": "ai_frontier_serving_cost.csv",
+                         "labs": "ai_frontier_open_gap.csv"}
 
 
 # The positional order of update_local's hardware arguments. docs/app.js builds
@@ -293,7 +296,8 @@ def local_frame(vram_per_gpu=None, num_gpus=None, quant=None, bandwidth_gbps=Non
 def with_local_rent_cost(local_df, gpu_preset, gpu_count):
     """Agent Stack's local picks are not free on a datacenter GPU: price them at
     SemiAnalysis InferenceX's renting rate for the preset (full use, the tab's
-    own throughput). Consumer cards have no published rate and get NaN, never 0.
+    own max concurrent throughput, `sessions` streams). Only the seven cards
+    InferenceX prices have a rate; every other card gets NaN, never 0.
     Shared by app.py and static_api so both renderings price the same card."""
     from data.serving_cost import gpu_rates, local_usd_per_m
     rate = gpu_rates().get(gpu_preset or "")
@@ -378,6 +382,12 @@ def econ_export(econ_args, hosted=None):
         gpu, basis, util = (list(rest) + [None, None, None])[:3]
         hosted = hosted if hosted is not None and len(hosted) else None
         return serving_frame(gpu, basis, util, hosted), name
+    if view == "labs":
+        # The three open-vs-closed figures' rows (a build-time slice: their
+        # score history never ships). Labs has no controls, so no arguments.
+        from data.econ_common import read_derived
+        from data.open_gap import DERIVED_EXPORT, export_csv_text
+        return read_derived(DERIVED_EXPORT, export_csv_text), name
     return pd.DataFrame(), name
 
 

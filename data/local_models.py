@@ -1792,7 +1792,7 @@ class ConcurrencyEstimate(NamedTuple):
     total_tps: float
     per_session_tps: float
     single_tps: float
-    binding: str          # "kv_vram" | "latency" | "throughput_turnover"
+    binding: str          # "kv_vram" | "latency" | "throughput_turnover" | "session_cap"
 
 
 def _moe_read_fraction(active_b: float, params_b: float, batch: int) -> float:
@@ -1837,7 +1837,9 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
                         ctx_tokens: int, kv_bytes_tok: float,
                         weights_gib: float, fp16_tflops: float | None = None,
                         slo: str = DEFAULT_SLO, gpu_count: int = 1,
-                        moe: bool = False) -> ConcurrencyEstimate | None:
+                        moe: bool = False,
+                        max_sessions: int = MAX_REPORTED_CONCURRENCY,
+                        ) -> ConcurrencyEstimate | None:
     """Best number of concurrent sessions, and the aggregate tok/s it buys.
 
     WHY BATCHING WORKS AT ALL, and where the usual explanation stops short. One
@@ -1878,6 +1880,13 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
     under-predicts by ~30% — correctly, because it is a different deployment.
     The hover says so, or multi-GPU rows look wrong to anyone who has run vLLM.
 
+    SESSION CAP. B is never scanned past `max_sessions` (default
+    MAX_REPORTED_CONCURRENCY, Run Local's display bound). When that cap, not
+    the KV memory, is what stops the scan, binding is "session_cap": the
+    number is a bound on the evidence, not a property of the hardware.
+    Economics › Serve passes InferenceX's own concurrency sweep instead
+    (data/serving_cost.SERVING_MAX_SESSIONS).
+
     DECODE ONLY. Every measured curve shows time-to-first-token blowing up long
     before throughput does: Llama-3.1-8B at 20k input on an H100 goes from 11 s
     TTFT at C=50 to 279 s at C=250 while throughput is flat at ~1,335 tok/s. A
@@ -1905,7 +1914,9 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
     b_mem = int(free_gib // kv_per_seq_gib)
     if b_mem < 1:
         return None
-    b_mem = min(b_mem, MAX_REPORTED_CONCURRENCY)
+    cap = max(int(max_sessions), 1)
+    capped = b_mem > cap
+    b_mem = min(b_mem, cap)
 
     kw = dict(params_b=params_b, active_b=active_b, quant=quant,
               bandwidth_gbps=bandwidth_gbps, hw_type=hw_type,
@@ -1946,7 +1957,7 @@ def optimal_concurrency(*, params_b: float, active_b: float, quant: str,
     if best_b == 0:
         return None
     if best_b == b_mem:
-        binding = "kv_vram"
+        binding = "session_cap" if capped else "kv_vram"
     return ConcurrencyEstimate(best_b, best_total, best_total / best_b, single,
                                binding)
 
@@ -2043,7 +2054,8 @@ def get_local_df(
         sessions        - optimal concurrent sessions at the chosen SLO floor
         per_session_tps - decode tok/s each of those sessions still gets
         total_tps       - aggregate tok/s across all of them
-        concurrency_bound - what stopped it: kv_vram | latency | turnover
+        concurrency_bound - what stopped it: kv_vram | latency | turnover |
+                            session_cap (MAX_REPORTED_CONCURRENCY, not physics)
         fits            - "yes" | "tight" (< 1 GB headroom) | "no"
 
     ctx_tokens defaults to DEFAULT_CONTEXT_TOKENS rather than 0 so that a bare
