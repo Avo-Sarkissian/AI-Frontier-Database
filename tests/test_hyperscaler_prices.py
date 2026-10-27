@@ -23,7 +23,8 @@ from data import econ_archive as E
 ROOT = Path(__file__).resolve().parent.parent
 FX = ROOT / "tests" / "fixtures" / "econ"
 NOW = datetime(2026, 10, 27, 14, 0, tzinfo=timezone.utc)
-PAGE2 = "https://prices.azure.com/api/retail/prices?$filter=fixture&$skip=1000"
+# Azure's real NextPageLink form carries the port (seen live 2026-10-27).
+PAGE2 = "https://prices.azure.com:443/api/retail/prices?$filter=fixture&$skip=1000"
 
 
 def _load(name: str):
@@ -198,3 +199,17 @@ def test_committed_snapshot_matches_the_schema():
     assert len(rows) >= E.HYPERSCALER_MIN_ROWS
     lo, hi = E.HYPERSCALER_GPU_HR_RANGE
     assert all(lo <= float(r["price_per_gpu_hr"]) <= hi for r in rows.values())
+
+
+def test_azure_next_link_accepts_only_the_retail_prices_api():
+    ok = E.azure_next_link_ok
+    assert ok(PAGE2)
+    assert ok("https://prices.azure.com/api/retail/prices?$skip=1000")
+    for bad in ("http://prices.azure.com/api/retail/prices?$skip=1000",
+                "https://prices.azure.com:8443/api/retail/prices?$skip=1000",
+                "https://prices.azure.com.evil.example/api/retail/prices",
+                "https://evil.example/api/retail/prices?x=https://prices.azure.com",
+                "https://user@prices.azure.com/api/retail/prices",
+                "https://prices.azure.com/api/other",
+                "https://prices.azure.com:notaport/api/retail/prices", None, ""):
+        assert not ok(bad), bad

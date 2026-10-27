@@ -90,7 +90,7 @@ def test_coincident_marks_share_one_label():
 def test_ladder_owned_floor_and_spread_note():
     r = T.compute("h100")
     fig = build_spread_ladder(r, T.ladder_rows(r))
-    owned = r["selected"]["breakdown"]["total_at_util"]
+    owned = r["selected"]["breakdown"]["total_100"]     # per paid hour, like every rental
     assert any(s.x0 == owned and s.line.dash == "dash" for s in fig.layout.shapes)
     assert "× the owned cost" in fig.layout.title.text
     b300 = T.compute("b300")

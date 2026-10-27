@@ -826,7 +826,10 @@ def serve_options() -> dict:
         "default_util_pct": DEFAULT_UTILISATION_PCT,
         "util_min": UTIL_MIN_PCT, "util_max": UTIL_MAX_PCT, "util_step": UTIL_STEP,
         "util_title": ("Share of paid GPU-hours spent serving at the plotted throughput, "
-                       "owned or rented. Default 60%: InferenceX's profit-estimator "
+                       "owned or rented: cost per busy hour = cost per paid hour ÷ USE. "
+                       "Compute's stack shows the owned cost per busy hour; its ladder "
+                       "and weekly chart stay per paid hour, where ÷ USE would scale "
+                       "every mark alike. Default 60%: InferenceX's profit-estimator "
                        f"default ({IX_OPENAPI_URL}, 2026-10-23)."),
         "rate_source": "SemiAnalysis InferenceX", "rate_source_url": IX_OPTIONS_URL,
         "default_local_basis": DEFAULT_LOCAL_RATE_BASIS,

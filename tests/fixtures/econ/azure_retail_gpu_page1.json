@@ -664,6 +664,6 @@
    "armSkuName": "Standard_ND96isr_H100_v5"
   }
  ],
- "NextPageLink": "https://prices.azure.com/api/retail/prices?$filter=fixture&$skip=1000",
+ "NextPageLink": "https://prices.azure.com:443/api/retail/prices?$filter=fixture&$skip=1000",
  "Count": 30
 }

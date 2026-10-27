@@ -93,7 +93,7 @@ class FakeSession:
             return _Resp(_fx("ix_availability.json"))
         if url == E.AZURE_PRICES_URL:
             return _Resp(json.loads(_fx("azure_retail_gpu_page1.json")))
-        if url.startswith(E.AZURE_PRICES_URL + "?"):
+        if url.startswith("https://prices.azure.com:443/api/retail/prices?"):
             return _Resp(json.loads(_fx("azure_retail_gpu_page2.json")))
         if url == E.AWS_ONDEMAND_URL:
             return _Resp(json.loads(_fx("aws_ondemand_gpu.json")))

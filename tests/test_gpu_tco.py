@@ -71,7 +71,10 @@ def test_default_worked_example(sofr):
     assert r["financing"]["rate"]["value"] == pytest.approx(0.0943)
 
 
-def test_utilisation_divides_owned_only(sofr):
+def test_utilisation_divides_the_stack_and_the_ladder_stays_per_paid_hour(sofr):
+    """USE turns the owned cost into cost per busy hour (the stack). The
+    ladder is per paid GPU-hour for every mark, owned included, so it does not
+    move with USE (review F-gpu-hour: one basis, as Serve's rule implies)."""
     lo, hi = T.compute(util_pct=50), T.compute(util_pct=100)
     for a, b in zip(lo["rows"], hi["rows"]):
         if a["breakdown"]:
@@ -79,11 +82,9 @@ def test_utilisation_divides_owned_only(sofr):
                 a["breakdown"]["total_100"] / 0.5)
             assert b["breakdown"]["total_at_util"] == pytest.approx(b["breakdown"]["total_100"])
     la, lb = T.ladder_rows(lo), T.ladder_rows(hi)
-    rent_a = la[la["rung"] != "owned"].reset_index(drop=True)
-    rent_b = lb[lb["rung"] != "owned"].reset_index(drop=True)
-    pd.testing.assert_frame_equal(rent_a, rent_b)
+    pd.testing.assert_frame_equal(la.drop(columns="basis"), lb.drop(columns="basis"))
     o = lambda d: float(d[d["rung"] == "owned"]["usd_per_gpu_hr"].iloc[0])
-    assert o(la) == pytest.approx(2 * o(lb))
+    assert o(la) == pytest.approx(lo["selected"]["breakdown"]["total_100"])
 
 
 def test_shares_sum_to_one_and_units(sofr):

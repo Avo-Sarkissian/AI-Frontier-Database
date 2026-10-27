@@ -609,6 +609,17 @@ function fillEconComputeControls(o) {
   };
   fill("econ-compute-gpu", o.gpus, o.default_gpu);
   fill("econ-compute-preset", o.presets, o.default_preset);
+  // Each box's min/max are the bounds Python clamps a typed value to
+  // (gpu_tco.*_RANGE via compute_options().bounds), so they cannot drift.
+  const b = o.bounds || {};
+  [["econ-compute-life", b.life], ["econ-compute-rate", b.rate_pct],
+   ["econ-compute-capex", b.capex_k], ["econ-compute-kw", b.it_kw],
+   ["econ-compute-pue", b.pue], ["econ-compute-kwh", b.usd_per_kwh],
+   ["econ-compute-colo", b.colo]].forEach(([id, r]) => {
+    const el = document.getElementById(id);
+    if (!el || !Array.isArray(r) || r.length !== 2) return;
+    el.min = String(r[0]); el.max = String(r[1]);
+  });
   syncEconComputePlaceholders();
 }
 

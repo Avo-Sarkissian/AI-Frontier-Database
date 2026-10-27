@@ -67,6 +67,7 @@ import os
 import re
 import sys
 import time
+import urllib.parse
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -1165,6 +1166,21 @@ def validate_hyperscaler(rows: list[list[str]]) -> list[str]:
     return problems
 
 
+def azure_next_link_ok(link) -> bool:
+    """Follow only the Retail Prices API itself. Azure's real NextPageLink
+    carries an explicit port (https://prices.azure.com:443/api/retail/prices?
+    ...&$skip=1000, seen live 2026-10-27), so the check is on the parsed URL,
+    not on a string prefix."""
+    try:
+        u = urllib.parse.urlsplit(str(link))
+        port = u.port
+    except ValueError:
+        return False
+    return (u.scheme == "https" and u.hostname == "prices.azure.com"
+            and port in (None, 443) and u.path == "/api/retail/prices"
+            and not u.username and not u.password)
+
+
 def _azure_items(session) -> list[dict]:
     items: list[dict] = []
     resp = _get(session, AZURE_PRICES_URL, {"$filter": azure_filter()}).json()
@@ -1173,7 +1189,7 @@ def _azure_items(session) -> list[dict]:
         nxt = (resp or {}).get("NextPageLink")
         if not nxt:
             return items
-        if not str(nxt).startswith(AZURE_PRICES_URL):
+        if not azure_next_link_ok(nxt):
             raise SourceError(f"unexpected NextPageLink host: {str(nxt)[:80]}")
         resp = _get(session, nxt).json()
     raise SourceError(f"more than {_AZURE_MAX_PAGES} pages of Azure prices")

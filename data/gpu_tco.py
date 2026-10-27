@@ -7,7 +7,8 @@ OWNED COST PER GPU-HOUR (all figures per GPU)
     capital = capex × CRF(r, n) / 8,760
     power   = IT kW × PUE × $/kWh                 (kW × $/kWh = $/h)
     colo    = colo $/kW-month × IT kW × 12 / 8,760
-    owned   = (capital + power + colo) / u
+    owned   = capital + power + colo              per GPU-hour owned, busy or idle
+    owned_u = owned / u                           per BUSY GPU-hour (the stack)
 
     CRF(r, n) = r (1 + r)^n / ((1 + r)^n − 1), and 1/n when r = 0
 
@@ -15,9 +16,13 @@ OWNED COST PER GPU-HOUR (all figures per GPU)
      plus a filing-sourced spread, or a disclosed fixed rate (PRESETS_FILE)
   n  useful life in years, from the same filings
   u  utilisation, the Economics tab's shared USE slider (serving_cost's
-     default, InferenceX's profit-estimator default). It divides the OWNED cost
-     only: a rental is billed per hour whether or not the GPU is busy, so no
-     rental rung is ever divided by it.
+     default, InferenceX's profit-estimator default): the share of PAID
+     GPU-hours that do work. The rule is Serve's, owned or rented alike: cost
+     per busy hour = cost per paid hour ÷ u. The stack shows owned ÷ u. The
+     ladder and the weekly chart stay per paid GPU-hour, busy or idle, the
+     basis every rental, list price and InferenceX mark is published on, so the
+     owned mark sits there at full use (owned, not owned_u); dividing every
+     mark by u would move them all alike and leave every ratio unchanged.
   8,760 = 365 × 24 hours, the year convention (no leap day).
 
 The three components over their sum are shown as shares on the chart: they
@@ -28,7 +33,10 @@ Every default is a row of a hand-curated CSV in data/curated/ carrying its own
 source_url, as_of and status (econ_common.STATUS_VALUES); nothing numeric is
 declared here except unit conventions and input bounds. A GPU with no public
 all-in system price (B300, MI300X, MI325X, MI355X) is never priced from an
-invented number: it reads "enter CAPEX" until someone types one.
+invented number: it reads "enter CAPEX" until someone types one. Capex
+defaults come from sources on different price bases (CAPEX_BASES, the
+`basis` column of GPU_FILE), and every bar names its basis: they are not
+like-for-like across GPUs.
 
 THE RENTAL LADDER for the selected GPU, cheapest to dearest, each rung its own
 series and never merged with another: owned (this page) · InferenceX's own and
@@ -147,9 +155,32 @@ SERIES_LABELS = {"on_demand": "on-demand", "spot": "spot",
                  "reserved_12m": "12-month reserved", "reserved_36m": "36-month reserved"}
 _SERIES_OF = {("ON_DEMAND", ""): "on_demand", ("SPOT", ""): "spot",
               ("RESERVATION", "12"): "reserved_12m", ("RESERVATION", "36"): "reserved_36m"}
-WEEKLY_COLUMNS = ["gpu_key", "date", "series", "median_usd", "provider_count"]
+# median_usd is GetDeploying's median_price, a median over OFFERINGS (an
+# offering is one provider's listing; a provider can list several): with two
+# offerings it is their midpoint, and it differs from provider_median_price
+# whenever offering_count != provider_count. Labels say "median of N offerings
+# from M providers".
+WEEKLY_COLUMNS = ["gpu_key", "date", "series", "median_usd", "provider_count",
+                  "offering_count"]
 # The shipped slice holds the last two years; the archive keeps every week.
 SERIES_WEEKS = 104
+
+# What a capex default's price includes (GPU_FILE `basis`). Not numbers:
+# labels for the source each curated row already cites.
+CAPEX_BASES: dict[str, tuple[str, str]] = {
+    "hyperscaler_allin": ("hyperscaler volume, all-in",
+                          "SemiAnalysis's all-in estimate for a typical hyperscaler (server plus "
+                          "storage, networking and other items), 2025"),
+    "street_scaled": ("street price ×250/190",
+                      "a 2026 street or appraisal price for the bare 8-GPU server, scaled by "
+                      "SemiAnalysis's H100 all-in over bare-server ratio (250/190); not "
+                      "hyperscaler volume, so it reads dearer than the hyperscaler-volume bars"),
+    "rack_excl_core": ("rack, excl. storage",
+                       "a 2026 rack purchase-plus-deployment price that excludes cluster core "
+                       "switching and storage, so it reads cheaper than an all-in figure"),
+    "typed": ("typed", "typed on this page"),
+}
+
 
 LADDER_RUNGS: tuple[tuple[str, str], ...] = (
     ("owned", "Owned (this page)"),
@@ -231,9 +262,14 @@ def _prov(row: dict, value=None, typed: bool = False) -> dict:
             "note": row.get("note", ""), "typed": typed}
 
 
-def _typed_prov(value, unit: str) -> dict:
+def _typed_prov(value, unit: str, raw=None) -> dict:
+    """A typed box's value. `clamped` when the typed number was outside the
+    box's bounds and `value` is the bound used; `raw` is what was typed."""
+    clamped = raw is not None and raw != value
     return {"value": value, "unit": unit, "status": "typed", "source_url": "",
-            "as_of": "", "note": "typed on this page", "typed": True}
+            "as_of": "", "typed": True, "clamped": clamped, "raw": raw,
+            "note": ("typed on this page" if not clamped
+                     else f"typed {raw:g} on this page, clamped to {value:g}")}
 
 
 def load_gpu_defaults() -> dict[str, dict[str, dict]]:
@@ -287,7 +323,7 @@ def slim_weekly(archive: pd.DataFrame) -> pd.DataFrame:
     SERIES_WEEKS weeks, cells verbatim (no averaging, no merging). Raises on a
     renamed upstream column so a build says so loudly."""
     need = {"gpu_slug", "date", "billing_type", "reservation_months", "median_price",
-            "provider_count"}
+            "provider_count", "offering_count"}
     missing = need - set(archive.columns)
     if missing:
         raise ValueError(f"GetDeploying archive lacks columns {sorted(missing)}")
@@ -305,6 +341,7 @@ def slim_weekly(archive: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame({
         "gpu_key": a["gpu_slug"].map(slug_key), "date": a["date"], "series": a["series"],
         "median_usd": a["median_price"], "provider_count": a["provider_count"],
+        "offering_count": a["offering_count"],
     })
     order = {k: i for i, k in enumerate(GPU_KEYS)}
     sorder = {k: i for i, k in enumerate(SERIES)}
@@ -362,7 +399,8 @@ def load_weekly() -> pd.DataFrame:
         return pd.DataFrame(columns=WEEKLY_COLUMNS)
     df["date"] = df["date"].astype(str)
     df["median_usd"] = pd.to_numeric(df["median_usd"], errors="coerce")
-    df["provider_count"] = pd.to_numeric(df["provider_count"], errors="coerce")
+    for col in ("provider_count", "offering_count"):
+        df[col] = pd.to_numeric(df[col], errors="coerce") if col in df.columns else float("nan")
     return df
 
 
@@ -417,12 +455,18 @@ def coerce_preset(preset) -> str:
 
 def _clamp_typed(v, bounds: tuple[float, float]) -> float | None:
     """A typed box: None when empty or not a number, else clamped to bounds."""
+    t = _typed(v, bounds)
+    return None if t is None else t[0]
+
+
+def _typed(v, bounds: tuple[float, float]) -> tuple[float, float] | None:
+    """(clamped value, raw typed number), or None for an empty or non-numeric box."""
     if v is None or (isinstance(v, str) and not v.strip()):
         return None
     x = _num(v)
     if x is None:
         return None
-    return min(max(x, bounds[0]), bounds[1])
+    return min(max(x, bounds[0]), bounds[1]), x
 
 
 def _util(util_pct) -> float:
@@ -448,9 +492,9 @@ def resolve_financing(preset=None, life_years=None, rate_pct=None) -> dict:
     p, base = _preset(key), _preset(DEFAULT_PRESET)
     out = {"preset": key, "label": p["label"], "sofr": latest_sofr()}
 
-    life_t = _clamp_typed(life_years, LIFE_RANGE)
+    life_t = _typed(life_years, LIFE_RANGE)
     if life_t is not None:
-        out["life"] = _typed_prov(life_t, "years")
+        out["life"] = _typed_prov(life_t[0], "years", life_t[1])
     elif "life_years" in p["params"]:
         row = p["params"]["life_years"]
         out["life"] = _prov(row, _num(row["value"]))
@@ -460,11 +504,16 @@ def resolve_financing(preset=None, life_years=None, rate_pct=None) -> dict:
                        "note": f"{p['label']} discloses no useful life; "
                                f"{base['label'].split(' ')[0]}'s is used. " + row["note"]}
 
-    rate_t = _clamp_typed(rate_pct, RATE_PCT_RANGE)
+    rate_t = _typed(rate_pct, RATE_PCT_RANGE)
     sofr = out["sofr"]
     if rate_t is not None:
-        out["rate"] = {**_typed_prov(rate_t / 100.0, "per year"),
-                       "text": f"{rate_t:.2f}% typed"}
+        used, raw = rate_t
+        clamped = used != raw
+        out["rate"] = {**_typed_prov(used / 100.0, "per year"), "clamped": clamped,
+                       "raw": raw / 100.0,
+                       "note": ("typed on this page" if not clamped
+                                else f"typed {raw:g}% on this page, clamped to {used:g}%"),
+                       "text": f"{used:.2f}% typed" + (" (clamped)" if clamped else "")}
         return out
     params = p["params"] if ("fixed_pct" in p["params"] or "spread_pct" in p["params"]) \
         else base["params"]
@@ -501,9 +550,9 @@ def resolve_facility(pue=None, usd_per_kwh=None, colo_usd_kw_month=None) -> dict
     out = {}
     for name, typed, bounds in (("pue", pue, PUE_RANGE), ("usd_per_kwh", usd_per_kwh, KWH_RANGE),
                                 ("colo_usd_kw_month", colo_usd_kw_month, COLO_RANGE)):
-        t = _clamp_typed(typed, bounds)
+        t = _typed(typed, bounds)
         row = a.get(name, {})
-        out[name] = (_typed_prov(t, row.get("unit", "")) if t is not None
+        out[name] = (_typed_prov(t[0], row.get("unit", ""), t[1]) if t is not None
                      else _prov(row, _num(row.get("value"))))
     return out
 
@@ -529,14 +578,16 @@ def resolve_gpu_inputs(gpu_key: str, capex_usd=None, it_kw=None) -> dict:
     defaults = load_gpu_defaults()
     rows = defaults.get(gpu_key, {})
     out = {}
-    cap_t = _clamp_typed(capex_usd, CAPEX_RANGE)
+    cap_t = _typed(capex_usd, CAPEX_RANGE)
     crow = rows.get("capex_usd", {})
-    out["capex_usd"] = (_typed_prov(cap_t, "USD per GPU") if cap_t is not None
+    out["capex_usd"] = (_typed_prov(cap_t[0], "USD per GPU", cap_t[1]) if cap_t is not None
                         else _prov(crow, _num(crow.get("value"))))
-    kw_t = _clamp_typed(it_kw, KW_RANGE)
+    basis = "typed" if cap_t is not None else (crow.get("basis") or "")
+    out["capex_usd"]["basis"] = basis if basis in CAPEX_BASES else ""
+    kw_t = _typed(it_kw, KW_RANGE)
     krow = rows.get("it_kw", {})
     if kw_t is not None:
-        out["it_kw"] = _typed_prov(kw_t, "kW per GPU")
+        out["it_kw"] = _typed_prov(kw_t[0], "kW per GPU", kw_t[1])
     elif krow.get("method") == "epoch_tdp_ratio":
         out["it_kw"] = _derived_kw(spec, krow, defaults)
     else:
@@ -550,8 +601,9 @@ def compute(gpu_key=None, preset=None, util_pct=None, life_years=None, rate_pct=
     """Everything the three charts and the export need, for one control state.
 
     Life, rate, PUE, $/kWh and colo apply to every GPU (one financing and one
-    facility, so the stack compares like with like); a typed CAPEX or kW
-    applies to the selected GPU only."""
+    facility for all); a typed CAPEX or kW applies to the selected GPU only.
+    The capex defaults are NOT on one price basis (CAPEX_BASES): each row's
+    inputs carry capex_usd["basis"] and every surface names it."""
     gpu = coerce_gpu(gpu_key)
     util = _util(util_pct)
     fin = resolve_financing(preset, life_years, rate_pct)
@@ -588,11 +640,12 @@ def ladder_rows(result: dict) -> pd.DataFrame:
         sofr = result["financing"].get("sofr") or {}
         rows.append({
             "rung": "owned", "series_name": "Owned cost (this page)",
-            "label": f"owned @{result['util_pct']:g}%",
-            "usd_per_gpu_hr": bd["total_at_util"], "period": sofr.get("date", ""),
+            "label": "owned",
+            "usd_per_gpu_hr": bd["total_100"], "period": sofr.get("date", ""),
             "as_of": sofr.get("date", ""),
-            "basis": (f"capital + power + colo = {_fmt_usd(bd['total_100'])} at full use, "
-                      f"÷ {result['util_pct']:g}% use"),
+            "basis": (f"capital + power + colo per GPU-hour owned, busy or idle, like every "
+                      f"rental here ({_fmt_usd(bd['total_at_util'])} per busy hour at "
+                      f"{result['util_pct']:g}% use)"),
             "status": "derived", "source_url": CURATED_URL,
             "note": "this page's arithmetic on the sourced inputs shown in the stack's hover"})
     marks = dict(_ix_marks()).get(spec.ix_key)
@@ -628,12 +681,11 @@ def ladder_rows(result: dict) -> pd.DataFrame:
                 if hit.empty or pd.isna(hit.iloc[0]["median_usd"]):
                     continue
                 h = hit.iloc[0]
-                n = int(h["provider_count"]) if pd.notna(h["provider_count"]) else 0
                 rows.append({"rung": "marketplace",
                              "series_name": f"GetDeploying {SERIES_LABELS[s]} median",
                              "label": SERIES_LABELS[s], "usd_per_gpu_hr": float(h["median_usd"]),
                              "period": newest, "as_of": newest,
-                             "basis": (f"median across {n} provider{'s' if n != 1 else ''}, "
+                             "basis": (f"{offerings_phrase(h.get('offering_count'), h['provider_count'])}, "
                                        f"week of {newest} (newest week is provisional), "
                                        f"{gd_label(spec)}"),
                              "status": "published", "source_url": GD_DATASET_URL,
@@ -661,6 +713,23 @@ def ladder_rows(result: dict) -> pd.DataFrame:
     df = df.assign(_o=df["rung"].map(order)).sort_values(["_o", "usd_per_gpu_hr", "label"],
                                                           kind="mergesort")
     return df.drop(columns="_o").reset_index(drop=True)
+
+
+def offerings_phrase(offerings, providers) -> str:
+    """'median of 109 offerings from 39 providers': GetDeploying's median_price
+    is taken over offerings, not providers (see WEEKLY_COLUMNS)."""
+    def n(v):
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            return None
+        return int(x) if math.isfinite(x) else None
+    o, p = n(offerings), n(providers)
+    plural = lambda k, w: f"{k} {w}{'s' if k != 1 else ''}"
+    if o is None:
+        return "median of offerings" + (f" from {plural(p, 'provider')}" if p is not None else "")
+    return f"median of {plural(o, 'offering')}" + (
+        f" from {plural(p, 'provider')}" if p is not None else "")
 
 
 def weekly_for(gpu_key: str) -> pd.DataFrame:
@@ -702,7 +771,9 @@ def compute_options() -> dict:
         defaults[spec.key] = {
             "capex_k": None if cap["value"] is None else round(cap["value"] / 1000.0, 3),
             "it_kw": None if kw["value"] is None else round(kw["value"], 4),
-            "capex_title": "CAPEX $K per GPU, all-in: " + _title(cap, "${:,.0f}"),
+            "capex_title": ("CAPEX $K per GPU: " + _title(cap, "${:,.0f}")
+                            + (f". Basis: {CAPEX_BASES[cap['basis']][1]}"
+                               if cap.get("basis") else "")),
             "kw_title": "IT kW per GPU, all-in: " + _title(kw, "{:.3f} kW"),
         }
     presets, preset_defaults = [], {}
@@ -756,6 +827,8 @@ def tco_export_frame(result: dict) -> pd.DataFrame:
             rec[f"{col}_status"] = p.get("status", "")
             rec[f"{col}_source_url"] = p.get("source_url", "")
             rec[f"{col}_as_of"] = p.get("as_of", "")
+        cb = row["inputs"]["capex_usd"].get("basis", "")
+        rec["capex_basis"] = CAPEX_BASES[cb][1] if cb else ""
         sofr = fin.get("sofr") or {}
         rec["sofr_pct"], rec["sofr_date"] = sofr.get("pct"), sofr.get("date", "")
         for k in ("crf", "capital", "power", "colo", "total_100", "total_at_util"):

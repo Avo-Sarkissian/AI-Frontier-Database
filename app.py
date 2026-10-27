@@ -275,6 +275,18 @@ _COMPUTE_BOXES = (  # (id suffix, label, step, width px)
 )
 
 
+# Box suffix -> (min, max): the same bounds Python clamps a typed value to
+# (gpu_tco.*_RANGE, sent as compute_options()["bounds"]).
+_COMPUTE_BOUNDS = {
+    "life": _COMPUTE_OPTS["bounds"]["life"], "rate": _COMPUTE_OPTS["bounds"]["rate_pct"],
+    "capex": _COMPUTE_OPTS["bounds"]["capex_k"], "kw": _COMPUTE_OPTS["bounds"]["it_kw"],
+    "pue": _COMPUTE_OPTS["bounds"]["pue"], "kwh": _COMPUTE_OPTS["bounds"]["usd_per_kwh"],
+    "colo": _COMPUTE_OPTS["bounds"]["colo"],
+}
+_PAIR_STYLE = {"display": "inline-flex", "alignItems": "center", "gap": "6px",
+               "whiteSpace": "nowrap"}
+
+
 def _compute_placeholders(gpu=None, preset=None) -> dict:
     """{box suffix: (placeholder, title)} for the GPU and preset on screen."""
     o = _COMPUTE_OPTS
@@ -1064,35 +1076,43 @@ app.layout = html.Div([
                 ], style={"display": "inline-flex", "alignItems": "center", "gap": "8px"}),
                 html.Span(id="econ-compute-controls", children=[
                     html.Div(className="filter-sep"),
-                    html.Span("GPU", className="filter-label"),
-                    dcc.Dropdown(
-                        id="econ-compute-gpu",
-                        options=[{"label": o["label"], "value": o["value"], "title": o["title"]}
-                                 for o in _COMPUTE_OPTS["gpus"]],
-                        value=_COMPUTE_OPTS["default_gpu"], clearable=False,
-                        style={"minWidth": "140px"},
-                    ),
+                    # Each label rides with its control in one no-wrap pair, so
+                    # on a phone a label never ends a row its box starts.
+                    html.Span([
+                        html.Span("GPU", className="filter-label"),
+                        dcc.Dropdown(
+                            id="econ-compute-gpu",
+                            options=[{"label": o["label"], "value": o["value"],
+                                      "title": o["title"]} for o in _COMPUTE_OPTS["gpus"]],
+                            value=_COMPUTE_OPTS["default_gpu"], clearable=False,
+                            style={"minWidth": "140px"},
+                        ),
+                    ], style=_PAIR_STYLE),
                     html.Div(className="filter-sep"),
-                    html.Span("PRESET", className="filter-label"),
-                    dcc.Dropdown(
-                        id="econ-compute-preset",
-                        options=[{"label": o["label"], "value": o["value"], "title": o["title"]}
-                                 for o in _COMPUTE_OPTS["presets"]],
-                        value=_COMPUTE_OPTS["default_preset"], clearable=False,
-                        style={"minWidth": "230px"},
-                    ),
+                    html.Span([
+                        html.Span("PRESET", className="filter-label"),
+                        dcc.Dropdown(
+                            id="econ-compute-preset",
+                            options=[{"label": o["label"], "value": o["value"],
+                                      "title": o["title"]} for o in _COMPUTE_OPTS["presets"]],
+                            value=_COMPUTE_OPTS["default_preset"], clearable=False,
+                            style={"minWidth": "230px"},
+                        ),
+                    ], style=_PAIR_STYLE),
                     html.Div(className="filter-sep"),
-                    *[c for key, label, step, width in _COMPUTE_BOXES for c in (
+                    *[html.Span([
                         html.Span(label, id=f"econ-compute-{key}-label", className="filter-label",
                                   title=_compute_placeholders()[key][1]),
                         # dcc.Input takes no title: the tooltip rides a wrapper.
-                        html.Span(dcc.Input(id=f"econ-compute-{key}", type="number", min=0,
+                        html.Span(dcc.Input(id=f"econ-compute-{key}", type="number",
+                                            min=_COMPUTE_BOUNDS[key][0],
+                                            max=_COMPUTE_BOUNDS[key][1],
                                             step=step, debounce=True,
                                             placeholder=_compute_placeholders()[key][0],
                                             style={"width": f"{width}px"}),
                                   id=f"econ-compute-{key}-wrap",
                                   title=_compute_placeholders()[key][1]),
-                    )],
+                    ], style=_PAIR_STYLE) for key, label, step, width in _COMPUTE_BOXES],
                 ], style={"display": "none"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div(id="econ-view-serve", children=[
@@ -1960,15 +1980,19 @@ def update_econ_compute(gpu, preset, util, life=None, rate=None, capex_k=None, k
     Output("econ-compute-kw",    "placeholder"),
     Output("econ-compute-capex-wrap", "title"),
     Output("econ-compute-kw-wrap",    "title"),
+    Output("econ-compute-capex-label", "title"),
+    Output("econ-compute-kw-label",    "title"),
     Input("econ-compute-gpu", "value"),
     prevent_initial_call=True,
 )
 def sync_econ_compute_gpu(gpu):
     """A GPU change clears the per-GPU boxes, so a typed CAPEX or kW never
     carries over to a part it was not typed for, and shows that part's
-    sourced defaults as placeholders."""
+    sourced defaults as placeholders; box and label tooltips follow, as the
+    static site's syncEconComputePlaceholders does."""
     ph = _compute_placeholders(gpu)
-    return None, None, ph["capex"][0], ph["kw"][0], ph["capex"][1], ph["kw"][1]
+    return (None, None, ph["capex"][0], ph["kw"][0], ph["capex"][1], ph["kw"][1],
+            ph["capex"][1], ph["kw"][1])
 
 
 @callback(
@@ -1978,13 +2002,17 @@ def sync_econ_compute_gpu(gpu):
     Output("econ-compute-rate", "placeholder"),
     Output("econ-compute-life-wrap", "title"),
     Output("econ-compute-rate-wrap", "title"),
+    Output("econ-compute-life-label", "title"),
+    Output("econ-compute-rate-label", "title"),
     Input("econ-compute-preset", "value"),
     prevent_initial_call=True,
 )
 def sync_econ_compute_preset(preset):
-    """A preset change clears LIFE and RATE and shows the preset's own."""
+    """A preset change clears LIFE and RATE and shows the preset's own, in
+    the boxes' and the labels' tooltips alike."""
     ph = _compute_placeholders(None, preset)
-    return None, None, ph["life"][0], ph["rate"][0], ph["life"][1], ph["rate"][1]
+    return (None, None, ph["life"][0], ph["rate"][0], ph["life"][1], ph["rate"][1],
+            ph["life"][1], ph["rate"][1])
 
 
 @callback(

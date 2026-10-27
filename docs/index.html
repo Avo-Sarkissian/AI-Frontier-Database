@@ -275,33 +275,51 @@
     </span>
     <span id="econ-compute-controls" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
       <div class="filter-sep"></div>
-      <span class="filter-label">GPU</span>
-      <select id="econ-compute-gpu" style="min-width:130px;"></select>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label">GPU</span>
+        <select id="econ-compute-gpu" style="min-width:130px;"></select>
+      </span>
       <div class="filter-sep"></div>
-      <span class="filter-label">PRESET</span>
-      <select id="econ-compute-preset" style="min-width:200px;"></select>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label">PRESET</span>
+        <select id="econ-compute-preset" style="min-width:200px;"></select>
+      </span>
       <div class="filter-sep"></div>
-      <span class="filter-label" id="econ-compute-life-label">LIFE YR</span>
-      <input id="econ-compute-life" class="econ-compute-box" type="number" min="0" step="1" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
-      <span class="filter-label" id="econ-compute-rate-label">RATE %</span>
-      <input id="econ-compute-rate" class="econ-compute-box" type="number" min="0" step="0.1" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
-      <span class="filter-label" id="econ-compute-capex-label">CAPEX $K</span>
-      <input id="econ-compute-capex" class="econ-compute-box" type="number" min="0" step="1" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:72px;outline:none;" />
-      <span class="filter-label" id="econ-compute-kw-label">kW</span>
-      <input id="econ-compute-kw" class="econ-compute-box" type="number" min="0" step="0.01" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
-      <span class="filter-label" id="econ-compute-pue-label">PUE</span>
-      <input id="econ-compute-pue" class="econ-compute-box" type="number" min="0" step="0.01" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
-      <span class="filter-label" id="econ-compute-kwh-label">$/kWh</span>
-      <input id="econ-compute-kwh" class="econ-compute-box" type="number" min="0" step="0.001" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:68px;outline:none;" />
-      <span class="filter-label" id="econ-compute-colo-label">COLO $/kW-MO</span>
-      <input id="econ-compute-colo" class="econ-compute-box" type="number" min="0" step="1" placeholder="—"
-        style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-life-label">LIFE YR</span>
+        <input id="econ-compute-life" class="econ-compute-box" type="number" step="1" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-rate-label">RATE %</span>
+        <input id="econ-compute-rate" class="econ-compute-box" type="number" step="0.1" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-capex-label">CAPEX $K</span>
+        <input id="econ-compute-capex" class="econ-compute-box" type="number" step="1" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:72px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-kw-label">kW</span>
+        <input id="econ-compute-kw" class="econ-compute-box" type="number" step="0.01" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-pue-label">PUE</span>
+        <input id="econ-compute-pue" class="econ-compute-box" type="number" step="0.01" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-kwh-label">$/kWh</span>
+        <input id="econ-compute-kwh" class="econ-compute-box" type="number" step="0.001" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:68px;outline:none;" />
+      </span>
+      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+        <span class="filter-label" id="econ-compute-colo-label">COLO $/kW-MO</span>
+        <input id="econ-compute-colo" class="econ-compute-box" type="number" step="1" placeholder="—"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
+      </span>
     </span>
   </div>
 
