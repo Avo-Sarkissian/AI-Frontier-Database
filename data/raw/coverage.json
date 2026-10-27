@@ -117,5 +117,23 @@
     "Tri-21B-Think"
   ],
   "skipped_deprecated": [],
-  "held_deprecated": []
+  "held_deprecated": [],
+  "field_coverage": {
+    "rows": 162,
+    "cost_per_task": 113,
+    "cache_hit_price": 120,
+    "cache_write_price": 47,
+    "is_open_weights": 162,
+    "is_reasoning": 162,
+    "release_date": 162,
+    "aa_slug": 162
+  },
+  "release_date_join": {
+    "record": 0,
+    "slug": 93,
+    "name": 4,
+    "effort_slug": 61,
+    "paren_name": 4,
+    "unmatched": []
+  }
 }
