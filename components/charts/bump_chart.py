@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix, fmt_price, fill_note
+
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
@@ -187,12 +189,16 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
+def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
     """
     Horizontal bar chart: top N models by quality/price ratio (value score).
     Quality floor of 20 so tiny cheap models don't dominate.
     Bars are colored by provider. Directly answers: "what should I use?"
+
+    ``basis`` is the workload MIX the prices are at: value = quality / that
+    price, so the subtitle, hover and labels name it.
     """
+    basis = resolve_mix(basis)
     valid = df[(df["quality"] >= 20) & (df["price"] > 0)].copy()
     if valid.empty:
         return _empty("No models with quality ≥ 20 and valid price.")
@@ -208,12 +214,13 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
         y=names,
         orientation="h",
         marker=dict(color=colors, opacity=0.85, line=dict(width=0)),
-        customdata=top[["model", "provider", "quality", "price", "value_score"]].values,
+        customdata=list(zip(top["model"], top["provider"], top["quality"],
+                            top["price"].map(fmt_price), top["value_score"])),
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{customdata[2]:.0f}<br>"
-            "Price: $%{customdata[3]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
+            "Price: %{customdata[3]}/M tokens  ·  " + basis.short + "<br>"
             "Value Score: %{customdata[4]:.0f}<br>"
             "<extra></extra>"
         ),
@@ -222,11 +229,7 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
 
     # Annotate each bar with quality score and price
     for i, row in top.iterrows():
-        price_str = (
-            f"${row['price']:.4f}/M" if row["price"] < 0.01
-            else f"${row['price']:.3f}/M" if row["price"] < 1
-            else f"${row['price']:.2f}/M"
-        )
+        price_str = f"{fmt_price(row['price'])}/M"
         fig.add_annotation(
             x=row["value_score"],
             y=i,
@@ -244,7 +247,9 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15) -> go.Figure:
             text=(
                 "Value Leaders  —  Most Intelligence per Dollar"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  quality ÷ price  ·  quality floor ≥ 20</span>"
+                f"  ·  quality ÷ price at {basis.short}  ·  quality floor ≥ 20"
+                + fill_note(valid, basis)
+                + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
             x=0.0, xanchor="left",

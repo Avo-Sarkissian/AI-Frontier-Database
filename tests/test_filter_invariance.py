@@ -259,6 +259,26 @@ def test_static_api_overview_frontier_does_not_grow_under_a_filter():
     assert narrowed <= full
 
 
+@pytest.mark.parametrize("mix", [["agentic", None, None], ["observed", None, None],
+                                 ["custom", 40, 75]], ids=str)
+def test_static_api_frontier_does_not_grow_under_a_filter_at_any_mix(mix):
+    """The mixed catalogue, not the list-priced one, is what the frontier is
+    decided against: at an agentic mix a provider filter must hide frontier
+    points at most, never promote a model the re-priced market dominates."""
+    import static_api
+
+    full = _frontier_points(_fig_from(static_api.update_overview(None, 0, "", "price", None, mix)))
+    assert full, "no frontier at this mix"
+    for providers in (["OpenAI"], ["Anthropic", "Google"], ["Alibaba"]):
+        narrowed = _frontier_points(
+            _fig_from(static_api.update_overview(providers, 0, "", "price", None, mix)))
+        assert narrowed <= full, f"{providers} at {mix} invented {narrowed - full}"
+    for min_q in (20, 45):
+        narrowed = _frontier_points(
+            _fig_from(static_api.update_overview(None, min_q, "", "price", None, mix)))
+        assert narrowed <= full
+
+
 def test_static_api_overview_frontier_is_stable_across_min_score_presets():
     """One click on MIN SCORE was enough to promote a dominated model."""
     import static_api

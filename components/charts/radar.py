@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix
+
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, FONT as _FONT, empty_figure, QUALITY_INDEX_MAX, legend_below,
@@ -108,7 +110,10 @@ def radar_reference(full_df: pd.DataFrame) -> dict:
 
 
 def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
-                full_df: pd.DataFrame | None = None) -> go.Figure:
+                full_df: pd.DataFrame | None = None, basis=None) -> go.Figure:
+    # ``basis``: the workload MIX the prices are at. Affordability is scaled
+    # against the full catalogue AT THAT MIX, and the subtitle names it.
+    basis = resolve_mix(basis)
     # `[]` is a deliberate clear and must show the empty state; `None` is "no
     # selection supplied", which is the genuine first render. Substituting the
     # top 5 for both meant clearing the control charted five models while the
@@ -246,6 +251,7 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 "  ·  0–100% against the full catalogue; speed, price, context "
                 "and latency on a log scale"
+                f"  ·  affordability at {basis.short}"
                 f"{'  ·  a gap in an outline = not measured' if any_missing else ''}"
                 "</span>"
             ),

@@ -12,6 +12,8 @@ One bar per provider, sorted by peak intelligence.
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix
+
 from components.charts.constants import (
     plot_text,
     right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
@@ -20,8 +22,11 @@ from components.charts.constants import (
 )
 
 
-def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
-    """Horizontal bar: one per provider, ordered by best model quality."""
+def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
+    """Horizontal bar: one per provider, ordered by best model quality.
+
+    ``basis``: the workload MIX the prices are at; the floor-price hover names it."""
+    basis = resolve_mix(basis)
     if df.empty:
         return _empty("No data available.")
 
@@ -79,7 +84,7 @@ def build_provider_leaderboard(df: pd.DataFrame) -> go.Figure:
             "Peak intelligence: %{customdata[2]:.0f}<br>"
             "Avg intelligence: %{customdata[3]:.0f}<br>"
             "Models: %{customdata[4]}<br>"
-            "Floor price: $%{customdata[5]:.4f}/M<br>"
+            "Floor price: $%{customdata[5]:.4g}/M  ·  " + basis.short + "<br>"
             "<extra></extra>"
         ),
         showlegend=False,

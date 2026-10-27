@@ -34,6 +34,9 @@ from static_helpers import (
     compute_diverse5, provider_options, model_options, quality_options,
     ranking_frame, effort_options,
 )
+from data.workload_mix import (
+    mix_options, DEFAULT_MIX_KEY, floor_label, fmt_floor, table_price_header,
+)
 
 
 def _load_coverage() -> dict:
@@ -127,7 +130,16 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "model_count":      int(len(df)),
         "coverage":         _load_coverage(),
         "provider_count":   int(df["provider"].nunique()),
-        "floor_price":      f"${df['price'].min():.3f}",
+        # fmt_floor is the old f"${:.3f}" for any price above a cent, so the
+        # stat is byte-identical at the default mix; static_api.mix_info
+        # recomputes it (and its label) when the visitor changes MIX.
+        "floor_price":      fmt_floor(df["price"].min()),
+        "floor_price_label": floor_label(None),
+        "table_price_header": table_price_header(None),
+        # Workload MIX presets, each with its source and date in `title`
+        # (data/workload_mix.MIX_PRESETS). The first is the default.
+        "mix_options":      mix_options(),
+        "default_mix":      DEFAULT_MIX_KEY,
         "peak_quality":     f"{df['quality'].max():.1f}",
         "diverse5":         diverse5,
         "provider_options": provider_options(df),
@@ -288,6 +300,7 @@ def build_pybundle(docs: Path | None = None):
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
+        "data/workload_mix.py",
     ]
 
     # Resolve site-packages so we can vendor plotly + tenacity

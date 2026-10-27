@@ -35,6 +35,10 @@ from components.charts.rankings import build_rankings
 from components.charts.bump_chart import build_value_leaders
 from components.charts.radar import build_radar
 from components.charts.cost_calc import build_cost_calc, cheapest_above
+from data.workload_mix import (
+    apply_mix, resolve_mix, fmt_price, mix_summary, table_price_header,
+    CACHE_FILL_RATIO,
+)
 from static_helpers import (
     index_label,
     apply_filters,
@@ -55,13 +59,24 @@ from static_helpers import (
 _DF = get_models()
 
 
-def _apply_filters(providers, min_quality, search="", effort=None):
-    return apply_filters(_DF, providers, min_quality, search, effort)
+def _base(mix=None):
+    """The catalogue priced at `mix` (data/workload_mix). The default returns
+    _DF itself, so an untouched page computes exactly what it always did.
+
+    The mix is applied BEFORE any filter, and the unfiltered result is what the
+    builders get as `full_df`: the Pareto frontier, the medians and the floor
+    stat are market-wide claims, and at an agentic mix the market is priced
+    differently, not just the visible slice of it."""
+    return apply_mix(_DF, resolve_mix(mix))
+
+
+def _apply_filters(providers, min_quality, search="", effort=None, mix=None):
+    return apply_filters(_base(mix), providers, min_quality, search, effort)
 
 
 # ── HTML-string mirrors of app.py's dash-component builders ──────────────────
 
-def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
+def _build_raw_table_html(df: pd.DataFrame, selected: list, mix=None) -> str:
     """Mirror of app.py _build_raw_table (lines ~130–189) as an HTML string."""
     _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
     rows = df[df["model"].isin(selected)].copy()
@@ -92,7 +107,7 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
         + _th("Model", "left")
         + _th("Provider", "left")
         + _th("Intelligence")
-        + _th("Price ($/M tok, 3:1)")
+        + _th(html.escape(table_price_header(mix), quote=True))
         + _th("In / Out ($/M)")
         + _th("Speed (tok/s)")
         + _th("Latency (TTFT)")
@@ -103,7 +118,7 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
     table_rows = []
     for _, r in rows.sort_values("quality", ascending=False).iterrows():
         pcolor = PROVIDER_COLORS.get(r["provider"], DEFAULT_COLOR)
-        price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
+        price_str = fmt_price(r["price"]) if pd.notna(r["price"]) and r["price"] > 0 else "—"
         rates_str = (
             f"{r['price_in']:,.2f} / {r['price_out']:,.2f}"
             if pd.notna(r.get("price_in")) and pd.notna(r.get("price_out"))
@@ -148,7 +163,19 @@ def _build_raw_table_html(df: pd.DataFrame, selected: list) -> str:
     )
 
 
-def _detail_html(row: pd.Series, provider: str) -> str:
+def _cache_label(row: pd.Series) -> str:
+    """The cached-input price this dashboard uses for a model, and whose it is.
+    AA's per-model figure where it publishes one (it can differ from the
+    vendor's own page), else the 10%-of-input fill-in, marked as an estimate."""
+    c, p_in = row.get("cache_hit_price"), row.get("price_in")
+    if c is not None and pd.notna(c):
+        return f"{fmt_price(c)} / 1M  ·  AA"
+    if p_in is not None and pd.notna(p_in):
+        return f"{fmt_price(CACHE_FILL_RATIO * float(p_in))} / 1M  ·  est. {CACHE_FILL_RATIO:.0%} of input"
+    return "—"
+
+
+def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
     """Mirror of app.py toggle_detail_panel body (lines ~1259–1318) as HTML string."""
     _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
     color = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
@@ -226,7 +253,8 @@ def _detail_html(row: pd.Series, provider: str) -> str:
     ctx_str = html.escape(ctx_raw, quote=True)
     provider_str = html.escape(str(provider), quote=True)
     model_str = html.escape(str(row["model"]), quote=True)
-    price_str = f"${row['price']:.4f} / 1M  ·  3:1 blend"
+    basis = resolve_mix(mix)
+    price_str = html.escape(f"{fmt_price(row['price'])} / 1M  ·  {basis.short}", quote=True)
     p_in, p_out = row.get("price_in"), row.get("price_out")
     rates_str = (
         f"${p_in:,.2f} in  ·  ${p_out:,.2f} out"
@@ -241,6 +269,7 @@ def _detail_html(row: pd.Series, provider: str) -> str:
         + divider
         + _metric("Price", price_str)
         + _metric("Rates", rates_str)
+        + _metric("Cached in", html.escape(_cache_label(row), quote=True))
         + _metric("Speed", speed_str)
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)
@@ -253,68 +282,90 @@ def _detail_html(row: pd.Series, provider: str) -> str:
 
 # ── Ported callbacks ──────────────────────────────────────────────────────────
 
-def update_overview(providers, min_quality, search, xaxis, effort=None):
-    f = _apply_filters(providers, min_quality, search or "", effort)
-    # _DF is the unfiltered catalogue: medians, axis bounds and frontier
-    # membership are market-wide claims and must not move with the user's filter.
-    fig = (build_quadrant(f, full_df=_DF) if xaxis == "speed"
-           else build_pareto_scatter(f, full_df=_DF))
+# Every hosted function takes `mix` LAST and optional (after `effort`).
+# docs/pyworker.js spreads the browser's argument list into these with no arity
+# check, so a parameter inserted mid-signature shifts every later argument and
+# fails silently in someone's browser. docs/app.js sends readMix() last.
+
+def update_overview(providers, min_quality, search, xaxis, effort=None, mix=None):
+    basis = resolve_mix(mix)
+    base = _base(basis)
+    f = apply_filters(base, providers, min_quality, search or "", effort)
+    # `base` is the unfiltered catalogue at this mix: medians, axis bounds and
+    # frontier membership are market-wide claims and must not move with the
+    # user's filter.
+    fig = (build_quadrant(f, full_df=base, basis=basis) if xaxis == "speed"
+           else build_pareto_scatter(f, full_df=base, basis=basis))
     return fig.to_json()
 
 
-def update_treemap(providers, min_quality, search, effort=None):
-    return build_treemap(_apply_filters(providers, min_quality, search or "", effort)).to_json()
+def update_treemap(providers, min_quality, search, effort=None, mix=None):
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, mix),
+                         basis=resolve_mix(mix)).to_json()
 
 
-def update_provider_leaderboard(providers, min_quality, search, effort=None):
+def update_provider_leaderboard(providers, min_quality, search, effort=None, mix=None):
     return build_provider_leaderboard(
-        _apply_filters(providers, min_quality, search or "", effort)
+        _apply_filters(providers, min_quality, search or "", effort, mix),
+        basis=resolve_mix(mix),
     ).to_json()
 
 
-def update_rankings(providers, min_quality, search, sort_by, effort=None):
+def update_rankings(providers, min_quality, search, sort_by, effort=None, mix=None):
     from static_helpers import ranking_frame
-    f = apply_filters(ranking_frame(_DF), providers, min_quality, search or "", effort)
-    return build_rankings(f, top_n=min(25, len(f)), metric=sort_by or "intelligence").to_json()
+    basis = resolve_mix(mix)
+    f = apply_filters(ranking_frame(_base(basis)), providers, min_quality, search or "", effort)
+    return build_rankings(f, top_n=min(25, len(f)), metric=sort_by or "intelligence",
+                          basis=basis).to_json()
 
 
-def update_value_leaders(providers, min_quality, search, effort=None):
+def update_value_leaders(providers, min_quality, search, effort=None, mix=None):
     return build_value_leaders(
-        _apply_filters(providers, min_quality, search or "", effort)
+        _apply_filters(providers, min_quality, search or "", effort, mix),
+        basis=resolve_mix(mix),
     ).to_json()
 
 
-def update_compare(providers, min_quality, search, selected_models, triggered, effort=None):
-    f = _apply_filters(providers, min_quality, search or "", effort)
+def update_compare(providers, min_quality, search, selected_models, triggered, effort=None,
+                   mix=None):
+    basis = resolve_mix(mix)
+    base = _base(basis)
+    f = apply_filters(base, providers, min_quality, search or "", effort)
     options = model_options(f)
     capped = cap_compare_selection(selected_models, f, triggered)
     return json.dumps({
-        "figure": json.loads(build_radar(f, capped, full_df=_DF).to_json()),
+        "figure": json.loads(build_radar(f, capped, full_df=base, basis=basis).to_json()),
         "options": options,
         "value": capped,
-        "raw_table_html": _build_raw_table_html(f, capped),
+        "raw_table_html": _build_raw_table_html(f, capped, basis),
     })
 
 
-def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0, effort=None):
+def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intelligence=0,
+                     effort=None, mix=None):
     """`min_intelligence` is the Budget tab's own floor. It composes with the
     global MIN SCORE filter rather than replacing it, so the effective floor is
-    whichever is higher — the same as any two filters intersecting."""
-    f = _apply_filters(providers, min_quality, search or "", effort)
+    whichever is higher — the same as any two filters intersecting.
+
+    The monthly cost is tokens x the price at `mix`, so the cheapest answer
+    moves with the workload; `basis` names the mix for the answer card."""
+    basis = resolve_mix(mix)
+    f = _apply_filters(providers, min_quality, search or "", effort, basis)
     # 0 is a volume the user typed; only a blank box means "not given". Negative
     # input is clamped — the HTML min attribute is a hint, not a guard.
     tokens = coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
     floor = coerce_number(min_intelligence, default=0.0, minimum=0.0)
-    fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor)
+    fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor, basis=basis)
     return json.dumps({
         "figure": json.loads(fig.to_json()),
         "best": cheapest_above(f, min_quality=floor, monthly_tokens_m=tokens),
         "floor": floor,
+        "basis": basis.short,
     })
 
 
-def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None):
-    f = _apply_filters(providers, min_quality, search or "", effort).copy()
+def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None, mix=None):
+    f = _apply_filters(providers, min_quality, search or "", effort, mix).copy()
     f["value"] = f.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
@@ -329,15 +380,16 @@ def update_table(providers, min_quality, search, sort_col, sort_dir, effort=None
     return json.dumps(f[cols].to_dict("records"))
 
 
-def export_csv(providers, min_quality, search, tab=None, effort=None, local_args=None):
+def export_csv(providers, min_quality, search, tab=None, effort=None, local_args=None,
+               mix=None):
     """See static_helpers.export_frame_for_tab — ↓CSV must export the dataset
     on screen, not always the hosted-LLM table.
 
-    `effort` and `local_args` are APPENDED, like update_local's late
+    `effort`, `local_args` and `mix` are APPENDED, like update_local's late
     parameters: pyworker.js spreads the argument list with no arity check.
     `local_args` is the same list docs/app.js sends to update_local."""
     frame, _name = export_frame_for_tab(tab, _DF, providers, min_quality, search,
-                                        effort=effort, local_args=local_args)
+                                        effort=effort, local_args=local_args, mix=mix)
     return csv_safe(frame).to_csv(index=False)
 
 
@@ -346,12 +398,24 @@ def export_csv_filename(tab=None):
     return name
 
 
-def model_detail(model_name, provider):
-    """Mirror toggle_detail_panel body as an HTML string."""
-    rows = _DF[_DF["model"] == model_name]
+def model_detail(model_name, provider, mix=None):
+    """Mirror toggle_detail_panel body as an HTML string, priced at `mix`."""
+    basis = resolve_mix(mix)
+    base = _base(basis)
+    rows = base[base["model"] == model_name]
     if rows.empty:
         return ""
-    return _detail_html(rows.iloc[0], provider)
+    return _detail_html(rows.iloc[0], provider, basis)
+
+
+def mix_info(mix=None):
+    """The header stat, its label and the table's price header for `mix`.
+
+    The floor is the minimum effective price over the UNFILTERED catalogue —
+    the same market-wide meaning the stat always had — and at the default it is
+    the manifest's floor_price string exactly, so nothing jumps on boot.
+    `floor_filled` is true when that model's cache price is the 10% fill-in."""
+    return json.dumps(mix_summary(_DF, mix))
 
 
 # ── Task 5: Local / Image / Video / Agent-Stack callbacks ─────────────────────

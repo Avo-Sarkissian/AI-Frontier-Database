@@ -55,7 +55,7 @@
   <div class="stat-bar">
     <div class="stat"><div id="stat-model-count" class="stat-value">—</div><div class="stat-label">Models tracked</div></div>
     <div class="stat"><div id="stat-provider-count" class="stat-value">—</div><div class="stat-label">Providers</div></div>
-    <div class="stat"><div id="stat-floor-price" class="stat-value" style="color:#00d4ff">—</div><div class="stat-label">Floor price / 1M</div></div>
+    <div class="stat"><div id="stat-floor-price" class="stat-value" style="color:#00d4ff">—</div><div id="stat-floor-label" class="stat-label">Floor price / 1M</div></div>
     <div class="stat"><div id="stat-peak-quality" class="stat-value">—</div><div class="stat-label">Peak intelligence</div></div>
   </div>
 
@@ -77,6 +77,19 @@
          several reasoning efforts and the spread reaches 18.5 points, so
          which tier represents a model is the reader's choice. -->
     <select id="filter-effort" style="min-width:130px;"></select>
+    <div class="filter-sep"></div>
+    <span class="filter-label" title="Workload mix: the input:output ratio and cache-hit rate every hosted price is computed at. Each option's tooltip names its source.">MIX</span>
+    <!-- Filled from manifest.mix_options (data/workload_mix.py). Custom
+         reveals the two boxes; Python clamps whatever is typed into them. -->
+    <select id="filter-mix" style="min-width:150px;"></select>
+    <span id="mix-custom" style="display:none;align-items:center;gap:6px;">
+      <input id="mix-ratio" class="search-input" type="number" min="0" max="1000" step="any"
+        style="width:64px;" aria-label="Input tokens per output token" />
+      <span class="filter-note">:1 in:out</span>
+      <input id="mix-cache" class="search-input" type="number" min="0" max="100" step="1"
+        style="width:56px;" aria-label="Percent of input tokens served from cache" />
+      <span class="filter-note">% cached</span>
+    </span>
     <div class="filter-sep"></div>
     <span class="filter-label">SEARCH</span>
     <input id="model-search" class="search-input" type="text" placeholder="model or provider…" />

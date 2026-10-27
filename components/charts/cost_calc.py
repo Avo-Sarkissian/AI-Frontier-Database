@@ -5,6 +5,8 @@ Given a monthly token volume, shows projected monthly cost per model.
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix, fmt_price, fill_note
+
 from components.charts.constants import (
     right_gutter, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name, unique_labels,
@@ -88,12 +90,16 @@ def _no_match_figure(min_quality: float) -> go.Figure:
 
 
 def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int = 30,
-                    min_quality: float = 0.0) -> go.Figure:
+                    min_quality: float = 0.0, basis=None) -> go.Figure:
     """Horizontal bar chart: monthly cost = monthly_tokens_m × price/M tokens.
 
     `min_quality` keeps only models scoring at least that on the AA Intelligence
     Index, so the top bar is the cheapest model smarter than the threshold.
+
+    ``basis`` is the workload MIX `price` is at (data/workload_mix); the title
+    states the token mix every bar assumes.
     """
+    basis = resolve_mix(basis)
     plot_df = _spendable(df, monthly_tokens_m, min_quality)
     if plot_df.empty:
         return _no_match_figure(min_quality)
@@ -113,7 +119,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         "<b>%{customdata[0]}</b><br>"
         "Provider: %{customdata[1]}<br>"
         "Monthly cost: $%{x:,.2f}<br>"
-        "Price: $%{customdata[2]:.4f}/M tokens  ·  blended 3:1 out:in<br>"
+        "Price: %{customdata[2]}/M tokens  ·  " + basis.short + "<br>"
         "Rates: %{customdata[4]}<br>"
         "Intelligence: %{customdata[3]:.0f}<br>"
         "<extra></extra>"
@@ -141,7 +147,8 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         x=plot_df["monthly_cost"],
         orientation="h",
         marker=dict(color=colors, opacity=opacities, line=dict(width=0)),
-        customdata=list(zip(plot_df["model"], plot_df["provider"], plot_df["price"],
+        customdata=list(zip(plot_df["model"], plot_df["provider"],
+                            plot_df["price"].map(fmt_price),
                             plot_df["quality"], _rate_pair(plot_df))),
         hovertemplate=hover,
         showlegend=False,
@@ -195,13 +202,14 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
                     if min_quality else
                     "  ·  cheapest models for your token budget"
                 )
-                # The entire cost model is `tokens * price`, and `price` is the
-                # 3:1 output-weighted blend — so every figure here assumes 75%
-                # of your tokens are generated. An input-heavy RAG workload
-                # costs far less than this chart says (Claude Opus 5 at 100M:
-                # $2000 charted, $500 all-input). The blend is a defensible
-                # default; not saying so is not.
-                + "  ·  assumes 75% output tokens (3:1 blend)"
+                # The entire cost model is `tokens * price`, and `price` is
+                # the effective price at the MIX setting — at the default, the
+                # 1:3 in:out blend, so every figure assumes 75% of your tokens
+                # are generated. An input-heavy RAG workload costs far less
+                # than that (Claude Opus 5 at 100M: $2000 charted, $500
+                # all-input). Whatever the mix, the title says which.
+                + f"  ·  assumes {basis.assumption}"
+                + fill_note(plot_df, basis)
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),

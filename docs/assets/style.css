@@ -130,6 +130,14 @@ html, body {
   white-space: nowrap;
 }
 
+/* The floor stat names the workload MIX it is priced at ("· agentic 300:1
+   in:out · 90% cached"), which outgrows one line of a quarter-width tile.
+   Wrap it rather than clip the half that says what the number means. */
+#stat-floor-label {
+  white-space: normal;
+  line-height: 1.35;
+}
+
 /* ── Filter bar ───────────────────────────────────── */
 .filters {
   display: flex;

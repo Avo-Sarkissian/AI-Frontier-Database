@@ -298,6 +298,11 @@ async function loadManifest() {
   renderCoverageNote(m.coverage);
   document.getElementById("stat-provider-count").textContent = m.provider_count;
   document.getElementById("stat-floor-price").textContent = m.floor_price;
+  // The floor and the table's price header name the workload MIX they are
+  // computed at; refreshMixInfo() rewrites both when the visitor changes it.
+  if (m.floor_price_label) document.getElementById("stat-floor-label").textContent = m.floor_price_label;
+  window.AF.mixInfo = { short: null, table_header: m.table_price_header || null,
+                        floor_label: m.floor_price_label || null };
   document.getElementById("stat-peak-quality").textContent = m.peak_quality;
   const sel = document.getElementById("filter-provider");
   m.provider_options.forEach(o => {
@@ -356,6 +361,18 @@ async function loadManifest() {
       return opt;
     }));
     if (current) effSel.value = current;
+  }
+  // MIX presets ride the manifest with their sources (data/workload_mix.py),
+  // so a preset's numbers and its citation live in one place.
+  const mixSel = document.getElementById("filter-mix");
+  if (mixSel && Array.isArray(m.mix_options) && m.mix_options.length) {
+    const current = mixSel.value;
+    mixSel.replaceChildren(...m.mix_options.map(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.label; opt.title = o.title || "";
+      return opt;
+    }));
+    mixSel.value = current || m.default_mix || m.mix_options[0].value;
   }
   fillTagSelect("image-tag-filter", m.image_tags);
   fillTagSelect("video-tag-filter", m.video_tags);
@@ -728,6 +745,16 @@ function renderFreshness() {
   el.title = lines.join("\n");
 }
 
+// The workload MIX as data/workload_mix.resolve_mix reads it:
+// [key, ratio|null, cachePct|null]. The two numbers travel only for "custom";
+// a blank box is null and Python owns the fallback and the clamping.
+function readMix() {
+  const sel = document.getElementById("filter-mix");
+  const key = (sel && sel.value) || (window.AF.manifest && window.AF.manifest.default_mix) || null;
+  if (key !== "custom") return [key, null, null];
+  return [key, numOrNull("mix-ratio"), numOrNull("mix-cache")];
+}
+
 // ---- Read current filter state ----
 function readGlobalFilters() {
   const providers = Array.from(document.getElementById("filter-provider").selectedOptions).map(o => o.value);
@@ -736,8 +763,11 @@ function readGlobalFilters() {
   // "" means every variant, which is the default and the state the dashboard
   // has always shown. Anything else selects one row per model at that tier.
   const effort = document.getElementById("filter-effort")?.value || "";
-  Object.assign(window.AF.state, { providers, minQuality, search, effort });
-  return [providers, minQuality, search, effort];
+  // MIX is appended LAST, here and in every callPy below: pyworker.js spreads
+  // the list into static_api with no arity check.
+  const mix = readMix();
+  Object.assign(window.AF.state, { providers, minQuality, search, effort, mix });
+  return [providers, minQuality, search, effort, mix];
 }
 
 async function renderJsonFig(divId, figObj) {
@@ -829,7 +859,7 @@ let lastCompareKey = null;
 // earlier, narrower filter, and reading only the DOM silently lost it.
 async function refreshCompare(triggered, wanted) {
   if (!window.AF.pyReady) return;
-  const [p, q, s, e] = readGlobalFilters();
+  const [p, q, s, e, m] = readGlobalFilters();
   const sel = document.getElementById("radar-model-select");
   const inDom = Array.from(sel.selectedOptions).map(o => o.value);
   // Prefer the recency order the onchange handler maintains; fall back to
@@ -839,7 +869,7 @@ async function refreshCompare(triggered, wanted) {
     : tracked.concat(inDom.filter(v => !tracked.includes(v)));
   // A tab switch with the same filters and picks as the last render has
   // nothing new to draw; skip Python and Plotly.react.
-  const key = JSON.stringify([p, q, s, e, selected]);
+  const key = JSON.stringify([p, q, s, e, m, selected]);
   if (triggered === "tab-switch" && key === lastCompareKey) return;
   if (selected.length > COMPARE_MAX) {
     // Shift-selecting 9 left 8 highlighted while 5 were charted, and the
@@ -849,7 +879,7 @@ async function refreshCompare(triggered, wanted) {
   }
   window.AF.compareOrder = selected;
   try {
-    const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "", e);
+    const out = await window.AF.callPy("update_compare", p, q, s, selected, triggered || "", e, m);
     renderJsonFig("chart-radar", out.figure);
     document.getElementById("compare-raw-table").innerHTML = out.raw_table_html;
     // Sync select options/value only when not triggered by the select itself
@@ -865,14 +895,14 @@ async function refreshCompare(triggered, wanted) {
       Array.from(sel.options).forEach(o => { o.selected = out.value.includes(o.value); });
     }
     window.AF.compareOrder = out.value.slice();
-    lastCompareKey = JSON.stringify([p, q, s, e, out.value]);
+    lastCompareKey = JSON.stringify([p, q, s, e, m, out.value]);
   } catch (e) { console.error("refreshCompare failed:", e); }
 }
 
 // The Budget tab answers one question: what is the cheapest model smarter than X.
 // Python decides the winner (same frame the chart is built from) and this renders
 // it; nothing here re-derives it from the figure.
-function renderBudgetAnswer(best, floor) {
+function renderBudgetAnswer(best, floor, basis) {
   const host = document.getElementById("budget-answer");
   if (!host) return;
   host.replaceChildren();
@@ -921,8 +951,11 @@ function renderBudgetAnswer(best, floor) {
 
   const meta = document.createElement("span");
   meta.style.cssText = "font-size:11px;color:#777;";
+  // `basis` names the workload MIX the price is at (update_cost_calc returns
+  // it with the answer, so it can never belong to a different render).
   meta.textContent =
-    `${best.quality.toFixed(1)} pts · $${best.price.toFixed(4)}/M tok · ` +
+    `${best.quality.toFixed(1)} pts · ${fmtPrice(best.price)}/M tok` +
+    (basis ? ` at ${basis}` : "") + " · " +
     `${best.n_qualifying} model${best.n_qualifying === 1 ? "" : "s"} qualify`;
 
   line.append(name, prov, cost);
@@ -981,18 +1014,18 @@ async function refreshRecommend() { return refreshers.recommend(); }
 const refreshers = {
   overview: makeRefresher("overview",
     () => {
-      const [p, q, s, e] = readGlobalFilters();
+      const [p, q, s, e, m] = readGlobalFilters();
       const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
-      return [p, q, s, x, e];
+      return [p, q, s, x, e, m];
     },
-    (p, q, s, x, e) => window.AF.callPy("update_overview", p, q, s, x, e),
+    (p, q, s, x, e, m) => window.AF.callPy("update_overview", p, q, s, x, e, m),
     async (fig) => { await renderJsonFig("chart-pareto", fig); attachParetoClickHandler(); }),
 
   landscape: makeRefresher("landscape",
     () => readGlobalFilters(),
-    async (p, q, s, e) => ({
-      treemap: await window.AF.callPy("update_treemap", p, q, s, e),
-      leaderboard: await window.AF.callPy("update_provider_leaderboard", p, q, s, e),
+    async (p, q, s, e, m) => ({
+      treemap: await window.AF.callPy("update_treemap", p, q, s, e, m),
+      leaderboard: await window.AF.callPy("update_provider_leaderboard", p, q, s, e, m),
     }),
     (out) => {
       renderJsonFig("chart-treemap", out.treemap);
@@ -1001,15 +1034,15 @@ const refreshers = {
 
   rankings: makeRefresher("rankings",
     () => {
-      const [p, q, s, e] = readGlobalFilters();
+      const [p, q, s, e, m] = readGlobalFilters();
       const sort = document.querySelector('input[name="rankings-sort"]:checked')?.value || "intelligence";
-      return [p, q, s, sort, e];
+      return [p, q, s, sort, e, m];
     },
     // Value Leaders follows the same global filters (Dash's update_value_leaders);
     // the sort toggle does not touch it, but both share one coalesced refresh.
-    async (p, q, s, sort, e) => ({
-      rankings: await window.AF.callPy("update_rankings", p, q, s, sort, e),
-      leaders: await window.AF.callPy("update_value_leaders", p, q, s, e),
+    async (p, q, s, sort, e, m) => ({
+      rankings: await window.AF.callPy("update_rankings", p, q, s, sort, e, m),
+      leaders: await window.AF.callPy("update_value_leaders", p, q, s, e, m),
     }),
     (out) => {
       renderJsonFig("chart-value_leaders", out.leaders);
@@ -1018,25 +1051,25 @@ const refreshers = {
 
   budget: makeRefresher("budget",
     () => {
-      const [p, q, s, e] = readGlobalFilters();
+      const [p, q, s, e, m] = readGlobalFilters();
       const tok = Number(document.getElementById("budget-tokens")?.value || 1);
       const floor = Number(document.getElementById("budget-min-intelligence")?.value || 0);
-      return [tok, p, q, s, floor, e];
+      return [tok, p, q, s, floor, e, m];
     },
-    (tok, p, q, s, floor, e) => window.AF.callPy("update_cost_calc", tok, p, q, s, floor, e),
+    (tok, p, q, s, floor, e, m) => window.AF.callPy("update_cost_calc", tok, p, q, s, floor, e, m),
     (out) => {
-      renderBudgetAnswer(out.best, out.floor);
+      renderBudgetAnswer(out.best, out.floor, out.basis);
       return renderJsonFig("chart-cost_calc", out.figure);
     }),
 
   table: makeRefresher("table",
     () => {
-      const [p, q, s, e] = readGlobalFilters();
+      const [p, q, s, e, m] = readGlobalFilters();
       const col = document.getElementById("table-sort-col").value;
       const dir = document.getElementById("table-sort-dir").value;
-      return [p, q, s, col, dir, e];
+      return [p, q, s, col, dir, e, m];
     },
-    (p, q, s, col, dir, e) => window.AF.callPy("update_table", p, q, s, col, dir, e),
+    (p, q, s, col, dir, e, m) => window.AF.callPy("update_table", p, q, s, col, dir, e, m),
     (rows) => renderTableRows(rows)),
 
   local: makeRefresher("refreshLocal",
@@ -1116,12 +1149,15 @@ function renderTableRows(records) {
       <th style="${hStyleLeft}">Provider</th>
       <th style="${hStyle}">Intelligence</th>
       <th style="${hStyle}">Value (score/$)</th>
-      <th style="${hStyle}" title="Our blend, computed from Artificial Analysis's per-token prices: 3 parts output to 1 part input, cheapest available host. Artificial Analysis publishes the opposite weighting; this basis is ours, so their site will quote a lower number.">Price ($/M tok, 3:1)</th>
+      <th id="table-price-th" style="${hStyle}"></th>
       <th style="${hStyle}">Speed (tok/s)</th>
       <th style="${hStyle}">Latency (s)</th>
       <th style="${hStyle}">Context</th>
     </tr>`;
   }
+  // Built once, so the price header is (re)written here and by
+  // refreshMixInfo: it names the MIX the column is priced at.
+  syncTablePriceHeader();
 
   const cellBase = "padding:7px 14px;font-size:11px;font-family:Inter,sans-serif;" +
     "border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;white-space:nowrap;";
@@ -1130,7 +1166,7 @@ function renderTableRows(records) {
     const pcolor = PROVIDER_COLORS[r.provider] || DEFAULT_PROVIDER_COLOR;
     const qual = r.quality != null ? r.quality.toFixed(1) : "—";
     const val  = r.value  != null && r.value > 0  ? r.value.toFixed(2) : "—";
-    const price = r.price != null && r.price > 0   ? "$" + r.price.toFixed(4) : "—";
+    const price = r.price != null && r.price > 0   ? fmtPrice(r.price) : "—";
     // "en-US", not the visitor's locale: a bare toLocaleString renders 1560 as
   // "1.560" in de-DE — a 1000x ambiguity in a column sitting next to $0.1580.
   const speed = r.speed != null && r.speed > 0
@@ -1159,6 +1195,68 @@ function rerenderAfterFilterChange(which) {
   return rerenderActiveFilterCharts();
 }
 
+// Same display rule as data/workload_mix.fmt_price: a sub-cent agentic price
+// must never print as "$0.00".
+function fmtPrice(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  v = Number(v);
+  if (v >= 1) return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (v >= 0.01) return "$" + v.toFixed(3);
+  if (v === 0) return "$0.00";
+  return "$" + Number(v.toPrecision(4)).toString();
+}
+
+// Show the ratio / cache boxes only for Custom.
+function syncMixCustom() {
+  const box = document.getElementById("mix-custom");
+  const sel = document.getElementById("filter-mix");
+  if (box) box.style.display = sel && sel.value === "custom" ? "inline-flex" : "none";
+}
+
+// Custom starts from the numbers of the preset that was selected before.
+function prefillCustomMix(fromKey) {
+  const opts = (window.AF.manifest && window.AF.manifest.mix_options) || [];
+  const o = opts.find(x => x.value === fromKey);
+  if (!o || o.ratio == null) return;
+  const r = document.getElementById("mix-ratio");
+  const h = document.getElementById("mix-cache");
+  if (r && r.value === "") r.value = String(Number(o.ratio.toPrecision(4)));
+  if (h && h.value === "") h.value = String(o.cache_pct ?? 0);
+}
+
+function syncTablePriceHeader() {
+  const th = document.getElementById("table-price-th");
+  const info = window.AF.mixInfo || {};
+  if (!th) return;
+  th.textContent = info.table_header || "Price ($/M)";
+  th.title = info.title || "";
+}
+
+// The header stat, its label and the table's price header for the current MIX.
+// One worker call per distinct mix; the floor is market-wide (unfiltered), as
+// it always was, so it does not depend on the other filters.
+let lastMixInfoKey = null;
+async function refreshMixInfo() {
+  const mix = readMix();
+  const key = JSON.stringify(mix);
+  if (key === lastMixInfoKey) return;
+  try {
+    const info = await window.AF.callPy("mix_info", mix);
+    if (JSON.stringify(readMix()) !== key) return;    // superseded
+    lastMixInfoKey = key;
+    window.AF.mixInfo = info;
+    const v = document.getElementById("stat-floor-price");
+    const l = document.getElementById("stat-floor-label");
+    if (v) {
+      v.textContent = info.floor_price + (info.floor_filled ? "*" : "");
+      v.title = (info.floor_model ? `${info.floor_model}` : "") +
+        (info.floor_filled ? " · * cache price estimated at 10% of input (AA publishes none)" : "");
+    }
+    if (l) { l.textContent = info.floor_label; l.title = info.title || ""; }
+    syncTablePriceHeader();
+  } catch (e) { console.error("mix_info failed:", e); }
+}
+
 // ---- Re-render active tab's filter-driven charts ----
 async function rerenderActiveFilterCharts() {
   // Read the controls BEFORE the guard. readGlobalFilters is what populates
@@ -1171,6 +1269,7 @@ async function rerenderActiveFilterCharts() {
   // address bar follows the state — pre-boot included.
   syncUrl();
   if (!window.AF.pyReady) return;
+  refreshMixInfo();   // the header stat follows MIX on every tab
   const tab = window.AF.state.tab;
   if (tab === "compare") {
     // "tab-switch", not "filter-provider": this path runs on every tab change,
@@ -1244,9 +1343,39 @@ function wireGlobalControls() {
   document.getElementById("filter-quality").onchange = onFilter("filter-quality");
   const effEl = document.getElementById("filter-effort");
   if (effEl) effEl.onchange = onFilter("filter-effort");
+  const mixEl = document.getElementById("filter-mix");
+  if (mixEl) {
+    const mixChanged = onFilter("filter-mix");
+    let lastMix = mixEl.value;
+    mixEl.onchange = () => {
+      // Custom starts from the preset that was showing, so the boxes never
+      // hold a number nobody chose.
+      if (mixEl.value === "custom") prefillCustomMix(lastMix);
+      lastMix = mixEl.value;
+      syncMixCustom();
+      mixChanged();
+    };
+    // Typing is debounced longer than a select change: "300" passes through
+    // "3" and "30" on its way.
+    const typed = debounce(() => rerenderAfterFilterChange("filter-mix"), 300);
+    ["mix-ratio", "mix-cache"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = typed;
+    });
+  }
   document.getElementById("model-search").oninput = onFilter("model-search");
   // "Reset filters" clears everything; the two quality presets touch quality only.
-  document.getElementById("preset-all").onclick = () => setPreset(0, [], true);
+  document.getElementById("preset-all").onclick = () => {
+    // "Reset filters" means all of them, MIX included.
+    const ms = document.getElementById("filter-mix");
+    if (ms && window.AF.manifest && window.AF.manifest.default_mix) ms.value = window.AF.manifest.default_mix;
+    ["mix-ratio", "mix-cache"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    syncMixCustom();
+    setPreset(0, [], true);
+  };
   document.getElementById("preset-strong").onclick = () => setPreset(window.AF.manifest.p75, null, false);
   document.getElementById("preset-elite").onclick = () => setPreset(window.AF.manifest.p90, null, false);
 
@@ -1257,7 +1386,7 @@ function wireGlobalControls() {
       setExportPending(true);
       return;
     }
-    const [p, q, s, e] = readGlobalFilters();
+    const [p, q, s, e, m] = readGlobalFilters();
     try {
       // Export what is on screen. This always sent the hosted-LLM catalogue
       // through the global filters, so ↓CSV on Image Gen handed back the LLM
@@ -1267,7 +1396,7 @@ function wireGlobalControls() {
       // exported "fits" for the default 32 GB card whatever was selected.
       const tab = window.AF.state.tab;
       const local = tab === "local" ? localArgs() : null;
-      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab, e, local);
+      const csv = await window.AF.callPyRaw("export_csv", p, q, s, tab, e, local, m);
       const name = await window.AF.callPyRaw("export_csv_filename", tab);
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
@@ -1291,13 +1420,23 @@ function wireGlobalControls() {
 // reload both dropped the tab and every filter, and EFFORT was never written.
 // Parameters this function does not own (the ⟳ cache-buster `v`) are kept.
 function stateUrl() {
-  const { tab, providers, minQuality, effort } = window.AF.state;
+  const { tab, providers, minQuality, effort, mix } = window.AF.state;
   const params = new URLSearchParams(location.search);
-  ["tab", "p", "q", "e"].forEach(k => params.delete(k));
+  ["tab", "p", "q", "e", "m", "mr", "mh"].forEach(k => params.delete(k));
   if (tab) params.set("tab", tab);
   if (providers && providers.length) params.set("p", providers.join(","));
   if (minQuality > 0) params.set("q", minQuality);
   if (effort) params.set("e", effort);
+  // MIX: written only when it is not the default, so an untouched page keeps
+  // the URL it always had. The numbers ride only with "custom".
+  const defMix = (window.AF.manifest && window.AF.manifest.default_mix) || "ours";
+  if (Array.isArray(mix) && mix[0] && mix[0] !== defMix) {
+    params.set("m", mix[0]);
+    if (mix[0] === "custom") {
+      if (mix[1] != null) params.set("mr", mix[1]);
+      if (mix[2] != null) params.set("mh", mix[2]);
+    }
+  }
   const qs = params.toString();
   return location.origin + location.pathname + (qs ? "?" + qs : "");
 }
@@ -1341,6 +1480,23 @@ function applyUrlState() {
     const valid = ((window.AF.manifest && window.AF.manifest.effort_options) || []).map(o => o.value);
     const want = u.get("e");
     if (effEl) effEl.value = valid.includes(want) ? want : "";
+  }
+  if (u.has("m")) {
+    // Same rule as EFFORT: only a mix the control offers; anything else is the
+    // default. mr / mh are clamped by Python (workload_mix.custom_mix).
+    const mixEl = document.getElementById("filter-mix");
+    const opts = (window.AF.manifest && window.AF.manifest.mix_options) || [];
+    const want = u.get("m");
+    if (mixEl) mixEl.value = opts.some(o => o.value === want) ? want
+      : ((window.AF.manifest && window.AF.manifest.default_mix) || "ours");
+    if (want === "custom") {
+      [["mr", "mix-ratio"], ["mh", "mix-cache"]].forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        const v = Number(u.get(k));
+        if (el && u.has(k) && Number.isFinite(v)) el.value = String(v);
+      });
+    }
+    syncMixCustom();
   }
   readGlobalFilters();
   if (u.get("tab")) switchTab(u.get("tab"));   // switchTab validates
@@ -1390,7 +1546,7 @@ function attachParetoClickHandler() {
     const model = Array.isArray(cd) ? (cd[5] ?? cd[0]) : cd;
     const provider = Array.isArray(cd) ? (cd[6] ?? cd[1]) : "";
     try {
-      const html = await window.AF.callPyRaw("model_detail", model, provider);
+      const html = await window.AF.callPyRaw("model_detail", model, provider, readMix());
       if (!html) return;
       document.getElementById("detail-panel-body").innerHTML = html;
       document.getElementById("detail-panel").className = "detail-panel open";
@@ -1401,7 +1557,7 @@ function attachParetoClickHandler() {
 
 // ---- Overview caption text (mirrors app.py) ----
 const OVERVIEW_CAPTIONS = {
-  price: "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers collapse to one point rather than five near-duplicates at the same price. X = price per 1M tokens, blended 3:1 output:input, our weighting not AA's (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier. Click any bubble for full details.",
+  price: "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers collapse to one point rather than five near-duplicates at the same price. X = price per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details.",
   speed: "Speed (tok/s) vs. AA Intelligence Index, one bubble per model family (best-scoring variant). Top-right = fast and smart. Bubble size = affordability (larger = cheaper, log-scaled). Click any bubble for full details.",
 };
 function updateOverviewCaption() {

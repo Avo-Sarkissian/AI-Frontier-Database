@@ -5,6 +5,8 @@ Bars within 5% of the top score are bracketed in the same tier.
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix, fmt_price
+
 from components.charts.constants import (
     plot_text,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
@@ -32,14 +34,20 @@ def _assign_tiers(values: pd.Series, gap_pct: float = 0.05) -> list[int]:
     return list(reversed(tiers))
 
 
-def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligence") -> go.Figure:
-    """Horizontal bar chart of top-N models by the chosen metric."""
+def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligence",
+                   basis=None) -> go.Figure:
+    """Horizontal bar chart of top-N models by the chosen metric.
+
+    ``basis`` is the workload MIX the prices are at. Value divides by that
+    price, so its axis and title name the mix; every price label does too."""
+    basis = resolve_mix(basis)
     valid = df[df["quality"] > 0].copy()
 
     if metric == "value":
         valid = valid[valid["price"] > 0].copy()
         valid["_metric"] = valid["quality"] / valid["price"]
-        x_col, x_label, title_metric = "_metric", "AA Score per $ / 1M tokens", "Value (score/$)"
+        x_col, x_label, title_metric = ("_metric", f"AA Score per $ / 1M tokens · {basis.short}",
+                                        f"Value (score/$ · {basis.short})")
     elif metric == "speed":
         valid = valid[valid["speed"] > 0].copy()
         valid["_metric"] = valid["speed"]
@@ -78,7 +86,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         lambda s: f"{s:.0f} tok/s" if pd.notna(s) and s > 0 else "N/A"
     )
     price_str = ranked["price"].apply(
-        lambda p: f"${p:.4f}/M" if pd.notna(p) and p > 0 else "N/A"
+        lambda p: f"{fmt_price(p)}/M · {basis.short}" if pd.notna(p) and p > 0 else "N/A"
     )
     latency_str = ranked["latency"].apply(
         lambda l: f"{l:.2f}s" if pd.notna(l) and l > 0 else "N/A"
@@ -140,7 +148,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         if row.get("self_host"):
             price_tag = "  <span style='color:#555'>self-host</span>"
         elif pd.notna(row["price"]) and row["price"] > 0:
-            price_tag = f"  <span style='color:#555'>${row['price']:.4f}/M</span>"
+            price_tag = f"  <span style='color:#555'>{fmt_price(row['price'])}/M</span>"
         else:
             price_tag = ""
         annotations.append(dict(

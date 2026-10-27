@@ -317,7 +317,8 @@ def test_local_args_accept_a_dict_for_dash():
 
 
 def test_the_browser_sends_effort_and_the_local_hardware():
-    assert 'callPyRaw("export_csv", p, q, s, tab, e, local)' in APP
+    # MIX rides last (data/workload_mix): pyworker.js has no arity check.
+    assert 'callPyRaw("export_csv", p, q, s, tab, e, local, m)' in APP
     assert 'tab === "local" ? localArgs() : null' in APP
     # update_local reads the same builder, so the two cannot drift
     assert "...localArgs()" in APP

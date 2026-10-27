@@ -243,7 +243,7 @@ def _local_kwargs(local_args) -> dict:
 
 
 def export_frame_for_tab(tab, full_df, providers, min_quality, search,
-                         effort=None, local_args=None):
+                         effort=None, local_args=None, mix=None):
     """(DataFrame, filename) for the dataset the given tab is showing.
 
     The three non-LLM tabs export their own catalogue, because the global
@@ -251,6 +251,11 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search,
     computed for `local_args` — the hardware the user picked, in
     LOCAL_ARG_NAMES order or as a dict — and the LLM tabs honour EFFORT, which
     used to be dropped: 113 rows on screen exported as 195.
+
+    `mix` (data/workload_mix) re-prices the LLM tabs' export the way the screen
+    is priced. At any non-default mix the file says so itself: `price_basis`
+    names the mix, `price_list_blend` keeps the dashboard's list blend and
+    `cache_price_filled` marks the 10%-of-input fill-ins.
     """
     name, kind = _TAB_EXPORTS.get(tab or "", ("ai_frontier_export.csv", "llm"))
     if kind == "local":
@@ -272,7 +277,13 @@ def export_frame_for_tab(tab, full_df, providers, min_quality, search,
         # cannot see — a leftover "Anthropic · ≥ 45" from another tab. Export
         # the whole hosted catalogue the stack picks from.
         return apply_filters(full_df, None, 0, ""), name
-    return apply_filters(full_df, providers, min_quality, search or "", effort), name
+    from data.workload_mix import apply_mix, resolve_mix
+    m = resolve_mix(mix)
+    frame = apply_filters(apply_mix(full_df, m), providers, min_quality, search or "", effort)
+    if not m.is_default:
+        frame = frame.copy()
+        frame.insert(frame.columns.get_loc("price") + 1, "price_basis", m.long)
+    return frame, name
 
 
 def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[str]:

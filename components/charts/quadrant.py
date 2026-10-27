@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix, fmt_price
+
 from components.charts.constants import (
     plot_text,
     empty_figure,
@@ -31,7 +33,8 @@ def _plottable(df: pd.DataFrame) -> pd.DataFrame:
     return dedupe_to_best_variant(sub)
 
 
-def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
+def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
+                   basis=None) -> go.Figure:
     """Speed vs Quality quadrant.
 
     ``full_df`` is the unfiltered catalogue. "Fast · Smart" reads as an absolute
@@ -40,7 +43,13 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
     frame, a provider filter moved the thresholds and flipped models between
     zones — the same model, the same numbers, the opposite verdict — and a
     quality-only filter moved the *speed* threshold.
+
+    ``basis`` is the workload MIX the prices are at; the hover names it. The
+    affordability bubbles keep their FIXED price reference whatever the mix, so
+    at an agentic mix most bubbles sit near the large end — honest, and a moving
+    reference would make size mean different things on different settings.
     """
+    basis = resolve_mix(basis)
     plot_df = _plottable(df)
     ref_df = plot_df if full_df is None else _plottable(full_df)
     # Families AA has scored but not timed yet (new releases, e.g. Gemini 4
@@ -133,7 +142,7 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
             "Speed: %{x:.0f} tok/s<br>"
-            "Price: $%{customdata[2]:.3f}/M tokens  ·  blended 3:1 out:in<br>"
+            "Price: %{customdata[2]}/M tokens  ·  " + basis.short + "<br>"
             "Rates: %{customdata[4]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
             "<extra></extra>"
@@ -155,7 +164,7 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.
             # looks the row up by them. [0] and [1] are escaped for the hover
             # text, so a name containing & or < never matched its own row.
             customdata=list(zip(pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
-                                pdf["price"], latency_str,
+                                pdf["price"].map(fmt_price), latency_str,
                                 _rate_pair(pdf),
                                 pdf["model"].astype(str), pdf["provider"].astype(str))),
             hovertemplate=hover,

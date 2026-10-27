@@ -5,10 +5,14 @@ Tile area = number of models; tile color = average quality score.
 import pandas as pd
 import plotly.graph_objects as go
 
+from data.workload_mix import resolve_mix
+
 from components.charts.constants import BG as _BG, FONT as _FONT, QUALITY_INDEX_MAX, plot_text
 
 
-def build_treemap(df: pd.DataFrame) -> go.Figure:
+def build_treemap(df: pd.DataFrame, basis=None) -> go.Figure:
+    """``basis``: the workload MIX the prices are at; the avg-price hover names it."""
+    basis = resolve_mix(basis)
     # Aggregate by provider
     agg = (
         df.groupby("provider")
@@ -31,7 +35,7 @@ def build_treemap(df: pd.DataFrame) -> go.Figure:
         "<b>%{label}</b><br>"
         "Models: %{customdata[0]}<br>"
         "Avg Intelligence: %{customdata[1]:.1f}<br>"
-        "Avg Price: $%{customdata[2]:.3f}/M<br>"
+        "Avg Price: $%{customdata[2]:.4g}/M  ·  " + basis.short + "<br>"
         "Best model: %{customdata[3]}<br>"
         "<extra></extra>"
     )

@@ -11,8 +11,9 @@ CAPTIONS: dict[str, str] = {
     'overview_price': (
 "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
         "collapse to one point rather than five near-duplicates at the same price. X = price "
-        "per 1M tokens (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-        "Dotted line = Pareto frontier. Click any bubble for full details."
+        "per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), "
+        "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+        "Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
     ),
     'recommend': (
         "Build your Claude Code model stack. API Only = all cloud. Hybrid — Fast "
@@ -41,7 +42,8 @@ CAPTIONS: dict[str, str] = {
     ),
     'rankings_value': (
         "Top 15 models ranked by intelligence per dollar (quality score ÷ price per "
-        "1M tokens). Quality floor of 20 so ultra-cheap but weak models don't "
+        "1M tokens at the MIX setting, so an input-heavy or cached workload can "
+        "re-rank the list). Quality floor of 20 so ultra-cheap but weak models don't "
         "pollute the list. Bar length = value score. Labels show raw quality and "
         "price."
     ),
@@ -55,18 +57,26 @@ CAPTIONS: dict[str, str] = {
         "model are shown in the table below the chart."
     ),
     'budget': (
-        "Estimate monthly API cost. Price is our own blend of Artificial Analysis's "
-        "per-token rates, weighted 3 parts output to 1 part input (AA's own "
-        "published blend uses the opposite weighting, so their site quotes a lower "
-        "figure). Enter volume in millions — 1M tokens ≈ 750,000 words or ~1,500 "
-        "pages. Chart sorts cheapest-first."
+        "Estimate monthly API cost. Price is the effective $/1M tokens for the "
+        "workload MIX in the filter bar: input:output ratio and cache-hit rate "
+        "applied to Artificial Analysis's per-token rates. The default is our own "
+        "blend, 1 part input to 3 parts output with no cache — not AA's, whose "
+        "published blend weights it the other way. Presets: chat 1:1, AA's 3:1, "
+        "≈15:1 observed in the a16z × OpenRouter State of AI study (quoted), and "
+        "agentic 300:1 with 90% cached (a SemiAnalysis estimate), or type your "
+        "own. Cache-hit prices are Artificial Analysis's; where it publishes none "
+        "the price is estimated at 10% of input and the chart says for how many. "
+        "Cache-write premiums are not modelled. Enter volume in millions of total "
+        "tokens — 1M tokens ≈ 750,000 words or ~1,500 pages. Chart sorts "
+        "cheapest-first."
     ),
     'table': (
         "Full sortable model table. Score = AA Intelligence Index (composite "
         "benchmark, higher = better) — about half are estimated by Artificial "
         "Analysis rather than measured, which the ↓CSV export marks per row. "
-        "Value = Score ÷ Price (quality per dollar). Price = blended $/M tokens "
-        "(3:1 output/input). Latency = time-to-first-token (TTFT) in seconds."
+        "Value = Score ÷ Price (quality per dollar). Price = effective $/M tokens "
+        "at the MIX setting; the column header names it (default: our 1:3 "
+        "in:out blend, not AA's). Latency = time-to-first-token (TTFT) in seconds."
     ),
     'local': (
         "Model specs come from Artificial Analysis, plus a short curated list of "
@@ -134,7 +144,8 @@ CAPTIONS: dict[str, str] = {
     'overview_price_dyn': (
 "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers "
         "collapse to one point rather than five near-duplicates at the same price. X = price "
-        "per 1M tokens (log scale), Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
-        "Dotted line = Pareto frontier. Click any bubble for full details."
+        "per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), "
+        "Y = AA Intelligence Index. Bubble size = throughput (tok/s). "
+        "Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details."
     ),
 }

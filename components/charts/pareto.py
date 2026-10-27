@@ -14,11 +14,20 @@ from components.charts.constants import (
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
 )
+from data.workload_mix import resolve_mix, fmt_price, fill_note
 
 
 def _log_price_ticks(lo: float, hi: float) -> tuple[list[float], list[str]]:
-    """1-2-5 ticks labelled as prices."""
-    return log_ticks(lo, hi, fmt=lambda v: f"${v:.2f}" if v < 1 else f"${v:g}")
+    """1-2-5 ticks labelled as prices.
+
+    Below a cent the label is the value itself: an agentic MIX puts the floor
+    near $0.004, and '.2f' printed a $0.005 tick as "$0.01". Cent-and-up ticks
+    keep their old format, so the default figure is unchanged."""
+    def _fmt(v):
+        if v < 0.01:
+            return f"${v:g}"
+        return f"${v:.2f}" if v < 1 else f"${v:g}"
+    return log_ticks(lo, hi, fmt=_fmt)
 
 
 def _pareto_frontier(df: pd.DataFrame) -> pd.DataFrame:
@@ -72,7 +81,8 @@ def _top_providers(df: pd.DataFrame, n: int = 10) -> set:
     return set(counts.head(n).index)
 
 
-def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
+def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
+                         basis=None) -> go.Figure:
     """Build the Cost vs Quality Pareto scatter figure.
 
     ``full_df`` is the unfiltered catalogue. The frontier is a claim about the
@@ -80,7 +90,11 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
     from every model, not from whatever survived the user's filter. Computing it
     from the filtered frame let one click promote a model the market already
     dominates onto a line labelled "Pareto Frontier".
+
+    ``basis`` is the workload MIX (data/workload_mix.Mix) the frame was priced
+    at; every price label names it. None = the dashboard's default blend.
     """
+    basis = resolve_mix(basis)
     plot_df = _plottable(df)
     ref_df = plot_df if full_df is None else _plottable(full_df)
 
@@ -107,7 +121,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
             "Quality: %{y}<br>"
-            "Price: $%{x:.3f}/M tokens  ·  blended 3:1 out:in<br>"
+            "Price: %{customdata[7]}/M tokens  ·  " + basis.short + "<br>"
             "Rates: %{customdata[4]}<br>"
             "Speed: %{customdata[2]}<br>"
             "Latency (TTFT): %{customdata[3]}<br>"
@@ -123,10 +137,13 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
 
         # [5] and [6] are the RAW model and provider for the click
         # handler's lookup; [0] and [1] are escaped for the hover text.
+        # [7] is the price as text (workload_mix.fmt_price), so a sub-cent
+        # agentic price never hovers as "$0.004".
         customdata = pd.Series(list(zip(
             pdf["model"].map(plot_text), pdf["provider"].map(plot_text),
             speed_str, latency_str, _rate_pair(pdf),
             pdf["model"].astype(str), pdf["provider"].astype(str),
+            pdf["price"].map(fmt_price),
         )), index=pdf.index)
 
         # A model AA has not timed yet has no size to draw: the floor would
@@ -238,7 +255,9 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
                 "  ·  bubble size = speed (tok/s)  ·  shape = provider family"
                 + ("  ·  hollow = speed not yet measured"
                    if (~_speed_measured(plot_df)).any() else "")
-                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family</span>"
+                + f"  ·  {len(plot_df)} of {len(df)} rows — one point per model family"
+                + fill_note(plot_df, basis)
+                + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0,
@@ -247,7 +266,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None) 
         ),
         xaxis=dict(
             title=dict(
-                text="Price  (USD / 1M tokens, blended 3:1 output:input)",
+                text=f"Price  (USD / 1M tokens, log)  ·  {basis.short}",
                 font=dict(color=AXIS, size=12),
                 standoff=12,
             ),

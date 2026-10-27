@@ -49,6 +49,11 @@ from data.video_models                      import (
     VIDEO_MODES, DEFAULT_MODE,
 )
 from components.charts.bump_chart          import build_value_leaders
+from data.workload_mix                      import (
+    apply_mix, resolve_mix, mix_options as _mix_options, fmt_price, fmt_floor,
+    floor_label as _floor_label, table_price_header as _table_price_header,
+    DEFAULT_MIX_KEY, CUSTOM_KEY, CACHE_FILL_RATIO,
+)
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 df = get_models()
@@ -195,22 +200,41 @@ def _stat(value: str, label: str, accent: bool = False) -> html.Div:
     ], className="stat")
 
 
+def _mix(key=None, ratio=None, cache=None):
+    """The MIX control's three values as a workload_mix.Mix (never raises)."""
+    return resolve_mix([key, ratio, cache])
+
+
+def _base(mix=None) -> pd.DataFrame:
+    """The catalogue priced at `mix`; the default is `df` itself. Mirrors
+    static_api._base: the mix is applied before any filter, and this unfiltered
+    frame is what the builders get as `full_df`."""
+    return apply_mix(df, resolve_mix(mix))
+
+
 def _apply_filters(providers, min_quality, search: str = "",
-                   effort: str | None = None) -> pd.DataFrame:
-    return apply_filters(df, providers, min_quality, search, effort)
+                   effort: str | None = None, mix=None) -> pd.DataFrame:
+    return apply_filters(_base(mix), providers, min_quality, search, effort)
 
 
 def _export_frame_for_tab(tab, providers, min_quality, search,
-                          effort=None, local_args=None):
+                          effort=None, local_args=None, mix=None):
     return _export_frame_for_tab_shared(tab, df, providers, min_quality, search,
-                                        effort=effort, local_args=local_args)
+                                        effort=effort, local_args=local_args, mix=mix)
+
+
+def _mix_option_items() -> list[dict]:
+    """dcc.Dropdown options for MIX, each with its source in the hover title."""
+    return [{"label": o["label"], "value": o["value"], "title": o["title"]}
+            for o in _mix_options()]
 
 
 def _desc(text: str) -> html.Div:
     return html.Div(text, className="chart-caption")
 
 
-def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str]) -> html.Div:
+def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str],
+                     mix=None) -> html.Div:
     """Raw values table rendered below the radar chart."""
     _FONT_S = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
     rows = dataframe[dataframe["model"].isin(selected_models)].copy()
@@ -235,7 +259,7 @@ def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str]) -> htm
         html.Th("Model",           style={**header_style, "textAlign": "left"}),
         html.Th("Provider",        style={**header_style, "textAlign": "left"}),
         html.Th("Intelligence",    style=header_style),
-        html.Th("Price ($/M tok)", style=header_style),
+        html.Th(_table_price_header(mix), style=header_style),
         html.Th("Speed (tok/s)",   style=header_style),
         html.Th("Latency (TTFT)",  style=header_style),
         html.Th("Context",         style=header_style),
@@ -244,7 +268,7 @@ def _build_raw_table(dataframe: pd.DataFrame, selected_models: list[str]) -> htm
     table_rows = []
     for _, r in rows.sort_values("quality", ascending=False, kind="mergesort").iterrows():
         pcolor    = PROVIDER_COLORS.get(r["provider"], DEFAULT_COLOR)
-        price_str = f"${r['price']:.4f}" if pd.notna(r["price"]) and r["price"] > 0 else "—"
+        price_str = fmt_price(r["price"]) if pd.notna(r["price"]) and r["price"] > 0 else "—"
         speed_str = f"{int(r['speed']):,}" if pd.notna(r["speed"]) and r["speed"] > 0 else "—"
         lat_str   = f"{r['latency']:.2f}s" if pd.notna(r["latency"]) and r["latency"] > 0 else "—"
         ctx_str   = str(r["context"]) if pd.notna(r.get("context")) else "—"
@@ -343,9 +367,9 @@ app.layout = html.Div([
         ], className="stat"),
         html.Div([
             html.Div(id="stat-floor-price",
-                     children=f"${df['price'].min():.3f}",
+                     children=fmt_floor(df["price"].min()),
                      className="stat-value", style={"color": "#00d4ff"}),
-            html.Div("Floor price / 1M", className="stat-label"),
+            html.Div(_floor_label(None), id="stat-floor-label", className="stat-label"),
         ], className="stat"),
         html.Div([
             html.Div(id="stat-peak-quality",
@@ -384,6 +408,27 @@ app.layout = html.Div([
             clearable=False,
             style={"width": "150px"},
         ),
+        html.Div(className="filter-sep"),
+        # Workload MIX (data/workload_mix): the input:output ratio and cache-hit
+        # rate every hosted price is computed at. Each option's title carries
+        # its source and date. Custom reveals two boxes.
+        html.Span("MIX", className="filter-label",
+                  title="Workload mix: input:output ratio and cache-hit rate every price is computed at"),
+        dcc.Dropdown(
+            id="filter-mix",
+            options=_mix_option_items(),
+            value=DEFAULT_MIX_KEY,
+            clearable=False,
+            style={"width": "190px"},
+        ),
+        html.Span([
+            dcc.Input(id="mix-ratio", type="number", min=0, max=1000, step="any",
+                      debounce=True, className="search-input", style={"width": "64px"}),
+            html.Span(":1 in:out", className="filter-note"),
+            dcc.Input(id="mix-cache", type="number", min=0, max=100, step=1,
+                      debounce=True, className="search-input", style={"width": "56px"}),
+            html.Span("% cached", className="filter-note"),
+        ], id="mix-custom", style={"display": "none"}),
         html.Div(className="filter-sep"),
         html.Span("SEARCH", className="filter-label"),
         dcc.Input(
@@ -676,7 +721,7 @@ app.layout = html.Div([
                          "format": {"specifier": ".1f"}},
                         {"name": "Value (score/$)",   "id": "value",      "type": "numeric",
                          "format": {"specifier": ".2f"}},
-                        {"name": "Price ($/M tok)",   "id": "price",      "type": "numeric",
+                        {"name": _table_price_header(None), "id": "price", "type": "numeric",
                          "format": {"specifier": ".4f"}},
                         {"name": "Speed (tok/s)",     "id": "speed",      "type": "numeric",
                          "format": {"specifier": ".0f"}},
@@ -1004,15 +1049,86 @@ def init_from_url(search: str):
     return tab, providers, quality, effort
 
 
+# ── URL: the MIX setting (?m=agentic, ?m=custom&mr=20&mh=50) ─────────────────
+# A separate callback, deliberately: init_from_url's 4-tuple is destructured by
+# existing tests and shared-link code, and widening it would break them all.
+@callback(
+    Output("filter-mix", "value"),
+    Output("mix-ratio",  "value"),
+    Output("mix-cache",  "value"),
+    Input("url", "search"),
+    prevent_initial_call=False,
+)
+def init_mix_from_url(search: str):
+    """A URL is user input: an unknown key falls back to the default mix, and
+    the custom numbers are clamped by workload_mix.resolve_mix when used."""
+    if not search:
+        return DEFAULT_MIX_KEY, None, None
+    params = parse_qs(search.lstrip("?"))
+    key = params.get("m", [DEFAULT_MIX_KEY])[0]
+    if key not in {o["value"] for o in _mix_options()}:
+        return DEFAULT_MIX_KEY, None, None
+    if key != CUSTOM_KEY:
+        return key, None, None
+    m = resolve_mix([CUSTOM_KEY, params.get("mr", [None])[0], params.get("mh", [None])[0]])
+    return CUSTOM_KEY, m.ratio, m.cache_hit * 100.0
+
+
+@callback(
+    Output("mix-custom", "style"),
+    Input("filter-mix",  "value"),
+)
+def toggle_mix_custom(key):
+    """The ratio and cache boxes exist only for Custom; presets carry their own."""
+    return {"display": "inline-flex", "alignItems": "center", "gap": "6px"} \
+        if key == CUSTOM_KEY else {"display": "none"}
+
+
+@callback(
+    Output("stat-floor-price", "children", allow_duplicate=True),
+    Output("stat-floor-label", "children"),
+    Output("model-table",      "columns"),
+    Input("filter-mix", "value"),
+    Input("mix-ratio",  "value"),
+    Input("mix-cache",  "value"),
+    State("model-table", "columns"),
+    prevent_initial_call=True,
+)
+def update_mix_labels(mix_key, mix_ratio, mix_cache, columns):
+    """The header stat and the table's price header name the active mix. The
+    floor is the cheapest effective price over the UNFILTERED catalogue, as it
+    always was — at the default it is the same string the layout renders."""
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    priced = _base(basis)["price"]
+    cols = [dict(c, name=_table_price_header(basis)) if c.get("id") == "price" else c
+            for c in (columns or [])]
+    return fmt_floor(priced[priced > 0].min()), _floor_label(basis), cols
+
+
+@callback(
+    Output("filter-mix", "value", allow_duplicate=True),
+    Input("preset-all",  "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_mix(_n):
+    """'Reset filters' clears everything, MIX included; the quality presets do not."""
+    return DEFAULT_MIX_KEY
+
+
 # ── URL: write state on change ────────────────────────────────────────────────
 clientside_callback(
     """
-    function(tab, providers, quality, effort) {
+    function(tab, providers, quality, effort, mix, mixRatio, mixCache) {
         var params = new URLSearchParams();
         if (tab)                           params.set('tab', tab);
         if (providers && providers.length) params.set('p', providers.join(','));
         if (quality > 0)                   params.set('q', quality);
         if (effort)                        params.set('e', effort);
+        if (mix && mix !== '""" + DEFAULT_MIX_KEY + """') params.set('m', mix);
+        if (mix === '""" + CUSTOM_KEY + """') {
+            if (mixRatio !== null && mixRatio !== undefined && mixRatio !== '') params.set('mr', mixRatio);
+            if (mixCache !== null && mixCache !== undefined && mixCache !== '') params.set('mh', mixCache);
+        }
         var qs = params.toString();
         history.replaceState(null, '', qs ? '?' + qs : window.location.pathname);
         return window.location.href;
@@ -1023,6 +1139,9 @@ clientside_callback(
     Input("filter-provider", "value"),
     Input("filter-quality",  "value"),
     Input("filter-effort",   "value"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
 
@@ -1191,18 +1310,24 @@ def update_recommend(selected, mode, gpu_preset, vram_per_gpu, num_gpus, quant):
     Input("model-search",    "value"),
     Input("overview-xaxis",  "value"),
     Input("data-version",    "data"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_overview(providers, min_quality, effort, search, xaxis, _v):
-    filtered = _apply_filters(providers, min_quality, search or "", effort)
+def update_overview(providers, min_quality, effort, search, xaxis, _v,
+                    mix_key=None, mix_ratio=None, mix_cache=None):
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    base = _base(basis)
+    filtered = apply_filters(base, providers, min_quality, search or "", effort)
     if xaxis == "speed":
         desc = _desc(CAPTIONS["overview_speed"])
-        # `df` is the unfiltered catalogue: the median crosshairs that decide
-        # "Fast · Smart" and the frontier are market-wide claims, so they must
-        # not move when the user narrows the frame.
-        return build_quadrant(filtered, full_df=df), desc
+        # `base` is the unfiltered catalogue at this mix: the median crosshairs
+        # that decide "Fast · Smart" and the frontier are market-wide claims,
+        # so they must not move when the user narrows the frame.
+        return build_quadrant(filtered, full_df=base, basis=basis), desc
     desc = _desc(CAPTIONS["overview_price_dyn"])
-    return build_pareto_scatter(filtered, full_df=df), desc
+    return build_pareto_scatter(filtered, full_df=base, basis=basis), desc
 
 
 @callback(
@@ -1212,10 +1337,16 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v):
     Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     Input("data-version",    "data"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_treemap(providers, min_quality, effort, search, _v):
-    return build_treemap(_apply_filters(providers, min_quality, search or "", effort))
+def update_treemap(providers, min_quality, effort, search, _v,
+                   mix_key=None, mix_ratio=None, mix_cache=None):
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    return build_treemap(_apply_filters(providers, min_quality, search or "", effort, basis),
+                         basis=basis)
 
 
 @callback(
@@ -1226,13 +1357,20 @@ def update_treemap(providers, min_quality, effort, search, _v):
     Input("model-search",    "value"),
     Input("rankings-sort",   "value"),
     Input("data-version",    "data"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_rankings(providers, min_quality, effort, search, sort_by, _v):
+def update_rankings(providers, min_quality, effort, search, sort_by, _v,
+                    mix_key=None, mix_ratio=None, mix_cache=None):
     # Ranked on intelligence, so the open-weight models no host sells belong
     # here even though they cannot appear on any price or speed axis.
-    filtered = apply_filters(ranking_frame(df), providers, min_quality, search or "", effort)
-    return build_rankings(filtered, top_n=min(25, len(filtered)), metric=sort_by or "intelligence")
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    filtered = apply_filters(ranking_frame(_base(basis)), providers, min_quality,
+                             search or "", effort)
+    return build_rankings(filtered, top_n=min(25, len(filtered)),
+                          metric=sort_by or "intelligence", basis=basis)
 
 
 @callback(
@@ -1242,15 +1380,21 @@ def update_rankings(providers, min_quality, effort, search, sort_by, _v):
     Input("filter-effort",   "value"),
     Input("model-search",    "value"),
     Input("data-version",    "data"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_value_leaders(providers, min_quality, effort, search, _v):
+def update_value_leaders(providers, min_quality, effort, search, _v,
+                         mix_key=None, mix_ratio=None, mix_cache=None):
     # Value Leaders sits under the same visible filter bar as the Rankings chart
     # above it, and was the one chart there with no callback: PROVIDER=Anthropic
     # narrowed Rankings and left this listing every provider, and the hourly
     # data-version bump never reached it, so its prices were frozen at boot.
     # The hosted frame, not ranking_frame: the score divides by price.
-    return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort))
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort, basis),
+                               basis=basis)
 
 
 
@@ -1260,10 +1404,16 @@ def update_value_leaders(providers, min_quality, effort, search, _v):
     Input("filter-quality",  "value"),
     Input("filter-effort",   "value"),
     Input("model-search",    "value"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_provider_leaderboard(providers, min_quality, effort, search):
-    return build_provider_leaderboard(_apply_filters(providers, min_quality, search or "", effort))
+def update_provider_leaderboard(providers, min_quality, effort, search,
+                                mix_key=None, mix_ratio=None, mix_cache=None):
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    return build_provider_leaderboard(
+        _apply_filters(providers, min_quality, search or "", effort, basis), basis=basis)
 
 
 @callback(
@@ -1276,17 +1426,24 @@ def update_provider_leaderboard(providers, min_quality, effort, search):
     Input("filter-effort",   "value"),
     Input("model-search",        "value"),
     Input("radar-model-select",  "value"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_compare(providers, min_quality, effort, search, selected_models):
-    filtered  = _apply_filters(providers, min_quality, search or "", effort)
+def update_compare(providers, min_quality, effort, search, selected_models,
+                   mix_key=None, mix_ratio=None, mix_cache=None):
+    basis     = _mix(mix_key, mix_ratio, mix_cache)
+    base      = _base(basis)
+    filtered  = apply_filters(base, providers, min_quality, search or "", effort)
     options   = _model_options(filtered)
     triggered = ctx.triggered_id
 
     capped = _cap_compare_selection(selected_models, filtered, triggered)
 
-    raw_table = _build_raw_table(filtered, capped)
-    return build_radar(filtered, capped, full_df=df), options, capped, raw_table
+    raw_table = _build_raw_table(filtered, capped, basis)
+    return (build_radar(filtered, capped, full_df=base, basis=basis),
+            options, capped, raw_table)
 
 
 @callback(
@@ -1296,13 +1453,18 @@ def update_compare(providers, min_quality, effort, search, selected_models):
     Input("filter-quality",  "value"),
     Input("filter-effort",   "value"),
     Input("model-search",    "value"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
     prevent_initial_call=True,
 )
-def update_cost_calc(monthly_tokens_m, providers, min_quality, effort, search):
-    filtered = _apply_filters(providers, min_quality, search or "", effort)
+def update_cost_calc(monthly_tokens_m, providers, min_quality, effort, search,
+                     mix_key=None, mix_ratio=None, mix_cache=None):
+    basis    = _mix(mix_key, mix_ratio, mix_cache)
+    filtered = _apply_filters(providers, min_quality, search or "", effort, basis)
     # 0 tokens is a real query; a negative volume would invert the "cheapest" sort.
     tokens   = _coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
-    return build_cost_calc(filtered, monthly_tokens_m=tokens)
+    return build_cost_calc(filtered, monthly_tokens_m=tokens, basis=basis)
 
 
 # ── Agent Stack tab — sync VRAM from GPU preset ───────────────────────────────
@@ -1424,9 +1586,12 @@ def update_local_charts(vram_per_gpu, num_gpus, quant, ctx_tokens, speed_mode, h
     # hid, killing this whole callback — clicking a bubble did nothing.
     Input("pareto-chart", "clickData"),
     Input("detail-close", "n_clicks"),
+    State("filter-mix",   "value"),
+    State("mix-ratio",    "value"),
+    State("mix-cache",    "value"),
     prevent_initial_call=True,
 )
-def toggle_detail_panel(pareto_click, _close):
+def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_cache=None):
     trigger = ctx.triggered_id
 
     if trigger == "detail-close":
@@ -1448,10 +1613,18 @@ def toggle_detail_panel(pareto_click, _close):
     model_name = customdata[5] if len(customdata) > 6 else customdata[0]
     provider   = customdata[6] if len(customdata) > 6 else customdata[1]
 
-    rows = df[df["model"] == model_name]
+    basis = _mix(mix_key, mix_ratio, mix_cache)
+    base  = _base(basis)
+    rows = base[base["model"] == model_name]
     if rows.empty:
         return no_update, no_update, no_update
     row = rows.iloc[0]
+    # Mirrors static_api._cache_label: AA's figure, else the 10% fill-in.
+    _c, _pin = row.get("cache_hit_price"), row.get("price_in")
+    cache_str = (f"{fmt_price(_c)} / 1M  ·  AA" if _c is not None and pd.notna(_c)
+                 else f"{fmt_price(CACHE_FILL_RATIO * float(_pin))} / 1M  ·  "
+                      f"est. {CACHE_FILL_RATIO:.0%} of input"
+                 if _pin is not None and pd.notna(_pin) else "—")
 
     color      = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
     quality    = float(row["quality"])
@@ -1513,7 +1686,8 @@ def toggle_detail_panel(pareto_click, _close):
         ]),
 
         html.Div(className="detail-panel-divider"),
-        _metric("Price",   f"${row['price']:.4f} / 1M tokens"),
+        _metric("Price",   f"{fmt_price(row['price'])} / 1M  ·  {basis.short}"),
+        _metric("Cached in", cache_str),
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
         _metric("Context", str(row.get("context", "N/A")) or "N/A"),
@@ -1559,9 +1733,14 @@ def add_to_compare(n_clicks, model_name, current_selection):
     Input("model-search",     "value"),
     Input("table-sort-col",   "value"),
     Input("table-sort-dir",   "value"),
+    Input("filter-mix",      "value"),
+    Input("mix-ratio",       "value"),
+    Input("mix-cache",       "value"),
 )
-def update_table(providers, min_quality, effort, search, sort_col, sort_dir):
-    filtered = _apply_filters(providers, min_quality, search or "", effort).copy()
+def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
+                 mix_key=None, mix_ratio=None, mix_cache=None):
+    basis    = _mix(mix_key, mix_ratio, mix_cache)
+    filtered = _apply_filters(providers, min_quality, search or "", effort, basis).copy()
     filtered["value"] = filtered.apply(
         lambda r: r["quality"] / r["price"] if r["price"] > 0 else None, axis=1
     )
@@ -1593,11 +1772,14 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir):
     State("local-context",   "value"),
     State("local-hw-meta",   "data"),
     State("local-tags",      "value"),
+    State("filter-mix",      "value"),
+    State("mix-ratio",       "value"),
+    State("mix-cache",       "value"),
     prevent_initial_call=True,
 )
 def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
                vram_per_gpu=None, num_gpus=None, quant=None, ctx_tokens=None,
-               hw_meta=None, tags=None):
+               hw_meta=None, tags=None, mix_key=None, mix_ratio=None, mix_cache=None):
     """Export what is on screen, not always the hosted-LLM table.
 
     The global filter bar sits outside dcc.Tabs and four tabs consume none of
@@ -1619,7 +1801,8 @@ def export_csv(n_clicks, tab, providers, min_quality, search, effort=None,
         "fp16_tflops": hw.get("fp16_tflops"),
     }
     frame, name = _export_frame_for_tab(tab, providers, min_quality, search,
-                                        effort=effort, local_args=local_args)
+                                        effort=effort, local_args=local_args,
+                                        mix=_mix(mix_key, mix_ratio, mix_cache))
     return dcc.send_data_frame(_csv_safe(frame).to_csv, name, index=False)
 
 
@@ -1649,9 +1832,12 @@ def toggle_global_filters(tab):
     Output("data-version",        "data"),
     Input("data-refresh-interval", "n_intervals"),
     State("data-version",          "data"),
+    State("filter-mix",            "value"),
+    State("mix-ratio",             "value"),
+    State("mix-cache",             "value"),
     prevent_initial_call=True,
 )
-def auto_refresh_data(_, current_version):
+def auto_refresh_data(_, current_version, mix_key=None, mix_ratio=None, mix_cache=None):
     prev_mtime = _cache_mtime
     _reload_if_stale()
     # Content-addressed, not a counter. _cache_mtime is a module global while
@@ -1663,7 +1849,9 @@ def auto_refresh_data(_, current_version):
     return (
         str(len(df)),
         str(df["provider"].nunique()),
-        f"${df['price'].min():.3f}",
+        # At the visitor's MIX, so an hourly refresh cannot reset the stat to
+        # the default basis under a label that still names their mix.
+        fmt_floor(_base(_mix(mix_key, mix_ratio, mix_cache))["price"].min()),
         f"{df['quality'].max():.1f}",
         new_version,
     )

@@ -37,9 +37,11 @@ DF = get_models()
 # ── 1.1 — the blend is ours, and nothing may say otherwise ───────────────────
 
 def test_price_is_the_output_weighted_blend():
-    """Pinned deliberately. Output-weighted is the honest basis for agentic and
-    RAG workloads; switching to AA's input-weighted blend would re-rank Value
-    and break continuity with 90 blended-only history snapshots."""
+    """Pinned deliberately: the stored `price` is the dashboard's default MIX
+    (data/workload_mix, 'ours' 1:3 in:out). Changing it would re-rank Value and
+    break continuity with 90 blended-only history snapshots. Other workloads —
+    agentic traffic is input-heavy and mostly cached, so this basis overstates
+    it — are priced by the MIX control, never by rewriting this column."""
     rows = DF[DF["price_in"].notna() & DF["price_out"].notna()]
     assert len(rows) > 50, "not enough priced rows to test"
     expected = (3 * rows["price_out"] + rows["price_in"]) / 4
@@ -72,6 +74,88 @@ def test_the_price_label_says_whose_blend_it_is():
         assert "our blend" in text or "our own blend" in text or "not aa's" in text, (
             f"{rel} does not disclose that the 3:1 blend is ours"
         )
+
+
+_MIX_SPECS = ["ours", "chat", "aa", "observed", "agentic", ["custom", 20, 50]]
+
+
+def _label_text(fig) -> str:
+    """Every string a reader can see: titles, axis titles, hovers, annotations,
+    tick labels and string customdata."""
+    spec = json.loads(fig.to_json())
+    out = [json.dumps(spec.get("layout", {}), ensure_ascii=False)]
+    for tr in spec.get("data", []):
+        out.append(str(tr.get("hovertemplate", "")))
+        out.append(json.dumps(tr.get("customdata", ""), ensure_ascii=False))
+        out.append(json.dumps(tr.get("text", ""), ensure_ascii=False))
+    return "\n".join(out)
+
+
+def _builders():
+    from components.charts.pareto import build_pareto_scatter
+    from components.charts.quadrant import build_quadrant
+    from components.charts.rankings import build_rankings
+    from components.charts.bump_chart import build_value_leaders
+    from components.charts.cost_calc import build_cost_calc
+    from components.charts.treemap import build_treemap
+    from components.charts.provider_leaderboard import build_provider_leaderboard
+    from components.charts.radar import build_radar
+    return {
+        "pareto": lambda f, b: build_pareto_scatter(f, full_df=f, basis=b),
+        "quadrant": lambda f, b: build_quadrant(f, full_df=f, basis=b),
+        "rankings_value": lambda f, b: build_rankings(f, top_n=25, metric="value", basis=b),
+        "rankings_intelligence": lambda f, b: build_rankings(f, top_n=25, basis=b),
+        "value_leaders": lambda f, b: build_value_leaders(f, basis=b),
+        "cost_calc": lambda f, b: build_cost_calc(f, basis=b),
+        "treemap": lambda f, b: build_treemap(f, basis=b),
+        "provider_leaderboard": lambda f, b: build_provider_leaderboard(f, basis=b),
+        "radar": lambda f, b: build_radar(f, None, full_df=f, basis=b),
+    }
+
+
+@pytest.mark.parametrize("builder", list(_builders()))
+@pytest.mark.parametrize("spec", _MIX_SPECS, ids=str)
+def test_every_price_label_names_the_active_mix(builder, spec):
+    """Extends 'the blend is ours, not AA's': every surface that prints a price
+    now prints the mix it is at, so a reader can never mistake an agentic
+    effective price for a list price — or ours for AA's at the default."""
+    from data.workload_mix import apply_mix, resolve_mix
+
+    mix = resolve_mix(spec)
+    fig = _builders()[builder](apply_mix(DF, mix), mix)
+    text = _label_text(fig)
+    assert mix.short in text, f"{builder} at {mix.key} does not name the mix"
+    if mix.is_default:
+        assert "not AA's" in text, f"{builder} no longer says the default blend is ours"
+
+
+def test_static_surfaces_name_the_mix_too():
+    """The table header, the raw-values table, the detail panel and the floor
+    stat are HTML/JSON rather than figures; they name the mix as well."""
+    import static_api as api
+
+    for spec in (None, ["agentic", None, None], ["custom", 20, 50]):
+        from data.workload_mix import resolve_mix
+        short = resolve_mix(spec).short
+        info = json.loads(api.mix_info(spec))
+        assert short in info["table_header"] and short in info["floor_label"]
+        cmp_ = json.loads(api.update_compare(None, 0, "", None, "", None, spec))
+        import html as _html
+        assert _html.escape(short, quote=True) in cmp_["raw_table_html"]
+        row = DF.iloc[0]
+        assert _html.escape(short, quote=True) in api.model_detail(row["model"], row["provider"], spec)
+
+
+def test_no_surface_hardcodes_the_old_blend_label():
+    """The pre-MIX strings stated one fixed basis; every label is now built from
+    workload_mix.Mix.short, so a hard-coded copy would contradict the control."""
+    files = sorted((ROOT / "components" / "charts").glob("*.py")) + [
+        ROOT / "static_api.py", ROOT / "app.py", ROOT / "docs" / "app.js"]
+    for path in files:
+        text = path.read_text()
+        for banned in ("blended 3:1 out:in", "Price ($/M tok, 3:1)", "3:1 blend",
+                       "blended 3:1 output:input"):
+            assert banned not in text, f"{path.relative_to(ROOT)} still says {banned!r}"
 
 
 def test_the_scraper_does_not_read_a_key_that_does_not_exist():
