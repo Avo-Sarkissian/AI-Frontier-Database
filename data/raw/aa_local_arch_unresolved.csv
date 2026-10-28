@@ -10,14 +10,14 @@ DeepSeek V4.1 Flash (Max),552.0,4,2026-10-21,no repo cleared the parameter guard
 DeepSeek V4.1 Flash (Non-Reasoning),552.0,1,2026-09-24,no repo cleared the parameter guard
 DeepSeek V4.1 Flash (Non-reasoning),552.0,4,2026-10-21,no repo cleared the parameter guard
 "DeepSeek V4.1 Flash (Reasoning, Max Effort)",552.0,3,2026-09-25,no repo cleared the parameter guard
-DeepSeek V4.1 Flash 1017 (Max),552.0,1,2026-10-21,no repo cleared the parameter guard
+DeepSeek V4.1 Flash 1017 (Max),552.0,2,2026-10-28,no repo cleared the parameter guard
 Falcon-H1R-7B,7.0,9,2026-10-23,no repo cleared the parameter guard
 Granite 4.1 3B,3.0,3,2026-09-11,no repo cleared the parameter guard
 Granite 4.2 3B,3.0,9,2026-10-23,no repo cleared the parameter guard
 Granite 4.2 8B,8.0,9,2026-10-23,no repo cleared the parameter guard
 HyperCLOVA X SEED Think (32B),32.0,9,2026-10-23,no repo cleared the parameter guard
 INTELLECT-3    (based on GLM-4.5-Air),107.0,1,2026-09-23,no repo cleared the parameter guard
-INTELLECT-3 (Based on GLM-4.5-Air),107.0,4,2026-10-21,no repo cleared the parameter guard
+INTELLECT-3 (Based on GLM-4.5-Air),107.0,5,2026-10-28,no repo cleared the parameter guard
 INTELLECT-3 (based on GLM-4.5-Air),107.0,2,2026-09-30,no repo cleared the parameter guard
 Jamba 1.7 Large,398.0,5,2026-09-25,no repo cleared the parameter guard
 Jamba 1.7 Mini,52.0,5,2026-09-25,no repo cleared the parameter guard
@@ -43,7 +43,7 @@ NVIDIA Nemotron Nano 12B v2 VL (Reasoning),13.2,9,2026-10-23,no repo cleared the
 Nemotron 3 Nano Omni 30B A3B Reasoning,30.0,9,2026-10-23,no repo cleared the parameter guard
 Nemotron 3.5 Bolt 74B-A9B,74.0,2,2026-10-22,no repo cleared the parameter guard
 Nemotron 3.5 Super VL,120.0,2,2026-10-22,no repo cleared the parameter guard
-Nex-N2-Pro (Based on Qwen3.5-397B-A17B),397.0,4,2026-10-21,no repo cleared the parameter guard
+Nex-N2-Pro (Based on Qwen3.5-397B-A17B),397.0,5,2026-10-28,no repo cleared the parameter guard
 Nex-N2-Pro (based on Qwen3.5-397B-A17B),397.0,2,2026-09-24,no repo cleared the parameter guard
 Qwen3 Omni 30B A3B (Reasoning),35.3,9,2026-10-23,no repo cleared the parameter guard
 Qwen3 Omni 30B A3B Instruct,35.3,9,2026-10-23,no repo cleared the parameter guard
