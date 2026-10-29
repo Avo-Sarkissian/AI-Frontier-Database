@@ -11,8 +11,8 @@ from data.workload_mix import resolve_mix
 
 from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR,
-    BG as _BG, FONT as _FONT, empty_figure, QUALITY_INDEX_MAX, legend_below,
-    plot_text, context_k,
+    BG as _BG, FONT as _FONT, empty_figure, empty_state_figure, QUALITY_INDEX_MAX, legend_below,
+    plot_text, context_k, clean_model_name,
     RADAR_SPEED_MAX, RADAR_PRICE_MAX, RADAR_LATENCY_MAX, RADAR_CONTEXT_K_MAX,
 )
 
@@ -21,6 +21,16 @@ _PALETTE = [
 ]
 
 DIMS = ["Intelligence", "Speed", "Affordability", "Context", "Latency"]
+
+# Legend names are abbreviated, not cut: see clean_model_name.
+LEGEND_NAME_MAX = 36
+
+# Intelligence at 12 o'clock, spokes clockwise. Plotly's default puts the
+# first spoke at 3 o'clock, where "Intelligence" ran off the right edge of a
+# 356 px phone plot and the radial tick labels (drawn along that same spoke)
+# printed straight across it.
+RADAR_ROTATION = 90
+RADAR_DIRECTION = "clockwise"
 
 
 def _context_k(ctx_str) -> float:
@@ -119,6 +129,9 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
     # top 5 for both meant clearing the control charted five models while the
     # raw-values table directly beneath went blank — the two disagreeing about
     # what was being compared, with the <select> visibly empty.
+    if df.empty:
+        return empty_state_figure("Model Comparison", "No models match these filters",
+                                  "Clear the search, widen PROVIDER, or lower MIN SCORE")
     if selected_models is not None and len(selected_models) == 0:
         return empty_figure("Select up to 5 models to compare")
     if not selected_models:
@@ -214,7 +227,11 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
             legendgroup=f"radar-{idx}",
             # Escaped: Plotly renders legend text as markup, and a poisoned
             # model name produced a live <a> styled as a legend entry.
-            name=plot_text(model_name[:28] + ("…" if len(model_name) > 28 else "")),
+            # clean_model_name abbreviates the effort clause ("(Max, Default
+            # Fallback)" -> "(Max)") instead of cutting the name at 28 chars,
+            # which left "Claude Opus 5.5 (Max, Defaul…" in the legend.
+            # Escaped there: Plotly renders legend text as markup.
+            name=clean_model_name(model_name, max_len=LEGEND_NAME_MAX),
             hovertemplate=(
                 f"<b>{plot_text(model_name)}</b><br>"
                 f"Intelligence: {values_txt[0]}<br>"
@@ -249,8 +266,8 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
             text=(
                 "Model Comparison"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                "  ·  0–100% against the full catalogue; speed, price, context "
-                "and latency on a log scale"
+                "  ·  0–100% against the full catalogue, rings at 25% steps;"
+                " speed, price, context and latency on a log scale"
                 f"  ·  affordability at {basis.short}"
                 f"{'  ·  a gap in an outline = not measured' if any_missing else ''}"
                 "</span>"
@@ -261,17 +278,25 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
         ),
         polar=dict(
             bgcolor=_BG,
+            # Rings without numbers. The radial tick labels sat on a spoke and
+            # under every polygon whatever angle they were given (five spokes
+            # leave no empty sector once five models are drawn); the rings are
+            # quartiles, the subtitle says so, and the hover prints each
+            # model's exact percentage.
             radialaxis=dict(
                 visible=True,
                 range=[0, 1],
-                tickformat=".0%",
-                tickfont=dict(color="#777777", size=9, family=_FONT),
-                gridcolor="rgba(255,255,255,0.05)",
-                linecolor="rgba(255,255,255,0.05)",
-                showline=True,
+                tickvals=[0.25, 0.5, 0.75, 1.0],
+                showticklabels=False,
+                ticks="",
+                gridcolor="rgba(255,255,255,0.07)",
+                linecolor="rgba(255,255,255,0)",
+                showline=False,
             ),
             angularaxis=dict(
-                tickfont=dict(color="#999999", size=12, family=_FONT),
+                rotation=RADAR_ROTATION,
+                direction=RADAR_DIRECTION,
+                tickfont=dict(color="#aaaaaa", size=11, family=_FONT),
                 gridcolor="rgba(255,255,255,0.06)",
                 linecolor="rgba(255,255,255,0.06)",
             ),
@@ -279,7 +304,9 @@ def build_radar(df: pd.DataFrame, selected_models: list[str] | None = None,
         # Model names are long, so the vertical legend was wider than its own
         # 160px gutter and overlapped the polar plot on narrow viewports.
         legend=legend_below(y=-0.08),
-        margin=dict(l=60, r=40, t=52, b=110),
+        # Side margins hold the "Affordability" / "Speed" spoke labels, which
+        # now sit off the upper corners rather than at the far edges.
+        margin=dict(l=64, r=64, t=60, b=110),
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",

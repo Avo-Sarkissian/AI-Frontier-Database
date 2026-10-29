@@ -15,11 +15,21 @@ import plotly.graph_objects as go
 from data.workload_mix import resolve_mix
 
 from components.charts.constants import (
-    plot_text,
+    dedupe_to_best_variant, empty_state_figure,
+    plot_text, clean_model_name,
     right_gutter, fit_text, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
 )
+
+
+LABEL_GREY = "#aaaaaa"
+
+
+def count_label(n) -> str:
+    """"1 model", "3 models" — the label read "1 models" for single-model labs."""
+    n = int(n)
+    return f"{n} model" if n == 1 else f"{n} models"
 
 
 def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
@@ -27,10 +37,11 @@ def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
 
     ``basis``: the workload MIX the prices are at; the floor-price hover names it."""
     basis = resolve_mix(basis)
-    if df.empty:
-        return _empty("No data available.")
-
-    work = df[df["quality"] > 0].copy()
+    # One row per model family, as the treemap beside it counts them.
+    work = dedupe_to_best_variant(df[df["quality"] > 0]) if not df.empty else df
+    if work.empty:
+        return empty_state_figure("Provider Leaderboard", "No models match these filters",
+                                  "Clear the search, widen PROVIDER, or lower MIN SCORE")
 
     # Aggregation
     agg = work.groupby("provider").agg(
@@ -51,8 +62,10 @@ def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
     agg["_label"] = agg["provider"].map(plot_text)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in agg["provider"]]
-    short_names = agg["best_model"].apply(
-        lambda m: plot_text(m[:32] + "…" if len(m) > 32 else m))
+    # Abbreviated, not cut: "Claude Opus 5.5 (Max, Default Fallback)" ran
+    # into the gutter's ellipsis as "Claude Opus 5.5 (…". Escaped by
+    # clean_model_name.
+    short_names = agg["best_model"].apply(clean_model_name)
 
     fig = go.Figure()
 
@@ -107,7 +120,7 @@ def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
     ))
 
     _gutter = right_gutter(
-        f"{int(c)} models  ·  {n}" for c, n in zip(agg["model_count"], short_names)
+        f"{count_label(c)}  ·  {n}" for c, n in zip(agg["model_count"], short_names)
     )
     # Right-side annotations: model count + best model name.
     # Collected as plain dicts and set once in update_layout below: one
@@ -115,16 +128,17 @@ def build_provider_leaderboard(df: pd.DataFrame, basis=None) -> go.Figure:
     # every call, which makes the build quadratic in rows.
     annotations = []
     for i, row in agg.iterrows():
-        color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         annotations.append(dict(
             x=1.01,
             y=row["_label"],
-            text=fit_text(
-                f"{int(row['model_count'])} models  ·  {short_names[i]}", _gutter
-            ),
+            text=fit_text(f"{count_label(row['model_count'])}  ·  {short_names[i]}", _gutter),
             showarrow=False,
             xanchor="left",
-            font=dict(size=10, family=_FONT, color=color),
+            # Body grey, not the provider hue: the bar and the tick label
+            # already carry the provider, and several palette entries (Z AI's
+            # green, Mistral's red, Reflection's olive) sat at ~3:1 on the
+            # #111111 card at 10 px. #aaaaaa is 7.9:1. Same rule as Rankings.
+            font=dict(size=10, family=_FONT, color=LABEL_GREY),
             xref="paper", yref="y",
         ))
 
