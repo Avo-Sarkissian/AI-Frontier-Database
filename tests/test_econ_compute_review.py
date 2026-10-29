@@ -209,8 +209,9 @@ def test_box_bounds_come_from_the_manifest_not_the_markup():
 
 def test_static_labels_pair_with_their_controls():
     block = INDEX[INDEX.index('id="econ-compute-controls"'):]
-    pairs = re.findall(r'<span class="econ-pair"[^>]*white-space:nowrap[^>]*>(.*?)</span>\s*'
-                       r'(?=<span class="econ-pair"|<div class="filter-sep"|</span>)',
+    # .econ-pair.fg: inline-flex + nowrap from docs/assets/shell.css (.fg).
+    pairs = re.findall(r'<span class="econ-pair fg"[^>]*>(.*?)</span>\s*'
+                       r'(?=<span class="econ-pair|<div class="filter-sep"|</span>)',
                        block, flags=re.S)
     ids = ("gpu", "preset", "life", "rate", "capex", "kw", "pue", "kwh", "colo")
     for k in ids:

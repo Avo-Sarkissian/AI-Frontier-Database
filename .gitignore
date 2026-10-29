@@ -38,9 +38,13 @@ qa-*.png
 __pycache__/
 *.pyc
 
-# macOS/Finder duplicate artifacts of the 4MB bundle, created when the build
-# overwrites docs/pybundle.zip. Untracked junk, never part of the site.
-docs/pybundle [0-9]*.zip
+# macOS/Finder/iCloud duplicate artifacts ("pybundle 2.zip", "app 3.js"),
+# created when the build overwrites a file in docs/. Untracked junk that must
+# never be published next to the real files. Any name with " <digits>" before
+# the extension, anywhere under docs/; the built files never contain a space.
+docs/**/* [0-9].*
+docs/**/* [0-9][0-9].*
+docs/pybundle*.zip
 *.zip.tmp
 
 # Class deliverables. Only the final report PDF and the slide deck are public;

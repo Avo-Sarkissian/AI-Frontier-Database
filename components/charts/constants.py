@@ -118,13 +118,17 @@ EFFORT_LEVELS: tuple[tuple[str, str], ...] = (
 
 _EFFORT_RANK = {slug: i for i, (slug, _) in enumerate(EFFORT_LEVELS)}
 
-# Matches a trailing effort clause in either shape AA uses: a bare "(high)" and
-# a qualified "(Adaptive Reasoning, Max Effort)". Anchored to the end so a
-# parenthetical that is not an effort — "(Reasoning)", "(Non-reasoning)",
-# "(Vision)", a snapshot date — does not match and the row keeps its single
-# variant.
+# Matches a trailing effort clause in every shape AA uses: a bare "(high)", a
+# qualified "(Adaptive Reasoning, Max Effort)", and the effort FOLLOWED by a
+# qualifier — "(Max, Default Fallback)", the shape of every Claude 5.5 / Fable
+# 5.1 tier. The effort must be a whole comma-separated item of the trailing
+# parenthetical, so a parenthetical that is not an effort — "(Reasoning)",
+# "(Non-reasoning)", "(Vision)", "(High-res)", a snapshot date — does not match
+# and the row keeps its single variant. Missing the qualified-after shape left
+# every tier of those models unlabelled, so EFFORT=Low still showed their Max row.
 _EFFORT_RE = _re.compile(
-    r"\((?:[^()]*?,\s*)?(max|xhigh|high|medium|low|minimal)(?:\s+effort)?\)\s*$",
+    r"\((?:[^()]*?,\s*)?(max|xhigh|high|medium|low|minimal)(?:\s+effort)?"
+    r"(?:\s*,[^()]*)?\)\s*$",
     _re.I,
 )
 

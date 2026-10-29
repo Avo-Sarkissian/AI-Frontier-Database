@@ -549,3 +549,55 @@ def test_an_effort_clause_is_not_confused_with_any_other_parenthetical():
     assert effort_of("Nemotron 3 Ultra 550B A55B (Reasoning)") is None
     assert effort_of("Qwen3.6 27B (Non-reasoning)") is None
     assert effort_of("Llama 4 Scout") is None
+
+
+def test_an_effort_followed_by_a_qualifier_is_still_an_effort():
+    """AA names every Claude 5.5 / Fable 5.1 tier "(Max, Default Fallback)" —
+    the effort FIRST and a qualifier after it. The old pattern only accepted
+    the effort as the last comma item, so all of those tiers read as
+    unlabelled and EFFORT=Low still showed the Max row."""
+    from components.charts.constants import effort_of
+
+    assert effort_of("Claude Opus 5.5 (Max, Default Fallback)") == "max"
+    assert effort_of("Claude Sonnet 5.5 (Xhigh, Default Fallback)") == "xhigh"
+    assert effort_of("Claude Fable 5.1 (Low, Default Fallback)") == "low"
+    assert effort_of("Toy (Adaptive, High Effort, Preview)") == "high"
+    # Still a whole comma item, never a prefix of another word.
+    assert effort_of("Toy (High-res)") is None
+    assert effort_of("Toy (Lowercase, Default Fallback)") is None
+    assert effort_of("Qwen3.8 Max (0902)") is None
+
+
+def test_effort_low_never_shows_a_max_tier_of_a_qualified_family():
+    """End to end on synthetic rows shaped like the live Claude 5.5 names."""
+    import pandas as _pd
+    from components.charts.constants import select_effort
+
+    df = _pd.DataFrame([
+        {"model": f"Claude Opus 5.5 ({t}, Default Fallback)", "quality": q, "provider": "Anthropic"}
+        for t, q in [("Max", 70.0), ("Xhigh", 68.0), ("High", 65.0), ("Medium", 60.0), ("Low", 52.0)]
+    ])
+    assert select_effort(df, "low").iloc[0]["model"] == "Claude Opus 5.5 (Low, Default Fallback)"
+    assert select_effort(df, "medium").iloc[0]["model"] == "Claude Opus 5.5 (Medium, Default Fallback)"
+    assert select_effort(df, "max").iloc[0]["model"] == "Claude Opus 5.5 (Max, Default Fallback)"
+
+
+def test_the_live_catalogue_has_no_unlabelled_tier_beside_labelled_ones():
+    """Every row of a family that publishes effort tiers must declare its own
+    effort; an unlabelled sibling is how a regex gap shows up in the data."""
+    from components.charts.constants import base_model_name, effort_of
+
+    names = DF["model"].astype(str)
+    fams: dict[str, list[str]] = {}
+    for n in names:
+        if "(" in n:
+            fams.setdefault(base_model_name(n), []).append(n)
+    import re as _re
+    word = _re.compile(r"\b(max|xhigh|high|medium|low|minimal)\b", _re.I)
+    missed = [
+        n for base, rows in fams.items()
+        if any(effort_of(r) for r in rows)
+        for n in rows
+        if effort_of(n) is None and word.search(n[n.rfind("("):])
+    ]
+    assert not missed, f"effort tiers the pattern cannot read: {missed[:5]}"

@@ -197,11 +197,18 @@ def test_every_tab_renders(live, shots, tab):
     live.screenshot(path=str(shots / f"tab-{tab}.png"))
 
 
+def _pick_provider(live, name):
+    """PROVIDER is a checkbox popover over a hidden <select multiple>."""
+    live.click("#filter-provider-button")
+    live.check(f'#filter-provider-button + .mp-pop input[value="{name}"]')
+    live.keyboard.press("Escape")
+
+
 def test_provider_filter_narrows_the_overview(live):
     live.evaluate("() => switchTab('overview')")
     _wait_drawn(live, "chart-pareto")
     before = _points(live, "chart-pareto")
-    live.select_option("#filter-provider", ["OpenAI"])
+    _pick_provider(live, "OpenAI")
     live.wait_for_function(f"n => {_COUNT_JS}('chart-pareto') < n",
                            arg=before, timeout=60_000)
     after = _points(live, "chart-pareto")
@@ -213,7 +220,7 @@ def test_provider_filter_narrows_the_overview(live):
 
 def test_csv_export_downloads_the_filtered_catalogue(live, shots):
     live.evaluate("() => switchTab('overview')")
-    live.select_option("#filter-provider", ["OpenAI"])
+    _pick_provider(live, "OpenAI")
     live.wait_for_timeout(1500)
     with live.expect_download(timeout=60_000) as dl:
         live.click("#btn-export")

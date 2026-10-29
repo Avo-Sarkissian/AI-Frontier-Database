@@ -151,21 +151,171 @@ const DEFAULT_PROVIDER_COLOR = "#6b7280";
 
 
 // "148 models tracked" is only honest next to what upstream had that we cannot
-// carry. Written as text, never markup — the names come from the scraped feed.
+// carry — but "· 110 NOT CARRIED" in the header read like an error. The label
+// stays plain and the account rides its title (both stat tiles, so a hover on
+// the number finds it too). Written as text, never markup — the names come
+// from the scraped feed.
 function renderCoverageNote(cov) {
   const label = document.querySelector("#stat-model-count + .stat-label");
+  const value = document.getElementById("stat-model-count");
   if (!label || !cov) return;
+  label.textContent = "Models tracked";
   const noScore = (cov.skipped_no_score || []).length;
   const noPrice = (cov.skipped_no_price || []).length;
   const total = noScore + noPrice;
-  if (!total) { label.textContent = "Models tracked"; label.title = ""; return; }
-  label.textContent = `Models tracked  ·  ${total} not carried`;
+  if (!total) { label.title = ""; if (value) value.title = ""; return; }
   const parts = [];
   if (noScore) parts.push(`${noScore} with no intelligence score: ` + (cov.skipped_no_score || []).join(", "));
   if (noPrice) parts.push(`${noPrice} with no published price: ` + (cov.skipped_no_price || []).join(", "));
   label.title =
-    `${cov.kept} of ${(cov.kept || 0) + total} models upstream are shown.\n` + parts.join("\n");
+    `${cov.kept} of ${(cov.kept || 0) + total} models upstream are shown; ` +
+    `${total} are not carried.\n` + parts.join("\n");
+  if (value) value.title = label.title;
 }
+
+// ---- Multi-pick popover ----
+// PROVIDER, the Image / Video PROVIDER and TAGS, and Run Local TAGS were 32px
+// native <select multiple> boxes: they showed whichever option happened to
+// scroll into view as if it were selected, gave no count, needed Ctrl-click
+// and did nothing useful on a touch screen. Each is now a button that says
+// what is selected and opens a checkbox list. The <select> stays in the DOM,
+// hidden, as the single source of truth: every reader (selectedOptions), ?p=
+// restore and the presets keep working unchanged, and a checkbox click is
+// replayed onto it as an ordinary "change" event.
+const PICKER_NOUNS = { providers: ["provider", "providers"], tags: ["tag", "tags"] };
+
+function pickerLabel(sel) {
+  const nouns = PICKER_NOUNS[sel.dataset.picker] || ["item", "items"];
+  const chosen = Array.from(sel.selectedOptions);
+  if (!chosen.length) return { text: `All ${nouns[1]}`, set: false, title: "" };
+  const names = chosen.map(o => o.textContent);
+  if (chosen.length === 1) return { text: names[0], set: true, title: names[0] };
+  return { text: `${chosen.length} ${nouns[1]}`, set: true, title: names.join(", ") };
+}
+
+function syncMultiPicker(sel) {
+  const btn = sel && sel._mpButton;
+  if (!btn) return;
+  const l = pickerLabel(sel);
+  btn.textContent = l.text;
+  btn.title = l.title;
+  btn.classList.toggle("is-set", l.set);
+  const pop = sel._mpPopover;
+  if (!pop || pop.hidden) return;
+  // Update the open list in place: rebuilding it under the pointer dropped
+  // keyboard focus after every tick.
+  const boxes = pop.querySelectorAll(".mp-opt input");
+  if (boxes.length !== sel.options.length) { renderPickerList(sel); return; }
+  boxes.forEach((cb, i) => { cb.checked = sel.options[i].selected; });
+  const n = sel.selectedOptions.length;
+  const nouns = PICKER_NOUNS[sel.dataset.picker] || ["item", "items"];
+  const count = pop.querySelector(".mp-head span");
+  if (count) count.textContent = n ? `${n} of ${sel.options.length}` : `All ${nouns[1]}`;
+  const clear = pop.querySelector(".mp-clear");
+  if (clear) clear.disabled = !n;
+}
+
+function syncMultiPickers() {
+  document.querySelectorAll("select[data-picker]").forEach(syncMultiPicker);
+}
+
+function renderPickerList(sel) {
+  const pop = sel._mpPopover;
+  const nouns = PICKER_NOUNS[sel.dataset.picker] || ["item", "items"];
+  const head = document.createElement("div");
+  head.className = "mp-head";
+  const count = document.createElement("span");
+  const n = sel.selectedOptions.length;
+  count.textContent = n ? `${n} of ${sel.options.length}` : `All ${nouns[1]}`;
+  const clear = document.createElement("button");
+  clear.type = "button"; clear.className = "mp-clear"; clear.textContent = "Clear";
+  clear.disabled = !n;
+  clear.onclick = () => {
+    Array.from(sel.options).forEach(o => { o.selected = false; });
+    sel.dispatchEvent(new Event("change"));
+  };
+  head.append(count, clear);
+  const items = Array.from(sel.options).map(o => {
+    const lab = document.createElement("label");
+    lab.className = "mp-opt";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = o.value; cb.checked = o.selected;
+    cb.onchange = () => {
+      o.selected = cb.checked;
+      sel.dispatchEvent(new Event("change"));
+    };
+    const txt = document.createElement("span");
+    txt.textContent = o.textContent;
+    lab.append(cb, txt);
+    return lab;
+  });
+  pop.replaceChildren(head, ...items);
+}
+
+function closePicker(sel, refocus) {
+  const pop = sel._mpPopover;
+  if (!pop || pop.hidden) return;
+  pop.hidden = true;
+  sel._mpButton.setAttribute("aria-expanded", "false");
+  if (refocus) sel._mpButton.focus();
+}
+
+function openPicker(sel) {
+  document.querySelectorAll("select[data-picker]").forEach(o => { if (o !== sel) closePicker(o); });
+  const pop = sel._mpPopover;
+  renderPickerList(sel);
+  pop.style.left = "0px";
+  pop.hidden = false;
+  sel._mpButton.setAttribute("aria-expanded", "true");
+  // Keep it on screen: a picker near the right edge of a phone opened half
+  // off the viewport.
+  const r = pop.getBoundingClientRect();
+  const over = r.right - (document.documentElement.clientWidth - 8);
+  if (over > 0) pop.style.left = `${-Math.min(over, r.left - 8)}px`;
+  pop.querySelector(".mp-opt input")?.focus();
+}
+
+function enhanceMultiSelect(sel) {
+  if (!sel || sel._mpButton) return;
+  const wrap = document.createElement("span");
+  wrap.className = "mp";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "mp-btn";
+  btn.id = sel.id + "-button";
+  btn.setAttribute("aria-haspopup", "true");
+  btn.setAttribute("aria-expanded", "false");
+  const labelId = sel.getAttribute("aria-labelledby");
+  if (labelId) btn.setAttribute("aria-labelledby", `${labelId} ${btn.id}`);
+  const pop = document.createElement("div");
+  pop.className = "mp-pop";
+  pop.hidden = true;
+  pop.setAttribute("role", "group");
+  if (labelId) pop.setAttribute("aria-labelledby", labelId);
+  wrap.append(btn, pop);
+  sel.after(wrap);
+  sel._mpButton = btn;
+  sel._mpPopover = pop;
+  btn.onclick = () => (pop.hidden ? openPicker(sel) : closePicker(sel));
+  pop.addEventListener("keydown", e => {
+    if (e.key === "Escape") { e.preventDefault(); closePicker(sel, true); }
+  });
+  btn.addEventListener("keydown", e => {
+    if (e.key === "Escape") closePicker(sel);
+    if (e.key === "ArrowDown" && pop.hidden) { e.preventDefault(); openPicker(sel); }
+  });
+  // addEventListener, not onchange: the tab wiring owns sel.onchange.
+  sel.addEventListener("change", () => syncMultiPicker(sel));
+  syncMultiPicker(sel);
+}
+
+// One document listener closes whichever picker is open on an outside press.
+document.addEventListener("pointerdown", e => {
+  document.querySelectorAll("select[data-picker]").forEach(sel => {
+    const wrap = sel._mpButton && sel._mpButton.parentElement;
+    if (wrap && !wrap.contains(e.target)) closePicker(sel);
+  });
+});
 
 function buildTabsAndPanels() {
   const tabsEl = document.getElementById("tabs");
@@ -310,8 +460,18 @@ function switchTab(id) {
   if (panel) panel.className = "detail-panel";
   window.AF.detailModel = null;
   window.AF.state.tab = id;
-  document.querySelectorAll(".tab").forEach(b =>
-    b.classList.toggle("tab--selected", b.dataset.tab === id));
+  document.querySelectorAll(".tab").forEach(b => {
+    const on = b.dataset.tab === id;
+    b.classList.toggle("tab--selected", on);
+    // On a phone the strip scrolls sideways: keep the active tab in view
+    // (a restored ?tab=video otherwise opened with its tab off-screen).
+    if (on && b.parentElement && b.parentElement.scrollWidth > b.parentElement.clientWidth) {
+      const strip = b.parentElement;
+      const l = b.offsetLeft - strip.offsetLeft, r = l + b.offsetWidth;
+      if (l < strip.scrollLeft) strip.scrollLeft = l - 16;
+      else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth + 16;
+    }
+  });
   TABS.forEach(t => {
     document.getElementById("panel-" + t.id).style.display = t.id === id ? "block" : "none";
   });
@@ -360,7 +520,11 @@ function loadStaticFigures(tabId) {
     .filter(c => !window.AF.drawn["chart-" + c])
     .map(c => {
       window.AF.drawn["chart-" + c] = "loading";     // one fetch per chart
-      return renderFigure("chart-" + c, c).catch(e => {
+      // Overview's one div shows the pre-built figure of the X AXIS in force,
+      // which a restored ?x=speed link sets before the first draw.
+      const fig = tabId === "overview" && c === "pareto"
+        ? (OVERVIEW_FIGURES[currentOverviewX()] || c) : c;
+      return renderFigure("chart-" + c, fig).catch(e => {
         if (window.AF.drawn["chart-" + c] === "loading") delete window.AF.drawn["chart-" + c];
         console.error(`figure ${c} failed:`, e);
       });
@@ -944,6 +1108,10 @@ async function populateDynamicSelects() {
       // Same default preset feeds the Agent Stack tab's VRAM cap.
       setVramFromPreset("recommend-vram", hw, false);
     }
+    // What each select holds now is its default: stateUrl writes a key only
+    // when the control has moved off it. Then the link's own Run Local keys.
+    ["local-gpu-preset", "local-quant", "local-context", "local-speed-mode"].forEach(markDefault);
+    applyLocalUrlState();
 
   } catch (e) {
     console.error("populateDynamicSelects failed:", e);
@@ -1060,13 +1228,91 @@ function renderFreshness() {
 }
 
 // The workload MIX as data/workload_mix.resolve_mix reads it:
-// [key, ratio|null, cachePct|null]. The two numbers travel only for "custom";
-// a blank box is null and Python owns the fallback and the clamping.
+// [key, ratio|null, cachePct|null], ratio = input tokens per output token.
+// The numbers travel only for "custom", read from the three whole-number boxes
+// (in : out, % cached) by readCustomMix.
 function readMix() {
   const sel = document.getElementById("filter-mix");
   const key = (sel && sel.value) || (window.AF.manifest && window.AF.manifest.default_mix) || null;
   if (key !== "custom") return [key, null, null];
-  return [key, numOrNull("mix-ratio"), numOrNull("mix-cache")];
+  const c = readCustomMix();
+  return [key, c.ratio, c.cache];
+}
+
+// Custom MIX limits; Python clamps to the same (workload_mix.CUSTOM_RATIO_MAX).
+const MIX_TOKEN_MAX = 1000;
+
+// One box's whole number. An EMPTY box is not "use the default": it keeps the
+// last value it held, which it shows as its placeholder, so clearing a box to
+// retype it never silently re-prices every chart at 1:3. Returns null only
+// when the box has never held anything (Python then owns the fallback).
+function mixBoxValue(id, max) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const raw = String(el.value ?? "").trim();
+  const held = el.placeholder !== "" && el.placeholder != null ? Number(el.placeholder) : null;
+  if (raw === "") return Number.isFinite(held) ? held : null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return Number.isFinite(held) ? held : null;
+  return Math.min(max, Math.max(0, Math.round(n)));
+}
+
+// in : out -> {ratio, cache, inTok, outTok, valid}. A ratio needs output
+// tokens: N:0 (and 0:0) is flagged on the boxes and the last valid ratio
+// stands, which the floor label keeps naming. 0:N (output only) is valid.
+function readCustomMix() {
+  const inTok = mixBoxValue("mix-in", MIX_TOKEN_MAX);
+  const outTok = mixBoxValue("mix-out", MIX_TOKEN_MAX);
+  const cache = mixBoxValue("mix-cache", 100);
+  let ratio = null, valid = true;
+  if (inTok != null && outTok != null) {
+    if (outTok > 0) ratio = inTok / outTok;
+    else valid = false;
+  }
+  ["mix-in", "mix-out"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.setAttribute) el.setAttribute("aria-invalid", valid ? "false" : "true");
+  });
+  if (!valid) {
+    const last = window.AF && window.AF.lastCustomRatio;
+    ratio = last != null ? last : null;
+  } else if (ratio != null && window.AF) {
+    window.AF.lastCustomRatio = ratio;
+  }
+  return { ratio, cache, inTok, outTok, valid };
+}
+
+// A ratio (input per output token) as the smallest whole in:out pair that
+// reproduces it: 0.3333 -> [1, 3], 300 -> [300, 1], 2.5 -> [5, 2].
+// Old links carried mr as a decimal; presets carry it that way too.
+function ratioToPair(r) {
+  r = Number(r);
+  if (!Number.isFinite(r) || r < 0) return null;
+  if (r === 0) return [0, 1];
+  // Exact first (0.001 -> 1:1000), then within 0.5% (a 4-digit 0.3333 -> 1:3).
+  for (const tol of [1e-9, 0.005]) {
+    for (let d = 1; d <= MIX_TOKEN_MAX; d++) {
+      const n = Math.round(r * d);
+      if (n >= 1 && n <= MIX_TOKEN_MAX && Math.abs(n / d - r) <= tol * r) return [n, d];
+    }
+  }
+  return r >= 1 ? [Math.min(MIX_TOKEN_MAX, Math.round(r)), 1]
+                : [1, Math.min(MIX_TOKEN_MAX, Math.max(1, Math.round(1 / r)))];
+}
+
+// Write a ratio + cache into the boxes as committed values (value and the
+// placeholder an emptied box falls back to).
+function setCustomBoxes(ratio, cache) {
+  const pair = ratio == null ? null : ratioToPair(ratio);
+  const put = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el || v == null) return;
+    el.value = String(v);
+    el.placeholder = String(v);
+  };
+  if (pair) { put("mix-in", pair[0]); put("mix-out", pair[1]); }
+  if (cache != null && Number.isFinite(Number(cache))) put("mix-cache", Math.round(Number(cache)));
+  if (pair && window.AF) window.AF.lastCustomRatio = ratio;
 }
 
 // ---- Read current filter state ----
@@ -1613,10 +1859,7 @@ function prefillCustomMix(fromKey) {
   const opts = (window.AF.manifest && window.AF.manifest.mix_options) || [];
   const o = opts.find(x => x.value === fromKey);
   if (!o || o.ratio == null) return;
-  const r = document.getElementById("mix-ratio");
-  const h = document.getElementById("mix-cache");
-  if (r) r.value = String(Number(o.ratio.toPrecision(4)));
-  if (h) h.value = String(o.cache_pct ?? 0);
+  setCustomBoxes(o.ratio, o.cache_pct ?? 0);
 }
 
 // The previous MIX value lives on the element, not in a closure: applyUrlState
@@ -1629,27 +1872,70 @@ function rememberMix() {
 }
 
 // Python clamps the custom numbers (workload_mix.custom_mix: ratio 0-1000,
-// cache 0-100). Write what it actually used back into the boxes, so a typed
-// 2000 reads 1000 in the box and the link, matching every chart. An empty
-// box keeps its emptiness but shows the number used as its placeholder.
+// cache 0-100). Make the boxes show what it actually used, so 5:0 reads
+// 1000:1 and a never-filled box shows the default it was priced at. A box the
+// visitor emptied keeps its emptiness while focused (they are retyping) and
+// shows the number in force as its placeholder.
 function syncCustomBoxes(args) {
   if (!Array.isArray(args) || args[0] !== "custom") return;
   let changed = false;
-  [["mix-ratio", args[1]], ["mix-cache", args[2]]].forEach(([id, used]) => {
-    const el = document.getElementById(id);
-    if (!el || used == null || !Number.isFinite(Number(used))) return;
-    const shown = String(Number(Number(used).toPrecision(4)));
-    if (el.value === "") { el.placeholder = shown; return; }
-    const typed = Number(el.value);
-    if (!Number.isFinite(typed) || Math.abs(typed - used) > 1e-9 * Math.max(1, Math.abs(used))) {
-      el.value = shown;
+  const typed = readCustomMix();
+  const used = Number(args[1]);
+  // An invalid pair stays as typed (flagged) — rewriting the other box while
+  // the visitor is mid-edit would fight them; the label names the ratio used.
+  if (Number.isFinite(used) && typed.valid) {
+    const pair = ratioToPair(used);
+    const off = typed.ratio == null ||
+      Math.abs(typed.ratio - used) > 1e-6 * Math.max(1, used);
+    if (pair && off) {
+      [["mix-in", pair[0]], ["mix-out", pair[1]]].forEach(([id, v]) => showMixBox(id, v));
+      if (window.AF) window.AF.lastCustomRatio = used;
       changed = true;
     }
-  });
+  }
+  const cache = Number(args[2]);
+  const cEl = document.getElementById("mix-cache");
+  if (cEl && Number.isFinite(cache)) {
+    const v = Math.round(cache);
+    if (cEl.value === "" || Number(cEl.value) !== v) {
+      if (cEl.value !== "") changed = true;
+      showMixBox("mix-cache", v);
+    }
+  }
   if (changed) {
     readGlobalFilters();
     syncUrl();
     lastMixInfoKey = JSON.stringify(readMix());
+  }
+}
+
+// Show the number in force: always as the placeholder (what an emptied box
+// falls back to), and as the value unless the visitor is typing in that box.
+function showMixBox(id, v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.placeholder = String(v);
+  const focused = typeof document !== "undefined" && document.activeElement === el;
+  if (!focused) el.value = String(v);
+}
+
+// Leaving a box commits it: an empty one shows the value still in force, and
+// a typed one becomes what a later emptying falls back to.
+function commitMixBox(el) {
+  if (!el) return;
+  if (el.value === "") { el.value = el.placeholder; return; }
+  const max = el.id === "mix-cache" ? 100 : MIX_TOKEN_MAX;
+  const n = Number(el.value);
+  if (!Number.isFinite(n)) { el.value = el.placeholder; return; }
+  const v = String(Math.min(max, Math.max(0, Math.round(n))));
+  el.value = v;
+  // N:0 is never committed, so the fallback stays a ratio that means something.
+  const c = readCustomMix();
+  if (c.valid) {
+    ["mix-in", "mix-out", "mix-cache"].forEach(id => {
+      const b = document.getElementById(id);
+      if (b && b.value !== "") b.placeholder = b.value;
+    });
   }
 }
 
@@ -1685,7 +1971,8 @@ async function refreshMixInfo() {
     // screen has no hover. Same text as Dash's _floor_stat.
     if (l) {
       l.textContent = info.floor_label + (info.floor_filled ? ` · ${info.fill_key}` : "");
-      l.title = info.title || "";
+      // One line, ellipsised (assets/style.css): the full label leads the title.
+      l.title = l.textContent + (info.title ? "\n" + info.title : "");
     }
     syncTablePriceHeader();
     syncCustomBoxes(info.args);
@@ -1736,6 +2023,7 @@ function setPreset(minQ, providers, clearSearch) {
   if (providers !== null) {
     const pSel = document.getElementById("filter-provider");
     Array.from(pSel.options).forEach(o => { o.selected = providers.includes(o.value); });
+    syncMultiPicker(pSel);
   }
   if (clearSearch) document.getElementById("model-search").value = "";
   rerenderAfterFilterChange("filter-quality");
@@ -1797,9 +2085,11 @@ function wireGlobalControls() {
     // Typing is debounced longer than a select change: "300" passes through
     // "3" and "30" on its way.
     const typed = debounce(() => rerenderAfterFilterChange("filter-mix"), 300);
-    ["mix-ratio", "mix-cache"].forEach(id => {
+    ["mix-in", "mix-out", "mix-cache"].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.oninput = typed;
+      if (!el) return;
+      el.oninput = typed;
+      el.onchange = () => { commitMixBox(el); typed(); };
     });
   }
   document.getElementById("model-search").oninput = onFilter("model-search");
@@ -1810,10 +2100,11 @@ function wireGlobalControls() {
     if (ws) ws.value = "";
     const ms = document.getElementById("filter-mix");
     if (ms && window.AF.manifest && window.AF.manifest.default_mix) ms.value = window.AF.manifest.default_mix;
-    ["mix-ratio", "mix-cache"].forEach(id => {
+    ["mix-in", "mix-out", "mix-cache"].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.value = "";
+      if (el) { el.value = ""; el.placeholder = ""; el.setAttribute("aria-invalid", "false"); }
     });
+    window.AF.lastCustomRatio = null;
     rememberMix();
     syncMixCustom();
     setPreset(0, [], true);
@@ -1856,6 +2147,13 @@ function wireGlobalControls() {
   };
 
   document.getElementById("btn-refresh").onclick = doRefresh;
+
+  // The per-tab controls (Run Local, Economics, Image, Video) refresh through
+  // their own coalescing refreshers, which never touched the address bar. Any
+  // edit anywhere now settles into the URL, so a reload keeps the view.
+  const urlFollow = debounce(() => { readGlobalFilters(); syncUrl(); }, 250);
+  document.addEventListener("change", urlFollow);
+  document.addEventListener("input", urlFollow);
 }
 
 // [view, *view_args] for the ↓CSV; F and G add their views' arguments.
@@ -1867,31 +2165,112 @@ function econExportArgs() {
 }
 
 // ---- Keep the URL in step with the state ----
-// Mirrors Dash's url-sync clientside callback: tab, p, q and e. The URL used to
-// change only on Share, so ⟳ (which navigates to location.href) and a plain
-// reload both dropped the tab and every filter, and EFFORT was never written.
+// Mirrors Dash's url-sync clientside callback for tab, p, q and e, and adds
+// the per-tab controls so a reload or a shared link lands on the same view.
+// Every key is written only when it differs from the control's default, so
+// an untouched page keeps the URL it always had and links stay short.
 // Parameters this function does not own (the ⟳ cache-buster `v`) are kept.
+//
+//   global    tab p q e w m mr(in:out) mh s
+//   overview  x
+//   economics ev eg eb eu cg cp cx(7 boxes, comma-joined)
+//   run local lg ln lq lc ls lv lr lb lt
+//   image     ip it        video  vm vp vt
+// Run Local's selects are filled by Python after boot, so its keys wait in
+// window.AF.pendingLocalUrl until applyLocalUrlState and ride through
+// stateUrl untouched until then.
+const LOCAL_URL_KEYS = ["lg", "ln", "lq", "lc", "ls", "lv", "lr", "lb"];
+
+// Drop every key this page owns (and so is about to rewrite); keep the rest.
+function clearStateParams(params) {
+  const pending = window.AF.pendingLocalUrl;
+  ["tab", "p", "q", "e", "w", "m", "mr", "mh", "s", "x",
+   "ev", "eg", "eb", "eu", "cg", "cp", "cx",
+   "lg", "ln", "lq", "lc", "ls", "lv", "lr", "lb", "lt",
+   "ip", "it", "vm", "vp", "vt"].forEach(k => {
+    if (!(pending && Object.prototype.hasOwnProperty.call(pending, k))) params.delete(k);
+  });
+}
+
+const _val = id => document.getElementById(id)?.value ?? "";
+const _radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+// A select's default is whatever it held when it was filled (dataset.default).
+const _changed = id => {
+  const el = document.getElementById(id);
+  return !!el && el.value !== "" && el.dataset.default !== undefined && el.value !== el.dataset.default;
+};
+function markDefault(id) {
+  const el = document.getElementById(id);
+  if (el && el.dataset.default === undefined) el.dataset.default = el.value;
+}
+
 function stateUrl() {
-  const { tab, providers, minQuality, effort, mix, weights } = window.AF.state;
+  const { tab, providers, minQuality, effort, mix, weights, search } = window.AF.state;
   const params = new URLSearchParams(location.search);
-  ["tab", "p", "q", "e", "w", "m", "mr", "mh"].forEach(k => params.delete(k));
+  clearStateParams(params);
   if (tab) params.set("tab", tab);
   if (providers && providers.length) params.set("p", providers.join(","));
   if (minQuality > 0) params.set("q", minQuality);
   if (effort) params.set("e", effort);
   if (weights) params.set("w", weights);
-  // MIX: written only when it is not the default, so an untouched page keeps
-  // the URL it always had. The numbers ride only with "custom".
+  // MIX: the numbers ride only with "custom", as in:out like every label.
   const defMix = (window.AF.manifest && window.AF.manifest.default_mix) || "ours";
   if (Array.isArray(mix) && mix[0] && mix[0] !== defMix) {
     params.set("m", mix[0]);
     if (mix[0] === "custom") {
-      if (mix[1] != null) params.set("mr", mix[1]);
-      if (mix[2] != null) params.set("mh", mix[2]);
+      const pair = mix[1] != null ? ratioToPair(mix[1]) : null;
+      if (pair) params.set("mr", pair.join(":"));
+      if (mix[2] != null) params.set("mh", Math.round(mix[2]));
     }
   }
+  if (search && search.trim()) params.set("s", search.trim());
+  writeTabParams(params);
   const qs = params.toString();
   return location.origin + location.pathname + (qs ? "?" + qs : "");
+}
+
+// The per-tab controls' keys, each only when off its default.
+function writeTabParams(params) {
+  const pending = window.AF.pendingLocalUrl;
+  const x = currentOverviewX();
+  if (x !== "price") params.set("x", x);
+
+  // Economics: the view and its main controls.
+  const so = (window.AF.manifest && window.AF.manifest.econ_serve_options) || {};
+  const co = (window.AF.manifest && window.AF.manifest.econ_compute_options) || {};
+  const ev = currentEconView();
+  if (ev !== ECON_VIEWS[0].view) params.set("ev", ev);
+  const eg = _val("econ-serve-gpu");
+  if (eg && so.default_gpu && eg !== so.default_gpu) params.set("eg", eg);
+  const eb = _radio("econ-serve-basis");
+  if (eb && so.default_basis && eb !== so.default_basis) params.set("eb", eb);
+  const eu = document.getElementById("econ-util");
+  if (eu && eu.dataset.userSet && Number(eu.value) !== Number(so.default_util_pct)) params.set("eu", eu.value);
+  const cg = _val("econ-compute-gpu");
+  if (cg && co.default_gpu && cg !== co.default_gpu) params.set("cg", cg);
+  const cp = _val("econ-compute-preset");
+  if (cp && co.default_preset && cp !== co.default_preset) params.set("cp", cp);
+  const cx = ECON_COMPUTE_BOXES.map(id => _val(id).trim());
+  if (cx.some(v => v !== "")) params.set("cx", cx.join(",").replace(/,+$/, ""));
+
+  // Run Local (once its selects exist; until then the incoming keys stand).
+  if (!pending) {
+    if (_changed("local-gpu-preset")) params.set("lg", _val("local-gpu-preset"));
+    if (_changed("local-num-gpus")) params.set("ln", _val("local-num-gpus"));
+    if (_changed("local-quant")) params.set("lq", _val("local-quant"));
+    if (_changed("local-context")) params.set("lc", _val("local-context"));
+    if (_changed("local-speed-mode")) params.set("ls", _val("local-speed-mode"));
+    const lv = document.getElementById("local-vram");
+    if (lv && lv.dataset.userTyped === "1" && lv.value !== "") params.set("lv", lv.value);
+    const lr = document.getElementById("local-gpu-rate");
+    if (lr && lr.dataset.userTyped === "1" && lr.value !== "") params.set("lr", lr.value);
+    const lb = _radio("local-rate-basis");
+    if (lb && so.default_local_basis && lb !== so.default_local_basis) params.set("lb", lb);
+  }
+  const lists = [["lt", "local-tags"], ["ip", "image-provider-filter"], ["it", "image-tag-filter"],
+    ["vp", "video-provider-filter"], ["vt", "video-tag-filter"]];
+  lists.forEach(([k, id]) => { const v = multiVals(id); if (v.length) params.set(k, v.join(",")); });
+  if (_changed("video-mode-filter")) params.set("vm", _val("video-mode-filter"));
 }
 
 function syncUrl() {
@@ -1902,9 +2281,34 @@ function syncUrl() {
   return url;
 }
 
+// A URL is user input: a value is applied only when the control offers it.
+function setSelectIfOffered(id, value) {
+  const el = document.getElementById(id);
+  if (!el || value == null) return false;
+  if (!Array.from(el.options).some(o => o.value === value)) return false;
+  el.value = value;
+  return true;
+}
+function setRadioIfOffered(name, value) {
+  const r = document.querySelector(`input[name="${name}"][value="${CSS.escape(String(value))}"]`);
+  if (!r || r.disabled) return false;
+  r.checked = true;
+  return true;
+}
+function setMultiFromList(id, csv, aliases) {
+  const el = document.getElementById(id);
+  if (!el || csv == null) return;
+  const want = new Set(csv.split(",").map(v => (aliases && aliases[v]) || v));
+  Array.from(el.options).forEach(o => { o.selected = want.has(o.value); });
+  syncMultiPicker(el);
+}
+const _finite = v => v !== null && v !== "" && Number.isFinite(Number(v));
+
 // ---- Restore state from URL on page load ----
 function applyUrlState() {
   const u = new URLSearchParams(location.search);
+  // Defaults are what the controls hold before the URL touches them.
+  ["video-mode-filter", "local-num-gpus"].forEach(markDefault);
   if (u.get("q")) {
     const qEl = document.getElementById("filter-quality");
     const q = Number(u.get("q"));
@@ -1921,9 +2325,7 @@ function applyUrlState() {
     // alias map rides the manifest so it stays derived from PROVIDER_ALIASES
     // rather than hand-copied here.
     const aliases = (window.AF.manifest && window.AF.manifest.provider_aliases) || {};
-    const set = new Set(u.get("p").split(",").map(p => aliases[p] || p));
-    const pEl = document.getElementById("filter-provider");
-    if (pEl) Array.from(pEl.options).forEach(o => { o.selected = set.has(o.value); });
+    setMultiFromList("filter-provider", u.get("p"), aliases);
   }
   if (u.has("e")) {
     // A URL is user input: only an effort the control offers is applied, and
@@ -1943,24 +2345,111 @@ function applyUrlState() {
   }
   if (u.has("m")) {
     // Same rule as EFFORT: only a mix the control offers; anything else is the
-    // default. mr / mh are clamped by Python (workload_mix.custom_mix).
+    // default. mr / mh are clamped by Python (workload_mix.custom_mix). mr is
+    // in:out ("1:3"); links from before the boxes were whole numbers carry a
+    // decimal ratio (0.3333), which ratioToPair turns into the same pair.
     const mixEl = document.getElementById("filter-mix");
     const opts = (window.AF.manifest && window.AF.manifest.mix_options) || [];
     const want = u.get("m");
     if (mixEl) mixEl.value = opts.some(o => o.value === want) ? want
       : ((window.AF.manifest && window.AF.manifest.default_mix) || "ours");
     if (want === "custom") {
-      [["mr", "mix-ratio"], ["mh", "mix-cache"]].forEach(([k, id]) => {
-        const el = document.getElementById(id);
-        const v = Number(u.get(k));
-        if (el && u.has(k) && Number.isFinite(v)) el.value = String(v);
-      });
+      const mr = u.get("mr");
+      let ratio = null;
+      if (mr && mr.includes(":")) {
+        const [a, b] = mr.split(":").map(Number);
+        if (_finite(a) && _finite(b) && a >= 0 && b > 0) ratio = a / b;
+      } else if (_finite(mr)) {
+        ratio = Number(mr);
+      }
+      const mh = _finite(u.get("mh")) ? Number(u.get("mh")) : null;
+      if (ratio != null) setCustomBoxes(Math.min(MIX_TOKEN_MAX, Math.max(0, ratio)), mh ?? 0);
+      else if (mh != null) setCustomBoxes(null, mh);
     }
     rememberMix();
     syncMixCustom();
   }
+  if (u.get("s")) {
+    const sEl = document.getElementById("model-search");
+    if (sEl) sEl.value = u.get("s").slice(0, 120);
+  }
+  if (u.has("x") && setRadioIfOffered("overview-xaxis", u.get("x"))) updateOverviewCaption();
+
+  // Economics. The selects were filled from the manifest in loadManifest.
+  if (u.has("ev")) setRadioIfOffered("econ-view", u.get("ev"));
+  if (u.has("eg")) setSelectIfOffered("econ-serve-gpu", u.get("eg"));
+  if (u.has("eb")) setRadioIfOffered("econ-serve-basis", u.get("eb"));
+  if (_finite(u.get("eu"))) {
+    const el = document.getElementById("econ-util");
+    if (el) {
+      const v = Math.min(Number(el.max || 100), Math.max(Number(el.min || 0), Number(u.get("eu"))));
+      el.value = String(v);
+      el.dataset.userSet = "1";
+      const out = document.getElementById("econ-util-value");
+      if (out) out.textContent = el.value + "%";
+    }
+  }
+  if (u.has("cg")) setSelectIfOffered("econ-compute-gpu", u.get("cg"));
+  if (u.has("cp")) setSelectIfOffered("econ-compute-preset", u.get("cp"));
+  if (u.has("cx")) {
+    // Python clamps each box to compute_options().bounds.
+    u.get("cx").split(",").slice(0, ECON_COMPUTE_BOXES.length).forEach((v, i) => {
+      const el = document.getElementById(ECON_COMPUTE_BOXES[i]);
+      if (el) el.value = _finite(v) ? String(Number(v)) : "";
+    });
+  }
+  syncEconComputePlaceholders();
+
+  // Image / video, and Run Local's static TAGS list.
+  if (u.has("lt")) setMultiFromList("local-tags", u.get("lt"));
+  if (u.has("ip")) setMultiFromList("image-provider-filter", u.get("ip"));
+  if (u.has("it")) setMultiFromList("image-tag-filter", u.get("it"));
+  if (u.has("vp")) setMultiFromList("video-provider-filter", u.get("vp"));
+  if (u.has("vt")) setMultiFromList("video-tag-filter", u.get("vt"));
+  if (u.has("vm")) setSelectIfOffered("video-mode-filter", u.get("vm"));
+
+  // Run Local's selects arrive with Python; hold its keys until then.
+  const local = {};
+  LOCAL_URL_KEYS.forEach(k => { if (u.has(k)) local[k] = u.get(k); });
+  window.AF.pendingLocalUrl = Object.keys(local).length ? local : null;
+
+  syncMultiPickers();
   readGlobalFilters();
   if (u.get("tab")) switchTab(u.get("tab"));   // switchTab validates
+}
+
+// Run Local's part of the URL, once populateDynamicSelects has filled the
+// selects (and recorded their defaults). Same rules: offered values only.
+function applyLocalUrlState() {
+  const want = window.AF.pendingLocalUrl;
+  window.AF.pendingLocalUrl = null;
+  if (!want) return;
+  if (want.lg && setSelectIfOffered("local-gpu-preset", want.lg)) {
+    const hw = window.AF.gpuMeta && window.AF.gpuMeta[want.lg];
+    if (hw) {
+      window.AF.localHwMeta = hw;
+      setVramFromPreset("local-vram", hw, true);
+    }
+  }
+  if (want.lb) setRadioIfOffered("local-rate-basis", want.lb);
+  setRateFromPreset(true);
+  if (want.ln) setSelectIfOffered("local-num-gpus", want.ln);
+  if (want.lq) setSelectIfOffered("local-quant", want.lq);
+  if (want.lc) setSelectIfOffered("local-context", want.lc);
+  if (want.ls) setSelectIfOffered("local-speed-mode", want.ls);
+  if (_finite(want.lv) && Number(want.lv) > 0) {
+    const el = document.getElementById("local-vram");
+    if (el) {
+      el.value = String(Number(want.lv));
+      el.dataset.userTyped = "1";
+      syncVramNote("local-vram", window.AF.localHwMeta);
+    }
+  }
+  if (_finite(want.lr) && Number(want.lr) >= 0) {
+    const el = document.getElementById("local-gpu-rate");
+    if (el) { el.value = String(Number(want.lr)); el.dataset.userTyped = "1"; }
+  }
+  syncUrl();
 }
 
 // ---- Detail panel — Plotly click on pareto → model_detail HTML ----
@@ -2056,6 +2545,10 @@ function updateOverviewCaption() {
 
 // Pre-rendered figure per Overview x axis (docs/figures/<id>.json).
 const OVERVIEW_FIGURES = { price: "pareto", speed: "quadrant", task: "pareto_task" };
+
+function currentOverviewX() {
+  return document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
+}
 
 // ---- Wire per-tab controls ----
 function wireTabControls() {
@@ -2280,6 +2773,7 @@ async function init() {
     overviewPanel.insertBefore(cap, overviewPanel.firstChild);
   }
   await loadManifest();
+  document.querySelectorAll("select[data-picker]").forEach(enhanceMultiSelect);
   // Pyodide first: its boot only needs the manifest version, and it used to
   // wait for all twelve figures to be fetched and drawn. The worker's "ready"
   // handler waits on uiReady before touching any control.

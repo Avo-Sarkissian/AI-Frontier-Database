@@ -418,7 +418,9 @@ def _js_function(name: str) -> str:
 def test_state_url_writes_the_mix_only_when_it_is_not_the_default():
     if not NODE:
         pytest.skip("node not available")
-    script = _js_function("stateUrl") + """
+    script = ("const MIX_TOKEN_MAX = 1000;\nfunction writeTabParams() {}\n"
+              + _js_function("clearStateParams") + _js_function("ratioToPair")
+              + _js_function("stateUrl")) + """
       var location = { origin: "https://x.io", pathname: "/", search: "?m=chat&v=1" };
       var window = { AF: { manifest: { default_mix: "ours" }, state: {
         tab: "overview", providers: [], minQuality: 0, effort: "", mix: ["ours", null, null] } } };
@@ -434,7 +436,8 @@ def test_state_url_writes_the_mix_only_when_it_is_not_the_default():
     a, b, c = json.loads(out.stdout)
     assert a == "https://x.io/?v=1&tab=overview"
     assert b == "https://x.io/?v=1&tab=overview&m=agentic"
-    assert c == "https://x.io/?v=1&tab=overview&m=custom&mr=20&mh=50"
+    # in:out, the notation of every preset label ("Ours 1:3").
+    assert c == "https://x.io/?v=1&tab=overview&m=custom&mr=20%3A1&mh=50"
 
 
 def test_the_url_mix_is_validated_against_the_manifest():
@@ -719,20 +722,93 @@ def test_custom_prefill_tracks_the_mix_actually_showing():
     assert "mixEl.dataset.prev" in wiring and 'prev !== "custom"' in wiring
 
 
+_MIX_JS = None
+
+
+def _mix_harness(els: dict) -> str:
+    """The custom-MIX helpers against a fake DOM of plain objects."""
+    return ("const els = %s;\n" % json.dumps(els)
+            + "var document = { getElementById: id => els[id], activeElement: null };\n"
+            + "var window = { AF: { manifest: { mix_options: %s } } };\n" % json.dumps(mix_options())
+            + "const MIX_TOKEN_MAX = 1000;\n"
+            + "".join(_js_function(f) + "\n" for f in (
+                "ratioToPair", "setCustomBoxes", "prefillCustomMix", "mixBoxValue",
+                "readCustomMix", "showMixBox", "syncCustomBoxes", "commitMixBox")))
+
+
+def _run(script):
+    out = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def _boxes(i="", o="", c=""):
+    return {"mix-in": {"value": i, "placeholder": ""}, "mix-out": {"value": o, "placeholder": ""},
+            "mix-cache": {"value": c, "placeholder": ""}}
+
+
 def test_custom_prefill_overwrites_stale_boxes():
     if not NODE:
         pytest.skip("node not available")
-    script = """
-      const els = { "mix-ratio": { value: "20" }, "mix-cache": { value: "50" } };
-      var document = { getElementById: id => els[id] };
-      var window = { AF: { manifest: { mix_options: %s } } };
-    """ % json.dumps(mix_options()) + _js_function("prefillCustomMix") + """
+    got = _run(_mix_harness(_boxes("20", "1", "50")) + """
       prefillCustomMix("agentic");
-      process.stdout.write(JSON.stringify([els["mix-ratio"].value, els["mix-cache"].value]));
-    """
-    out = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=30)
-    assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout) == ["300", "90"]
+      const a = [els["mix-in"].value, els["mix-out"].value, els["mix-cache"].value];
+      prefillCustomMix("ours");
+      const b = [els["mix-in"].value, els["mix-out"].value, els["mix-cache"].value];
+      process.stdout.write(JSON.stringify([a, b]));
+    """)
+    # in:out, as the dropdown says it: "Agentic 300:1", "Ours 1:3".
+    assert got == [["300", "1", "90"], ["1", "3", "0"]]
+
+
+def test_custom_boxes_read_as_in_to_out_whole_numbers():
+    if not NODE:
+        pytest.skip("node not available")
+    got = _run(_mix_harness(_boxes("1", "3", "0")) + """
+      const r = [];
+      r.push(readCustomMix());
+      els["mix-in"].value = "5"; els["mix-out"].value = "2"; r.push(readCustomMix());
+      els["mix-in"].value = "2.6"; els["mix-out"].value = "1"; r.push(readCustomMix());
+      els["mix-in"].value = "0"; els["mix-out"].value = "4"; r.push(readCustomMix());
+      els["mix-in"].value = "7"; els["mix-out"].value = "0"; r.push(readCustomMix());
+      process.stdout.write(JSON.stringify(r.map(x => [x.ratio, x.cache, x.valid])));
+    """)
+    assert got[0][0] == pytest.approx(1 / 3) and got[0][1:] == [0, True]
+    assert got[1] == [2.5, 0, True]
+    assert got[2] == [3, 0, True], "a fractional token count rounds to a whole one"
+    assert got[3] == [0, 0, True], "0:N is output-only, a real ratio"
+    assert got[4] == [0, 0, False], "N:0 has no output tokens: flagged, last ratio stands"
+
+
+def test_an_emptied_box_keeps_its_value_instead_of_falling_back():
+    """Clearing the box used to send null, which Python read as the DEFAULT mix:
+    every price silently jumped to 1:3 while the box looked merely empty."""
+    if not NODE:
+        pytest.skip("node not available")
+    got = _run(_mix_harness(_boxes()) + """
+      setCustomBoxes(20, 50);                       // committed 20:1 · 50%
+      els["mix-in"].value = "";                     // the visitor clears "in"
+      const a = readCustomMix();
+      commitMixBox(els["mix-in"]);                  // ... and tabs away
+      const b = [els["mix-in"].value, els["mix-in"].placeholder];
+      els["mix-out"].value = "0";                   // no output tokens: no ratio
+      const c = readCustomMix();
+      process.stdout.write(JSON.stringify([[a.ratio, a.cache], b, [c.ratio, c.valid],
+                                           els["mix-in"]["aria-invalid"] || null]));
+    """.replace('els["mix-in"]["aria-invalid"] || null', "null"))
+    assert got[0] == [20, 50]
+    assert got[1] == ["20", "20"]
+    assert got[2] == [20, False], "N:0 must keep the last valid ratio, flagged"
+
+
+def test_ratio_to_pair_reads_old_decimal_links():
+    if not NODE:
+        pytest.skip("node not available")
+    got = _run("const MIX_TOKEN_MAX = 1000;\n" + _js_function("ratioToPair") + """
+      process.stdout.write(JSON.stringify([0.3333, 1, 3, 15, 300, 2.5, 0, 1000, 0.001]
+        .map(ratioToPair)));
+    """)
+    assert got == [[1, 3], [1, 1], [3, 1], [15, 1], [300, 1], [5, 2], [0, 1], [1000, 1], [1, 1000]]
 
 
 def test_clamped_custom_numbers_are_written_back():
@@ -740,21 +816,16 @@ def test_clamped_custom_numbers_are_written_back():
         pytest.skip("node not available")
     info_args = json.loads(api.mix_info(["custom", 2000, -5]))["args"]
     assert info_args == ["custom", 1000.0, 0.0]
-    script = """
-      const els = { "mix-ratio": { value: "2000", placeholder: "" },
-                    "mix-cache": { value: "", placeholder: "" } };
-      var document = { getElementById: id => els[id] };
+    got = _run(_mix_harness(_boxes()) + """
       let synced = 0, lastMixInfoKey = null;
       function readGlobalFilters() {} function syncUrl() { synced++; }
       function readMix() { return ["custom", 1000, null]; }
-    """ + _js_function("syncCustomBoxes") + """
       syncCustomBoxes(%s);
-      process.stdout.write(JSON.stringify([els["mix-ratio"].value, els["mix-cache"].value,
-                                           els["mix-cache"].placeholder, synced]));
-    """ % json.dumps(info_args)
-    out = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=30)
-    assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout) == ["1000", "", "0", 1]
+      process.stdout.write(JSON.stringify([els["mix-in"].value, els["mix-out"].value,
+                                           els["mix-cache"].value, synced]));
+    """ % json.dumps(info_args))
+    # Never-filled boxes show what Python priced: the clamped 1000:1 · 0%.
+    assert got == ["1000", "1", "0", 1]
     assert "syncCustomBoxes(info.args)" in _js_function("refreshMixInfo")
 
 

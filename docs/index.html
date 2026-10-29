@@ -55,61 +55,89 @@
   <div class="stat-bar">
     <div class="stat"><div id="stat-model-count" class="stat-value">—</div><div class="stat-label">Models tracked</div></div>
     <div class="stat"><div id="stat-provider-count" class="stat-value">—</div><div class="stat-label">Providers</div></div>
-    <div class="stat"><div id="stat-floor-price" class="stat-value" style="color:#00d4ff">—</div><div id="stat-floor-label" class="stat-label">Floor price / 1M</div></div>
+    <div class="stat"><div id="stat-floor-price" class="stat-value stat-value--accent">—</div><div id="stat-floor-label" class="stat-label">Floor price / 1M</div></div>
     <div class="stat"><div id="stat-peak-quality" class="stat-value">—</div><div class="stat-label">Peak intelligence</div></div>
   </div>
 
-  <div class="filters">
-    <span class="filter-label">PROVIDER</span>
-    <select id="filter-provider" multiple style="min-width:220px;"></select>
+  <!-- The tab strip sits ABOVE every row that changes with the tab. The global
+       filter bar collapses to ↓CSV on the tabs that ignore it, and below the
+       strip that no longer moves the tab under the cursor. -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- Each label and its control are one .fg group (nowrap), so a narrow
+       screen wraps BETWEEN groups and never strands a label from its box. -->
+  <div class="filters" id="global-filters">
+    <span class="fg">
+      <span class="filter-label" id="filter-provider-label">PROVIDER</span>
+      <!-- Hidden source of truth; app.js renders it as a checkbox popover
+           (enhanceMultiSelect), so ?p= and every reader keep working. -->
+      <select id="filter-provider" multiple aria-labelledby="filter-provider-label"
+        data-picker="providers"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">MIN SCORE</span>
-    <select id="filter-quality">
-      <option value="0">≥ 0</option><option value="10">≥ 10</option>
-      <option value="15">≥ 15</option><option value="20">≥ 20</option>
-      <option value="25">≥ 25</option><option value="30">≥ 30</option>
-      <option value="35">≥ 35</option><option value="40">≥ 40</option>
-      <option value="45">≥ 45</option><option value="50">≥ 50</option>
-    </select>
+    <span class="fg">
+      <span class="filter-label">MIN SCORE</span>
+      <select id="filter-quality">
+        <option value="0">≥ 0</option><option value="10">≥ 10</option>
+        <option value="15">≥ 15</option><option value="20">≥ 20</option>
+        <option value="25">≥ 25</option><option value="30">≥ 30</option>
+        <option value="35">≥ 35</option><option value="40">≥ 40</option>
+        <option value="45">≥ 45</option><option value="50">≥ 50</option>
+      </select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">EFFORT</span>
-    <!-- Filled from manifest.effort_options. AA benchmarks one model at
-         several reasoning efforts and the spread reaches 18.5 points, so
-         which tier represents a model is the reader's choice. -->
-    <select id="filter-effort" style="min-width:130px;"></select>
+    <span class="fg">
+      <span class="filter-label">EFFORT</span>
+      <!-- Filled from manifest.effort_options. AA benchmarks one model at
+           several reasoning efforts and the spread reaches 18.5 points, so
+           which tier represents a model is the reader's choice. -->
+      <select id="filter-effort"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label" title="Open or closed weights, from Artificial Analysis's flag (or a name match to its open-weights list where a row has none). Hollow marks and outlined bars are open.">WEIGHTS</span>
-    <!-- Filled from manifest.weights_options (data/open_weights.py). -->
-    <select id="filter-weights" style="min-width:90px;"></select>
+    <span class="fg">
+      <span class="filter-label" title="Open or closed weights, from Artificial Analysis's flag (or a name match to its open-weights list where a row has none). Hollow marks and outlined bars are open.">WEIGHTS</span>
+      <!-- Filled from manifest.weights_options (data/open_weights.py). -->
+      <select id="filter-weights"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label" title="Workload mix: the input:output ratio and cache-hit rate every hosted price is computed at. Each option's tooltip names its source.">MIX</span>
-    <!-- Filled from manifest.mix_options (data/workload_mix.py). Custom
-         reveals the two boxes; Python clamps whatever is typed into them. -->
-    <select id="filter-mix" style="min-width:150px;"></select>
-    <span id="mix-custom" style="display:none;align-items:center;gap:6px;">
-      <input id="mix-ratio" class="search-input" type="number" min="0" max="1000" step="any"
-        style="width:64px;" aria-label="Input tokens per output token" />
-      <span class="filter-note">:1 in:out</span>
-      <input id="mix-cache" class="search-input" type="number" min="0" max="100" step="1"
-        style="width:56px;" aria-label="Percent of input tokens served from cache" />
+    <span class="fg">
+      <span class="filter-label" title="Workload mix: the input:output ratio and cache-hit rate every hosted price is computed at. Each option's tooltip names its source.">MIX</span>
+      <!-- Filled from manifest.mix_options (data/workload_mix.py). -->
+      <select id="filter-mix"></select>
+    </span>
+    <!-- Custom: whole tokens, in:out like every preset label ("Ours 1:3").
+         An emptied box keeps the value it last held (shown as its
+         placeholder) instead of silently falling back; Python clamps. -->
+    <span id="mix-custom" class="fg" style="display:none;">
+      <span class="filter-note">in</span>
+      <input id="mix-in" class="search-input mix-box" type="number" min="0" max="1000" step="1"
+        inputmode="numeric" aria-label="Input tokens (in:out ratio)" />
+      <span class="filter-note">: out</span>
+      <input id="mix-out" class="search-input mix-box" type="number" min="0" max="1000" step="1"
+        inputmode="numeric" aria-label="Output tokens (in:out ratio)" />
+      <input id="mix-cache" class="search-input mix-box" type="number" min="0" max="100" step="1"
+        inputmode="numeric" aria-label="Percent of input tokens served from cache" />
       <span class="filter-note">% cached</span>
     </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">SEARCH</span>
-    <input id="model-search" class="search-input" type="text" placeholder="model or provider…" />
+    <span class="fg fg--grow">
+      <span class="filter-label">SEARCH</span>
+      <input id="model-search" class="search-input" type="text" placeholder="model or provider…" />
+    </span>
     <div class="filter-sep"></div>
     <button id="btn-export" class="export-btn">↓ CSV</button>
-    <div style="flex:1"></div>
-    <button id="preset-all" class="preset-btn">Reset filters</button>
-    <button id="preset-strong" class="preset-btn">Top 25%</button>
-    <button id="preset-elite" class="preset-btn">Top 10%</button>
+    <div class="filters-spacer"></div>
+    <span class="fg presets">
+      <button id="preset-all" class="preset-btn">Reset filters</button>
+      <button id="preset-strong" class="preset-btn">Top 25%</button>
+      <button id="preset-elite" class="preset-btn">Top 10%</button>
+    </span>
   </div>
-
-  <div class="tabs" id="tabs"></div>
 
   <!-- Per-tab control rows: injected here between tabs and panels -->
   <!-- Overview tab controls -->
   <div id="tab-controls-overview" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">X AXIS</span>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="overview-xaxis" value="price" checked /> Price
@@ -120,10 +148,12 @@
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="overview-xaxis" value="task" /> Cost / task
     </label>
+    </span>
   </div>
 
   <!-- Rankings tab controls -->
   <div id="tab-controls-rankings" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">SORT BY</span>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="rankings-sort" value="intelligence" checked /> Intelligence
@@ -134,27 +164,35 @@
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="rankings-sort" value="speed" /> Speed
     </label>
+    </span>
   </div>
 
   <!-- Compare tab controls -->
   <div id="tab-controls-compare" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg fg--top">
     <span class="filter-label">MODELS</span>
     <select id="radar-model-select" multiple style="min-width:300px;"></select>
+    </span>
   </div>
 
   <!-- Budget tab controls -->
   <div id="tab-controls-budget" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">MONTHLY TOKENS (M)</span>
     <input id="budget-tokens" type="number" value="1" min="0.1" step="0.1"
       style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
              color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
              padding:6px 10px;width:100px;outline:none;" />
-    <span class="filter-label" style="margin-left:18px;">MIN INTELLIGENCE</span>
+    </span>
+    <div class="filter-sep"></div>
+    <span class="fg">
+    <span class="filter-label">MIN INTELLIGENCE</span>
     <input id="budget-min-intelligence" type="range" min="0" max="65" step="1" value="0"
       style="width:170px;accent-color:#00d4ff;vertical-align:middle;" />
     <span id="budget-min-intelligence-value"
       style="font-family:Inter,sans-serif;font-size:13px;color:#f2f2f2;
              min-width:26px;display:inline-block;">0</span>
+    </span>
   </div>
 
   <!-- Budget answer: the cheapest model above the threshold -->
@@ -162,6 +200,7 @@
 
   <!-- Table tab controls -->
   <div id="tab-controls-table" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">SORT BY</span>
     <select id="table-sort-col" style="min-width:150px;">
       <option value="quality">Intelligence</option>
@@ -173,25 +212,30 @@
       <option value="model">Model</option>
       <option value="provider">Provider</option>
     </select>
-    <div class="filter-sep"></div>
-    <select id="table-sort-dir" style="min-width:130px;">
+    <select id="table-sort-dir" style="min-width:130px;" aria-label="Sort direction">
       <option value="desc">↓ High → Low</option>
       <option value="asc">↑ Low → High</option>
     </select>
+    </span>
   </div>
 
   <!-- Run Local tab controls -->
   <div id="tab-controls-local" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">GPU</span>
     <select id="local-gpu-preset" style="min-width:200px;"></select>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label">VRAM (GB)</span>
     <input id="local-vram" type="number" value="32" min="1" step="1"
       style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
              color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
              padding:6px 10px;width:72px;outline:none;" />
     <span id="local-vram-note" class="filter-note"></span>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label" title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it.">GPUs</span>
     <select id="local-num-gpus" style="min-width:72px;">
       <option value="1">×1</option>
@@ -199,23 +243,31 @@
       <option value="4">×4</option>
       <option value="8">×8</option>
     </select>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label">QUANT</span>
     <select id="local-quant" style="min-width:120px;"></select>
+    </span>
     <div class="filter-sep"></div>
     <!-- Options are filled from Python (context_options / slo_options) so the
          two shells cannot offer different choices — the same one-source rule
          the quant select already follows. -->
+    <span class="fg">
     <span class="filter-label" title="VRAM and speed both move with context: the KV cache is read in full every token and is not affected by quantising the weights. Capped per model at its own maximum.">CONTEXT</span>
     <select id="local-context" style="min-width:80px;"></select>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label" title="Single stream is one conversation at a time. Max throughput is the total across as many concurrent sessions as the KV cache fits in VRAM while each one still decodes at 10 tok/s or better — MLPerf Inference's Llama-3.1-8B Server floor. The two are 2-4x apart, so the chart shows one at a time.">SPEED</span>
     <select id="local-speed-mode" style="min-width:146px;"></select>
+    </span>
     <div class="filter-sep"></div>
     <!-- $/GPU-HR: one of the seven InferenceX-priced presets fills it with
          SemiAnalysis InferenceX's owning or renting rate (manifest via
          gpu_options); every other card leaves it blank and disables OWN / RENT.
          A typed value is kept until the preset or the basis changes. -->
+    <span class="fg">
     <span class="filter-label" title="Your cost per GPU-hour. Picking one of the 7 datacenter cards InferenceX prices (H100 SXM, H200 SXM, B200 SXM, B300 SXM, MI300X, MI325X, MI355X) fills its large-hyperscaler-volume owning (Own) or renting (Rent) rate; other cards have no published rate — type your own. The hover then prices this tab's max-throughput figure per 1M output tokens at full use (decode only, uncalibrated; Economics › Serve has the calibrated datacenter figure).">$/GPU-HR</span>
     <input id="local-gpu-rate" type="number" min="0" step="0.01" placeholder="—"
       style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
@@ -227,14 +279,17 @@
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="local-rate-basis" value="rent" /> Rent
     </label>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">TAGS</span>
-    <select id="local-tags" multiple style="min-width:160px;">
+    <span class="fg">
+    <span class="filter-label" id="local-tags-label">TAGS</span>
+    <select id="local-tags" multiple aria-labelledby="local-tags-label" data-picker="tags">
       <option value="code">Code</option>
       <option value="reasoning">Reasoning</option>
       <option value="vision">Vision</option>
       <option value="audio">Audio</option>
     </select>
+    </span>
   </div>
 
   <!-- Economics tab controls. VIEW switches the panel's view. Every option,
@@ -243,6 +298,7 @@
        data/gpu_tco.py). The Compute boxes stay EMPTY: their placeholder shows
        the sourced default and their tooltip its source, date and status. -->
   <div id="tab-controls-economics" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">VIEW</span>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="econ-view" value="serve" checked /> Serve
@@ -253,18 +309,24 @@
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;">
       <input type="radio" name="econ-view" value="labs" /> Labs
     </label>
+    </span>
     <span id="econ-shared-controls" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div class="filter-sep"></div>
+      <span class="fg">
       <span id="econ-util-label" class="filter-label">USE</span>
       <input id="econ-util" type="range" style="width:150px;accent-color:#00d4ff;vertical-align:middle;" />
       <span id="econ-util-value"
         style="font-family:Inter,sans-serif;font-size:13px;color:#f2f2f2;min-width:34px;display:inline-block;"></span>
+      </span>
     </span>
     <span id="econ-serve-controls" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div class="filter-sep"></div>
+      <span class="fg">
       <span class="filter-label">GPU</span>
       <select id="econ-serve-gpu" style="min-width:220px;"></select>
+      </span>
       <div class="filter-sep"></div>
+      <span class="fg">
       <span class="filter-label" id="econ-serve-basis-label">$/GPU-HR</span>
       <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
         <input type="radio" name="econ-serve-basis" value="own" /> Own
@@ -272,50 +334,51 @@
       <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;">
         <input type="radio" name="econ-serve-basis" value="rent" /> Rent
       </label>
+      </span>
     </span>
     <span id="econ-compute-controls" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
       <div class="filter-sep"></div>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label">GPU</span>
         <select id="econ-compute-gpu" style="min-width:130px;"></select>
       </span>
       <div class="filter-sep"></div>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label">PRESET</span>
         <select id="econ-compute-preset" style="min-width:200px;"></select>
       </span>
       <div class="filter-sep"></div>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-life-label">LIFE YR</span>
         <input id="econ-compute-life" class="econ-compute-box" type="number" step="1" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-rate-label">RATE %</span>
         <input id="econ-compute-rate" class="econ-compute-box" type="number" step="0.1" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-capex-label">CAPEX $K</span>
         <input id="econ-compute-capex" class="econ-compute-box" type="number" step="1" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:72px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-kw-label">kW</span>
         <input id="econ-compute-kw" class="econ-compute-box" type="number" step="0.01" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-pue-label">PUE</span>
         <input id="econ-compute-pue" class="econ-compute-box" type="number" step="0.01" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:56px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-kwh-label">$/kWh</span>
         <input id="econ-compute-kwh" class="econ-compute-box" type="number" step="0.001" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:68px;outline:none;" />
       </span>
-      <span class="econ-pair" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+      <span class="econ-pair fg">
         <span class="filter-label" id="econ-compute-colo-label">COLO $/kW-MO</span>
         <input id="econ-compute-colo" class="econ-compute-box" type="number" step="1" placeholder="—"
           style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;padding:6px 8px;width:64px;outline:none;" />
@@ -325,37 +388,49 @@
 
   <!-- Image Gen tab controls -->
   <div id="tab-controls-image" class="filters" style="border-top:none;padding-top:0;display:none;">
-    <span class="filter-label">PROVIDER</span>
-    <select id="image-provider-filter" multiple style="min-width:200px;"></select>
+    <span class="fg">
+    <span class="filter-label" id="image-provider-label">PROVIDER</span>
+    <select id="image-provider-filter" multiple aria-labelledby="image-provider-label" data-picker="providers"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">TAGS</span>
+    <span class="fg">
+    <span class="filter-label" id="image-tag-label">TAGS</span>
     <!-- Options are filled from manifest.image_tags (see fillTagSelect in app.js)
          so the control cannot offer a tag the pipeline no longer emits. -->
-    <select id="image-tag-filter" multiple style="min-width:200px;"></select>
+    <select id="image-tag-filter" multiple aria-labelledby="image-tag-label" data-picker="tags"></select>
+    </span>
   </div>
 
   <!-- Video Gen tab controls -->
   <div id="tab-controls-video" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">MODE</span>
     <!-- Filled from manifest.video_modes. Text-to-video and image-to-video are
          separate Elo pools with separate prices, so this switches arenas rather
          than filtering one. -->
     <select id="video-mode-filter" style="min-width:150px;"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">PROVIDER</span>
-    <select id="video-provider-filter" multiple style="min-width:200px;"></select>
+    <span class="fg">
+    <span class="filter-label" id="video-provider-label">PROVIDER</span>
+    <select id="video-provider-filter" multiple aria-labelledby="video-provider-label" data-picker="providers"></select>
+    </span>
     <div class="filter-sep"></div>
-    <span class="filter-label">TAGS</span>
+    <span class="fg">
+    <span class="filter-label" id="video-tag-label">TAGS</span>
     <!-- Filled from manifest.video_tags — see the image tag filter above. -->
-    <select id="video-tag-filter" multiple style="min-width:200px;"></select>
+    <select id="video-tag-filter" multiple aria-labelledby="video-tag-label" data-picker="tags"></select>
+    </span>
   </div>
 
   <!-- Agent Stack tab controls -->
   <div id="tab-controls-recommend" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">WORKFLOW</span>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
       <input type="radio" name="recommend-mode" value="api" checked /> API Only
     </label>
+    </span>
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
       <input type="radio" name="recommend-mode" value="hybrid" /> Hybrid — Fast local
     </label>
@@ -368,10 +443,12 @@
   </div>
   <!-- Providers row for Agent Stack (shown unless local mode) -->
   <div id="recommend-providers-row" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">PROVIDERS</span>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
       <input type="checkbox" name="recommend-providers" value="Anthropic" checked /> Anthropic
     </label>
+    </span>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#aaa;margin-right:20px;">
       <input type="checkbox" name="recommend-providers" value="Google" checked /> Google
     </label>
@@ -394,16 +471,21 @@
   </div>
   <!-- Hardware row for Agent Stack (shown in hybrid/local modes) -->
   <div id="recommend-hw-row" class="filters" style="border-top:none;padding-top:0;display:none;">
+    <span class="fg">
     <span class="filter-label">GPU</span>
     <select id="recommend-gpu-preset" style="min-width:200px;"></select>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label">VRAM (GB)</span>
     <input id="recommend-vram" type="number" value="32" min="1" step="1"
       style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;
              color:#f2f2f2;font-family:Inter,sans-serif;font-size:13px;
              padding:6px 10px;width:72px;outline:none;" />
     <span id="recommend-vram-note" class="filter-note"></span>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label" title="Extra GPUs pool VRAM so a bigger model fits, and pooled VRAM raises how many concurrent sessions the KV cache allows. They do not increase single-stream tokens/sec: under a layer split the cards run in sequence, so throughput is set by one card's memory bandwidth. A tensor-parallel vLLM deployment does better and these figures do not model it.">GPUs</span>
     <select id="recommend-num-gpus" style="min-width:72px;">
       <option value="1">×1</option>
@@ -411,9 +493,12 @@
       <option value="4">×4</option>
       <option value="8">×8</option>
     </select>
+    </span>
     <div class="filter-sep"></div>
+    <span class="fg">
     <span class="filter-label">QUANT</span>
     <select id="recommend-quant" style="min-width:80px;"></select>
+    </span>
   </div>
 
   <div id="tab-panels"></div>

@@ -268,8 +268,8 @@ APP_PY = (ROOT / "app.py").read_text()
 
 
 def test_the_export_button_is_in_the_global_bar_that_gets_hidden():
-    bar = HTML[HTML.index('<div class="filters">'):]
-    bar = bar[:bar.index('<div class="tabs"')]
+    bar = HTML[HTML.index('<div class="filters" id="global-filters">'):]
+    bar = bar[:bar.index('<div id="tab-controls-overview"')]
     assert 'id="btn-export"' in bar and 'class="export-btn"' in bar
 
 
@@ -344,8 +344,16 @@ def test_add_to_compare_goes_through_switch_tab_with_an_explicit_selection():
 
 # ── #18 — the URL follows the state ──────────────────────────────────────────
 
+# stateUrl's own helpers; the per-tab keys (writeTabParams) read the DOM and
+# are exercised in the browser, so they are a no-op here.
+_URL_HARNESS = (
+    "const MIX_TOKEN_MAX = 1000;\nfunction writeTabParams() {}\n"
+    + _js_function("clearStateParams") + "\n" + _js_function("ratioToPair") + "\n"
+)
+
+
 def test_state_url_carries_tab_filters_and_effort_and_keeps_foreign_params():
-    got = _node(_js_function("stateUrl") + """
+    got = _node(_URL_HARNESS + _js_function("stateUrl") + """
       var location = { origin: "https://x.io", pathname: "/AI/", search: "?v=123&tab=table&e=low" };
       var window = { AF: { state: { tab: "local", providers: ["Anthropic", "Google"],
                                     minQuality: 42.1, effort: "high" } } };
@@ -357,6 +365,36 @@ def test_state_url_carries_tab_filters_and_effort_and_keeps_foreign_params():
     a, b = got
     assert a == "https://x.io/AI/?v=123&tab=local&p=Anthropic%2CGoogle&q=42.1&e=high"
     assert b == "https://x.io/AI/?v=123&tab=overview"
+
+
+def test_state_url_keeps_run_local_keys_until_python_fills_the_selects():
+    """Run Local's selects are filled after Pyodide boots. Every pre-boot
+    syncUrl would otherwise delete ?lg=/?lq= before they could be applied."""
+    got = _node(_URL_HARNESS + _js_function("stateUrl") + """
+      var location = { origin: "https://x.io", pathname: "/", search: "?tab=local&lg=H100&lq=Q8&x=speed" };
+      var window = { AF: { pendingLocalUrl: { lg: "H100", lq: "Q8" },
+                           state: { tab: "local", providers: [], minQuality: 0, effort: "" } } };
+      const a = stateUrl();
+      window.AF.pendingLocalUrl = null;
+      const b = stateUrl();
+      process.stdout.write(JSON.stringify([a, b]));
+    """)
+    a, b = got
+    assert a == "https://x.io/?lg=H100&lq=Q8&tab=local"
+    assert b == "https://x.io/?tab=local"
+
+
+def test_every_view_control_round_trips_through_the_url():
+    """Overview X AXIS, search, the Economics view and its controls, Run Local
+    and the Image / Video controls are written AND restored."""
+    write = _js_function("writeTabParams") + _js_function("stateUrl")
+    restore = _js_function("applyUrlState") + _js_function("applyLocalUrlState")
+    for key in ("s", "x", "ev", "eg", "eb", "eu", "cg", "cp", "cx",
+                "lg", "ln", "lq", "lc", "ls", "lv", "lr", "lb", "lt",
+                "ip", "it", "vm", "vp", "vt"):
+        assert f'"{key}"' in write, f"{key} is never written"
+        assert f'"{key}"' in restore or f"want.{key}" in restore, f"{key} is never restored"
+    assert "applyLocalUrlState()" in _js_function("populateDynamicSelects")
 
 
 def test_the_url_is_synced_on_every_rerender_and_effort_is_restored():
@@ -406,3 +444,105 @@ def test_image_catalogue_reads_open_weights_without_a_futurewarning(tmp_path, mo
         df = im.get_image_df()
     assert df["open_weights"].tolist() == [True, False, False]
     assert df["open_weights"].dtype == bool
+
+
+# ── Shell layout: label groups, pickers, stat bar, contrast ─────────────────
+
+def _label_parents():
+    """(parent classes, label text) for every .filter-label in index.html."""
+    from html.parser import HTMLParser
+
+    class P(HTMLParser):
+        VOID = {"input", "meta", "link", "br", "img"}
+
+        def __init__(self):
+            super().__init__()
+            self.stack, self.found = [], []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if "filter-label" in (a.get("class") or "").split() and self.stack:
+                self.found.append((self.stack[-1], a.get("id") or ""))
+            if tag not in self.VOID and tag != "option":
+                self.stack.append((a.get("class") or "").split())
+
+        def handle_startendtag(self, tag, attrs):
+            pass
+
+        def handle_endtag(self, tag):
+            if tag != "option" and self.stack:
+                self.stack.pop()
+
+    p = P()
+    p.feed(HTML)
+    return p.found
+
+
+def test_every_filter_label_is_grouped_with_its_control():
+    """A bare label + control in a wrapping flex row split across lines
+    (SEARCH on row 1, its box on row 2). Each pair is one nowrap .fg group."""
+    found = _label_parents()
+    assert len(found) > 30
+    loose = [lid for parent, lid in found if "fg" not in parent]
+    assert not loose, f"labels outside a .fg group: {loose}"
+    css = (ROOT / "docs" / "assets" / "shell.css").read_text()
+    rule = css[css.index(".fg {"):css.index("}", css.index(".fg {"))]
+    assert "inline-flex" in rule and "nowrap" in rule
+
+
+def test_multi_selects_become_checkbox_pickers_and_keep_their_select():
+    for sid in ("filter-provider", "image-provider-filter", "image-tag-filter",
+                "video-provider-filter", "video-tag-filter", "local-tags"):
+        tag = re.search(rf'<select id="{sid}"[^>]*>', HTML).group(0)
+        assert "multiple" in tag and "data-picker=" in tag, sid
+    body = _js_function("enhanceMultiSelect")
+    assert 'dispatchEvent(new Event("change"))' in _js_function("renderPickerList")
+    assert 'addEventListener("change"' in body, "a checkbox change must re-label the button"
+    assert "syncMultiPicker" in _js_function("setPreset")
+    assert "setMultiFromList(\"filter-provider\"" in _js_function("applyUrlState")
+
+
+def test_picker_label_says_what_is_selected():
+    got = _node("const PICKER_NOUNS = { providers: ['provider', 'providers'] };\n"
+                + _js_function("pickerLabel") + """
+      const mk = sel => ({ dataset: { picker: "providers" },
+        selectedOptions: sel.map(t => ({ textContent: t })) });
+      process.stdout.write(JSON.stringify([
+        pickerLabel(mk([])).text, pickerLabel(mk(["OpenAI"])).text,
+        pickerLabel(mk(["OpenAI", "Google"])).text]));
+    """)
+    assert got == ["All providers", "OpenAI", "2 providers"]
+
+
+def test_the_tab_strip_sits_above_every_row_that_changes_with_the_tab():
+    """The filter bar collapses to ↓CSV on five tabs; above the strip that
+    moved the tab ~41px out from under the cursor."""
+    assert HTML.index('<div class="tabs" id="tabs">') < HTML.index('id="global-filters"')
+
+
+def test_stat_bar_has_no_grey_side_strips_and_a_plain_models_label():
+    css = (ROOT / "assets" / "style.css").read_text()
+    bar = css[css.index(".stat-bar {"):css.index("}", css.index(".stat-bar {"))]
+    assert "background: var(--border)" not in bar
+    fn = _js_function("renderCoverageNote")
+    assert "not carried`" not in fn.split("label.title")[0], "the count is back in the label"
+    assert 'label.textContent = "Models tracked"' in fn
+    floor = css[css.index("#stat-floor-label {"):]
+    floor = floor[:floor.index("}")]
+    assert "ellipsis" in floor and "white-space: normal" not in floor
+
+
+def test_small_labels_and_quiet_buttons_clear_aa_contrast():
+    def lum(h):
+        c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+    css = (ROOT / "assets" / "style.css").read_text()
+    token = re.search(r"--text-label:\s*#([0-9a-fA-F]{6})", css).group(1)
+    for bg in ("0a0a0a", "111111"):
+        hi, lo = sorted((lum(token), lum(bg)), reverse=True)
+        assert (hi + 0.05) / (lo + 0.05) >= 4.5, (token, bg)
+    for sel in (".stat-label {", ".filter-label {", ".export-btn {", ".preset-btn {"):
+        rule = css[css.index(sel):css.index("}", css.index(sel))]
+        assert "var(--text-label)" in rule, sel
