@@ -5,6 +5,7 @@ MiMo-V2.6-Pro,Xiaomi,1020.0,42.0,1000,29.89,MIT,"vision,audio,reasoning",True,Fa
 Ling 3.1 Flash 1019,InclusionAI,560.0,25.0,1049,29.47,MIT,reasoning,True,False,,,-0.13
 MiniMax-M3.1-Flash,MiniMax,428.0,23.0,1000,28.91,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,,,-6.4
 Step 5 Preview,StepFun,600.0,27.0,1000,28.53,StepFun Model License 1.0,"vision,reasoning",True,False,,,16.43
+GLM-5.3-Flash,Z AI,320.0,18.0,1000,27.75,MIT,"vision,reasoning",True,False,71.53,51.23,0.67
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,26.73,MIT,"vision,reasoning",True,False,,,-10.83
 Mistral Large 4 (High),Mistral,1050.0,52.0,1000,26.02,Mistral Ecosystem Open-Weight License,"vision,reasoning",True,False,,,5.13
 Muse Spark Open (Xhigh),Meta,816.0,42.0,1049,24.68,Muse Model License,"vision,audio,reasoning",True,False,,,25.8

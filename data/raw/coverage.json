@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 274,
   "distinct_upstream_models": 274,
-  "kept": 78,
+  "kept": 79,
   "skipped_no_score": [
     "A.X-K2",
     "Agnes 2.5 Pro Beta",
@@ -29,7 +29,6 @@
     "Falcon-H1R-7B",
     "G9v3-39A5B",
     "G9v3-3B",
-    "GLM-5.3-Flash",
     "GPT-5.3 Codex (Xhigh)",
     "GPT-5.5 Instant (June 2026)",
     "GPT-5.5 Pro (Xhigh)",
@@ -205,18 +204,18 @@
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 78,
-    "cost_per_task": 77,
-    "cache_hit_price": 78,
+    "rows": 79,
+    "cost_per_task": 78,
+    "cache_hit_price": 79,
     "cache_write_price": 49,
-    "is_open_weights": 78,
-    "is_reasoning": 78,
-    "release_date": 78,
-    "aa_slug": 78
+    "is_open_weights": 79,
+    "is_reasoning": 79,
+    "release_date": 79,
+    "aa_slug": 79
   },
   "release_date_join": {
     "record": 0,
-    "slug": 33,
+    "slug": 34,
     "name": 2,
     "effort_slug": 42,
     "paren_name": 1,
