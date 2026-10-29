@@ -42,7 +42,7 @@ NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning),13.2,9,2026-10-23,no repo cleared
 NVIDIA Nemotron Nano 12B v2 VL (Reasoning),13.2,9,2026-10-23,no repo cleared the parameter guard
 Nemotron 3 Nano Omni 30B A3B Reasoning,30.0,9,2026-10-23,no repo cleared the parameter guard
 Nemotron 3.5 Bolt 74B-A9B,74.0,2,2026-10-22,no repo cleared the parameter guard
-Nemotron 3.5 Super VL,120.0,2,2026-10-22,no repo cleared the parameter guard
+Nemotron 3.5 Super VL,120.0,3,2026-10-29,no repo cleared the parameter guard
 Nex-N2-Pro (Based on Qwen3.5-397B-A17B),397.0,5,2026-10-28,no repo cleared the parameter guard
 Nex-N2-Pro (based on Qwen3.5-397B-A17B),397.0,2,2026-09-24,no repo cleared the parameter guard
 Qwen3 Omni 30B A3B (Reasoning),35.3,9,2026-10-23,no repo cleared the parameter guard

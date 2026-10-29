@@ -1,19 +1,19 @@
 {
   "hosted": {
-    "checked_at": "2026-10-29T10:57:29+00:00",
-    "fetched_at": "2026-10-29T10:57:29+00:00",
+    "checked_at": "2026-10-29T11:25:08+00:00",
+    "fetched_at": "2026-10-29T11:25:08+00:00",
     "ok": true,
     "rows": 73
   },
   "image": {
-    "checked_at": "2026-10-28T14:06:09+00:00",
-    "fetched_at": "2026-10-28T14:06:09+00:00",
+    "checked_at": "2026-10-29T11:25:12+00:00",
+    "fetched_at": "2026-10-29T11:25:12+00:00",
     "ok": true,
     "rows": 106
   },
   "local": {
-    "checked_at": "2026-10-29T10:57:32+00:00",
-    "fetched_at": "2026-10-29T10:57:32+00:00",
+    "checked_at": "2026-10-29T11:25:10+00:00",
+    "fetched_at": "2026-10-29T11:25:10+00:00",
     "ok": true,
     "rows": 21
   },
@@ -22,9 +22,10 @@
       "i2v": 81,
       "t2v": 32
     },
-    "checked_at": "2026-10-28T14:06:10+00:00",
+    "checked_at": "2026-10-29T11:25:13+00:00",
+    "error": "row count 94 -> 34, a 64% drop (limit 20%); shrink seen on 1 consecutive scrape(s) over 0.0h \u2014 it publishes by itself once it holds for 4 scrapes and 12h",
     "fetched_at": "2026-10-28T14:06:10+00:00",
-    "ok": true,
+    "ok": false,
     "rebaselined": {
       "t2v": {
         "detected_at": "2026-10-01T03:41:23+00:00",

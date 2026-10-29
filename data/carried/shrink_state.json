@@ -19,5 +19,13 @@
       "from_rows": 173,
       "rows": 21
     }
+  },
+  "video": {
+    "streak": {
+      "from_rows": 94,
+      "rows": 34,
+      "scrapes": 1,
+      "since": "2026-10-29T11:25:13+00:00"
+    }
   }
 }
