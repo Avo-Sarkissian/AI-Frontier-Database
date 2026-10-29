@@ -452,8 +452,10 @@ def test_the_local_fast_score_does_not_move_with_a_tag_filter():
     for name in got.index:
         assert got[name] == pytest.approx(want[name]), name
     # ...and the pool-relative maxima would have moved them.
+    # (Its quality floor, a quantile of the reference catalogue, moves too and
+    # can drop a row outright; compare the rows both keep.)
     pooled = _pick_local_tier(vision, "fast", full_local_df=vision).set_index("name")["_score"]
-    assert any(abs(pooled[n] - want[n]) > 1e-6 for n in got.index)
+    assert any(abs(pooled[n] - want[n]) > 1e-6 for n in got.index if n in pooled.index)
 
 
 def test_quantising_changes_vram_and_speed_but_never_the_score():
@@ -1282,11 +1284,15 @@ def test_the_family_legend_encodes_colour_and_nothing_else():
     symbols = {str(t.marker.symbol) for t in legend}
     assert symbols == {"circle"}, f"legend swatches encode shape: {symbols}"
 
+    from data.local_models import tab_family_colors, OTHER_FAMILY
+    named = tab_family_colors()
     scored = df[~(df.get("pending", False).fillna(False) & df["quality"].isna())]
-    expected = set(scored[scored["fits"] == "yes"]["family"])
+    expected = {f if f in named else OTHER_FAMILY
+                for f in scored[scored["fits"] == "yes"]["family"]}
     assert {t.name for t in legend} <= {str(f) for f in expected}, (
         "the legend lists a family with nothing plotted"
     )
-    # And the key that DOES explain shape has to be on the chart.
-    key = " ".join(a.text for a in fig.layout.annotations if a.text)
+    # And the key that DOES explain shape has to be on the chart: in the
+    # legend title, not an annotation over the marks.
+    key = fig.layout.legend.title.text
     assert "dense" in key and "mixture-of-experts" in key, key

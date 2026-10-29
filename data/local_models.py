@@ -489,6 +489,72 @@ def family_color(family: str) -> str:
     )
 
 
+# ── Run Local's on-screen palette ────────────────────────────────────────────
+# FAMILY_COLORS gives every lab a colour, and past a dozen labs those colours
+# stop being tellable apart: the VRAM scatter's legend carried up to 30 families
+# with six near-identical blues (DeepSeek, Meta, StepFun, InclusionAI, the
+# Institute of Foundation Models, OpenBMB), so the colour key named labs the
+# eye could not find. The tab now names a family only while its colour stays
+# clearly distinct from every family already named; the rest share one grey
+# "Other" and are identified by hover (and, on the ranked chart, by their own
+# row label).
+OTHER_FAMILY = "Other"
+MAX_NAMED_FAMILIES = 12          # the validated spotlight palette's size
+_NAMED_FAMILY_MIN_DELTA_E = 15.0  # auto_palette.MIN_DELTA_E, the validator floor
+
+
+def _catalogue_family_counts() -> dict[str, int]:
+    """Rows per family across the WHOLE open-weight catalogue (pending models
+    included). The palette is chosen from this, never from a filtered frame, so
+    a lab keeps its colour when a tag filter or a smaller GPU hides rivals."""
+    counts: dict[str, int] = {}
+    for m in merge_pending(_load_models_raw()):
+        f = str(m.get("family", ""))
+        counts[f] = counts.get(f, 0) + 1
+    return counts
+
+
+def tab_family_colors(counts: dict[str, int] | None = None) -> dict[str, str]:
+    """family -> the colour Run Local draws it in; a family missing from the
+    result is drawn as OTHER_FAMILY in DEFAULT_FAMILY_COLOR.
+
+    Greedy and deterministic: spotlight labs first (the palette validator has
+    cleared them as a set, and they are the labs a reader looks for), then the
+    rest by catalogue size, then name. A family is named only if its colour is
+    at least the validator's ΔE floor from every colour already named and from
+    the Other grey, up to MAX_NAMED_FAMILIES."""
+    from components.charts.auto_palette import delta_e
+    from components.charts.constants import SPOTLIGHT_PROVIDERS
+
+    counts = _catalogue_family_counts() if counts is None else counts
+    spotlight = set(SPOTLIGHT_PROVIDERS)
+    order = sorted(counts, key=lambda f: (f not in spotlight, -int(counts[f]), f))
+    named: dict[str, str] = {}
+    for fam in order:
+        if len(named) >= MAX_NAMED_FAMILIES:
+            break
+        col = family_color(fam)
+        if col == DEFAULT_FAMILY_COLOR:
+            continue
+        others = list(named.values()) + [DEFAULT_FAMILY_COLOR]
+        if all(delta_e(col, o) >= _NAMED_FAMILY_MIN_DELTA_E for o in others):
+            named[fam] = col
+    return named
+
+
+def catalogue_quality_max() -> float | None:
+    """Highest AA score in the whole open-weight catalogue, or None.
+
+    The Run Local scatter's y axis ends just above this. It used to end at the
+    hosted scale's fixed 70 while the open-weight peak sat at 47 (33 after AA's
+    v5.0 rescale), leaving the top third of the plot empty. Taken from the
+    catalogue rather than the frame on screen so a tag filter cannot move a
+    model up or down the axis."""
+    qs = [m.get("quality") for m in _load_models_raw()]
+    qs = [float(q) for q in qs if q is not None and q == q and float(q) > 0]
+    return max(qs) if qs else None
+
+
 # ── Model catalog ─────────────────────────────────────────────────────────────
 # Fields:
 #   name         - display name

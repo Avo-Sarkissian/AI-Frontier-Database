@@ -169,30 +169,34 @@ def test_no_tier_fills_a_short_list_with_an_unscored_model(tier):
 # ── The charts must not let an absent score read as a low one ────────────────
 
 def test_the_compat_chart_draws_no_length_for_an_unscored_model():
-    """A zero-length bar would say "scored zero"; a filled one would invent a
-    score. An outline says "this exists and fits" and encodes no magnitude."""
+    """A bar's length is a score. An unscored model gets no bar and no track,
+    sits BELOW every scored row (on top it read as the best), and its label
+    says it is unscored — a zero-length bar would say "scored zero", a full
+    outline (the earlier design) put a score-less row at the head of a ranking."""
     from components.charts.local_compat import build_local_compat
 
     df = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=1792)
     if _pending_rows(df).empty:
         pytest.skip("no pending entries")
     fig = json.loads(build_local_compat(df, quant="Q4", vram_gb=32).to_json())
-
-    outlines = [t for t in fig["data"]
-                if (t.get("marker") or {}).get("color") == "rgba(0,0,0,0)"]
-    assert outlines, "unscored models are not drawn as outlines"
-    assert "Not yet scored" in (outlines[0].get("hovertemplate") or "")
-
-    # and the quality bars must contain no fabricated value for them
     names = set(_pending_rows(df)["name"])
-    for trace in fig["data"]:
-        if (trace.get("marker") or {}).get("color") == "rgba(0,0,0,0)":
-            continue
-        for y, x in zip(trace.get("y") or [], trace.get("x") or []):
-            if y in names and isinstance(x, (int, float)):
-                assert x == 0 or trace.get("hoverinfo") == "skip", (
-                    f"{y} is drawn with a quality bar of {x}"
-                )
+
+    bars = fig["data"][-1]
+    order = fig["layout"]["yaxis"]["categoryarray"]
+    shown = [y for y in order if y in names]
+    assert shown, "unscored models vanished from the runnable list"
+    # bottom of the chart = start of the category array
+    assert order[:len(shown)] == shown, "an unscored row sits above a scored one"
+    for y, x in zip(bars["y"], bars["x"]):
+        if y in names:
+            assert x is None, f"{y} is drawn with a quality bar of {x}"
+    track = fig["data"][0]
+    assert not names & set(track["y"]), "an unscored row has a track to be measured on"
+    labels = {a["y"]: a["text"] for a in fig["layout"]["annotations"] if a.get("yref") == "y"}
+    assert all(labels[y].startswith("unscored") for y in shown)
+    cd = {r[0]: r for r in bars["customdata"]}
+    assert all("Not yet scored" in cd[y][16] or "not yet scored" in cd[y][16]
+               for y in shown)
 
 
 def test_both_local_charts_disclose_what_they_leave_out():

@@ -167,34 +167,88 @@ def cost_notes(df: pd.DataFrame) -> list[str]:
     return out
 
 
+# Rows the ranked chart draws. Past this the chart was a 100+ bar scroll whose
+# only x axis sat ~4,000 px below the title (8x B200: 109 rows at 42 px each),
+# so the bars could not be read against it. The rest are counted on screen and
+# every row stays in the ↓CSV export.
+MAX_COMPAT_ROWS = 30
+_ROW_PX = 30
+_NOT_SCORED = "unscored"
+
+
+def one_per_family(df: pd.DataFrame) -> pd.DataFrame:
+    """One row per model family, its best-scoring variant — the rule Overview
+    and the hosted rankings use (constants.select_effort with no effort).
+
+    AA benchmarks one open-weight model at several reasoning efforts and the
+    weights are identical, so "GLM-5.3 (Max)" and "GLM-5.3 (Low)" are the
+    same download at the same VRAM and speed: listing both spent a row on a
+    setting, not a model. Families are keyed by the name with its trailing
+    parenthetical removed; an unscored row only represents a family that has
+    no scored one. Stable, so ties resolve the same in every pandas build."""
+    from components.charts.constants import base_model_name
+
+    if df.empty or "name" not in df.columns:
+        return df
+    w = df.copy()
+    w["_family_key"] = w["name"].astype(str).map(base_model_name)
+    w["_q"] = pd.to_numeric(w["quality"], errors="coerce")
+    w = w.sort_values(["_q", "name"], ascending=[False, True], kind="mergesort",
+                      na_position="last")
+    return w.drop_duplicates("_family_key", keep="first").drop(columns=["_family_key", "_q"])
+
+
+def tab_colors(families) -> list[str]:
+    """Each family's on-screen colour (data/local_models.tab_family_colors):
+    the families the tab names keep theirs, the rest share the Other grey."""
+    from data.local_models import tab_family_colors
+    named = tab_family_colors()
+    return [named.get(f, DEFAULT_FAMILY_COLOR) for f in families]
+
+
 def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                        ctx_tokens=None, speed_mode=DEFAULT_SPEED_MODE) -> go.Figure:
     """
     Horizontal bar chart of quality scores for models that fit the user's hardware.
     df is the output of data.local_models.get_local_df(), pre-filtered.
+
+    Scored models rank from the top; models AA has not scored follow at the
+    BOTTOM with no bar at all (a bar's length is a score, and they have none)
+    and "not scored" in their label. Every label leads with the score.
     """
-    runnable = df[df["fits"].isin(["yes", "tight"])].copy()
+    runnable = df[df["fits"].isin(["yes", "tight"])].copy() if "fits" in df.columns \
+        else df.iloc[0:0]
 
+    if df.empty:
+        return empty_state("Runnable Models", "No model matches these tags",
+                           "Clear a tag filter to see the catalogue")
     if runnable.empty:
-        return _empty(
-            "No models fit your current VRAM. "
-            "Try a shorter context, a lower quantization (e.g. Q4 → Q3), "
-            "or adding more GPUs."
-        )
+        return empty_state(
+            "Runnable Models", f"No model fits {_vram_note(vram_gb)}",
+            "Try a shorter context or a lower quantization (e.g. Q4 → Q3),<br>"
+            "or add GPUs")
 
-    # Unscored models sort to the TOP of an ascending chart, which would read as
-    # "worst". They are not worst — they are unmeasured, and the two must not
-    # look alike. Split them out, rank the scored ones, then re-append the
-    # unscored group above the ranking with an outline-only bar that makes no
-    # length claim at all.
-    pending = runnable[runnable.get("pending", False) & runnable["quality"].isna()] \
-        if "pending" in runnable.columns else runnable.iloc[0:0]
-    scored = runnable.drop(index=pending.index)
-    # Stable and fully specified. The default quicksort ordered tied scores
-    # differently on the CI build and in Pyodide, so the pre-rendered chart's
-    # tied bars swapped places a second after load when the live render landed.
-    scored = scored.sort_values(["quality", "name"], ascending=True, kind="mergesort")
-    runnable = pd.concat([scored, pending]).reset_index(drop=True)
+    runnable = one_per_family(runnable)
+    n_fit = len(runnable)
+    q = pd.to_numeric(runnable["quality"], errors="coerce")
+    unscored = runnable[q.isna() | (q <= 0)]
+    scored = runnable.drop(index=unscored.index)
+    # Best first, then the cap. Stable and fully specified: the default
+    # quicksort ordered tied scores differently on the CI build and in Pyodide,
+    # so the pre-rendered chart's tied bars swapped places a second after load
+    # when the live render landed.
+    scored = scored.sort_values(["quality", "name"], ascending=[False, True],
+                                kind="mergesort")
+    unscored = unscored.sort_values("name", kind="mergesort")
+    shown_scored = scored.head(MAX_COMPAT_ROWS)
+    shown_unscored = unscored.head(max(0, MAX_COMPAT_ROWS - len(shown_scored)))
+    n_omitted = n_fit - len(shown_scored) - len(shown_unscored)
+    # Plotly draws a horizontal bar chart bottom-up: unscored first (bottom),
+    # then the scored ranking from weakest to best (top).
+    runnable = pd.concat([shown_unscored.iloc[::-1], shown_scored.iloc[::-1]]) \
+        .reset_index(drop=True)
+    is_pending = (pd.to_numeric(runnable["quality"], errors="coerce").isna()
+                  | (pd.to_numeric(runnable["quality"], errors="coerce") <= 0)).tolist()
 
     # Truncate long names, then force them distinct: several Nemotron variants
     # share a 34-character prefix, and two models on one category means Plotly
@@ -203,12 +257,8 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
         runnable["name"].apply(lambda n: n[:34] + "…" if len(n) > 34 else n).tolist()
     )
 
-    colors  = runnable["family"].map(FAMILY_COLORS).fillna(DEFAULT_FAMILY_COLOR).tolist()
+    colors = tab_colors(runnable["family"])
     opacity = [0.85 if f == "yes" else 0.50 for f in runnable["fits"]]
-    is_pending = (
-        runnable["pending"].fillna(False).tolist()
-        if "pending" in runnable.columns else [False] * len(runnable)
-    )
 
     _speed_col, _speed_label = speed_columns(speed_mode)
 
@@ -224,44 +274,37 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
     runnable["ctx_label"], n_capped = ctx_labels(runnable, ctx_tokens)
     runnable["speed_note"] = [s + c for s, c in zip(speed_notes(runnable, speed_mode),
                                                    cost_notes(runnable))]
+    runnable["score_text"] = [_NOT_SCORED if p else f"{float(v):.1f}"
+                              for v, p in zip(runnable["quality"], is_pending)]
+    runnable["score_hover"] = ["not yet scored by Artificial Analysis" if p
+                               else f"{float(v):.1f}"
+                               for v, p in zip(runnable["quality"], is_pending)]
     for _c in ("weights_gb", "kv_gb", "sessions", "per_session_tps", "total_tps"):
         if _c not in runnable:
             runnable[_c] = 0
 
     fig = go.Figure()
 
-    # Background track (full-width ghost bar for visual alignment)
-    _mq = runnable["quality"].max()
+    _mq = pd.to_numeric(runnable["quality"], errors="coerce").max()
     max_q = float(_mq) if pd.notna(_mq) and _mq > 0 else 1.0
+    scored_rows = [not p for p in is_pending]
+
+    # Background track behind SCORED rows only: an unscored row has no length
+    # to sit on a scale, so it gets no track either.
     fig.add_trace(go.Bar(
-        y=runnable["short_name"],
-        x=[max_q] * len(runnable),
+        y=[n for n, s in zip(runnable["short_name"], scored_rows) if s],
+        x=[max_q] * sum(scored_rows),
         orientation="h",
         marker=dict(color="rgba(255,255,255,0.02)", line=dict(width=0)),
         hoverinfo="skip",
         showlegend=False,
     ))
 
-    # Unscored models: a full-width OUTLINE, no fill. An outline reads as "this
-    # row exists and fits your hardware" without encoding a magnitude, which is
-    # the honest rendering of a number nobody has measured. A zero-length bar
-    # would have said "scored zero"; a filled one would have invented a score.
-    if any(is_pending):
-        fig.add_trace(go.Bar(
-            y=[n for n, p in zip(runnable["short_name"], is_pending) if p],
-            x=[max_q for p in is_pending if p],
-            orientation="h",
-            marker=dict(color="rgba(0,0,0,0)",
-                        line=dict(color="rgba(255,255,255,0.28)", width=1)),
-            hovertemplate="<b>%{y}</b><br>Not yet scored by Artificial Analysis"
-                          "<extra></extra>",
-            showlegend=False,
-        ))
-
-    # Quality bars
+    # Quality bars. An unscored row carries x=None: its category (and label)
+    # is on the axis, but nothing is drawn — no length, so no claimed score.
     fig.add_trace(go.Bar(
         y=runnable["short_name"],
-        x=runnable["quality"],
+        x=[None if p else float(v) for v, p in zip(runnable["quality"], is_pending)],
         orientation="h",
         marker=dict(
             color=colors,
@@ -272,15 +315,15 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
                               "license", "context_k", "tags_str", "fits",
                               "weights_gb", "kv_gb", "kv_note", "ctx_label",
                               "sessions", "per_session_tps", "total_tps",
-                              "overhead_gb", "speed_note"]].values,
+                              "overhead_gb", "score_hover", "speed_note"]].values,
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Family: %{customdata[1]}<br>"
-            "Intelligence: %{x:.0f}<br>"
+            "Intelligence: %{customdata[16]}<br>"
             "VRAM needed: %{customdata[2]:.1f} GB at %{customdata[11]} context<br>"
             "  ↳ weights %{customdata[8]:.1f} + KV cache %{customdata[9]:.1f}"
             " + runtime %{customdata[15]:.1f} GB  ·  %{customdata[10]}<br>"
-            "%{customdata[16]}<br>"
+            "%{customdata[17]}<br>"
             "License: %{customdata[4]}<br>"
             "Max context: %{customdata[5]}k tokens<br>"
             "Tags: %{customdata[6]}<br>"
@@ -289,52 +332,76 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
         showlegend=False,
     ))
 
-    # ONE line, showing the metric the reader selected. It briefly showed two —
+    # ONE speed figure, the metric the reader selected. It briefly showed two —
     # single-stream on top and aggregate underneath — which put two tok/s
     # figures 2-4x apart in the same 200 px gutter with nothing on screen saying
-    # which was which.
-    def _label(row):
+    # which was which. The score leads, so the ranking's own number is printed
+    # rather than read off a scale.
+    def _label(row, score):
         v = row[_speed_col]
         speed_str = f"{v:,.0f} tok/s" if v > 0 else "–"
-        tight_tag = "  ⚠ tight" if row["fits"] == "tight" else ""
+        tight_tag = " ⚠ tight" if row["fits"] == "tight" else ""
         # The session count rides directly after the throughput it qualifies,
         # on one space. The roomier "  (×24)" form pushed the label past the
         # 200 px gutter cap on 24 of 109 rows and got trimmed to "(×2…".
         sessions = ""
         if speed_mode == "throughput" and int(row.get("sessions") or 0) > 1:
             sessions = f" ×{int(row['sessions'])}"
-        return f"{speed_str}{sessions}  ·  {row['vram_req_gb']:.1f} GB{tight_tag}"
+        gb = row["vram_req_gb"]
+        gb_str = f"{gb:.0f} GB" if gb >= 100 else f"{gb:.1f} GB"
+        return f"{score} · {speed_str}{sessions} · {gb_str}{tight_tag}"
 
     # One label per row, computed once. Records rather than iterrows: iterrows
     # builds a Series per row, which was a measurable share of a build that
     # runs on every Run Local control change.
     _rows = runnable.to_dict("records")
-    _labels = [_label(r) for r in _rows]
-    # size_px=11 to MATCH the fit_text call below. They disagreed — the gutter
-    # was sized at 10 px/char and the labels trimmed at 11 — so every annotation
-    # here lost ~10% of the width it had actually been given, and a throughput
-    # label ended "816 tok/s · 22.3 GB (×2…" with room to spare beside it.
-    _gutter = right_gutter(_labels, size_px=11)
+    _labels = [_label(r, r["score_text"]) for r in _rows]
+    # size_px to MATCH the fit_text call below. They once disagreed — the
+    # gutter sized at 10 px/char and the labels trimmed at 11 — so every
+    # annotation lost ~10% of the width it had actually been given. 10 px, the
+    # gutter labels' size on every other ranked chart, so the score-led label
+    # fits the shared 200 px cap untrimmed.
+    _gutter = right_gutter(_labels, size_px=10)
     # Collected as plain dicts and set ONCE in the update_layout below. One
     # fig.add_annotation per row re-validated the whole annotations tuple on
-    # every call, so the build was quadratic in runnable rows: 2.5 s natively
-    # for 179 rows on 8x B200, and several times that in the Pyodide worker,
-    # on every control change.
+    # every call, so the build was quadratic in runnable rows.
     annotations = [
         dict(
             x=1.01,
             y=row["short_name"],
-            text=fit_text(text, _gutter, size_px=11),
+            text=fit_text(text, _gutter, size_px=10),
             showarrow=False,
             xanchor="left",
-            font=dict(size=11, family=_FONT,
-                      color=FAMILY_COLORS.get(row["family"], DEFAULT_FAMILY_COLOR)),
+            font=dict(size=10, family=_FONT,
+                      color="#777777" if pend else col),
             xref="paper", yref="y",
         )
-        for row, text in zip(_rows, _labels)
+        for row, text, col, pend in zip(_rows, _labels, colors, is_pending)
     ]
+    # Phone: the same rows, with the gutter label cut to score and VRAM.
+    _narrow_labels = [f"{r['score_text']}  ·  {r['vram_req_gb']:.0f} GB"
+                      for r, p in zip(_rows, is_pending)]
+    _narrow_gutter = right_gutter(_narrow_labels, size_px=10, pad_px=10)
+    narrow_annotations = [dict(a, text=t)
+                          for a, t in zip(annotations, _narrow_labels)]
+    if n_omitted > 0:
+        omitted = dict(
+            x=0, y=0, xref="paper", yref="paper", xanchor="left", yanchor="top",
+            yshift=-50, showarrow=False, align="left",
+            text=(f"+ {n_omitted} more that fit, lower-scored, not shown"
+                  "  ·  every row is in ↓CSV"),
+            font=dict(size=11, family=_FONT, color="#888888"),
+        )
+        annotations.append(omitted)
+        narrow_annotations.append(dict(omitted, text=f"+ {n_omitted} more not shown (↓CSV)",
+                                       font=dict(omitted["font"], size=10)))
 
-    height = max(480, len(runnable) * 42 + 80)
+    n_rows = len(runnable)
+    height = max(320, n_rows * _ROW_PX + 120 + (24 if n_omitted > 0 else 0))
+    bottom = 44 + (26 if n_omitted > 0 else 0)
+
+    # Phone names: the 34-character label took half a 356 px plot.
+    _narrow_names = [n if len(n) <= 20 else n[:19] + "…" for n in runnable["short_name"]]
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -344,16 +411,17 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
             text=(
                 f"Runnable Models  "
                 f"<span style='font-size:11px;color:#666666;font-weight:400'>"
-                f"  ·  {len(runnable)} models fit {_vram_note(vram_gb)} "
+                f"  ·  {n_fit} model{'s' if n_fit != 1 else ''} fit {_vram_note(vram_gb)} "
                 f"at {_ctx_label(ctx_tokens)} context"
                 # The count above includes models that were only ever priced at
                 # their own shorter maximum; say how many, so "fit at 128k" is
                 # not read as "run at 128k".
                 + (f" ({n_capped} only up to their own shorter max)"
                    if n_capped else "")
-                + "  ·  ranked by intelligence"
+                + (f"  ·  top {len(shown_scored)} shown" if n_omitted > 0 else "")
+                + "  ·  ranked by intelligence, best variant per model"
                 f"  ·  tok/s = {_speed_label}"
-                + (f"  ·  {int(sum(is_pending))} not yet scored (outlined)"
+                + (f"  ·  {int(sum(is_pending))} not yet scored (listed last)"
                    if any(is_pending) else "")
                 + "</span>"
             ),
@@ -372,33 +440,58 @@ def build_local_compat(df: pd.DataFrame, quant: str, vram_gb=None,
             tickfont=dict(color="#aaaaaa", size=12, family=_FONT),
             showgrid=False, showline=False, ticks="",
             automargin=True,
+            # Pinned: categories otherwise order by first appearance across
+            # traces, and the track trace (scored rows only) would put the
+            # unscored rows on TOP of a ranking they are not part of.
+            categoryorder="array", categoryarray=list(runnable["short_name"]),
         ),
         annotations=annotations,
         barmode="overlay",
-        bargap=0.35,
-        margin=dict(l=20, r=_gutter, t=52, b=36),
+        bargap=0.3,
+        margin=dict(l=20, r=_gutter, t=52, b=bottom),
         height=height,
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
+        # docs/app.js narrowFigure applies this below max_width (a phone).
+        meta={"narrow": {
+            "max_width": 500,
+            "data": {},
+            "layout": {
+                "annotations": narrow_annotations,
+                "margin": {"r": _narrow_gutter, "l": 8},
+                "yaxis": {"tickvals": list(runnable["short_name"]),
+                          "ticktext": _narrow_names,
+                          "tickfont": {"color": "#aaaaaa", "size": 10, "family": _FONT}},
+            },
+        }},
     )
 
     return fig
 
 
-def _empty(msg: str) -> go.Figure:
+def empty_state(title: str, headline: str, hint: str, height: int = 320) -> go.Figure:
+    """Run Local's empty state, in the Budget tab's pattern: the chart keeps
+    its title, the axes go (a bare grid reads as "broken", and Plotly drew
+    default -1..6 ticks on it), and the card says what is empty and what to
+    change. Shared by both Run Local charts."""
     fig = go.Figure()
+    fig.add_annotation(
+        text=(f"{headline}<br><span style='font-size:12px;color:#777777'>{hint}</span>"),
+        showarrow=False, xref="paper", yref="paper", x=0.5, y=0.5,
+        font=dict(size=15, family=_FONT, color="#999999"), align="center",
+    )
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
         font=dict(family=_FONT, color="#888888", size=12),
-        annotations=[dict(
-            x=0.5, y=0.5, xref="paper", yref="paper",
-            text=msg, showarrow=False,
-            font=dict(color="#777777", size=13, family=_FONT),
-            align="center",
-        )],
-        margin=dict(l=40, r=40, t=60, b=40), height=300,
+        xaxis=dict(visible=False), yaxis=dict(visible=False),
+        margin=dict(l=20, r=20, t=52, b=36), height=height,
+        title=dict(
+            text=title,
+            font=dict(size=14, color="#f2f2f2", family=_FONT, weight=600),
+            x=0.0, xanchor="left", pad=dict(l=20, t=16),
+        ),
     )
     return fig

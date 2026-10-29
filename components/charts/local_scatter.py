@@ -23,10 +23,40 @@ from components.charts.constants import (
 )
 from components.charts.local_compat import (
     KV_NOTE, ESTIMATED_KV_NOTE, ctx_labels, speed_notes, cost_notes,
+    one_per_family, empty_state,
 )
 from data.local_models import (
-    FAMILY_COLORS, DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
+    DEFAULT_FAMILY_COLOR, DEFAULT_SPEED_MODE, speed_columns,
+    tab_family_colors, catalogue_quality_max, OTHER_FAMILY,
 )
+
+_TITLE = "VRAM Requirement vs Intelligence"
+
+
+def _x_bounds(vram_req, vram_gb: float) -> tuple[float, float]:
+    """Log-axis ends from the data and the VRAM line, with a little padding.
+
+    The axis used to start at a fixed 0.08 GB while the smallest model needs
+    ~1.8 GB, so the first two decades of every chart were empty. It now spans
+    the frame's own requirements and the user's VRAM, whichever reach further,
+    padded by ~1/3 of a doubling-step at each end so no mark sits on an edge."""
+    vals = [float(v) for v in vram_req if v == v and v > 0]
+    lo = min(vals + [float(vram_gb)]) if vram_gb and vram_gb > 0 else min(vals or [1.0])
+    hi = max(vals + [float(vram_gb) if vram_gb and vram_gb > 0 else 0.0, 1.0])
+    return lo / 1.45, hi * 1.3
+
+
+def _y_top(df_quality) -> float:
+    """Top of the score axis: just above the open-weight catalogue's best
+    score, rounded up to a multiple of 5. Not the hosted scale's fixed 70 —
+    the open-weight peak is 47 on v4 and 33 on v5, which left a third of the
+    plot empty — and not the frame's own max, so a tag filter cannot move a
+    model up or down the axis."""
+    import math
+    ref = catalogue_quality_max()
+    here = pd.to_numeric(df_quality, errors="coerce").max()
+    peak = max([v for v in (ref, here) if v is not None and v == v] or [QUALITY_INDEX_MAX])
+    return float(math.ceil(peak * 1.08 / 5.0) * 5)
 
 _FIT_ALPHA  = 1.00   # fully runnable
 _TIGHT_ALPHA = 0.75  # fits but < 1 GB headroom
@@ -56,7 +86,8 @@ def build_local_scatter(
     df is the output of data.local_models.get_local_df().
     """
     if df.empty:
-        return _empty("No models found.")
+        return empty_state(_TITLE, "No model matches these tags",
+                           "Clear a tag filter to see the catalogue", height=440)
 
     # This chart's Y axis IS the quality score, so a model nobody has scored
     # cannot be placed on it. Dropping it silently would be the same lie in the
@@ -68,7 +99,15 @@ def build_local_scatter(
         _pending_n = int(_mask.sum())
         df = df[~_mask]
     if df.empty:
-        return _empty("No scored models found.")
+        return empty_state(_TITLE, "No scored model to place",
+                           "Every model here is still awaiting an AA score",
+                           height=440)
+    # One mark per model: AA's reasoning-effort tiers share weights, VRAM and
+    # speed, so "GLM-5.3 (Max)" and "(Low)" were two marks at one x. The best
+    # variant speaks for the model, as on Overview and the ranked chart below.
+    df = one_per_family(df)
+    _named = tab_family_colors()
+    df = df.assign(_tab_family=[f if f in _named else OTHER_FAMILY for f in df["family"]])
 
     _speed_col, _speed_label = speed_columns(speed_mode)
     _speed_ref = (LOCAL_THROUGHPUT_REF if speed_mode == "throughput"
@@ -95,8 +134,8 @@ def build_local_scatter(
     # appeared; the proxies have to reproduce that or the legend grows by the
     # 18 families whose models are all too big for the selected hardware.
     _legend_families: list = []
-    for family, fdf in df.groupby("family", sort=False):
-        color = FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR)
+    for family, fdf in df.groupby("_tab_family", sort=False):
+        color = _named.get(family, DEFAULT_FAMILY_COLOR)
         if not fdf[fdf["fits"] == "yes"].empty:
             _legend_families.append(family)
 
@@ -113,7 +152,7 @@ def build_local_scatter(
 
             hover = (
                 "<b>%{customdata[0]}</b><br>"
-                f"Family: {plot_text(family)}<br>"
+                "Family: %{customdata[13]}<br>"
                 "VRAM required: %{x:.1f} GB at %{customdata[8]} context<br>"
                 "  ↳ weights %{customdata[5]:.1f} + KV cache %{customdata[6]:.1f}"
                 " + runtime %{customdata[11]:.1f} GB  ·  %{customdata[7]}<br>"
@@ -157,66 +196,60 @@ def build_local_scatter(
                     name=sub["name"].map(plot_text),
                     license=sub["license"].map(plot_text),
                     tags_str=sub["tags_str"].map(plot_text),
+                    family=sub["family"].map(plot_text),
                 )[["name", "speed_tps", "license", "context_k", "tags_str",
                    "weights_gb", "kv_gb", "kv_note", "ctx_label",
-                   "sessions", "total_tps", "overhead_gb", "speed_note"]].values,
+                   "sessions", "total_tps", "overhead_gb", "speed_note",
+                   "family"]].values,
                 hovertemplate=hover,
             ))
 
     # Legend proxies: one per family, fixed circle, no data. They exist so the
     # FAMILY legend encodes colour only. The dense/MoE key is the annotation in
     # the corner, which is the one place shape is explained.
+    # Named families by catalogue order of the palette, "Other" last.
+    _rank = {f: i for i, f in enumerate(_named)}
+    _legend_families.sort(key=lambda f: (f == OTHER_FAMILY, _rank.get(f, 99), f))
     for family in _legend_families:
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
             name=plot_text(family), legendgroup=plot_text(family),
-            marker=dict(color=FAMILY_COLORS.get(family, DEFAULT_FAMILY_COLOR),
+            marker=dict(color=_named.get(family, DEFAULT_FAMILY_COLOR),
                         size=9, symbol="circle",
                         line=dict(width=0.5, color="rgba(255,255,255,0.15)")),
             hoverinfo="skip", showlegend=True,
         ))
 
     # Vertical threshold line at user's VRAM
+    # The dashed line only; its label is placed below, once the axis is known.
     fig.add_vline(
         x=vram_gb,
         line=dict(color="rgba(0,212,255,0.55)", width=1.5, dash="dot"),
-        annotation_text=f"  {vram_gb:.0f} GB",
-        annotation_font=dict(color="#00d4ff", size=10, family=_FONT),
-        annotation_position="top right",
     )
+
+    import math
+
+    x_lo, x_hi = _x_bounds(df["vram_req_gb"], vram_gb)
 
     # Shaded "runnable" region (left of threshold)
     fig.add_vrect(
-        x0=0, x1=vram_gb,
+        x0=x_lo, x1=vram_gb,
         fillcolor="rgba(34,197,94,0.025)",
         line_width=0,
         layer="below",
     )
 
-    import math
-
-    # The axis is logarithmic, so including the 600B-class models costs a
-    # little width rather than compressing the runnable region — and dropping
-    # them silently removed a third of the catalogue from the chart.
-    x_max = max(vram_gb * 2.5, float(df["vram_req_gb"].max()) * 1.15, 8)
-    x_log_max = math.log10(x_max)
-    x_log_min = math.log10(0.08)   # ~0.08 GB minimum so tiny models show
-
-    # Build sensible tick positions within the visible range. The doubling
-    # ladder runs as far as the axis does: it used to stop at a fixed 512, while
-    # x_max reaches ~1.8 TB at the default and more on pooled GPUs, so the VRAM
-    # line and the 600B-class models sat in an unlabelled last eighth of the
-    # axis. Doubling until the axis end keeps the final gap no wider than the
-    # others.
-    all_tick_vals = [0.1, 0.25, 0.5]
+    # 1-2-4 doubling ladder (with 0.1/0.25/0.5 under 1 GB) clipped to the
+    # visible span, so the last gap is never wider than the others.
+    ladder = [0.1, 0.25, 0.5]
     _v = 1
-    while _v <= x_max * 1.05:
-        all_tick_vals.append(_v)
+    while _v <= x_hi:
+        ladder.append(_v)
         _v *= 2
-    all_tick_texts = [f"{v:g}" for v in all_tick_vals]
-    tick_pairs = [(v, t) for v, t in zip(all_tick_vals, all_tick_texts) if v <= x_max * 1.05]
-    tick_vals  = [p[0] for p in tick_pairs]
-    tick_texts = [p[1] for p in tick_pairs]
+    tick_vals = [v for v in ladder if x_lo <= v <= x_hi]
+    tick_texts = [f"{v:g}" for v in tick_vals]
+    x_log_min, x_log_max = math.log10(x_lo), math.log10(x_hi)
+    y_top = _y_top(df["quality"])
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -224,14 +257,13 @@ def build_local_scatter(
         font=dict(family=_FONT, color="#999999", size=12),
         title=dict(
             text=(
-                "VRAM Requirement vs Intelligence"
-                "  <span style='font-size:12px;color:#777777;font-weight:400'>"
+                _TITLE
+                + "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {quant} at {_ctx_label(ctx_tokens)} context"
                 + (f" ({_n_capped} priced at their own shorter max)" if _n_capped else "")
                 + "  ·  left of line = runnable  ·  bubble = "
                 f"{_speed_label} tok/s"
-                + (f"  ·  {_pending_n} newer model{'s' if _pending_n != 1 else ''} "
-                   f"not yet scored — see the ranking below" if _pending_n else "")
+                + (f"  ·  {_pending_n} not yet scored (listed below)" if _pending_n else "")
                 + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
@@ -250,7 +282,7 @@ def build_local_scatter(
         ),
         yaxis=dict(
             title=dict(text="AA Intelligence Index", font=dict(color=_AXIS, size=12), standoff=12),
-            range=[0, QUALITY_INDEX_MAX],
+            range=[0, y_top],
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)",
             tickfont=dict(color=_TICK, size=11, family=_FONT),
             showgrid=True, showline=False, ticks="",
@@ -258,46 +290,42 @@ def build_local_scatter(
         # Up to 26 family entries in a vertical side legend meant ~10 were
         # hidden behind a Plotly scrollbar, while its fixed 160px gutter left
         # the plot 35% of the card on a phone.
+        # The key rides in the legend title, above the entries: as an
+        # annotation in the plot's top-right corner it sat on the
+        # highest-scoring marks and on the VRAM line whenever the line ran
+        # near the right edge.
         legend={**legend_below(y=-0.14),
                 "font": dict(color="#999999", size=10, family=_FONT),
-                "title": dict(text="FAMILY", font=dict(color="#777", size=10))},
-        margin=dict(l=56, r=28, t=52, b=132),
+                "title": dict(text=(f"colour = lab (grey = other labs)  ·  "
+                                    f"● dense  ◆ mixture-of-experts  ·  "
+                                    f"bubble size = {_speed_label} tok/s"),
+                              font=dict(color="#777", size=10), side="top")},
+        margin=dict(l=56, r=28, t=52, b=148),
+        # docs/app.js narrowFigure, below max_width (a phone): the key in
+        # short form, so the legend title fits the plot's width.
+        meta={"narrow": {"max_width": 500, "data": {}, "layout": {
+            "legend": {"title": dict(text="● dense  ◆ MoE  ·  size = tok/s",
+                                     font=dict(color="#777", size=10), side="top")},
+        }}},
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
     )
-    # Legend annotation for size = speed. ADDED, not passed to update_layout:
-    # update_layout(annotations=[...]) replaces the tuple, which silently wiped
-    # the "N GB" label add_vline had attached to the VRAM line above, so the
-    # runnable boundary was drawn with no value on it.
-    # yanchor="top" is explicit because the old replace merged it in from the
-    # VRAM label it overwrote; the key has always rendered top-anchored.
+    # The VRAM line's value. add_vline's own label took x in DATA units, and on
+    # a log axis Plotly reads an annotation's x as log10(value): "32 GB" was
+    # placed at 10^32 and never drawn, and "1 GB" sat over 10 GB, a decade
+    # right of its line. Placed explicitly in the axis's own (log) coordinate,
+    # on the side of the line with room.
+    _at = math.log10(vram_gb) if vram_gb and vram_gb > 0 else x_log_min
+    _right_side = (_at - x_log_min) / ((x_log_max - x_log_min) or 1) > 0.85
     fig.add_annotation(
-        x=1.0, y=1.04, xref="paper", yref="paper",
-        xanchor="right", yanchor="top",
-        text=(f"● dense   ◆ mixture-of-experts"
-              f"<br>bubble size = {_speed_label} tok/s"
-              f"<br>colour = lab"),
+        x=_at, xref="x", y=1, yref="y domain", yanchor="top",
+        xanchor="right" if _right_side else "left",
+        text=f"{vram_gb:.0f} GB  " if _right_side else f"  {vram_gb:.0f} GB",
         showarrow=False,
-        font=dict(color="#666666", size=10, family=_FONT),
-        align="left",
+        font=dict(color="#00d4ff", size=10, family=_FONT),
     )
 
-    return fig
-
-
-def _empty(msg: str) -> go.Figure:
-    fig = go.Figure()
-    fig.update_layout(
-        paper_bgcolor=_BG, plot_bgcolor=_BG,
-        font=dict(family=_FONT, color="#888888", size=12),
-        annotations=[dict(
-            x=0.5, y=0.5, xref="paper", yref="paper",
-            text=msg, showarrow=False,
-            font=dict(color="#777777", size=13, family=_FONT),
-        )],
-        margin=dict(l=40, r=40, t=60, b=40), height=500,
-    )
     return fig

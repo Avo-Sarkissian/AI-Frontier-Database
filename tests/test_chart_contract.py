@@ -322,7 +322,9 @@ def test_annotated_charts_do_not_also_reserve_axis_headroom():
             continue
         lo, hi = rng
         bars = [t for t in fig.data if t.type == "bar" and t.x is not None]
-        widest = max((max(t.x) for t in bars if len(t.x)), default=0)
+        # A bar with x=None draws nothing (Run Local's unscored rows).
+        widest = max((max(v for v in t.x if v is not None)
+                      for t in bars if any(v is not None for v in t.x)), default=0)
         if widest <= 0:
             continue
         assert hi <= widest * 1.10, (
