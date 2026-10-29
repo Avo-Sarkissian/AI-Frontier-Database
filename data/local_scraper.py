@@ -83,7 +83,7 @@ import requests
 import pandas as pd
 
 from data import carried, scrape_status
-from data.rsc import find_records, payload_from_html
+from data.rsc import detect_index_version, find_records, payload_from_html
 from data.scraper import _real as _aa_real
 from static_helpers import csv_safe
 
@@ -421,6 +421,15 @@ def _scrape_and_save() -> bool:
         index = requests.get(_PAGE_URL, headers=_HEADERS, timeout=_TIMEOUT)
         index.raise_for_status()
         board = _leaderboard(payload_from_html(index.text))
+        # Same rescale detection as data/scraper.py, against this dataset's
+        # own record: the two scrapers publish independently.
+        index_version = detect_index_version(index.text)
+        rescale = carried.index_rescale("local", index_version)
+        if index_version is None:
+            print("[local_scraper] WARNING: the page names no Intelligence Index "
+                  "version — rescale detection is blind this run")
+        elif rescale:
+            print(f"[local_scraper] AA Intelligence Index changed {rescale}")
     except Exception as exc:
         print(f"[local_scraper] Fetch error: {exc}")
         return False
@@ -472,7 +481,8 @@ def _scrape_and_save() -> bool:
     df = _carry_dropped_columns(df, load_cached(), key="name", tag="local_scraper")
 
     violations = carried.confirm_shrink(
-        "local", _shrink_violations(df), published, set(df["name"].astype(str)))
+        "local", _shrink_violations(df), published, set(df["name"].astype(str)),
+        rescale=rescale)
     violations += _column_violations(df)
     if violations:
         for v in violations:
@@ -485,6 +495,7 @@ def _scrape_and_save() -> bool:
     # hourly and opened by hand. See static_helpers.csv_safe.
     csv_safe(df).to_csv(_CACHE, index=False)
     carried.save_deprecation_state(dep_state, state_path)
+    carried.record_index_version("local", index_version)
     save_specs(specs)
     carried.learn_creator_colors({_creator_name(m): m.get("modelCreatorColor")
                                   for m in board}, "llm")

@@ -629,21 +629,34 @@ def test_the_open_weight_catalogue_carries_the_sibling_indices():
     assert pd.isna(df.iloc[0]["agentic"]), "an unscored agentic index became a number"
 
 
-def test_the_local_export_carries_the_overhaul_columns_too():
+def test_the_local_export_carries_the_overhaul_columns_too(tmp_path, monkeypatch):
     """`export_frame_for_tab` comments that the export "is where someone checks
     the dashboard's work, so it must carry more than the screen does, not less".
     data/local_models._load_models_raw rebuilds each row as an explicit dict, so
     any column not named there is silently dropped on the way to the Run Local
     tab and its ↓CSV — which is how the open-weight export ended up without the
     estimated flag while the hosted one had it."""
+    from data import local_models
     from data.local_models import get_local_df
 
     df = get_local_df()
     for col in ("quality_estimated", "coding", "agentic", "omniscience"):
         assert col in df.columns, f"the open-weight frame drops {col}"
-    scored = df["quality_estimated"].eq(True)
-    assert scored.any(), "no open-weight model is flagged estimated (147 of 190 are)"
-    assert not scored.all(), "every open-weight model is flagged estimated"
+
+    # Whether any LIVE row is estimated is AA's call: 147 of 190 were under v4,
+    # none are on v5.0 (2026-10-28), which publishes measured scores only. So
+    # the flag's passage through _load_models_raw is pinned on a copy of the
+    # committed CSV with every other row marked estimated, and must come out
+    # row for row — neither dropped to False nor smeared onto every row.
+    src = pd.read_csv(local_models._LOCAL_CACHE)
+    src["quality_estimated"] = [i % 2 == 0 for i in range(len(src))]
+    path = tmp_path / "aa_local_models.csv"
+    src.to_csv(path, index=False)
+    monkeypatch.setattr(local_models, "_LOCAL_CACHE", path)
+    got = get_local_df(include_pending=False).set_index("name")["quality_estimated"]
+    want = src.set_index("name")["quality_estimated"]
+    assert got.any() and not got.all()
+    assert got.reindex(want.index).astype(bool).tolist() == want.tolist()
 
 
 def test_a_curated_model_aa_has_not_benchmarked_is_not_marked_estimated():

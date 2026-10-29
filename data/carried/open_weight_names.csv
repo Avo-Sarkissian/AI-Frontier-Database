@@ -136,6 +136,7 @@ Gemini 3.8 Flash (High),0,aa_isOpenWeights,2026-10-27
 Gemini 3.8 Flash (Low),0,aa_isOpenWeights,2026-10-27
 Gemini 3.8 Flash (Medium),0,aa_isOpenWeights,2026-10-27
 Gemini 4 Argon (High),0,aa_isOpenWeights,2026-10-27
+Gemini 4 Carbon (High),0,aa_isOpenWeights,2026-10-29
 Gemma 3 12B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 1B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 270M,1,aa_open_weights_catalogue,2026-08-17
@@ -283,7 +284,7 @@ MiniMax-M2.1,1,aa_open_weights_catalogue,2026-05-06
 MiniMax-M2.5,1,aa_open_weights_catalogue,2026-05-06
 MiniMax-M2.7,1,aa_open_weights_catalogue,2026-05-06
 MiniMax-M3,1,aa_isOpenWeights,2026-06-16
-MiniMax-M3.1-Flash,0,aa_isOpenWeights,2026-10-27
+MiniMax-M3.1-Flash,1,aa_isOpenWeights,2026-10-27
 Ministral 3 14B,1,aa_isOpenWeights,2026-05-06
 Ministral 3 3B,1,aa_isOpenWeights,2026-05-06
 Ministral 3 8B,1,aa_isOpenWeights,2026-05-06

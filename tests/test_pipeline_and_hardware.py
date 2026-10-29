@@ -267,19 +267,62 @@ def test_a_repeated_pick_suppresses_the_advice_that_would_be_false():
     pytest.skip("no collapsing provider in the current catalogue")
 
 
+def _local_fixture(rows):
+    """A Run Local frame with just the columns the tier pickers read."""
+    return pd.DataFrame(rows, columns=["name", "quality", "vram_req_gb", "speed_tps",
+                                       "fits", "tags"])
+
+
 def test_balanced_is_not_just_argmax_quality_in_local_mode():
     """The VRAM term was a raw reciprocal in GB against a min-max normalised
     quality term, so its whole dynamic range was a fifth of quality's and the
     argmax was simply the argmax of quality — which is Reasoning's sort key.
-    Balanced matched Reasoning on 90 of 137 GPU presets."""
-    local = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS)
-    tiers = {t["key"]: t["picks"] for t in select_stack(DF, None, "local", local_df=local)["tiers"]}
-    balanced, reasoning = tiers.get("balanced"), tiers.get("reasoning")
-    if balanced is None or reasoning is None or balanced.empty or reasoning.empty:
-        pytest.skip("no runnable local models at this hardware")
-    assert balanced.iloc[0]["name"] != reasoning.iloc[0]["name"], (
+    Balanced matched Reasoning on 90 of 137 GPU presets.
+
+    Pinned on a fixture: whether the LIVE catalogue offers a model that trades
+    a little quality for a lot of VRAM depends on what AA has scored. After
+    the v5.0 rescale (2026-10-28) one model cleared Balanced's floor at 32 GB,
+    and two tiers naming the only candidate says nothing about the weights.
+    The fixture is that trade: 10% less quality for 60% less VRAM, at sizes
+    where the old raw reciprocal (1/GB) was too small to register."""
+    local = _local_fixture([
+        ("Big",   40.0, 30.0, 40.0, "yes", []),
+        ("Small", 36.0, 12.0, 90.0, "yes", []),
+        ("Mid",   30.0, 18.0, 60.0, "yes", []),
+    ])
+    # The defect, reproduced: quality/q_max·0.7 + 1/GB picks Big, Reasoning's pick.
+    old = {n: 0.7 * q / 40.0 + 1.0 / v for n, q, v in (("Big", 40, 30), ("Small", 36, 12))}
+    assert old["Big"] > old["Small"]
+    tiers = {t["key"]: t["picks"] for t in
+             select_stack(DF, None, "local", local_df=local, full_local_df=local)["tiers"]}
+    assert tiers["reasoning"].iloc[0]["name"] == "Big"
+    assert tiers["balanced"].iloc[0]["name"] == "Small", (
         "Balanced and Reasoning recommend the same local model"
     )
+
+
+def test_balanced_differs_from_reasoning_when_the_live_catalogue_offers_a_trade():
+    """The live check, wherever it is identifiable: at every GPU preset where
+    Balanced has two or more candidates and one of them is both smaller and
+    within 10% of the best score, Balanced must not simply be Reasoning."""
+    from components.stack_recommender import _pick_local_tier
+    checked = 0
+    for vram in (8, 12, 16, 24, 32, 48, 80, 96, 141, 192):
+        local = get_local_df(quant="Q4", vram_gb=vram, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS)
+        pool = local[local["fits"].isin(["yes", "tight"]) & (local["quality"] >= 12)]
+        if len(pool) < 2:
+            continue
+        top = pool.sort_values("quality", ascending=False).iloc[0]
+        trade = pool[(pool["quality"] >= 0.9 * top["quality"])
+                     & (pool["vram_req_gb"] <= 0.5 * top["vram_req_gb"])]
+        if trade.empty:
+            continue
+        checked += 1
+        bal = _pick_local_tier(local, "balanced", full_local_df=local).iloc[0]["name"]
+        rea = _pick_local_tier(local, "reasoning", full_local_df=local).iloc[0]["name"]
+        assert bal != rea, f"{vram} GB: Balanced is Reasoning ({bal}) despite {list(trade['name'])}"
+    if not checked:
+        pytest.skip("the live catalogue offers no quality-for-VRAM trade at any preset")
 
 
 def test_extra_gpus_do_not_multiply_single_stream_bandwidth():
@@ -376,18 +419,41 @@ def test_the_local_fast_score_does_not_move_with_a_tag_filter():
     from components.stack_recommender import _pick_local_tier
 
     full = get_local_df(quant="Q4", vram_gb=32, bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS)
-    ref = _pick_local_tier(full, "fast", full_local_df=full).set_index("name")["_score"]
+    ref = _pick_local_tier(full, "fast", full_local_df=full)
+    ref = ref.set_index("name")["_score"] if "_score" in ref else pd.Series(dtype=float)
     moved = []
     for tag in ("reasoning", "vision", "code", "audio"):
         sub = get_local_df(quant="Q4", vram_gb=32,
                            bandwidth_gbps=DEFAULT_BANDWIDTH_GBPS, tags=[tag])
-        if sub.empty:
-            continue
         got = _pick_local_tier(sub, "fast", full_local_df=full)
+        # A tag with nothing runnable returns an empty frame with no _score —
+        # an empty pick list, not a moved score.
+        if got.empty:
+            continue
         for name, score in zip(got["name"], got["_score"]):
             if name in ref.index and abs(ref[name] - score) > 1e-9:
                 moved.append((tag, name))
     assert not moved, f"scores changed under a tag filter: {moved[:4]}"
+
+    # The live catalogue cannot be relied on to make this bite: after AA's
+    # v5.0 rescale one scored model cleared the Fast floor at 32 GB, so no tag
+    # could change the pool's maxima. The fixture is built so a filter drops
+    # both the fastest and the best model the reference holds.
+    fixture = _local_fixture([
+        ("Best",   40.0, 20.0,  50.0, "yes", ["reasoning"]),
+        ("Fastest", 15.0,  4.0, 400.0, "yes", ["reasoning"]),
+        ("Seer",   30.0, 10.0, 120.0, "yes", ["vision"]),
+        ("Eye",    20.0,  6.0, 200.0, "yes", ["vision"]),
+    ])
+    want = _pick_local_tier(fixture, "fast", full_local_df=fixture).set_index("name")["_score"]
+    vision = fixture[fixture["tags"].map(lambda t: "vision" in t)]
+    got = _pick_local_tier(vision, "fast", full_local_df=fixture).set_index("name")["_score"]
+    assert len(got) == 2
+    for name in got.index:
+        assert got[name] == pytest.approx(want[name]), name
+    # ...and the pool-relative maxima would have moved them.
+    pooled = _pick_local_tier(vision, "fast", full_local_df=vision).set_index("name")["_score"]
+    assert any(abs(pooled[n] - want[n]) > 1e-6 for n in got.index)
 
 
 def test_quantising_changes_vram_and_speed_but_never_the_score():
@@ -817,7 +883,28 @@ def test_the_speed_reference_still_spans_the_speeds_the_tab_produces():
 
 # ── Theme 10 — the KV cache must be priced, and labelled ─────────────────────
 
-def test_the_kv_term_is_derived_from_published_architecture_or_is_labelled():
+# Llama 3.1 8B as the scrape would deliver it. AA no longer scores it on
+# Intelligence Index v5.0, so it left the live catalogue on 2026-10-28 — and
+# with it every row KV_ARCH matched. Appended to the live rows for the tests
+# that need a hand-curated geometry to exist at all.
+_LLAMA_31_8B = {"name": "Llama 3.1 8B Instruct", "family": "Meta", "params_b": 8.0,
+                "active_b": 8.0, "context_k": 128, "quality": 10.0,
+                "license": "Llama 3.1", "tags": [], "moe": False,
+                "quality_estimated": False, "coding": None, "agentic": None,
+                "omniscience": None}
+
+
+@pytest.fixture
+def with_llama(monkeypatch):
+    from data import local_models as lm
+    live = lm._load_models_raw()
+    monkeypatch.setattr(lm, "_load_models_raw",
+                        lambda: [r for r in live if r["name"] != _LLAMA_31_8B["name"]]
+                        + [dict(_LLAMA_31_8B)])
+    return _LLAMA_31_8B["name"]
+
+
+def test_the_kv_term_is_derived_from_published_architecture_or_is_labelled(with_llama):
     """Same doctrine as data/pending_models.py: a MEASUREMENT may never be
     invented, a published architectural FACT may be curated. Every row carrying
     a KV figure has to say which it got, because the estimator's p90 signed
@@ -827,20 +914,28 @@ def test_the_kv_term_is_derived_from_published_architecture_or_is_labelled():
     bad = [r["name"] for _, r in df.iterrows()
            if r["kv_gb"] > 0 and r["kv_source"] not in ("config", "hf", "estimated")]
     assert not bad, f"KV figures with no provenance: {bad[:5]}"
-    assert (df["kv_source"] == "config").any(), "no row matches KV_ARCH at all"
+    row = df.set_index("name").loc[with_llama]
+    assert row["kv_source"] == "config", "a KV_ARCH model is not read from KV_ARCH"
+    # 32 layers x 8 KV heads x 128 head_dim x 2 (K and V) x 2 bytes x 8192 tokens
+    assert row["kv_gb"] == pytest.approx(32 * 8 * 128 * 2 * 2 * 8192 / 2**30, rel=0.02)
     # "config" is hand-curated, "hf" is scraped from the model's own
     # config.json by data/arch_scraper.py. Both are published facts and read
     # identically on screen; only "estimated" carries a warning.
 
 
-def test_the_kv_cache_changes_which_models_fit():
+def test_the_kv_cache_changes_which_models_fit(with_llama):
     """It cost nothing before. Llama 3.1 8B at Q4 needs ~5 GiB at 8k and ~21 GiB
     at its advertised 128k, and the tab told a 12 GB RTX 4070 owner it fit."""
-    at_8k = set(get_local_df(vram_gb=32, ctx_tokens=8192)
-                .query("fits != 'no'")["name"])
-    at_128k = set(get_local_df(vram_gb=32, ctx_tokens=131072)
-                  .query("fits != 'no'")["name"])
-    assert at_128k < at_8k, "full context costs nothing — the KV term is not reaching `fits`"
+    def fitting(vram, ctx):
+        return set(get_local_df(vram_gb=vram, ctx_tokens=ctx).query("fits != 'no'")["name"])
+
+    at_8k, at_128k = fitting(12, 8192), fitting(12, 131072)
+    assert with_llama in at_8k and with_llama not in at_128k, (
+        "full context costs nothing — the KV term is not reaching `fits`")
+    # Never the other way round, at any card size, on the live catalogue.
+    for vram in (8, 12, 16, 24, 32, 48, 80):
+        short, long_ = fitting(vram, 8192), fitting(vram, 131072)
+        assert long_ <= short, f"{vram} GB: {sorted(long_ - short)} fit only at 128k"
 
 
 def test_kv_is_capped_at_each_models_own_context():

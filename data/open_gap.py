@@ -228,11 +228,19 @@ def score_dates(hist: pd.DataFrame, df: pd.DataFrame) -> dict[str, pd.Timestamp]
     updated in place keeps the launch date. Caught here when, in the
     snapshots: the model's exact name first appears on F, an earlier name
     with the same base (one trailing parenthetical removed) was listed
-    before F, and the current score exceeds that name's last score —
-    carried onto the current index scale through every rescale since — by
-    more than SCORE_DATE_MIN_RISE. Renames that keep the score (AA adding
-    "(Max)" on 2026-10-01) do not qualify. Only names whose F is after
-    their release date are returned.
+    before F, and the score the name carried ON F exceeds that earlier
+    name's last score — carried onto F's index scale — by more than
+    SCORE_DATE_MIN_RISE. Renames that keep the score (AA adding "(Max)" on
+    2026-10-01, ", Default Fallback" on 2026-10-03) do not qualify. Only
+    names whose F is after their release date are returned.
+
+    The comparison is made on F's scale, not today's. It used the CURRENT
+    score until AA's v5.0 rescale (2026-10-28), which moved models by
+    anything from x0.36 to x1.08: the single median factor a rescale is
+    carried through (x0.75) left every frontier model ~30% "above" its own
+    v4 score, and twenty renamed-in-place checkpoints — Claude Opus 5.5,
+    GPT-6 Astra — were redated as new ones. A rescale after F is not a
+    checkpoint, so it no longer reaches this test.
     """
     from components.charts.constants import base_model_name
 
@@ -253,6 +261,7 @@ def score_dates(hist: pd.DataFrame, df: pd.DataFrame) -> dict[str, pd.Timestamp]
                  _name=h["model"].astype(str))
     h = h.assign(_base=h["_name"].map(base_model_name))
     first = h.groupby("_name")["_date"].min()
+    on_first = h[h["_date"] == h["_name"].map(first)].groupby("_name")["_q"].max()
     by_base = {b: g for b, g in h.groupby("_base")}
     cur = df[pd.to_numeric(df["quality"], errors="coerce") > 0]
     cur_q = cur.groupby(cur["model"].astype(str))["quality"].max().astype(float)
@@ -260,10 +269,11 @@ def score_dates(hist: pd.DataFrame, df: pd.DataFrame) -> dict[str, pd.Timestamp]
            .groupby(cur["model"].astype(str)).min()
            if "release_date" in cur.columns else pd.Series(dtype="datetime64[ns]"))
     out = {}
-    for name, q in cur_q.items():
+    for name in cur_q.index:
         if name not in first.index:
             continue
         f0 = first[name]
+        q = float(on_first[name])
         g = by_base.get(base_model_name(name))
         if g is None:
             continue

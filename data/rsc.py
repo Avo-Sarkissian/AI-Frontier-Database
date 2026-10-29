@@ -155,3 +155,44 @@ def find_records(payload: str, fields: tuple[str, ...]) -> list[dict] | None:
         if best is None or len(arr) > len(best):
             best = arr
     return best
+
+
+# ── Intelligence Index version ────────────────────────────────────────────────
+#
+# AA versions its Intelligence Index and rescales every score when it moves to
+# a new one. v5.0 (2026-10-28) cut the scored catalogue from 272 models to 77
+# overnight and re-rated the survivors non-uniformly (x1.08 at the top, x0.36
+# at the bottom), which every row-count and median guard in this project read
+# as a broken parse. The page names the version it renders, so the scrapers
+# record it (data/carried.py, "Index version") and the guards can tell a
+# rescale from a fault.
+#
+# The leaderboard's own evaluation entry is preferred:
+#   "slug":"artificial-analysis-intelligence-index",
+#   "name":"Artificial Analysis Intelligence Index v5.0"
+# Raw HTML carries that with escaped quotes and the flight payload without, so
+# the pattern allows both. Failing that, the highest version named anywhere on
+# the page (a changelog line, "Updated to Intelligence Index v5").
+_INDEX_NAMED_RE = re.compile(
+    r'artificial-analysis-intelligence-index\\?"\s*,\s*\\?"name\\?"\s*:\s*\\?"'
+    r'[^"\\]*?Intelligence Index v(\d+)(?:\.(\d+))?')
+_INDEX_ANY_RE = re.compile(r"Intelligence Index v(\d+)(?:\.(\d+))?")
+
+
+def _version(m: re.Match) -> str:
+    return f"{int(m.group(1))}.{int(m.group(2) or 0)}"
+
+
+def detect_index_version(text: str) -> str | None:
+    """'5.0' for a page rendering Intelligence Index v5.0 (or "v5"); None when
+    the page names no version, which callers treat as unknown, never as a
+    change."""
+    if not text:
+        return None
+    m = _INDEX_NAMED_RE.search(text)
+    if m:
+        return _version(m)
+    found = {_version(m) for m in _INDEX_ANY_RE.finditer(text)}
+    if not found:
+        return None
+    return max(found, key=lambda v: tuple(int(x) for x in v.split(".")))

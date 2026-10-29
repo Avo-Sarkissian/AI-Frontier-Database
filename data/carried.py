@@ -1,10 +1,10 @@
 """State the hosted and open-weight scrapes need to keep between runs.
 
-Five things live here, all committed under data/carried/ rather than
+Six things live here, all committed under data/carried/ rather than
 data/raw/, because data/raw/ is what the scrape OVERWRITES every hour and each
 of these exists precisely to outlive one bad hour. The first two are described
-below; shrink confirmation, AA creator colours and the open-weights registry
-have their own sections further down.
+below; shrink confirmation, the Intelligence Index version, AA creator colours
+and the open-weights registry have their own sections further down.
 
 1. FROZEN SCORES (coding, agentic).
 AA stopped publishing codingIndex and agenticIndex on 2026-09-10. From then on
@@ -362,7 +362,7 @@ def _save_shrink_state(state: dict, path: Path | None = None) -> None:
 
 def confirm_shrink(dataset: str, violations: list[str], before: set[str],
                    now_keys: set[str], now: datetime | None = None,
-                   path: Path | None = None) -> list[str]:
+                   path: Path | None = None, rescale: str | None = None) -> list[str]:
     """The shrink violations that still stand after hysteresis.
 
     `violations` is the scraper's own row-loss verdict for this scrape; `before`
@@ -370,6 +370,13 @@ def confirm_shrink(dataset: str, violations: list[str], before: set[str],
     when there was nothing to refuse or when the shrink has now held long
     enough to publish; otherwise the original violations plus how far along
     the confirmation is.
+
+    `rescale` names an Intelligence Index version change the page itself
+    announced ("4.0 -> 5.0"; see "Index version" below). A shrink that comes
+    with one is AA re-scoring on a new scale, not a broken parse, so it is
+    accepted on this scrape instead of after SHRINK_CONFIRM_HOURS — v5.0 sat
+    refused for nine hours while the site served v4 scores. The overlap check
+    still applies: a rescale removes models, it does not swap the array.
     """
     now = now or datetime.now(timezone.utc)
     state = load_shrink_state(path)
@@ -396,6 +403,16 @@ def confirm_shrink(dataset: str, violations: list[str], before: set[str],
     first = _parse_iso((streak or {}).get("since")) or now
     count = int((streak or {}).get("scrapes", 0)) + 1
     hours = (now - first).total_seconds() / 3600
+    if rescale:
+        entry["accepted"] = {"rows": len(now_keys), "from_rows": len(before),
+                             "at": now.isoformat(timespec="seconds"),
+                             "index_version": rescale}
+        state[dataset] = entry
+        _save_shrink_state(state, path)
+        print(f"[{dataset}] shrink {len(before)} -> {len(now_keys)} comes with AA "
+              f"Intelligence Index {rescale} — accepted as a rescale, no "
+              f"{SHRINK_CONFIRM_HOURS:g}h confirmation")
+        return []
     if count >= SHRINK_CONFIRM_SCRAPES and hours >= SHRINK_CONFIRM_HOURS:
         entry["accepted"] = {"rows": len(now_keys), "from_rows": len(before),
                              "at": now.isoformat(timespec="seconds")}
@@ -426,6 +443,92 @@ def accepted_shrink(dataset: str, within_hours: float,
     if at is None or not isinstance(rows, int):
         return None
     return rows if (now - at).total_seconds() / 3600 <= within_hours else None
+
+
+# ── Index version ─────────────────────────────────────────────────────────────
+#
+# Which AA Intelligence Index version each LLM dataset was last PUBLISHED under,
+# read off the leaderboard page by data.rsc.detect_index_version:
+#
+#   {"hosted": {"version": "5.0", "since": iso, "previous": "4.0" | null},
+#    "local":  {...}}
+#
+# Per dataset, because the hosted and open-weight scrapers publish (or refuse)
+# independently: a shared record written by the first would tell the second
+# that nothing had changed. Written only by a scrape that publishes, so the
+# record always describes the committed CSV beside it, and data_guard.py can
+# compare it against HEAD to tell an index rescale from a parsing fault.
+#
+# v5.0 is the first version recorded. AA launched it on 2026-10-28; the seed's
+# `since` is when this project first published it, and `previous` is null
+# because the version before it was never read off the page.
+
+INDEX_VERSION_FILE = "index_version.json"
+
+
+def _index_path(path: Path | None) -> Path:
+    return Path(path) if path is not None else CARRIED_DIR / INDEX_VERSION_FILE
+
+
+def index_version_record(text: str | None, dataset: str) -> dict:
+    """The record for `dataset` in an index_version.json text; {} when absent
+    or unreadable. Pure, so data_guard can hand it a `git show` of any rev."""
+    if not text:
+        return {}
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return {}
+    rec = data.get(dataset) if isinstance(data, dict) else None
+    return rec if isinstance(rec, dict) and isinstance(rec.get("version"), str) else {}
+
+
+def recorded_index_version(dataset: str, path: Path | None = None) -> str | None:
+    p = _index_path(path)
+    try:
+        text = p.read_text()
+    except OSError:
+        return None
+    return index_version_record(text, dataset).get("version")
+
+
+def index_rescale(dataset: str, detected: str | None,
+                  path: Path | None = None) -> str | None:
+    """"5.0 -> 6.0" when the page names a different version than the one
+    `dataset` was last published under, else None. Unknown on either side is
+    never a change: a page that stops naming its version, or a dataset with no
+    record yet, keeps every guard at full strength."""
+    was = recorded_index_version(dataset, path)
+    if detected is None or was is None or detected == was:
+        return None
+    return f"{was} -> {detected}"
+
+
+def record_index_version(dataset: str, detected: str | None,
+                         now: datetime | None = None,
+                         path: Path | None = None) -> bool:
+    """Record that `dataset` was just published under `detected`. Call only
+    after the publish. A no-op for None (the page named no version) and for an
+    unchanged version, so the file moves only when AA's index does."""
+    if detected is None:
+        return False
+    p = _index_path(path)
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    rec = data.get(dataset) if isinstance(data.get(dataset), dict) else {}
+    if rec.get("version") == detected:
+        return False
+    now = now or datetime.now(timezone.utc)
+    data[dataset] = {"version": detected,
+                     "since": now.isoformat(timespec="seconds"),
+                     "previous": rec.get("version")}
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(dict(sorted(data.items())), indent=2, sort_keys=True) + "\n")
+    return True
 
 
 # ── AA creator colours ────────────────────────────────────────────────────────

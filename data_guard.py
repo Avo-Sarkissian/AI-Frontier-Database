@@ -14,6 +14,20 @@ raw CSV against the copy committed at HEAD and fails when the drop exceeds a
 threshold. A genuine upstream pruning is then a deliberate act: re-run the
 workflow with allow_shrink, or commit the smaller file by hand.
 
+AN INDEX RESCALE IS NOT A FAULT.
+On 2026-10-28 AA moved to Intelligence Index v5.0: only 77 of 273 models kept a
+score, the survivors were re-rated non-uniformly, and the hosted catalogue went
+162 -> 73 rows while the open-weight one went 173 -> 21. Every check below fired
+— row drop, median price and latency, the absolute floor — and the site served
+v4 scores for a day while every hourly run failed. The scrapers now record the
+index version each LLM dataset was published under (data/carried.py, "Index
+version"); when it differs from HEAD's, the relative checks for that dataset
+(row drop, 24h cumulative drop, median shift) are waived for that run, with
+the reason printed, and only the absolute floor RESCALE_MIN_ROWS stands. While
+the catalogue refills under the new version — HEAD's copy still below MIN_ROWS,
+published under the version the page names now — that lower floor stays, and
+every relative check is back in force.
+
 Run standalone:  python data_guard.py [--max-drop 20] [--allow-shrink]
                                      [--require-baseline]
 """
@@ -49,6 +63,18 @@ _SHRINK_DATASET = {
 
 DEFAULT_MAX_DROP_PCT = 20.0
 MIN_ROWS = 50            # the original absolute floor, kept as a backstop
+
+# The AA LLM datasets whose scores are on AA's Intelligence Index, keyed to
+# their record in data/carried/index_version.json (see module docstring).
+INDEX_VERSION_PATH = "data/carried/index_version.json"
+_INDEX_DATASET = {
+    "data/raw/aa_models.csv":       "hosted",
+    "data/raw/aa_local_models.csv": "local",
+}
+# The floor while a rescale is accepted or the catalogue is refilling after one.
+# v5.0 launched with 21 open-weight rows; 15 still refuses a scrape that kept a
+# handful of rows, which is what a genuinely broken parse looks like.
+RESCALE_MIN_ROWS = 15
 
 # How far back the baseline reaches. The bot commits every run, so a HEAD-only
 # baseline is *the previous hour* — and five consecutive 19% drops each pass on
@@ -195,6 +221,42 @@ def _show(path: str, rev: str) -> str | None:
         return None
 
 
+def index_version(dataset: str, rev: str | None = None) -> str | None:
+    """The index version `dataset` was published under — in the working tree
+    when `rev` is None, else at `rev`. None when unrecorded there."""
+    from data.carried import index_version_record
+    if rev is None:
+        p = ROOT / INDEX_VERSION_PATH
+        text = p.read_text() if p.exists() else None
+    else:
+        text = _show(INDEX_VERSION_PATH, rev)
+    return index_version_record(text, dataset).get("version")
+
+
+def _index_change(path: str, rev: str) -> tuple[str, str] | None:
+    """(was, now) when `path` is an AA LLM dataset whose index version differs
+    between `rev` and the working tree. Unknown on either side is no change."""
+    dataset = _INDEX_DATASET.get(path)
+    if dataset is None:
+        return None
+    was, now = index_version(dataset, rev), index_version(dataset)
+    if was is None or now is None or was == now:
+        return None
+    return was, now
+
+
+def _refilling(path: str, rev: str, committed: int | None) -> str | None:
+    """The version a dataset is refilling under after a rescale: HEAD's copy is
+    already below MIN_ROWS (only an accepted rescale or a deliberate
+    allow_shrink gets it there) and was published under the version recorded
+    now. None otherwise."""
+    dataset = _INDEX_DATASET.get(path)
+    if dataset is None or committed is None or committed >= MIN_ROWS:
+        return None
+    now = index_version(dataset)
+    return now if now is not None and index_version(dataset, rev) == now else None
+
+
 def current_rows(path: str) -> int | None:
     p = ROOT / path
     if not p.exists():
@@ -224,11 +286,26 @@ def check(paths: list[str] | None = None,
         if now is None:
             problems.append(f"{path}: missing")
             continue
-        if now < MIN_ROWS:
-            problems.append(f"{path}: only {now} rows (floor {MIN_ROWS})")
+        committed = committed_rows(path, rev)
+        change = _index_change(path, rev)
+        refilling = None if change else _refilling(path, rev, committed)
+        floor = RESCALE_MIN_ROWS if (change or refilling) else MIN_ROWS
+        if now < floor:
+            problems.append(f"{path}: only {now} rows (floor {floor})")
             continue
+        if change:
+            was, is_now = change
+            print(f"  {path}: {committed} -> {now} rows under AA Intelligence Index "
+                  f"{was} -> {is_now} — accepted as a rescale: the row-drop, "
+                  f"{CUMULATIVE_BASELINE_HOURS}h cumulative and median checks are "
+                  f"waived this run (floor {RESCALE_MIN_ROWS})")
+            continue
+        if refilling and now < MIN_ROWS:
+            print(f"  {path}: {now} rows, under the usual floor of {MIN_ROWS} while "
+                  f"AA re-scores under Intelligence Index {refilling} "
+                  f"(floor {RESCALE_MIN_ROWS})")
 
-        before = _accepted_floor(path, committed_rows(path, rev))
+        before = _accepted_floor(path, committed)
         if before is None or before == 0:
             print(f"  {path}: {now} rows (no committed baseline — skipping delta)")
             continue
@@ -262,6 +339,13 @@ def _cumulative_violations(path: str, now: int) -> list[str]:
     """Catch the slow drain a per-run check cannot see."""
     rev = _baseline_rev(CUMULATIVE_BASELINE_HOURS)
     if rev is None:
+        return []
+    change = _index_change(path, rev)
+    if change:
+        # Rows on two index scales are not a drain of one catalogue.
+        print(f"  {path}: AA Intelligence Index moved {change[0]} -> {change[1]} "
+              f"inside the {CUMULATIVE_BASELINE_HOURS}h window — cumulative check "
+              f"skipped")
         return []
     text = _show(path, rev)
     if not text:

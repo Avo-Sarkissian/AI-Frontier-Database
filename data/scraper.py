@@ -93,7 +93,7 @@ import time
 
 import requests
 
-from data.rsc import find_array, find_records, payload_from_html
+from data.rsc import detect_index_version, find_array, find_records, payload_from_html
 
 from pathlib import Path
 
@@ -753,6 +753,18 @@ def _scrape_and_save() -> bool:
         resp.raise_for_status()
 
         models = _extract_models(resp.text)
+        # The Intelligence Index version this page renders (data/carried.py,
+        # "Index version"). A change against the version the cache was
+        # published under is a rescale: the shrink it brings is accepted now,
+        # not after the 12h confirmation, and data_guard waives its relative
+        # checks for the run that publishes it.
+        index_version = detect_index_version(resp.text)
+        rescale = carried.index_rescale("hosted", index_version)
+        if index_version is None:
+            print("[scraper] WARNING: the page names no Intelligence Index "
+                  "version — rescale detection is blind this run")
+        elif rescale:
+            print(f"[scraper] AA Intelligence Index changed {rescale}")
 
         # Deprecation hysteresis: which flagged models to keep for now. The
         # state is only persisted below, once this scrape actually publishes,
@@ -788,7 +800,8 @@ def _scrape_and_save() -> bool:
         # A shrink that holds for half a day is an upstream prune, not a broken
         # parse, and publishes itself (data/carried.py, "Shrink confirmation").
         violations += carried.confirm_shrink(
-            "hosted", _shrink_violations(df), published, set(df["model"].astype(str)))
+            "hosted", _shrink_violations(df), published, set(df["model"].astype(str)),
+            rescale=rescale)
         if violations:
             for v in violations:
                 print(f"[scraper] {v}")
@@ -797,6 +810,7 @@ def _scrape_and_save() -> bool:
 
         save_cache(df)
         _save_coverage()
+        carried.record_index_version("hosted", index_version)
         carried.save_deprecation_state(dep_state)
         carried.learn_creator_colors({m.get("modelCreatorName"): m.get("modelCreatorColor")
                                       for m in models}, "llm")

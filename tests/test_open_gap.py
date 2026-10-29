@@ -63,6 +63,24 @@ def test_detects_the_three_verified_rescales_and_drops_the_glitch(gap):
     assert seg["excluded"] == ["2026-03-07"]
 
 
+def test_the_v5_rescale_is_found_where_the_snapshots_change_scale():
+    """AA launched Intelligence Index v5.0 on 2026-10-28, after that day's
+    snapshot was frozen (00:34Z, still v4: x1.000 against 2026-10-27), so the
+    first v5 snapshot — and the break — is 2026-10-29: median x0.75, 93% of
+    the 72 shared models moved. No gap line may cross it."""
+    h = load_history()
+    if "2026-10-29" not in og.snapshot_dates(h):
+        pytest.skip("no v5 snapshot committed")
+    seg = og.index_segments(h[h["scraped_at"].astype(str).str[:10] <= "2026-10-29"])
+    assert seg["breaks"] == ["2026-06-16", "2026-09-05", "2026-09-08", "2026-10-29"]
+    steps = {st["to"]: st for st in seg["steps"]}
+    assert not steps["2026-10-28"]["break"] and steps["2026-10-28"]["rho"] == 1.0
+    assert steps["2026-10-29"]["rho"] == pytest.approx(0.755, abs=0.01)
+    frame, seg = og.gap_history(h[h["scraped_at"].astype(str).str[:10] <= "2026-10-29"])
+    by = frame.set_index("date")["segment"]
+    assert by["2026-10-29"] == by["2026-10-28"] + 1
+
+
 def test_partial_reevaluations_stay_below_the_threshold(gap):
     _, seg = gap
     steps = {s["to"]: s for s in seg["steps"]}
@@ -215,23 +233,76 @@ def test_a_checkpoint_renamed_with_a_higher_score_is_dated_by_its_snapshot():
     assert og.score_dates(h, cur) == {"Q Max (0902)": pd.Timestamp("2026-08-10")}
 
 
-def test_the_live_lag_redates_qwen_max_and_skips_the_oldest_record(hist):
-    dated = og.score_dates(hist, DF)
-    assert dated.get("Qwen3.8 Max (0902)") == pd.Timestamp("2026-09-16")
-    recs, s = og.release_lag(DF, "2026-10-27", dated)
+@pytest.fixture(scope="module")
+def catalogue_1027(hist):
+    """The catalogue as committed on 2026-10-27, from its own snapshot.
+
+    These checks were written against the live catalogue on that day. Since
+    AA's v5.0 rescale (2026-10-28) the live catalogue is on another index
+    scale from `hist` and has lost Nova Micro, so the assertions are pinned to
+    the frozen snapshot that matches the pinned history instead."""
+    snap = hist[hist["scraped_at"].astype(str).str[:10] == "2026-10-27"]
+    assert len(snap) > 100 and snap["release_date"].notna().any()
+    return snap.copy()
+
+
+def test_the_live_lag_redates_qwen_max_and_skips_the_oldest_record(hist, catalogue_1027):
+    dated = og.score_dates(hist, catalogue_1027)
+    # Exactly one: the ", Default Fallback" and "(Max)" renames kept their
+    # scores and must not be read as new checkpoints.
+    assert dated == {"Qwen3.8 Max (0902)": pd.Timestamp("2026-09-16")}
+    recs, s = og.release_lag(catalogue_1027, "2026-10-27", dated)
     assert "Nova Micro" in s["uncounted"] and "Nova Micro" not in set(recs["closed_model"])
     assert "Qwen3.8 Max (0902)" in s["redated"]
     assert (recs["closed_date"] >= pd.Timestamp("2025-01-01")).all()
 
 
-def test_release_lag_on_the_live_catalogue_reports_both_counts():
-    recs, s = og.release_lag(DF, "2026-10-27")
+def test_the_v5_rescale_redates_nothing_but_the_real_checkpoint():
+    """AA's v5.0 moved frontier models x0.97-1.08 while the median moved x0.75,
+    so carrying the v4 score through the median factor and comparing it with
+    the CURRENT v5 score put twenty renamed-in-place checkpoints "above"
+    themselves. On the full history and the live catalogue only the genuine
+    new checkpoint may be redated."""
+    h = load_history()
+    if h.empty or "2026-10-29" not in og.snapshot_dates(h):
+        pytest.skip("no v5 snapshot committed")
+    dated = og.score_dates(h, DF)
+    assert set(dated) <= {"Qwen3.8 Max (0902)"}, sorted(dated)
+
+
+def test_a_rescale_after_the_rename_does_not_redate_it():
+    """A non-uniform rescale AFTER a rename must not reach the comparison: the
+    renamed model kept its score on the day it was renamed."""
+    base = {f"m{i}": 20.0 + i for i in range(25)}
+    half = {k: v * 0.5 for k, v in base.items()}
+    h = pd.concat([_snap("2026-08-01", {**base, "Q": 40.0}),
+                   _snap("2026-08-10", {**base, "Q (Max)": 40.0}),
+                   _snap("2026-09-01", {**half, "Q (Max)": 40.0})])   # Q held its score
+    assert og.index_segments(h)["breaks"] == ["2026-09-01"]
+    cur = pd.DataFrame({"model": ["Q (Max)"], "quality": [40.0],
+                        "release_date": ["2026-07-01"]})
+    assert og.score_dates(h, cur) == {}
+
+
+@pytest.mark.parametrize("which", ["2026-10-27", "live"])
+def test_release_lag_reports_both_counts(which, catalogue_1027):
+    """Both counts are on the chart whether or not the Kaplan–Meier median can
+    be identified (on 2026-10-27 it could; on the post-v5 catalogue, with one
+    record matched, it cannot)."""
+    frame = catalogue_1027 if which == "2026-10-27" else DF
+    recs, s = og.release_lag(frame, which if which != "live" else None)
     assert s["matched"] + s["censored"] == len(recs) > 0
     fig = build_release_lag(recs, s)
     title = fig.layout.title.text
-    assert f"{s['matched']} matched + {s['censored']} not yet" in title
-    assert "Kaplan–Meier" in title, "the median's basis must be on the chart"
+    if s["median_lag_months"] is not None:
+        assert f"{s['matched']} matched + {s['censored']} not yet" in title
+        assert "Kaplan–Meier" in title, "the median's basis must be on the chart"
+    else:
+        assert f"{s['matched']} matched, {s['censored']} not yet matched" in title
+        assert "not identifiable" in title
     assert "still lists" in title, "the survivorship limit must be on the chart"
+    if which == "2026-10-27":
+        assert s["median_lag_months"] is not None
 
 
 def test_lag_connectors_are_accent_and_labelled_not_hidden_on_the_staircase():
@@ -343,7 +414,8 @@ def test_the_economics_caption_cites_its_sources_and_limits():
                    "CC BY 4.0", "openrouter.ai/data/newsletter/the-token-state-of-play",
                    "quoted, not scraped", "nousresearch.com", "August 2025",
                    "Kaplan–Meier",
-                   "2026-06-16", "2026-09-05", "2026-09-08", "2026-03-07", "survivor"):
+                   "2026-06-16", "2026-09-05", "2026-09-08", "2026-10-29",
+                   "Intelligence Index v5.0", "2026-03-07", "survivor"):
         assert needle in c, needle
 
 
@@ -356,5 +428,6 @@ def test_the_hosted_captions_explain_hollow():
 def test_the_readme_no_longer_claims_the_index_scale_never_moved():
     readme = (ROOT / "README.md").read_text()
     assert "without changing the scale" not in readme
-    for d in ("2026-09-05", "2026-09-08"):
+    for d in ("2026-09-05", "2026-09-08", "2026-10-29"):
         assert d in readme
+    assert "v5.0" in readme

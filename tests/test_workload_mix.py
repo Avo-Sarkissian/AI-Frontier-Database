@@ -212,10 +212,15 @@ def test_the_fill_is_never_cheaper_than_any_published_discount():
 @pytest.mark.parametrize("spec", ["agentic", ["custom", 50, 80], ["custom", 1000, 100]])
 def test_a_filled_row_is_priced_as_if_it_had_no_cache(spec):
     """The fill-in must not discount: at any cached mix a filled row costs
-    exactly what it costs at the same ratio with no cache at all."""
+    exactly what it costs at the same ratio with no cache at all.
+
+    On a copy with the cheapest half unpriced (_half_unpriced_cache, below):
+    the live catalogue can have no filled row at all — every one of the 73
+    models on AA's first v5.0 catalogue (2026-10-29) carried a cache price."""
     mix = resolve_mix(spec)
-    cached = apply_mix(DF, mix)
-    flat = apply_mix(DF, resolve_mix(["custom", mix.ratio, 0]))
+    frame = _half_unpriced_cache()
+    cached = apply_mix(frame, mix)
+    flat = apply_mix(frame, resolve_mix(["custom", mix.ratio, 0]))
     filled = cached["cache_price_filled"]
     assert filled.any()
     diff = (cached.loc[filled, "price"] - flat.loc[filled, "price"]).abs()
@@ -306,12 +311,26 @@ def test_mix_info_floor_matches_manifest_at_default():
     agentic = json.loads(api.mix_info(["agentic", None, None]))
     assert float(agentic["floor_price"].lstrip("$")) < float(info["floor_price"].lstrip("$"))
     assert "agentic" in agentic["floor_label"] and "agentic" in agentic["table_header"]
-    assert agentic["n_filled"] > 0 and agentic["n_priced"] == info["n_priced"]
+    assert agentic["n_priced"] == info["n_priced"]
+    assert agentic["n_filled"] == int(apply_mix(DF, resolve_mix("agentic"))
+                                      ["cache_price_filled"].sum())
 
 
-def test_detail_panel_names_cache_source_and_mix():
-    with_cache = DF[DF["cache_hit_price"].notna()].iloc[0]
-    without = DF[DF["cache_hit_price"].isna() & DF["price_in"].notna()].iloc[0]
+def test_mix_info_counts_the_filled_rows(monkeypatch):
+    """The count the floor stat's key quotes, on a catalogue that has some."""
+    frame = _half_unpriced_cache()
+    monkeypatch.setattr(api, "_DF", frame)
+    info = json.loads(api.mix_info(None))
+    agentic = json.loads(api.mix_info(["agentic", None, None]))
+    want = int(apply_mix(frame, resolve_mix("agentic"))["cache_price_filled"].sum())
+    assert agentic["n_filled"] == want > 0 and agentic["n_priced"] == info["n_priced"]
+
+
+def test_detail_panel_names_cache_source_and_mix(monkeypatch):
+    frame = _half_unpriced_cache()
+    monkeypatch.setattr(api, "_DF", frame)
+    with_cache = frame[frame["cache_hit_price"].notna()].iloc[0]
+    without = frame[frame["cache_hit_price"].isna() & frame["price_in"].notna()].iloc[0]
     a = api.model_detail(with_cache["model"], with_cache["provider"], ["agentic", None, None])
     b = api.model_detail(without["model"], without["provider"])
     c = api.model_detail(without["model"], without["provider"], ["agentic", None, None])
@@ -639,13 +658,16 @@ def test_filled_rows_are_marked_point_by_point(fid):
     lambda m: api.update_overview(None, 0, "", "speed", None, m),
     lambda m: json.dumps(json.loads(api.update_cost_calc(1, None, 0, "", 0, None, m))["figure"]),
 ])
-def test_the_live_charts_mark_their_filled_rows(call):
+def test_the_live_charts_mark_their_filled_rows(call, monkeypatch):
+    """Through static_api, on the half-unpriced copy (see _half_unpriced_cache)."""
+    monkeypatch.setattr(api, "_DF", _half_unpriced_cache())
     fig = _decoded(call(["agentic", None, None]))
     rows = [c for t in fig["data"] for c in (t.get("customdata") or [])]
     assert any("no AA cache price" in str(x) for c in rows for x in c)
 
 
-def test_the_table_marks_filled_rows():
+def test_the_table_marks_filled_rows(monkeypatch):
+    monkeypatch.setattr(api, "_DF", _half_unpriced_cache())
     agentic = json.loads(api.update_table(None, 0, "", "price", "asc", None,
                                           ["agentic", None, None]))
     assert any(r["cache_price_filled"] for r in agentic)

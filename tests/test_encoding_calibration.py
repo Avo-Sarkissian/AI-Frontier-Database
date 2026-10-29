@@ -12,6 +12,7 @@ range it implies has to match the range the data actually occupies.
 import json
 import math
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -261,17 +262,26 @@ def test_the_treemap_floor_is_distinguishable_from_the_page():
 
 def test_price_bubbles_separate_the_models_that_are_actually_different():
     """53 of 95 models were sub-$1 and spanned 0.43 px in total — a 12.5x price
-    difference rendered as no visible difference."""
-    prices = DF[DF["price"] > 0]["price"]
-    sizes = bubble_size(prices, BUBBLE_PRICE_REF, invert=True,
-                        log=True, floor=BUBBLE_PRICE_FLOOR)
-    frame = pd.DataFrame({"price": prices.values, "size": sizes.values})
-    cheap = frame[frame["price"] < 1]
-    assert len(cheap) > 20, "not enough cheap models to test"
-    span = cheap["size"].max() - cheap["size"].min()
-    assert span > 2.0, (
-        f"the {len(cheap)} sub-$1 models span only {span:.2f} px of diameter"
-    )
+    difference rendered as no visible difference.
+
+    Pinned on that 12.5x sub-$1 range directly, because how many sub-$1 models
+    the live catalogue holds is AA's business: 20 on v5.0's first day
+    (2026-10-29), against 53 when this was found. The live catalogue is
+    checked too whenever it spans a real range below $1."""
+    def span(prices):
+        sizes = bubble_size(pd.Series(prices), BUBBLE_PRICE_REF, invert=True,
+                            log=True, floor=BUBBLE_PRICE_FLOOR)
+        return float(sizes.max() - sizes.min())
+
+    grid = list(np.geomspace(0.08, 1.0, 25, endpoint=False))   # 12.5x, all sub-$1
+    assert span(grid) > 2.0, f"a 12.5x sub-$1 range spans only {span(grid):.2f} px"
+
+    cheap = DF[(DF["price"] > 0) & (DF["price"] < 1)]["price"]
+    if len(cheap) >= 2 and cheap.max() / cheap.min() >= 5:
+        assert span(cheap) > 2.0, (
+            f"the {len(cheap)} sub-$1 models ({cheap.max() / cheap.min():.1f}x apart) "
+            f"span only {span(cheap):.2f} px of diameter"
+        )
 
 
 def test_a_tenfold_price_difference_is_always_visible():

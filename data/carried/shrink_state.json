@@ -1,10 +1,9 @@
 {
   "hosted": {
-    "streak": {
+    "accepted": {
+      "at": "2026-10-29T10:57:29+00:00",
       "from_rows": 162,
-      "rows": 72,
-      "scrapes": 8,
-      "since": "2026-10-28T02:34:39+00:00"
+      "rows": 73
     }
   },
   "image": {
@@ -15,11 +14,10 @@
     }
   },
   "local": {
-    "streak": {
+    "accepted": {
+      "at": "2026-10-29T10:57:32+00:00",
       "from_rows": 173,
-      "rows": 20,
-      "scrapes": 8,
-      "since": "2026-10-28T02:34:41+00:00"
+      "rows": 21
     }
   }
 }

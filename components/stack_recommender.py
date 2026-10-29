@@ -308,6 +308,13 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
         )
         runnable = runnable.sort_values("_score", ascending=False, kind="mergesort")
     else:  # reasoning
+        # Scored rows only. Fast and Balanced get this from their `>=` floors
+        # (NaN fails a comparison); Reasoning had no floor, so a NaN quality
+        # merely sorted LAST — and head(n) still returned it whenever fewer
+        # than n scored models fit. After AA's v5.0 rescale left three scored
+        # models fitting 32 GB, the card recommended both unbenchmarked
+        # Ornith entries (data/pending_models.py) on "intelligence".
+        runnable = runnable[runnable["quality"] > 0]
         runnable = runnable.sort_values("quality", ascending=False, kind="mergesort")
 
     return runnable.head(n)

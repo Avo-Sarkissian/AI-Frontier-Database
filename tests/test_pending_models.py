@@ -146,6 +146,26 @@ def test_the_recommender_never_recommends_an_unscored_model():
         assert not leaked, f"{tier['key']} recommends an unscored model: {leaked}"
 
 
+
+@pytest.mark.parametrize("tier", ["fast", "balanced", "reasoning"])
+def test_no_tier_fills_a_short_list_with_an_unscored_model(tier):
+    """The live test above only bites when fewer than five scored models fit.
+    That is what AA's v5.0 rescale produced (three at 32 GB), and Reasoning —
+    the one tier with no quality floor — sorted the NaN rows last and returned
+    them anyway. Pinned on a fixture so it holds whatever the catalogue does."""
+    from components.stack_recommender import _pick_local_tier
+
+    frame = pd.DataFrame({
+        "name": ["Scored A", "Scored B", "Pending C", "Pending D"],
+        "quality": [40.0, 20.0, float("nan"), float("nan")],
+        "fits": ["yes"] * 4,
+        "vram_req_gb": [20.0, 8.0, 6.0, 4.0],
+        "speed_tps": [50.0, 120.0, 300.0, 400.0],
+    })
+    picks = _pick_local_tier(frame, tier, n=5, full_local_df=frame)
+    assert not picks.empty
+    assert picks["quality"].notna().all(), (tier, list(picks["name"]))
+
 # ── The charts must not let an absent score read as a low one ────────────────
 
 def test_the_compat_chart_draws_no_length_for_an_unscored_model():

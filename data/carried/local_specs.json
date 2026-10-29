@@ -1637,6 +1637,13 @@
   "licenseName": "MINIMAX COMMUNITY LICENSE",
   "parameters": 428.0
  },
+ "minimax-m3-1-flash": {
+  "inferenceParametersActiveBillions": 23.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MINIMAX COMMUNITY LICENSE",
+  "parameters": 428.0
+ },
  "ministral-3-14b": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": true,
