@@ -1,7 +1,7 @@
 {
   "upstream_host_model_rows": 274,
   "distinct_upstream_models": 274,
-  "kept": 74,
+  "kept": 78,
   "skipped_no_score": [
     "A.X-K2",
     "Agnes 2.5 Pro Beta",
@@ -114,7 +114,6 @@
     "Ministral 3 8B",
     "Mistral Medium 3.5",
     "Mistral Small 4 (Non-reasoning)",
-    "Mistral Small 4 (Reasoning)",
     "Molmo 7B-D",
     "Molmo2-8B",
     "Motif 3",
@@ -129,7 +128,6 @@
     "Nemotron 3 Nano Omni 30B A3B Reasoning",
     "Nemotron 3.5 Bolt 74B-A9B",
     "Nemotron 3.5 Bolt E4B 4GB (Reasoning)",
-    "Nemotron 3.5 Lightning",
     "Nemotron Cascade 2 30B A3B",
     "Nex-N2-Pro (Based on Qwen3.5-397B-A17B)",
     "North Mini Code",
@@ -176,8 +174,6 @@
     "Qwen3.6 35B A3B (Reasoning)",
     "Qwen3.7 Plus",
     "Qwen3.8 2.4T A95B",
-    "Qwen3.8 27B (Low)",
-    "Qwen3.8 27B (Medium)",
     "Qwen3.8 27B (Non-reasoning)",
     "Qwen3.8-Flash-Next",
     "R1 1776",
@@ -209,20 +205,20 @@
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 74,
-    "cost_per_task": 73,
-    "cache_hit_price": 74,
+    "rows": 78,
+    "cost_per_task": 77,
+    "cache_hit_price": 78,
     "cache_write_price": 49,
-    "is_open_weights": 74,
-    "is_reasoning": 74,
-    "release_date": 74,
-    "aa_slug": 74
+    "is_open_weights": 78,
+    "is_reasoning": 78,
+    "release_date": 78,
+    "aa_slug": 78
   },
   "release_date_join": {
     "record": 0,
-    "slug": 31,
+    "slug": 33,
     "name": 2,
-    "effort_slug": 40,
+    "effort_slug": 42,
     "paren_name": 1,
     "unmatched": []
   }

@@ -15,10 +15,14 @@ Qwen3.8 27B (Xhigh),Alibaba,27.0,27.0,256,20.11,Apache 2.0,"vision,reasoning",Fa
 MiniMax-M3,MiniMax,428.0,23.0,1000,18.73,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,58.57,30.84,-5.5
 K2 Horizon 375B A23B,Institute of Foundation Models,375.0,23.0,524,17.77,Apache 2.0,reasoning,True,False,61.52,40.93,-5.0
 Beam 1.0,Reflection,501.0,23.0,1049,17.73,Apache 2.0,reasoning,True,False,,,2.33
+Qwen3.8 27B (Medium),Alibaba,27.0,27.0,256,17.48,Apache 2.0,"vision,reasoning",False,False,,,-35.87
+Qwen3.8 27B (Low),Alibaba,27.0,27.0,256,15.69,Apache 2.0,"vision,reasoning",False,False,,,-21.47
 Nemotron 3.5 Super VL,NVIDIA,120.0,12.0,1000,13.62,OpenMDW-1.1,"vision,reasoning",True,False,,,-2.87
 Inkling Small,Thinking Machines,266.0,12.0,1000,12.91,Apache 2.0,"vision,audio,reasoning",True,False,52.95,24.95,-9.47
 Inkling (Xhigh),Thinking Machines,975.0,41.0,1000,12.48,Apache 2.0,"vision,audio,reasoning",True,False,,,-1.5
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,11.76,OpenMDW,reasoning,True,False,49.27,21.68,3.43
 Muse Glimmer (High),Meta,30.0,30.0,131,6.34,Apache 2.0,"vision,reasoning",False,False,,,-32.23
 Command A+,Cohere,218.0,25.0,192,6.24,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-2.67
+Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,5.53,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-15.7
+Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,4.3,Apache 2.0,"vision,reasoning",True,False,26.64,1.44,-30.97
 NVIDIA Nemotron 3 Nano 4B,NVIDIA,3.97,3.97,262,1.82,Nvidia Nemotron Open Model License,reasoning,False,False,7.98,,-71.17
