@@ -164,9 +164,9 @@ def test_no_provider_filter_produces_a_backwards_image_axis():
     assert not inverted, f"axes running high-to-low: {inverted[:5]}"
 
 
-def test_every_image_bar_falls_inside_its_axis():
+def test_every_image_dot_falls_inside_its_axis():
     """Stability.ai drew (900, 844) against bars from 513 to 858 — every bar
-    below the floor."""
+    below the floor. The facets are dots now; the rule is the same."""
     full = get_image_df()
     outside = []
     for provider in sorted(full["provider"].dropna().unique()):
@@ -175,27 +175,53 @@ def test_every_image_bar_falls_inside_its_axis():
         axes = [fig["layout"].get(k, {}).get("range")
                 for k in ("xaxis", "xaxis2", "xaxis3")]
         for trace in fig["data"]:
-            if trace.get("type") != "bar" or not trace.get("x"):
+            if not trace.get("x"):
                 continue
             idx = int(str(trace.get("xaxis", "x")).replace("x", "") or 1) - 1
             rng = axes[idx] if 0 <= idx < len(axes) else None
-            if not rng:
-                continue
+            assert rng, f"{provider}: a facet with dots has no explicit range"
             for v in trace["x"]:
-                if isinstance(v, (int, float)) and not (rng[0] <= v <= rng[1] * 1.001):
+                if isinstance(v, (int, float)) and not (rng[0] <= v <= rng[1]):
                     outside.append((provider, v, rng))
-    assert not outside, f"bars drawn outside their axis: {outside[:5]}"
+    assert not outside, f"dots drawn outside their axis: {outside[:5]}"
+
+
+def test_image_facets_are_dots_on_one_shared_scale():
+    """ELO drawn as bars from a ~600 baseline overstated every gap, and each
+    facet took its own range, so one ELO sat at three different positions
+    across the row. Dots, and one range for all three facets."""
+    full = get_image_df()
+    fig = json.loads(build_image_faceted(full, full_df=full).to_json())
+    assert not [t for t in fig["data"] if t.get("type") == "bar"], "ELO is still drawn as bars"
+    ranges = [fig["layout"][k]["range"] for k in ("xaxis", "xaxis2", "xaxis3")]
+    assert ranges[0] == ranges[1] == ranges[2], f"facets on different scales: {ranges}"
 
 
 def test_image_axis_range_is_filter_invariant():
-    """Bar length must mean the same thing under every filter."""
+    """Position must mean the same thing under every filter: a filter whose
+    dots all fall inside the market's range leaves the range untouched, and
+    one that surfaces a lower-ranked model only extends it to show that dot."""
     full = get_image_df()
     def ranges(frame):
         fig = json.loads(build_image_faceted(frame, full_df=full).to_json())
         return [fig["layout"].get(k, {}).get("range")
                 for k in ("xaxis", "xaxis2", "xaxis3")]
+    base = ranges(full)
     top = full["provider"].value_counts().index[0]
-    assert ranges(full) == ranges(full[full["provider"] == top])
+    sub = full[full["provider"] == top]
+    got = ranges(sub)
+    assert got[0] == got[1] == got[2]
+    assert got[0][1] == base[0][1], "a filter moved the top of the scale"
+    assert got[0][0] <= base[0][0], "a filter tightened the scale around its own models"
+    # The leader's own models: every one already in the market's top 12 of
+    # some facet, so this filter must leave the scale exactly as it was.
+    from components.charts.image_scatter import _CATEGORIES, _pick_elo_column, _TOP_N
+    leaders = set()
+    for c in _CATEGORIES:
+        col = _pick_elo_column(full, c["elo_cols"])
+        leaders |= set(full.dropna(subset=[col]).nlargest(_TOP_N, col)["model"])
+    lead = full[full["model"].isin(leaders)]
+    assert ranges(lead) == base
 
 
 # ── 3.3 — treemap ramp ───────────────────────────────────────────────────────

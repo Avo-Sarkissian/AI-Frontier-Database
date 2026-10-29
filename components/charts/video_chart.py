@@ -51,6 +51,11 @@ _TOP_N = 30
 # only the legend is capped, and the tail is counted rather than hidden.
 _MAX_LEGEND_PROVIDERS = 8
 
+# Phone layout (layout.meta.narrow, applied by docs/app.js below this width).
+NARROW_PX = 600
+_NARROW_GUTTER_PX = 46
+_NARROW_NAME_CHARS = 18
+
 
 def _price_label(value, short: bool = False) -> str:
     """USD per minute of generated video.
@@ -202,6 +207,30 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         for i, text in enumerate(texts)
     ]
 
+    # Phone (docs/app.js narrowFigure applies layout.meta.narrow below
+    # NARROW_PX): the right gutter's "price · time · open" ran 140 px of a
+    # 356 px plot and the dots were squeezed into ~60 px under rotated ticks.
+    # There the gutter carries the price alone, the row names are cut shorter
+    # and the axis keeps four flat ticks; hover still has everything.
+    narrow_ann = [
+        dict(a, text=_price_label(plot_df.loc[i, "price_per_min"], short=True),
+             font=dict(a["font"], size=9))
+        for i, a in enumerate(annotations)
+    ]
+    meta = {"narrow": {
+        "max_width": NARROW_PX,
+        "layout": {
+            "annotations": narrow_ann,
+            "margin": {"r": _NARROW_GUTTER_PX, "l": 8},
+            "yaxis": {"tickmode": "array", "tickvals": short_name,
+                      "ticktext": [n[:_NARROW_NAME_CHARS - 1] + "…"
+                                   if len(n) > _NARROW_NAME_CHARS else n
+                                   for n in short_name],
+                      "tickfont": {"color": "#999999", "size": 10, "family": FONT}},
+            "xaxis": {"nticks": 4, "tickangle": 0},
+        },
+    }}
+
     shown = len(plot_df)
     scope = f"top {shown} of {total}" if shown < total else f"all {total}"
     fig.update_layout(
@@ -236,6 +265,7 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             showline=False, ticks="", automargin=True,
         ),
         annotations=annotations,
+        meta=meta,
         margin=dict(l=20, r=_gutter, t=52, b=36),
         height=max(380, shown * 22 + 90),
         hovermode="closest",
@@ -245,6 +275,25 @@ def build_video_rankings(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         ),
     )
     return fig
+
+
+# Log-axis padding each side of the data, as a share of its span in decades,
+# with a floor so a narrow span still clears both axes.
+_LOG_PAD_SHARE = 0.06
+_LOG_PAD_MIN = 0.05
+
+
+def _log_range(values) -> list[float]:
+    """[lo, hi] in log10 units for a log x axis, padded so no marker touches
+    either edge. Plotly's autorange on a log axis leaves the extreme markers'
+    centres a few pixels from the frame, half of each mark over the axis."""
+    v = pd.to_numeric(pd.Series(values), errors="coerce")
+    v = v[v > 0]
+    if v.empty:
+        return [-1.0, 2.0]
+    lo, hi = math.log10(float(v.min())), math.log10(float(v.max()))
+    pad = max((hi - lo) * _LOG_PAD_SHARE, _LOG_PAD_MIN)
+    return [lo - pad, hi + pad]
 
 
 def _legend_names(ref_df: pd.DataFrame) -> list[str]:
@@ -327,11 +376,22 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             hoverinfo="skip", showlegend=True,
         ))
 
-    _add_pareto(fig, plot_df, ref_df)
+    n_front = _add_pareto(fig, plot_df, ref_df)
+    # The subtitle names only what is drawn. A frontier of one model is not a
+    # line: it is one studio both cheapest and best-rated, and the old fixed
+    # "the dotted line is the market's frontier" promised a line no one could
+    # find. A filter that hides every frontier point names nothing.
+    if n_front >= 2:
+        front_note = "  ·  dotted line = the market's price-quality frontier"
+    elif n_front == 1:
+        front_note = "  ·  ringed: one model is both cheapest and best-rated (the whole frontier)"
+    else:
+        front_note = ""
 
     prices = pd.to_numeric(ref_df["price_per_min"], errors="coerce").dropna()
     tickvals, ticktext = log_ticks(float(prices.min()), float(prices.max()),
                                    fmt=lambda v: f"${v:g}")
+    x_range = _log_range(pd.concat([prices, plot_df["price_per_min"]]))
     lo, hi = _elo_bounds(ref_df["elo"])
 
     fig.update_layout(
@@ -342,7 +402,7 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
                 "Cost vs. Arena Elo"
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 f"  ·  {plot_text(mode_label(mode).lower())}"
-                "  ·  the dotted line is the market's price-quality frontier</span>"
+                + front_note + "</span>"
             ),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left",
@@ -352,6 +412,10 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             title=dict(text="Price (USD / minute of video)",
                        font=dict(color=AXIS, size=12), standoff=12),
             type="log",
+            # Padded in log space from the market's own extremes, so the
+            # cheapest model no longer sits on the y axis (autorange put its
+            # centre a few pixels from it and the label over the tick labels).
+            range=x_range,
             # Explicit 1-2-5 ticks: a bare log axis makes Plotly fall back to
             # "D2" minor ticks, which render as a bare-mantissa run whose
             # leading label reads as a value and misstates the axis by orders of
@@ -374,6 +438,11 @@ def build_video_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             x=1.01, y=1, xanchor="left",
         ),
         margin=dict(l=20, r=150, t=52, b=36),
+        # Phone: the 150 px legend gutter left the dots ~180 px and squeezed
+        # the legend docs/app.js moves under the plot to one entry per row.
+        meta={"narrow": {"max_width": NARROW_PX,
+                         "layout": {"margin": {"r": 12},
+                                    "legend": {"borderwidth": 0}}}},
         height=520,
         hovermode="closest",
         hoverlabel=dict(
@@ -404,15 +473,27 @@ def _add_pareto(fig: go.Figure, df: pd.DataFrame, ref_df: pd.DataFrame | None = 
             frontier.append(row["model"])
     pareto = [row for _, row in df.iterrows() if row["model"] in set(frontier)]
     if not pareto:
-        return
+        return 0
     pf = pd.DataFrame(pareto).sort_values("price_per_min")
-    fig.add_trace(go.Scatter(
-        x=pf["price_per_min"], y=pf["elo"],
-        mode="lines",
-        name="Pareto Frontier",
-        line=dict(color="rgba(0,212,255,0.45)", width=1, dash="dot"),
-        hoverinfo="skip", showlegend=True,
-    ))
+    if len(pf) >= 2:
+        fig.add_trace(go.Scatter(
+            x=pf["price_per_min"], y=pf["elo"],
+            mode="lines",
+            name="Pareto Frontier",
+            line=dict(color="rgba(0,212,255,0.45)", width=1, dash="dot"),
+            hoverinfo="skip", showlegend=True,
+        ))
+    else:
+        # One point is not a line: ring it, and let the legend show the ring
+        # that is actually on the chart rather than a dotted line that is not.
+        fig.add_trace(go.Scatter(
+            x=pf["price_per_min"], y=pf["elo"],
+            mode="markers",
+            name="Pareto Frontier",
+            marker=dict(symbol="circle-open", size=20, color="rgba(0,212,255,0.7)",
+                        line=dict(width=1.5)),
+            hoverinfo="skip", showlegend=True,
+        ))
 
     # Label spacing in log units, sized to the span actually on screen rather
     # than to a constant: per-minute pricing spans about one decade where the
@@ -422,22 +503,31 @@ def _add_pareto(fig: go.Figure, df: pd.DataFrame, ref_df: pd.DataFrame | None = 
                       float(pf["price_per_min"].min())) if len(pf) > 1 else 0.0
     min_gap = max(span / 6.0, 0.04) if span > 0 else 0.0
 
-    spaced, pos = [], []
+    spaced = []
     last = -math.inf
     for _, r in pf.iterrows():
         lp = math.log10(r["price_per_min"])
         if lp - last >= min_gap:
             spaced.append(r)
-            pos.append("top center" if len(spaced) % 2 == 1 else "bottom center")
             last = lp
     if spaced:
         ld = pd.DataFrame(spaced)
+        # Above / below alternately, and pushed inward at the ends so the
+        # cheapest label does not run over the y tick labels nor the dearest
+        # off the plot. The invisible marker is what offsets the text: a bare
+        # mode="text" label is centred ON the point and sat over its marker.
+        n = len(ld)
+        pos = [("top" if i % 2 == 0 else "bottom")
+               + (" right" if i == 0 else " left" if i == n - 1 else " center")
+               for i in range(n)]
         fig.add_trace(go.Scatter(
             x=ld["price_per_min"], y=ld["elo"],
-            mode="text",
+            mode="markers+text",
+            marker=dict(size=16, color="rgba(0,0,0,0)"),
             text=ld["model"].apply(
                 lambda m: plot_text(m[:20] + "…" if len(m) > 20 else m)),
             textposition=pos,
-            textfont=dict(color="rgba(0,212,255,0.65)", size=10, family=FONT),
+            textfont=dict(color="rgba(0,212,255,0.75)", size=10, family=FONT),
             hoverinfo="skip", showlegend=False,
         ))
+    return len(pf)

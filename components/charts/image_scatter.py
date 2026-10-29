@@ -52,11 +52,63 @@ def _price_label(value, short: bool = False) -> str:
     return f"${value:.0f}/1k" if short else f"${value:.1f}/1k"
 
 
+# Phone layout (layout.meta.narrow, applied by docs/app.js below this width):
+# three facets side by side left each ~70 px, so the facets stack instead.
+NARROW_PX = 600
+_NARROW_ROW_PX = 20          # per model row in a stacked facet
+_NARROW_GAP_PX = 64          # x ticks of one facet + the title of the next
+_DOT_PX = 10
+
+
+def _shared_elo_range(ref_df: pd.DataFrame, col_cols: list, col_dfs: list) -> list[float]:
+    """One x range for all three facets.
+
+    Each facet used to take its own range from its own column, so the same Elo
+    sat at a different horizontal position in each column (600-1300 in one,
+    660-1300 in the next) and a reader comparing across facets compared
+    nothing. The range is the union of what the unfiltered arena puts in each
+    facet's top _TOP_N (so a filter cannot rescale it) and of the dots actually
+    drawn (so a filter that surfaces a low-ranked model still shows it) — the
+    video ranked view's rule. The right side carries headroom for the price
+    label beside each dot.
+    """
+    market, shown = [], []
+    for col, cdf in zip(col_cols, col_dfs):
+        if col and col in ref_df.columns:
+            market.append(pd.to_numeric(ref_df[col], errors="coerce").dropna()
+                          .sort_values(ascending=False).head(_TOP_N))
+        if not cdf.empty:
+            shown.append(pd.to_numeric(cdf["_elo_display"], errors="coerce").dropna())
+    market = [p for p in market if not p.empty]
+    shown = [p for p in shown if not p.empty]
+    ref = pd.concat(market) if market else (pd.concat(shown) if shown
+                                           else pd.Series([1000.0, 1300.0]))
+    lo, hi = float(ref.min()), float(ref.max())
+    if not hi > lo:
+        lo, hi = lo - 20, hi + 20
+    # Padding is sized from the MARKET's span, so a filter that extends the
+    # range downward to show its own dot does not also move the top.
+    span = hi - lo
+    lo, hi = lo - span * 0.06, hi + span * 0.30
+    if shown:
+        drawn = pd.concat(shown)
+        lo = min(lo, float(drawn.min()) - span * 0.06)
+        hi = max(hi, float(drawn.max()) + span * 0.30)
+    return [lo, hi]
+
+
 def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -> go.Figure:
     """
-    3-column horizontal bar chart: one column per style category.
+    3-column Cleveland dot plot: one column per style category, ranked by that
+    category's arena ELO, all three on ONE shared x range.
+
     Uses per-category ELO from live AA arena data when available.
     Falls back to tag-based filtering + global ELO if category columns missing.
+
+    Dots, not bars: ELO has no meaningful zero (see video_chart's docstring),
+    and the bars here started at ~600, so their length overstated every gap.
+    Position on a shared interval axis is the honest encoding. Hollow dot =
+    open weights, as everywhere else on the site.
 
     ``full_df`` is the unfiltered image catalogue. Each facet picks the first
     candidate column that carries data, and every category keeps a *retired*
@@ -102,6 +154,8 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         col_dfs.append(cdf)
 
     n_rows = max(len(cdf) for cdf in col_dfs)
+    x_range = _shared_elo_range(ref_df, col_cols, col_dfs)
+    any_open = False
 
     fig = make_subplots(
         rows=1, cols=3,
@@ -123,24 +177,20 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
             lambda n: plot_text(n[:22] + "…" if len(n) > 22 else n))
         colors = cdf["provider"].map(PROVIDER_COLORS).fillna(DEFAULT_COLOR).tolist()
         elo_vals = cdf["_elo_display"]
-        max_elo = elo_vals.max() or 1
         has_gen_time = "gen_time_s" in cdf.columns and cdf["gen_time_s"].gt(0).any()
-
-        # Ghost track for visual alignment
-        fig.add_trace(go.Bar(
-            y=short_name, x=[max_elo] * len(cdf),
-            orientation="h",
-            marker=dict(color="rgba(255,255,255,0.02)", line=dict(width=0)),
-            hoverinfo="skip", showlegend=False,
-        ), row=1, col=col_idx)
+        is_open = cdf["open_weights"].eq(True)
+        any_open = any_open or bool(is_open.any())
 
         price_display = cdf["price_per_1k"].apply(_price_label)
-        # Quality bars
-        fig.add_trace(go.Bar(
+        fig.add_trace(go.Scatter(
             y=short_name,
             x=elo_vals,
-            orientation="h",
-            marker=dict(color=colors, opacity=0.82, line=dict(width=0)),
+            mode="markers",
+            marker=dict(
+                color=colors, size=_DOT_PX, opacity=0.95,
+                symbol=["circle-open" if o else "circle" for o in is_open],
+                line=dict(color=colors, width=[2 if o else 0 for o in is_open]),
+            ),
             customdata=list(zip(
                 cdf["model"].map(plot_text), cdf["provider"].map(plot_text),
                 elo_vals, price_display,
@@ -157,7 +207,7 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
             showlegend=False,
         ), row=1, col=col_idx)
 
-        # Right-side annotations: price (no gen time in live data)
+        # Price beside each dot (no gen time in live data).
         for idx, row in cdf.iterrows():
             color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
             price_str = _price_label(row["price_per_1k"], short=True)
@@ -167,19 +217,24 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
                 else price_str
             )
             annotations.append(dict(
-                x=row["_elo_display"] + (max_elo * 0.015),
+                x=row["_elo_display"],
                 y=short_name[idx],
                 text=ann_text,
                 showarrow=False,
                 xanchor="left",
+                xshift=_DOT_PX - 2,
                 font=dict(size=10, family=FONT, color=color),
                 xref=f"x{col_idx}" if col_idx > 1 else "x",
                 yref=f"y{col_idx}" if col_idx > 1 else "y",
             ))
 
-    # APPENDED to the subplot titles make_subplots already placed there;
-    # update_layout(annotations=...) would replace them.
-    fig.layout.annotations = tuple(fig.layout.annotations) + tuple(annotations)
+    # Subplot titles: make_subplots placed them centred over each column;
+    # restyle those only (the price labels above are appended after).
+    _title_labels = {c["label"] for c in _CATEGORIES}
+    titles = [a for a in fig.layout.annotations if a.text in _title_labels]
+    for a in titles:
+        a.update(font=dict(color="#f2f2f2", size=14, family=FONT), y=1.04)
+    fig.layout.annotations = tuple(titles) + tuple(annotations)
 
     height = max(480, n_rows * 32 + 120)
 
@@ -190,11 +245,13 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         title=dict(
             text=("Image Models by Style"
                   "  <span style='font-size:12px;color:#777777;font-weight:400'>"
-                  "  ·  arena ELO within each category  ·  top 12 per column</span>"),
+                  f"  ·  arena ELO within each category, one shared scale"
+                  f"  ·  top {_TOP_N} per column"
+                  + ("  ·  hollow = open weights" if any_open else "")
+                  + "</span>"),
             font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
             x=0.0, xanchor="left", pad=dict(l=20, t=16),
         ),
-        barmode="overlay",
         margin=dict(l=10, r=10, t=96, b=20),
         height=height,
         hovermode="closest",
@@ -204,58 +261,50 @@ def build_image_faceted(df: pd.DataFrame, full_df: pd.DataFrame | None = None) -
         ),
     )
 
-    # Style each subplot's axes
     for i in range(1, 4):
         xref = f"xaxis{i}" if i > 1 else "xaxis"
         yref = f"yaxis{i}" if i > 1 else "yaxis"
-        cdf_i = col_dfs[i - 1]
-        # Bounds from the FULL arena, not the filtered facet.
-        #
-        # This was `x_min = max(900, elo.min() - 30)` against the filtered
-        # frame, and when a provider's best model scored under 900 the headroom
-        # term `(max - x_min) * 0.32` went negative, giving x_max < x_min — a
-        # decreasing Plotly range, written with no ordering guard. 17 of 39
-        # providers produced at least one inverted axis (38 broken axes in all):
-        # Stability.ai drew (900, 844) against bars from 513 to 858, so every
-        # bar fell below the floor of an axis running high-to-low.
-        #
-        # Deriving from the whole arena fixes the inversion and the deeper
-        # problem behind it: bar length now means the same thing under every
-        # filter, instead of being rescaled by whoever is on screen.
-        ref_series = (
-            pd.to_numeric(ref_df[col_cols[i - 1]], errors="coerce").dropna()
-            if col_cols[i - 1] and col_cols[i - 1] in ref_df.columns
-            else pd.Series(dtype=float)
-        )
-        if ref_series.empty:
-            ref_series = cdf_i["_elo_display"] if not cdf_i.empty else pd.Series([1000.0, 1300.0])
-        lo, hi = float(ref_series.min()), float(ref_series.max())
-        x_min = lo - 30
-        x_max = hi + (hi - x_min) * 0.32
-        # Belt and braces: an axis must never run backwards, whatever the data.
-        if not (x_max > x_min):
-            x_min, x_max = min(lo, hi) - 30, max(lo, hi) + 30
-
         fig.layout[xref].update(
-            range=[x_min, x_max],
-            gridcolor=GRID, zerolinecolor="rgba(255,255,255,0.06)",
+            range=x_range,
+            gridcolor=GRID, zeroline=False,
             tickfont=dict(color=TICK, size=11, family=FONT),
             showgrid=True, showline=False, ticks="",
         )
         fig.layout[yref].update(
             tickfont=dict(color="#aaaaaa", size=11, family=FONT),
-            showgrid=False, showline=False, ticks="",
+            # The leader line from label to dot, as on the video ranking.
+            showgrid=True, gridcolor="rgba(255,255,255,0.04)",
+            showline=False, ticks="",
             automargin=True,
         )
 
-    # Style subplot title text only — skip the price annotations we added above,
-    # otherwise they all get y-forced to 1.04 and pile up on one row.
-    _title_labels = {c["label"] for c in _CATEGORIES}
-    for annotation in fig.layout.annotations:
-        if annotation.text in _title_labels:
-            annotation.update(font=dict(color="#f2f2f2", size=14, family=FONT), y=1.04)
-
+    fig.update_layout(meta=_narrow_meta(col_dfs, titles, annotations))
     return fig
+
+
+def _narrow_meta(col_dfs: list, titles: list, annotations: list) -> dict:
+    """Stack the three facets on a phone: each takes the full width, one under
+    the other, with its title above it and its x ticks below."""
+    heights = [max(len(c), 1) * _NARROW_ROW_PX for c in col_dfs]
+    plot_h = sum(heights) + _NARROW_GAP_PX * (len(heights) - 1)
+    top_m, bottom_m = 64, 28
+    layout: dict = {"height": plot_h + top_m + bottom_m,
+                    "margin": {"t": top_m, "b": bottom_m, "l": 8, "r": 8}}
+    y = plot_h
+    title_ann = []
+    for i, (h, t) in enumerate(zip(heights, titles), start=1):
+        dom = [(y - h) / plot_h, y / plot_h]
+        sfx = "" if i == 1 else str(i)
+        layout[f"xaxis{sfx}"] = {"domain": [0, 1]}
+        layout[f"yaxis{sfx}"] = {"domain": dom,
+                                 "tickfont": {"color": "#aaaaaa", "size": 10, "family": FONT}}
+        title_ann.append(dict(t.to_plotly_json(), x=0, xanchor="left", xref="paper",
+                              y=dom[1], yref="paper", yanchor="bottom", yshift=6,
+                              font=dict(color="#f2f2f2", size=12, family=FONT)))
+        y -= h + _NARROW_GAP_PX
+    small = [dict(a, font=dict(a["font"], size=9)) for a in annotations]
+    layout["annotations"] = title_ann + small
+    return {"narrow": {"max_width": NARROW_PX, "layout": layout}}
 
 
 def build_image_rankings(df: pd.DataFrame) -> go.Figure:
