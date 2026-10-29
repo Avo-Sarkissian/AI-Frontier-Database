@@ -6,9 +6,11 @@ Ling 3.1 Flash 1019,InclusionAI,560.0,25.0,1049,29.47,MIT,reasoning,True,False,,
 MiniMax-M3.1-Flash,MiniMax,428.0,23.0,1000,28.91,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,,,-6.4
 Step 5 Preview,StepFun,600.0,27.0,1000,28.53,StepFun Model License 1.0,"vision,reasoning",True,False,,,16.43
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,26.73,MIT,"vision,reasoning",True,False,,,-10.83
+Mistral Large 4 (High),Mistral,1050.0,52.0,1000,26.02,Mistral Ecosystem Open-Weight License,"vision,reasoning",True,False,,,5.13
 Muse Spark Open (Xhigh),Meta,816.0,42.0,1049,24.68,Muse Model License,"vision,audio,reasoning",True,False,,,25.8
-GLM-5.3 (Low),Z AI,753.0,40.0,1000,23.06,GLM-5.3 License,reasoning,True,False,,,-11.17
+Mistral Large 4 (Medium),Mistral,1050.0,52.0,1000,23.08,Mistral Ecosystem Open-Weight License,"vision,reasoning",True,False,,,3.27
 DeepSeek V4 Pro 0813 (Max),DeepSeek,1600.0,49.0,1000,23.06,MIT,reasoning,True,False,,,-6.37
+GLM-5.3 (Low),Z AI,753.0,40.0,1000,23.06,GLM-5.3 License,reasoning,True,False,,,-11.17
 Qwen3.8 27B (Xhigh),Alibaba,27.0,27.0,256,20.11,Apache 2.0,"vision,reasoning",False,False,,,-6.37
 MiniMax-M3,MiniMax,428.0,23.0,1000,18.73,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,58.57,30.84,-5.5
 K2 Horizon 375B A23B,Institute of Foundation Models,375.0,23.0,524,17.77,Apache 2.0,reasoning,True,False,61.52,40.93,-5.0

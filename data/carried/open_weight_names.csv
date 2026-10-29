@@ -292,6 +292,8 @@ Mistral 7B Instruct,1,aa_open_weights_catalogue,2026-06-16
 Mistral Large 2 (Jul '24),1,aa_open_weights_catalogue,2026-06-16
 Mistral Large 2 (Nov '24),1,aa_open_weights_catalogue,2026-05-06
 Mistral Large 3,1,aa_open_weights_catalogue,2026-05-06
+Mistral Large 4 (High),1,aa_isOpenWeights,2026-10-29
+Mistral Large 4 (Medium),1,aa_isOpenWeights,2026-10-29
 Mistral Large 4 Preview,0,aa_isOpenWeights,2026-10-27
 Mistral Medium 3.5,1,aa_isOpenWeights,2026-05-06
 Mistral Small (Sep '24),1,aa_open_weights_catalogue,2026-06-16

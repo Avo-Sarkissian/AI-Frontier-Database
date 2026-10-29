@@ -1700,6 +1700,20 @@
   "licenseName": "Apache 2.0",
   "parameters": 675.0
  },
+ "mistral-large-4": {
+  "inferenceParametersActiveBillions": 52.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Ecosystem Open-Weight License",
+  "parameters": 1050.0
+ },
+ "mistral-large-4-medium": {
+  "inferenceParametersActiveBillions": 52.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Mistral Ecosystem Open-Weight License",
+  "parameters": 1050.0
+ },
  "mistral-medium-3-5": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": true,

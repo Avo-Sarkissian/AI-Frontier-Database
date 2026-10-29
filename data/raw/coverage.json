@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 273,
-  "distinct_upstream_models": 273,
-  "kept": 73,
+  "upstream_host_model_rows": 274,
+  "distinct_upstream_models": 274,
+  "kept": 74,
   "skipped_no_score": [
     "A.X-K2",
     "Agnes 2.5 Pro Beta",
@@ -209,20 +209,20 @@
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 73,
-    "cost_per_task": 72,
-    "cache_hit_price": 73,
-    "cache_write_price": 48,
-    "is_open_weights": 73,
-    "is_reasoning": 73,
-    "release_date": 73,
-    "aa_slug": 73
+    "rows": 74,
+    "cost_per_task": 73,
+    "cache_hit_price": 74,
+    "cache_write_price": 49,
+    "is_open_weights": 74,
+    "is_reasoning": 74,
+    "release_date": 74,
+    "aa_slug": 74
   },
   "release_date_join": {
     "record": 0,
     "slug": 31,
     "name": 2,
-    "effort_slug": 39,
+    "effort_slug": 40,
     "paren_name": 1,
     "unmatched": []
   }
