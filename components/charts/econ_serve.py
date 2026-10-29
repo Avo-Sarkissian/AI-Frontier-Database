@@ -17,8 +17,10 @@ Service level: a measured point's 35 tok/s floor is on InferenceX's MEDIAN
 per-user interactivity; a modelled point's is on every session (the roofline
 gives every session the same rate). The hover says which.
 
-The axis range comes from serving_cost.axis_range(), which depends on the data
-only, so the axes never move when a control does.
+The axis range starts from serving_cost.axis_range() — every API price and the
+default view's GPU costs, padded — and grows (fit_range) only when a control
+moves a point outside it, so the default is framed tightly, nothing is drawn
+off the plot, and both axes always share one range.
 """
 from __future__ import annotations
 
@@ -140,7 +142,7 @@ def _hover(r) -> str:
 # 12 px line) and the measured marker (12 px, radius 6). Approximate on purpose:
 # it only has to keep a label off its near neighbours.
 _PLOT_W_PX, _PLOT_H_PX = 1100.0, 420.0
-_CHAR_PX, _LINE_PX, _MARK_R_PX, _GAP_PX = 5.6, 12.0, 6.0, 2.0
+_CHAR_PX, _LINE_PX, _MARK_R_PX, _GAP_PX = 5.6, 12.0, 7.0, 4.0
 LABEL_POSITIONS = ("top center", "bottom center", "middle right", "middle left")
 
 
@@ -160,15 +162,27 @@ def _overlap(a, b) -> bool:
     return a[0] < b[1] and b[0] < a[1] and a[2] < b[3] and b[2] < a[3]
 
 
-def label_positions(x, y, names, axis_range) -> dict:
+def _on_diagonal(box) -> bool:
+    """Does the dashed 1x line (y = x on one shared log range, so the
+    plot-pixel line y = x * H / W) run through this label box? "MiniMax-M3"
+    printed across the break-even line read as struck through."""
+    k = _PLOT_H_PX / _PLOT_W_PX
+    y_lo, y_hi = box[0] * k, box[1] * k
+    return y_lo < box[3] and box[2] < y_hi
+
+
+def label_positions(x, y, names, axis_range, obstacles=()) -> dict:
     """{index: textposition} for the labelled (measured) points.
 
     Labels used to alternate top/bottom by price order alone, so two points
     close in price but apart in cost could both print below, and one name sat
     on the other's marker (Kimi K2.7 Code over Qwen3.5 397B). Here, highest
     point first, each label takes the first of top / bottom / right / left that
-    covers no other labelled marker and no label already placed; if none is
-    clear, the one with the least overlap."""
+    covers no other marker (labelled ones and the unlabelled modelled points
+    passed as `obstacles`, (x, y) pairs: "MiniMax-M3" was printed over a
+    modelled point at the same price), no label already placed and not the 1x
+    diagonal; if none is clear, the one with the least overlap (a marker or
+    label counts double the diagonal)."""
     lo, hi = axis_range
     span = max(hi - lo, 1e-9)
     pts = []
@@ -183,14 +197,25 @@ def label_positions(x, y, names, axis_range) -> dict:
                     (math.log10(yv) - lo) / span * _PLOT_H_PX, len(str(nm))))
     r = _MARK_R_PX
     marks = {ix: (px - r, px + r, py - r, py + r) for ix, px, py, _ in pts}
+    rm = 4.0                                  # a modelled point is 8 px
+    others_fixed = []
+    for ox, oy in obstacles:
+        try:
+            ox, oy = float(ox), float(oy)
+        except (TypeError, ValueError):
+            continue
+        if ox > 0 and oy > 0 and math.isfinite(ox) and math.isfinite(oy):
+            opx = (math.log10(ox) - lo) / span * _PLOT_W_PX
+            opy = (math.log10(oy) - lo) / span * _PLOT_H_PX
+            others_fixed.append((opx - rm, opx + rm, opy - rm, opy + rm))
     placed: list[tuple] = []
     out = {}
     for ix, px, py, n in sorted(pts, key=lambda p: (-p[2], p[1])):
-        others = [m for j, m in marks.items() if j != ix] + placed
+        others = [m for j, m in marks.items() if j != ix] + others_fixed + placed
         best, best_hits = None, None
         for pos in LABEL_POSITIONS:
             box = _label_box(px, py, pos, n)
-            hits = sum(_overlap(box, o) for o in others)
+            hits = 2 * sum(_overlap(box, o) for o in others) + _on_diagonal(box)
             if best_hits is None or hits < best_hits:
                 best, best_hits = pos, hits
             if hits == 0:
@@ -200,20 +225,38 @@ def label_positions(x, y, names, axis_range) -> dict:
     return out
 
 
+def fit_range(axis_range, frame: pd.DataFrame | None) -> tuple[float, float]:
+    """`axis_range` grown to hold every plotted point (both coordinates), so
+    renting at 10% use widens the frame instead of pushing points off it."""
+    from data.serving_cost import padded_log_range
+    lo, hi = axis_range or (-2.0, 1.0)
+    if frame is None or frame.empty:
+        return lo, hi
+    pts = pd.concat([pd.to_numeric(frame.get("price_out"), errors="coerce"),
+                     pd.to_numeric(frame.get("usd_per_m_out"), errors="coerce")])
+    need = padded_log_range(pts.dropna().tolist())
+    if need is None:
+        return lo, hi
+    return min(lo, need[0]), max(hi, need[1])
+
+
 def build_econ_serve(frame: pd.DataFrame, meta: dict | None = None,
                      axis_range: tuple[float, float] | None = None) -> go.Figure:
     meta = meta or {}
     if frame is None or frame.empty:
         return empty_figure("No open model can be priced on this GPU at these settings")
-    lo, hi = axis_range or (-2.0, 1.0)
+    lo, hi = fit_range(axis_range, frame)
     df = frame.copy()
     df, providers = spotlight_split(df)
     # Measured points carry a name, placed so it covers no other measured
     # marker or label (label_positions).
     df["_label_pos"] = "top center"
     meas = df[df["evidence"] == "measured"]
+    rest = df[df["evidence"] != "measured"]
     for ix, pos in label_positions(meas["price_out"], meas["usd_per_m_out"],
-                                   meas["base_model"], (lo, hi)).items():
+                                   meas["base_model"], (lo, hi),
+                                   obstacles=list(zip(rest["price_out"],
+                                                      rest["usd_per_m_out"]))).items():
         df.loc[ix, "_label_pos"] = pos
     fig = go.Figure()
 

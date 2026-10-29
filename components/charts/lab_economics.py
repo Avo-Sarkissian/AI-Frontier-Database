@@ -57,15 +57,43 @@ def _entity_colors(pairs) -> dict[str, str]:
     has a palette name in it; otherwise auto_palette.resolve from AA's own
     colour for that name (AA_CREATOR_COLORS: ByteDance Seed) or, with none,
     from the name, kept apart from every colour already in the chart, so no
-    two entities share the grey default. Order-independent (pairs sorted)."""
-    pairs = sorted({(str(e), str(p or "")) for e, p in pairs})
-    out = {e: PROVIDER_COLORS[p] for e, p in pairs if p in PROVIDER_COLORS}
-    taken = list(out.values())
-    for e, p in pairs:
+    two entities share the grey default.
+
+    The palette is validated per TAB, not per chart: Cohere #d18ee2 and
+    SpaceXAI #a2a2e8 never share an Overview, but the run-rate chart drew them
+    side by side at OKLab dE 8 (the floor is 15), with Kimi's purple between.
+    So palette colours are taken most-reported entity first, and one within
+    auto_palette.MIN_DELTA_E of a colour already taken is moved off it by
+    auto_palette.resolve (lightness first, hue at most 30 degrees from the
+    brand's). Order-independent: entities sort by row count, then name."""
+    pairs = [(str(e), str(p or "")) for e, p in pairs]
+    count: dict[str, int] = {}
+    for e, _p in pairs:
+        count[e] = count.get(e, 0) + 1
+    uniq = sorted(set(pairs), key=lambda ep: (-count[ep[0]], ep[0], ep[1]))
+    out: dict[str, str] = {}
+    taken: list[str] = []
+    for e, p in uniq:
+        if e in out or p not in PROVIDER_COLORS:
+            continue
+        c = PROVIDER_COLORS[p]
+        if any(auto_palette.delta_e(c, t) < auto_palette.MIN_DELTA_E for t in taken):
+            c = auto_palette.resolve(p, c, taken)
+        out[e] = c
+        taken.append(c)
+    for e, p in sorted(set(pairs)):
         if e not in out:
             out[e] = auto_palette.resolve(p or e, AA_CREATOR_COLORS.get(p), taken)
             taken.append(out[e])
     return out
+
+
+def _hover_name(entity) -> str:
+    """Hover title: the dashboard's name, then the source's own where it
+    differs ("Kimi · Moonshot AI")."""
+    e = str(entity or "")
+    d = L.display_name(e)
+    return plot_text(e) if d == e else f"{plot_text(d)} · {plot_text(e)}"
 
 
 def _present(badges) -> list[str]:
@@ -158,14 +186,14 @@ def build_labs_runrate(rr: pd.DataFrame | None = None) -> go.Figure:
             continue
         col = colors[co]
         has_snapshot = bool((rr[rr["company"] == co]["_basis"] == "snapshot").any())
-        cds = [[plot_text(co), L._usd(v), plot_text(t or "—"), plot_text(c or "—"),
+        cds = [[_hover_name(co), L._usd(v), plot_text(t or "—"), plot_text(c or "—"),
                 plot_text(s or "—"), plot_text(i), L.source_domain(u) or "—", b]
                for v, t, c, s, i, u, b in zip(d["annualized_usd"], d["revenue_type"],
                                               d["confidence"], d["source_type"],
                                               d["epoch_id"], d["source_url"], d["badge"])]
         fig.add_trace(go.Scatter(
             x=list(d["date"]), y=[float(v) for v in d["annualized_usd"]],
-            mode="lines+markers", name=plot_text(co), legendgroup=co,
+            mode="lines+markers", name=plot_text(L.display_name(co)), legendgroup=co,
             showlegend=basis == "snapshot" or not has_snapshot,
             line=dict(color=col, width=1.3 if basis == "snapshot" else 1,
                       dash="solid" if basis == "snapshot" else "dot"),
@@ -193,6 +221,11 @@ def build_labs_runrate(rr: pd.DataFrame | None = None) -> go.Figure:
                               font=dict(color="#888888", size=11, family=FONT))])
     fig.update_yaxes(type="log", tickvals=ticks, ticktext=[_usd_tick(t) for t in ticks],
                      range=[math.log10(lo) - 0.15, math.log10(hi) + 0.9])
+    # Phone: the four-line footnote ran off a 356 px plot; the caption above
+    # the chart carries it, so it goes, and so does the headroom it needed.
+    fig.update_layout(meta=_narrow_meta({}, {
+        "annotations": [],
+        "yaxis": {"range": [math.log10(lo) - 0.15, math.log10(hi) + 0.25]}}))
     return fig
 
 
@@ -399,7 +432,7 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
         col = colors[str(ent)]
         base = L.SCOPE_SYMBOLS.get(scope, "circle")
         # Epoch's usage file names a row but carries only the per-day figure.
-        cds = [[plot_text(ent), plot_text(p or "—"), L.SCOPE_LABELS.get(scope, scope),
+        cds = [[_hover_name(ent), plot_text(p or "—"), L.SCOPE_LABELS.get(scope, scope),
                 ("Epoch row: " if o == "epoch" else "Stated: ") + plot_text(s),
                 L.human_tokens(float(t)), b,
                 ("Epoch AI usage_reports" if o == "epoch" else plot_text(sn)),
@@ -409,7 +442,7 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
                                                d["source_name"], d["source_url"])]
         fig.add_trace(go.Scatter(
             x=list(d["date"]), y=[float(v) for v in d["tokens_per_day"]],
-            mode="lines+markers", name=plot_text(ent), legendgroup=ent,
+            mode="lines+markers", name=plot_text(L.display_name(ent)), legendgroup=ent,
             showlegend=ent not in seen,
             line=dict(color=col, width=1.2),
             marker=dict(color=col, size=9, symbol=[badge_symbol(b, base) for b in d["badge"]],
@@ -434,12 +467,14 @@ def build_labs_tokens(rows: pd.DataFrame | None = None) -> go.Figure:
             fig.add_trace(k)
     lo, hi = float(d0["tokens_per_day"].min()), float(d0["tokens_per_day"].max())
     ticks = _decades(lo, hi)
+    # Two lines: on one, the subtitle ran ~250 px past a 1440 px card.
     title = ("Disclosed Token Volumes" + "  " + SUB
-             + "tokens per day (log) · monthly ÷ 30, weekly ÷ 7, per-minute × 1,440, Epoch "
-               "AI's convention · symbol = what is counted · lines join one scope only · "
-             + ("every point disclosed · " if present == ["disclosed"] else "")
+             + "tokens per day (log) · symbol = what is counted · lines join one scope only"
+             + (" · every point disclosed" if present == ["disclosed"] else "")
+             + "<br>monthly ÷ 30, weekly ÷ 7, per-minute × 1,440 (Epoch AI's convention) · "
              + EPOCH_SUB + " + cited disclosures</span>")
-    _layout(fig, title, "Date of the figure", "Tokens per day (log)", height=480)
+    _layout(fig, title, "Date of the figure", "Tokens per day (log)", height=500)
+    fig.update_layout(margin={**CHART_MARGIN, "t": 76})
     fig.update_yaxes(type="log", tickvals=ticks, ticktext=[_tok_tick(t) for t in ticks],
                      range=[math.log10(lo) - 0.3, math.log10(hi) + 0.3])
     return fig

@@ -55,11 +55,60 @@ def _layout(fig: go.Figure, title: str, x_title: str, y_title: str, **extra) -> 
     )
 
 
+NARROW_PX = 500        # docs/app.js applies layout.meta.narrow below this width
+
+
+def _narrow(layout: dict, data: dict | None = None) -> dict:
+    """layout.meta for docs/app.js narrowFigure: the patch for a phone."""
+    return {"narrow": {"max_width": NARROW_PX,
+                       "data": {str(i): u for i, u in (data or {}).items()},
+                       "layout": layout}}
+
+
 def _fmt_q(v) -> str:
     return "—" if v is None or (isinstance(v, float) and math.isnan(v)) else f"{v:.1f}"
 
 
 # ── 1. Score gap over time ────────────────────────────────────────────────────
+
+RESCALE_MERGE_DAYS = 14        # rescales closer than this share one label
+RESCALE_EDGE = 0.15            # a label this near the right edge points left
+
+
+def rescale_labels(breaks, first, last, min_gap_frac: float = 0.06) -> list[dict]:
+    """One small horizontal label above the plot per cluster of rescales.
+
+    They used to be vertical "AA rescale" strings inside the plot, one per
+    rule: two rescales three days apart printed side by side, and the v5 one
+    on the newest snapshot sat on the right edge beside the newest point.
+    Now rescales within RESCALE_MERGE_DAYS share one label ("AA rescales"),
+    labels sit in the top margin where no data is, and one near the right
+    edge reads leftward from its rule. `min_gap_frac` also merges rescales
+    closer than that share of the x span (a label is ~60 px: 0.06 of a desktop
+    plot, a quarter of a phone's)."""
+    ds = sorted(pd.Timestamp(b) for b in breaks)
+    if not ds:
+        return []
+    lo, hi = pd.Timestamp(first), pd.Timestamp(last)
+    span = max((hi - lo).days, 1)
+    groups: list[list[pd.Timestamp]] = []
+    for d in ds:
+        gap = (d - groups[-1][-1]).days if groups else None
+        if gap is not None and (gap < RESCALE_MERGE_DAYS or gap / span < min_gap_frac):
+            groups[-1].append(d)
+        else:
+            groups.append([d])
+    out = []
+    for g in groups:
+        right = (g[-1] - lo).days / span > 1 - RESCALE_EDGE
+        at = g[-1] if right else g[0]
+        out.append(dict(
+            x=at.strftime("%Y-%m-%d"), y=1.0, xref="x", yref="paper",
+            text="AA rescale" + ("s" if len(g) > 1 else ""), showarrow=False,
+            xanchor="right" if right else "left", yanchor="bottom",
+            xshift=-3 if right else 3, yshift=2,
+            font=dict(color="#777777", size=10, family=FONT)))
+    return out
 
 def build_gap_history(gh: pd.DataFrame, seg: dict) -> go.Figure:
     """One accent line of (best closed − best open) per kept snapshot.
@@ -110,14 +159,11 @@ def build_gap_history(gh: pd.DataFrame, seg: dict) -> go.Figure:
         showlegend=False,
     ))
 
-    shapes, annotations = [], []
-    for d in seg.get("breaks", []):
-        shapes.append(dict(type="line", xref="x", yref="paper", x0=d, x1=d, y0=0, y1=1,
-                           line=dict(color=RULE, width=1, dash="dot")))
-        annotations.append(dict(x=d, y=1.0, xref="x", yref="paper", text="AA rescale",
-                                showarrow=False, xanchor="left", yanchor="top",
-                                textangle=-90, xshift=2,
-                                font=dict(color="#777777", size=10, family=FONT)))
+    shapes = [dict(type="line", xref="x", yref="paper", x0=d, x1=d, y0=0, y1=1,
+                   line=dict(color=RULE, width=1, dash="dot"))
+              for d in seg.get("breaks", [])]
+    annotations = rescale_labels(seg.get("breaks", []), data["date"].min(),
+                                 data["date"].max())
 
     last = data.iloc[-1]
     excl = seg.get("excluded", [])
@@ -133,6 +179,9 @@ def build_gap_history(gh: pd.DataFrame, seg: dict) -> go.Figure:
     _layout(fig, title, "Snapshot date",
             "Gap  (index points, within one index version)",
             shapes=shapes, annotations=annotations)
+    fig.update_layout(margin={**CHART_MARGIN, "t": 64}, meta=_narrow({
+        "annotations": rescale_labels(seg.get("breaks", []), data["date"].min(),
+                                      data["date"].max(), min_gap_frac=0.25)}))
     fig.update_yaxes(rangemode="tozero")
     return fig
 
@@ -265,9 +314,60 @@ def build_release_lag(recs: pd.DataFrame, summary: dict) -> go.Figure:
         + note + f"  ·  only models AA still lists on {summary['asof']}"
         + "</span>"
     )
+    labels = _clear_lag_labels(labels, fig)
     _layout(fig, title, "Release date (or first snapshot with the score)",
             "AA Intelligence Index (current scale)", annotations=labels)
+    # A phone has room for the lines, not their labels: the hover names each.
+    fig.update_layout(meta=_narrow({"annotations": []}))
     return fig
+
+
+# Nominal desktop plot for the lag labels' collision test (approximate on
+# purpose; it only has to keep two labels and a label and a line apart).
+_LAG_PLOT_W, _LAG_PLOT_H, _LAG_CHAR_PX, _LAG_LINE_PX = 1100.0, 300.0, 5.6, 12.0
+
+
+def _clear_lag_labels(labels: list[dict], fig: go.Figure) -> list[dict]:
+    """Drop a lag label that would print on another label, across another lag
+    line, or past the ends of its own: "≥1.8 mo" sat on the "≥1.2 mo" line 1.4
+    points above it, and three labels overlapped at the newest record. Longer
+    texts go first; the hover keeps every value."""
+    seq = lambda v: [] if v is None else list(v)
+    xs = [pd.Timestamp(x) for t in fig.data for x in seq(t.x) if x is not None]
+    ys = [float(y) for t in fig.data for y in seq(t.y) if y is not None]
+    if not labels or not xs or not ys:
+        return labels
+    x0, x1 = min(xs), max(xs)
+    y0, y1 = min(ys), max(ys)
+    sx = _LAG_PLOT_W / max((x1 - x0).days, 1)
+    sy = _LAG_PLOT_H / max(y1 - y0, 1e-9)
+    lines = []
+    for t in fig.data:
+        tx, ty = seq(t.x), seq(t.y)
+        if t.mode == "lines+markers" and len(tx) == 2 and ty[0] == ty[1]:
+            t = type("T", (), {"x": tx, "y": ty})
+            lines.append(((pd.Timestamp(t.x[0]) - x0).days * sx,
+                          (pd.Timestamp(t.x[1]) - x0).days * sx, (t.y[0] - y0) * sy))
+    kept, boxes = [], []
+    for a in sorted(labels, key=lambda a: -len(a["text"])):
+        cx = (pd.Timestamp(a["x"]) - x0).days * sx
+        by = (float(a["y"]) - y0) * sy + 2
+        w = len(a["text"]) * _LAG_CHAR_PX
+        box = (cx - w / 2, cx + w / 2, by, by + _LAG_LINE_PX)
+        hit = any(box[0] < b[1] and b[0] < box[1] and box[2] < b[3] and b[2] < box[3]
+                  for b in boxes)
+        hit = hit or any(lx0 < box[1] and box[0] < lx1 and box[2] < ly < box[3]
+                         for lx0, lx1, ly in lines)
+        # A line shorter than its label ("≥0.0 mo" on a record set yesterday)
+        # cannot carry it: the text would sit on the record's own dot.
+        own = [lx1 - lx0 for lx0, lx1, ly in lines
+               if abs(ly - (by - 2)) < 0.5 and lx0 <= cx <= lx1]
+        hit = hit or (bool(own) and min(own) < w)
+        if not hit:
+            kept.append(a)
+            boxes.append(box)
+    order = {id(a): i for i, a in enumerate(labels)}
+    return sorted(kept, key=lambda a: order[id(a)])
 
 
 # ── 3. Iso-quality price ratio ────────────────────────────────────────────────
@@ -362,6 +462,11 @@ def build_iso_price(ratios: pd.DataFrame, summary: dict) -> go.Figure:
             shapes=shapes, annotations=annotations)
     fig.update_xaxes(type="log", tickmode="array", tickvals=tickvals, ticktext=ticktext,
                      range=[math.log10(lo) - 0.12, math.log10(hi) + 0.12])
+    narrow_anns = [dict(a, text=t) for a, t in zip(
+        annotations, ["← closed cheaper ", " open cheaper →"])] + annotations[2:]
     fig.update_layout(legend={**legend_below(), "yref": "container", "y": 0,
-                              "yanchor": "bottom"})
+                              "yanchor": "bottom"},
+                      meta=_narrow({"annotations": narrow_anns,
+                                    "xaxis": {"title": {"text": "closed peer ÷ open price (log)",
+                                                        "font": {"color": AXIS, "size": 11}}}}))
     return fig

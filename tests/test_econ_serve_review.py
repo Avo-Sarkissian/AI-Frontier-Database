@@ -288,6 +288,34 @@ def test_measured_labels_clear_each_other_at_every_gpu():
         assert _boxes_clear(gpu) or gpu
 
 
+def test_a_measured_label_avoids_unlabelled_points_and_the_diagonal():
+    """MiniMax-M3's name printed over a modelled point at the same $1.20
+    price; label_positions now treats every plotted point as an obstacle,
+    and the dashed 1x line as a lesser one."""
+    x = pd.Series([1.2], index=["mm"])
+    y = pd.Series([0.68], index=x.index)
+    rng = (-1.3, 1.1)
+    free = label_positions(x, y, ["MiniMax-M3"], rng)
+    assert free["mm"] == "top center"
+    blocked = label_positions(x, y, ["MiniMax-M3"], rng, obstacles=[(1.2, 0.86)])
+    assert blocked["mm"] != "top center"
+    span = rng[1] - rng[0]
+    px = (math.log10(1.2) - rng[0]) / span * econ_serve._PLOT_W_PX
+    py = (math.log10(0.68) - rng[0]) / span * econ_serve._PLOT_H_PX
+    box = econ_serve._label_box(px, py, blocked["mm"], len("MiniMax-M3"))
+    ox = (math.log10(1.2) - rng[0]) / span * econ_serve._PLOT_W_PX
+    oy = (math.log10(0.86) - rng[0]) / span * econ_serve._PLOT_H_PX
+    assert not econ_serve._overlap(box, (ox - 4, ox + 4, oy - 4, oy + 4))
+    # Just under the 1x line, "top center" would print across it; with every
+    # side otherwise free the label goes below instead.
+    on = label_positions(pd.Series([1.0], index=["d"]), pd.Series([0.75], index=["d"]),
+                         ["Some Model Name"], rng)
+    pxd = (0 - rng[0]) / span * econ_serve._PLOT_W_PX
+    pyd = (math.log10(0.75) - rng[0]) / span * econ_serve._PLOT_H_PX
+    assert econ_serve._on_diagonal(econ_serve._label_box(pxd, pyd, "top center", 15))
+    assert not econ_serve._on_diagonal(econ_serve._label_box(pxd, pyd, on["d"], 15))
+
+
 def test_label_positions_separates_a_vertical_stack():
     """DeepSeek V4 Pro / Kimi K2.7 Code / Qwen3.5 397B at ~$4: Kimi's name
     used to print over Qwen's diamond."""

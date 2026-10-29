@@ -356,15 +356,23 @@ def test_rent_and_lower_use_cost_more():
         2 * own.loc[common, "usd_per_m_out"].values)
 
 
-def test_axis_range_ignores_the_controls():
+def test_axis_range_frames_prices_and_the_default_view():
+    """Every API price and every default-view cost is inside; other control
+    settings are fitted by econ_serve.fit_range, which only grows it."""
+    from components.charts.econ_serve import fit_range
     lo, hi = sc.axis_range(_hosted())
     assert lo < hi
+    d, _m = sc.serving_data(None, None, None, hosted=_hosted())
+    vals = pd.concat([d["usd_per_m_out"], d["price_out"]]).map(math.log10)
+    assert (vals >= lo).all() and (vals <= hi).all()
     for preset in sc.IX_HARDWARE_TO_PRESET.values():
         for basis in sc.BASES:
             for u in (sc.UTIL_MIN_PCT, 60, sc.UTIL_MAX_PCT):
                 f = sc.serving_frame(preset, basis, u, _hosted())
+                flo, fhi = fit_range((lo, hi), f)
+                assert flo <= lo and fhi >= hi
                 vals = pd.concat([f["usd_per_m_out"], f["price_out"]])
-                assert (vals.map(math.log10) >= lo).all() and (vals.map(math.log10) <= hi).all()
+                assert (vals.map(math.log10) >= flo).all() and (vals.map(math.log10) <= fhi).all()
 
 
 def test_local_readout_prices_the_tab_throughput():

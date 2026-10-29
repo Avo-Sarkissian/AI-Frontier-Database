@@ -49,12 +49,29 @@ def test_log_log_with_identity_diagonal():
     assert diag[0]["x"][-1] == pytest.approx(10 ** hi)
 
 
-def test_axes_do_not_move_with_controls():
-    ranges = {json.dumps([_fig(*a)["layout"]["xaxis"]["range"],
-                          _fig(*a)["layout"]["yaxis"]["range"]])
-              for a in ((None, None, None), ("NVIDIA H100 SXM", "rent", 10),
-                        ("NVIDIA B200 SXM", "own", 100))}
-    assert len(ranges) == 1
+def test_default_frame_is_tight_and_controls_only_grow_it():
+    """The default view is framed around its own points (it sat in a
+    $0.03-$300 frame while every point ran $0.07-$10), and a control that
+    moves points outside the frame grows it — never shrinks it — so nothing is
+    drawn off the plot and the 1x diagonal still runs corner to corner."""
+    lo0, hi0 = _fig()["layout"]["xaxis"]["range"]
+    frame, _meta = sc.serving_data(None, None, None, hosted=_hosted_df())
+    vals = pd.concat([frame["price_out"], frame["usd_per_m_out"]]).astype(float)
+    assert math.log10(vals.min()) - lo0 <= 0.25 and hi0 - math.log10(vals.max()) <= 0.25
+    for args in ((None, None, None), ("NVIDIA H100 SXM", "rent", 10),
+                 ("NVIDIA B200 SXM", "own", 100), ("NVIDIA H200 SXM", "rent", 10)):
+        fig = _fig(*args)
+        lo, hi = fig["layout"]["xaxis"]["range"]
+        assert fig["layout"]["yaxis"]["range"] == [lo, hi]
+        assert lo <= lo0 and hi >= hi0
+        f, _m = sc.serving_data(*args, hosted=_hosted_df())
+        pts = pd.concat([f["price_out"], f["usd_per_m_out"]]).astype(float)
+        assert (pts.map(math.log10) >= lo).all() and (pts.map(math.log10) <= hi).all(), args
+
+
+def _hosted_df():
+    from data.ingest import get_models
+    return get_models()
 
 
 def test_measured_vs_modelled_symbols():

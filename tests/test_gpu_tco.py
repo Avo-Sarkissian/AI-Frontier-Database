@@ -295,7 +295,7 @@ def test_marketplace_rung_is_the_latest_week_per_series(sofr):
     newest = wk["date"].max()
     assert set(mk["period"]) == {newest}
     for r in mk.to_dict("records"):
-        s = next(k for k, v in T.SERIES_LABELS.items() if v == r["label"])
+        s = next(k for k, v in T.SERIES_SHORT.items() if v == r["label"])
         w = wk[(wk["series"] == s) & (wk["date"] == newest)]
         assert float(w["median_usd"].iloc[0]) == r["usd_per_gpu_hr"]
     assert "all form factors" in mk["basis"].iloc[0]

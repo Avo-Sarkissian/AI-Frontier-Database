@@ -775,30 +775,51 @@ def serving_frame(gpu=None, basis=None, util_pct=None,
     return serving_data(gpu, basis, util_pct, hosted)[0][EXPORT_COLUMNS]
 
 
+AXIS_PAD_DECADES = 0.1
+
+
+def padded_log_range(values) -> tuple[float, float] | None:
+    """log10 (lo, hi) around the positive finite `values`, padded by
+    AXIS_PAD_DECADES and snapped outward to 0.1 decade, or None."""
+    vals = []
+    for v in values:
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(v) and v > 0:
+            vals.append(v)
+    if not vals:
+        return None
+    lo, hi = math.log10(min(vals)), math.log10(max(vals))
+    return (math.floor((lo - AXIS_PAD_DECADES) * 10) / 10,
+            math.ceil((hi + AXIS_PAD_DECADES) * 10) / 10)
+
+
 def axis_range(hosted: pd.DataFrame | None = None) -> tuple[float, float]:
-    """log10 (lo, hi) shared by both axes, from the data alone, never the
-    controls: the cheapest cost any preset reaches (own rate, 100% use), the
-    dearest (rent rate, UTIL_MIN use) and the price range, padded."""
+    """log10 (lo, hi) shared by both axes: every API price and the DEFAULT
+    view's GPU costs (cheapest GPU, owned rate, 60% use), padded.
+
+    It used to span every cost any control could reach — rent on the dearest
+    GPU at 10% use — so the default chart sat in a $0.03-$300 frame while its
+    points ran $0.07-$10, and the 1x diagonal crossed four decades of empty
+    plot. The default is now framed tightly; a control that moves a point
+    outside it GROWS the frame to fit (components/charts/econ_serve.fit_range),
+    never shrinks it, so the default view's positions stay comparable and no
+    point is ever drawn off the plot."""
     if hosted is None:
         from data.ingest import get_models
         hosted = get_models()
     models = open_hosted_models(hosted)
     vals = [v for v in pd.to_numeric(models.get("price_out", pd.Series(dtype=float)),
                                      errors="coerce") if v and v > 0]
-    table = _table_for(models)
-    rates = gpu_rates()
-    for _, r in table.iterrows():
-        rr = rates.get(r["preset"])
-        if not rr:
-            continue
-        for v in (cost_per_m(rr["own"], r["tok_s_per_gpu"], 1.0),
-                  cost_per_m(rr["rent"], r["tok_s_per_gpu"], UTIL_MIN_PCT / 100.0)):
-            if math.isfinite(v) and v > 0:
-                vals.append(v)
-    if not vals:
-        return (-2.0, 1.0)
-    lo, hi = math.log10(min(vals)), math.log10(max(vals))
-    return (math.floor((lo - 0.1) * 10) / 10, math.ceil((hi + 0.1) * 10) / 10)
+    try:
+        frame, _meta = serving_data(None, None, None, hosted=hosted)
+        vals += list(pd.to_numeric(frame.get("usd_per_m_out", pd.Series(dtype=float)),
+                                   errors="coerce"))
+    except Exception:            # an unservable catalogue still gets an axis
+        pass
+    return padded_log_range(vals) or (-2.0, 1.0)
 
 
 def serve_options() -> dict:

@@ -34,7 +34,9 @@ from captions import CAPTIONS
 from data.ingest import load_history, get_models
 from data import open_gap as og
 from data.workload_mix import resolve_mix
-from components.charts.open_gap import build_gap_history, build_release_lag, build_iso_price
+from components.charts.open_gap import (
+    rescale_labels, build_gap_history, build_release_lag, build_iso_price,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 DF = get_models()
@@ -173,8 +175,22 @@ def test_no_gap_line_crosses_a_break(gap):
     assert xs.count(None) == len(seg["breaks"])
     rules = [s for s in fig.layout.shapes if s.type == "line"]
     assert sorted(r.x0 for r in rules) == seg["breaks"]
-    labels = [a.text for a in fig.layout.annotations]
-    assert labels.count("AA rescale") == len(seg["breaks"])
+    # Every rescale is labelled, rescales close together share one label, and
+    # labels sit above the plot (they printed vertically over the data).
+    anns = list(fig.layout.annotations)
+    assert anns and all(a.text in ("AA rescale", "AA rescales") for a in anns)
+    assert all(a.yref == "paper" and a.y == 1.0 and a.yanchor == "bottom"
+               and not a.textangle for a in anns)
+    assert len(anns) == len(rescale_labels(seg["breaks"], gh["date"].min(),
+                                           gh["date"].max()))
+
+
+def test_rescale_labels_merge_neighbours_and_turn_inward_at_the_edge():
+    anns = rescale_labels(["2026-06-16", "2026-09-04", "2026-09-07", "2026-10-29"],
+                          "2026-02-25", "2026-10-29")
+    assert [a["text"] for a in anns] == ["AA rescale", "AA rescales", "AA rescale"]
+    assert anns[0]["xanchor"] == "left" and anns[1]["x"] == "2026-09-04"
+    assert anns[-1]["xanchor"] == "right"          # newest, at the right edge
 
 
 # ── Release lag ───────────────────────────────────────────────────────────────
@@ -431,3 +447,30 @@ def test_the_readme_no_longer_claims_the_index_scale_never_moved():
     for d in ("2026-09-05", "2026-09-08", "2026-10-29"):
         assert d in readme
     assert "v5.0" in readme
+
+
+def test_lag_labels_never_print_on_each_other_or_on_a_line():
+    """"≥1.8 mo" printed on the "≥1.2 mo" line 1.4 points above it, and a
+    "≥0.0 mo" sat on its own record's dot; such labels are dropped (the hover
+    keeps them)."""
+    import components.charts.open_gap as og
+    recs = pd.DataFrame({
+        "closed_model": ["A", "B", "C"], "closed_q": [57.0, 58.4, 59.4],
+        "closed_date": ["2026-09-03", "2026-09-22", "2026-10-28"],
+        "open_model": [None, None, None], "open_q": [None, None, None],
+        "open_date": [None, None, None], "censored": [True, True, True],
+        "lag_months": [1.8, 1.2, 0.0]})
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    for _, r in recs.iterrows():
+        fig.add_trace(go.Scatter(x=[r["closed_date"], "2026-10-29"],
+                                 y=[r["closed_q"]] * 2, mode="lines+markers"))
+    fig.add_trace(go.Scatter(x=["2026-06-01"], y=[10.0], mode="markers"))
+    labels = [dict(x=(pd.Timestamp(r["closed_date"]) + (pd.Timestamp("2026-10-29")
+                      - pd.Timestamp(r["closed_date"])) / 2).date().isoformat(),
+                   y=r["closed_q"], text=f"≥{r['lag_months']:.1f} mo")
+              for _, r in recs.iterrows()]
+    kept = [a["text"] for a in og._clear_lag_labels(labels, fig)]
+    assert "≥0.0 mo" not in kept
+    assert not ({"≥1.8 mo", "≥1.2 mo"} <= set(kept))
+    assert kept

@@ -71,6 +71,24 @@ EPOCH_TO_PALETTE: dict[str, str] = {
     "MiniMax": "MiniMax", "Moonshot AI": "Kimi",
 }
 
+# Source names -> the name the rest of the dashboard calls the same company
+# (the AA provider name every other tab shows). Labs printed "Moonshot AI" and
+# "Z.ai (Zhipu)" beside an Overview that says "Kimi" and "Z AI". Charts show
+# the dashboard name and hovers add the source's own; the ledger's entity
+# column and the CSV keep the source's name verbatim. Row labels in
+# data/curated/lab_ledger.csv use the dashboard name ("Z AI · group GM").
+DISPLAY_NAMES: dict[str, str] = {
+    "Moonshot AI": "Kimi", "Z.ai (Zhipu)": "Z AI", "Zhipu (Z.ai)": "Z AI",
+    "Zhipu": "Z AI", "xAI": "SpaceXAI", "Mistral AI": "Mistral",
+}
+
+
+def display_name(entity) -> str:
+    """The dashboard's name for a source's company name (DISPLAY_NAMES)."""
+    e = str(entity or "")
+    return DISPLAY_NAMES.get(e, e)
+
+
 BADGES = ("disclosed", "reported", "estimated")
 FILING_STATUSES = ("audited", "unaudited", "n/a")
 LEDGER_STATES = ("ship", "excluded")

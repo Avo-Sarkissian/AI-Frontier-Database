@@ -45,6 +45,8 @@ SERIES_STYLE = {"on_demand": ("#e6e6e6", "solid"), "spot": ("#6f6f6f", "dashdot"
 GD_FOOTER = ("Weekly medians: GetDeploying (CC BY 4.0), getdeploying.com/dataset/gpu-prices, "
              "archived weekly by this site · newest week provisional")
 
+NARROW_PX = 500        # docs/app.js applies layout.meta.narrow below this width
+
 _HOVERLABEL = dict(bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",
                    font=dict(color="#f2f2f2", size=12, family=FONT), namelength=-1,
                    align="left")
@@ -186,8 +188,9 @@ def build_tco_stack(result: dict) -> go.Figure:
     fin, fac = result["financing"], result["facility"]
     if sel["breakdown"]:
         bd = sel["breakdown"]
-        line1 = (f"<b>{plot_text(sel['spec'].label)}</b> {_usd(bd['total_at_util'])}/GPU-hr at "
-                 f"{util:g}% use ({_usd(bd['total_100'])} at full use) · capital "
+        line1 = (f"<b>{plot_text(sel['spec'].label)}</b> {_usd(bd['total_at_util'])} per busy "
+                 f"GPU-hour at {util:g}% use ({_usd(bd['total_100'])} per paid hour, the "
+                 f"basis below) · capital "
                  f"{_pct(bd['shares']['capital'])} · power {_pct(bd['shares']['power'])} · "
                  f"colo {_pct(bd['shares']['colo'])}")
     elif sel["missing"] == ["CAPEX"]:
@@ -211,7 +214,7 @@ def build_tco_stack(result: dict) -> go.Figure:
     title = ("Owned Cost per GPU-hour  " + SUB + line1 + "<br>" + line2 + "</span>")
     _layout(fig, title, 520,
             barmode="stack", bargap=0.35,
-            xaxis=_axis(title=dict(text=f"owned $ per GPU-hour at {util:g}% use",
+            xaxis=_axis(title=dict(text=f"owned $ per busy GPU-hour at {util:g}% use",
                                    font=dict(color=AXIS, size=12), standoff=10),
                         range=[0, xmax * 1.18], tickprefix="$", showgrid=True),
             yaxis=_axis(autorange="reversed", showgrid=False, categoryorder="array",
@@ -250,6 +253,24 @@ def _extent(x: float, w: float, rightmost: bool = False) -> tuple[str, float, fl
     return "center", x - w / 2, x + w / 2
 
 
+def _sides(x: float, w: float, rightmost: bool, obstacle: float | None):
+    """Candidate (side, x0, x1) for one label, best first: _extent's natural
+    side, then the other sides that stay inside the plot. With an `obstacle`
+    (the owned cost's dashed rule, nominal px) a side whose label would sit on
+    the rule goes last: "IX own $1.17", centred on a mark 0.1 decade left of the
+    owned $1.30 rule, was struck through by it. The dearest mark keeps "left"."""
+    nat = _extent(x, w, rightmost)
+    if rightmost:
+        return [nat]
+    alts = [nat] + [c for c in (("left", x - w - 6, x), ("right", x, x + w + 6),
+                                ("center", x - w / 2, x + w / 2))
+                    if c[0] != nat[0] and c[1] >= 0 and c[2] <= LABEL_PLOT_PX]
+    if obstacle is None:
+        return alts
+    clear = lambda c: c[2] + LABEL_PAD_PX / 2 <= obstacle or obstacle <= c[1] - LABEL_PAD_PX / 2
+    return [c for c in alts if clear(c)] + [c for c in alts if not clear(c)]
+
+
 def label_layout(df: pd.DataFrame, lo: float, hi: float) -> list[dict]:
     """Per mark: {text, pos, slot, x0, x1} (x in nominal px; text "" for a mark
     whose price is named in another mark's label). Marks at the same price in
@@ -266,6 +287,9 @@ def label_layout(df: pd.DataFrame, lo: float, hi: float) -> list[dict]:
     out = [{"text": "", "pos": "top center", "slot": "", "x0": 0.0, "x1": 0.0}
            for _ in range(len(df))]
     x_max = px(float(df["usd_per_gpu_hr"].astype(float).max())) if len(df) else 0.0
+    own = df[df["rung"] == "owned"]["usd_per_gpu_hr"].astype(float)
+    owned_x = px(float(own.iloc[0])) if len(own) else None
+    suffix = df["label_suffix"] if "label_suffix" in df.columns else None
     for rung in dict.fromkeys(df["rung"]):
         groups: dict[float, list[int]] = {}
         for i in [i for i in range(len(df)) if df["rung"].iloc[i] == rung]:
@@ -273,11 +297,15 @@ def label_layout(df: pd.DataFrame, lo: float, hi: float) -> list[dict]:
         items = []                       # (x px, first row index, label part)
         for v, idx in sorted(groups.items()):
             names = " · ".join(plot_text(df["label"].iloc[i]) for i in idx)
+            tail = "".join(f" {suffix.iloc[i]}" for i in idx
+                           if suffix is not None and isinstance(suffix.iloc[i], str)
+                           and suffix.iloc[i])
             items.append((px(max(float(df["usd_per_gpu_hr"].iloc[i]) for i in idx)), idx[0],
-                          f"{names} {_usd(v)}"))
+                          f"{names} {_usd(v)}{tail}"))
         clusters = [[it] for it in items]
+        obstacle = None if rung == "owned" else owned_x
         while True:
-            placed, failed = _place_rung(clusters, x_max)
+            placed, failed = _place_rung(clusters, x_max, obstacle)
             if failed is None:
                 break
             k = failed
@@ -297,25 +325,34 @@ def label_layout(df: pd.DataFrame, lo: float, hi: float) -> list[dict]:
     return out
 
 
-def _place_rung(clusters: list[list[tuple]], x_max: float) -> tuple[list[dict], int | None]:
+def _place_rung(clusters: list[list[tuple]], x_max: float,
+                obstacle: float | None = None) -> tuple[list[dict], int | None]:
     """Greedy alternate-slot placement of one rung's clusters, cheapest first.
-    Returns (placed labels, None) or (partial, index of the first cluster that
-    fits in neither slot)."""
+    Each slot tries every side _sides offers (a label clear of the owned rule
+    first) before the next slot. Returns (placed labels, None) or (partial,
+    index of the first cluster that fits in neither slot)."""
     placed: list[dict] = []
     for k, cl in enumerate(clusters):
         text = " · ".join(part for _x, _i, part in cl)
         mean = sum(x for x, _i, _p in cl) / len(cl)
         x, anchor, _p = min(cl, key=lambda it: abs(it[0] - mean))
-        side, x0, x1 = _extent(x, len(text) * LABEL_CHAR_PX, x >= x_max - 1e-9)
+        cands = _sides(x, len(text) * LABEL_CHAR_PX, x >= x_max - 1e-9, obstacle)
         last = placed[-1]["slot"] if placed else "bottom"
-        for slot in (("bottom", "top") if last == "top" else ("top", "bottom")):
-            if all(q["slot"] != slot or x1 + LABEL_PAD_PX <= q["x0"]
-                   or q["x1"] + LABEL_PAD_PX <= x0 for q in placed):
-                placed.append({"anchor": anchor, "text": text, "slot": slot, "side": side,
-                               "x0": x0, "x1": x1})
-                break
-        else:
+        slots = ("bottom", "top") if last == "top" else ("top", "bottom")
+        free = lambda slot, x0, x1: all(q["slot"] != slot or x1 + LABEL_PAD_PX <= q["x0"]
+                                        or q["x1"] + LABEL_PAD_PX <= x0 for q in placed)
+        # A side clear of the rule in either slot beats one on the rule.
+        n_clear = len(cands) if obstacle is None else sum(
+            1 for c in cands
+            if c[2] + LABEL_PAD_PX / 2 <= obstacle or obstacle <= c[1] - LABEL_PAD_PX / 2)
+        order = ([(sl, c) for c in cands[:n_clear] for sl in slots]
+                 + [(sl, c) for c in cands[n_clear:] for sl in slots])
+        hit = next(((sl, c) for sl, c in order if free(sl, c[1], c[2])), None)
+        if hit is None:
             return placed, k
+        slot, (side, x0, x1) = hit
+        placed.append({"anchor": anchor, "text": text, "slot": slot, "side": side,
+                       "x0": x0, "x1": x1})
     return placed, None
 
 
@@ -331,6 +368,15 @@ def build_spread_ladder(result: dict, lad: pd.DataFrame) -> go.Figure:
         return empty_figure(f"No rental marks for {spec.label}")
     rung_labels = [lab for key, lab in T.LADDER_RUNGS if (lad["rung"] == key).any()]
     df = lad.reset_index(drop=True).copy()
+    u = result["util_pct"]
+    bd = result["selected"]["breakdown"]
+    # The stack above prints the owned cost per BUSY hour ($2.16 at 60% use);
+    # this mark is per PAID hour ($1.30), the rentals' basis. Both numbers on
+    # one screen, so the mark names its basis and the other one.
+    df["label_suffix"] = [
+        (f"per paid hr · {_usd(bd['total_at_util'])} per busy hr at {u:g}% use"
+         if bd and u < 100 else "per paid hr") if r == "owned" else ""
+        for r in df["rung"]]
     vals = df["usd_per_gpu_hr"].astype(float)
     lo, hi = math.log10(vals.min() * 0.75), math.log10(vals.max() * 1.35)
     df["_text"], df["_pos"] = _labels(df, lo, hi)
@@ -375,7 +421,6 @@ def build_spread_ladder(result: dict, lad: pd.DataFrame) -> go.Figure:
             sub2 = f"the dearest hyperscaler on-demand list price is {m:.1f}× the owned cost"
     else:
         sub2 = f"{plot_text(spec.label)} has no owned cost until CAPEX is typed"
-    u = result["util_pct"]
     bits = [sub2] if sub2 else []
     if u < 100:
         bits.append(f"at {u:g}% use each mark ÷ {u / 100:g} is its cost per busy hour, "
@@ -449,16 +494,22 @@ def build_rental_series(result: dict, weekly: pd.DataFrame) -> go.Figure:
                            line=dict(color=ACCENT, width=1.4, dash="dot")))
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="lines", showlegend=True,
-            name=f"owned {_usd(o)} per GPU-hour owned, busy or idle, today's assumptions",
+            name=(f"owned {_usd(o)} per paid GPU-hour"
+                  + (f" ({_usd(bd['total_at_util'])} per busy hour at "
+                     f"{result['util_pct']:g}% use)" if result["util_pct"] < 100 else "")),
             line=dict(color=ACCENT, width=1.4, dash="dot"), hoverinfo="skip"))
+    narrow_data = {}
+    if bd:
+        narrow_data[len(fig.data) - 1] = {"name": f"owned {_usd(o)}/paid hr"}
     n_weeks = len(grid)
     title = (f"Weekly Rental Medians · {plot_text(label)}  " + SUB
-             + f"{n_weeks} weeks to {grid[-1]} · each billing series is its own line, "
-               "never averaged together; a gap is a week with no listing</span>")
+             + f"{n_weeks} weeks to {grid[-1]} · one line per billing series, never "
+               "averaged; a gap = no listing that week</span>")
     _layout(fig, title, 470,
             xaxis=_axis(type="date", showgrid=False),
             yaxis=_axis(range=[0, ymax * 1.12], tickprefix="$", showgrid=True,
-                        title=dict(text="median $ per GPU-hour", font=dict(color=AXIS, size=12),
+                        title=dict(text="median $ per paid GPU-hour",
+                                   font=dict(color=AXIS, size=12),
                                    standoff=10)),
             legend={**legend_below(), "yref": "container", "y": 0, "yanchor": "bottom"},
             margin={**CHART_MARGIN, "t": 80, "b": 110},
@@ -466,6 +517,13 @@ def build_rental_series(result: dict, weekly: pd.DataFrame) -> go.Figure:
             annotations=[dict(x=0, y=1.0, xref="paper", yref="paper", yanchor="bottom",
                               xanchor="left", showarrow=False, text=GD_FOOTER,
                               font=dict(color="#666666", size=10, family=FONT))])
+    # Phone: the owned key and the credit line are shortened to fit 356 px.
+    fig.update_layout(meta={"narrow": {
+        "max_width": NARROW_PX, "data": {str(i): u for i, u in narrow_data.items()},
+        "layout": {"annotations": [dict(x=0, y=1.0, xref="paper", yref="paper",
+                                        yanchor="bottom", xanchor="left", showarrow=False,
+                                        text="GetDeploying (CC BY 4.0) · newest week provisional",
+                                        font=dict(color="#666666", size=9, family=FONT))]}}})
     return fig
 
 

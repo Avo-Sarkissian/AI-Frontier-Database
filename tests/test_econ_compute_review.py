@@ -15,6 +15,7 @@ import pytest
 
 from components.charts.econ_compute import (
     build_rental_series, build_spread_ladder, build_tco_stack, label_layout, LABEL_PAD_PX,
+    LABEL_PLOT_PX,
 )
 from data import gpu_tco as T
 
@@ -67,7 +68,11 @@ def test_weekly_owned_line_is_per_paid_hour(sofr):
     o = r["selected"]["breakdown"]["total_100"]
     assert any(s.y0 == o and s.line.dash == "dot" for s in fig.layout.shapes)
     key = next(t for t in fig.data if t.name.startswith("owned"))
-    assert f"${o:,.2f}" in key.name and "busy or idle" in key.name
+    assert f"${o:,.2f} per paid GPU-hour" in key.name
+    # The stack prints the per-busy-hour figure; the key names it too, so the
+    # two owned numbers on the Compute screen are never unlabelled.
+    busy = r["selected"]["breakdown"]["total_at_util"]
+    assert f"${busy:,.2f} per busy hour at 40% use" in key.name
 
 
 # ── GetDeploying medians are over offerings ─────────────────────────────────
@@ -78,7 +83,7 @@ def test_marketplace_basis_names_offerings_and_providers():
     newest = wk["date"].max()
     for row in lad[lad["rung"] == "marketplace"].to_dict("records"):
         assert "median across" not in row["basis"]
-        s = next(k for k, v in T.SERIES_LABELS.items() if v == row["label"])
+        s = next(k for k, v in T.SERIES_SHORT.items() if v == row["label"])
         hit = wk[(wk["series"] == s) & (wk["date"] == newest)].iloc[0]
         assert (f"median of {int(hit['offering_count'])} offering" in row["basis"]
                 and f"from {int(hit['provider_count'])} provider" in row["basis"])
@@ -167,6 +172,48 @@ def test_ladder_labels_never_overprint_and_name_every_price():
         top = lay[int(v.idxmax())]
         if top["text"]:
             assert top["pos"].endswith("left"), (g, top)
+
+
+def test_ladder_labels_stay_off_the_owned_rule_when_a_side_is_free(sofr):
+    """"IX own $1.17", centred on a mark just left of the owned $1.30 rule,
+    was struck through by it. A label crosses the rule only when no side and
+    no slot clears it."""
+    for g in T.GPU_KEYS:
+        r = T.compute(g)
+        lad = T.ladder_rows(r).reset_index(drop=True)
+        if lad.empty or not (lad["rung"] == "owned").any():
+            continue
+        v = lad["usd_per_gpu_hr"].astype(float)
+        lo, hi = math.log10(v.min() * 0.75), math.log10(v.max() * 1.35)
+        lay = label_layout(lad, lo, hi)
+        own = float(lad[lad["rung"] == "owned"]["usd_per_gpu_hr"].iloc[0])
+        ox = (math.log10(own) - lo) / (hi - lo) * LABEL_PLOT_PX
+        for x, rung, val in zip(lay, lad["rung"], v):
+            if rung == "owned" or not x["text"]:
+                continue
+            mx = (math.log10(val) - lo) / (hi - lo) * LABEL_PLOT_PX
+            w = x["x1"] - x["x0"]
+            crosses = x["x0"] < ox < x["x1"]
+            # had the other side been inside the plot, it would have been used
+            if crosses:
+                left_ok = mx - w >= 0 and mx < ox
+                right_ok = mx + w <= LABEL_PLOT_PX and mx > ox
+                assert not (left_ok or right_ok), (g, x)
+
+
+def test_owned_mark_names_both_bases_when_use_is_below_full(sofr):
+    r = T.compute("h100", util_pct=60)
+    fig = build_spread_ladder(r, T.ladder_rows(r))
+    owned = next(t for t in fig.data if t.meta == "owned")
+    bd = r["selected"]["breakdown"]
+    assert owned.text[0] == (f"owned ${bd['total_100']:,.2f} per paid hr · "
+                             f"${bd['total_at_util']:,.2f} per busy hr at 60% use")
+    tco = build_tco_stack(r).layout.title.text
+    assert (f"${bd['total_at_util']:,.2f} per busy GPU-hour at 60% use "
+            f"(${bd['total_100']:,.2f} per paid hour" in tco)
+    full = T.compute("h100", util_pct=100)
+    f2 = build_spread_ladder(full, T.ladder_rows(full))
+    assert next(t for t in f2.data if t.meta == "owned").text[0].endswith("per paid hr")
 
 
 def test_neighbours_in_price_order_alternate_slots():

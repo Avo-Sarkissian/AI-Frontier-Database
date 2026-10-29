@@ -153,6 +153,11 @@ COLO_RANGE = (0.0, 2_000.0)                # USD per kW-month
 SERIES = ("on_demand", "spot", "reserved_12m", "reserved_36m")
 SERIES_LABELS = {"on_demand": "on-demand", "spot": "spot",
                  "reserved_12m": "12-month reserved", "reserved_36m": "36-month reserved"}
+# The spread ladder's point labels: the long forms ran two reserved terms into
+# one 46-character label ("36-month reserved $2.97 · 12-month reserved $3.27")
+# that read as one price. The legend and hovers keep SERIES_LABELS.
+SERIES_SHORT = {"on_demand": "on-demand", "spot": "spot",
+                "reserved_12m": "12-mo reserved", "reserved_36m": "36-mo reserved"}
 _SERIES_OF = {("ON_DEMAND", ""): "on_demand", ("SPOT", ""): "spot",
               ("RESERVATION", "12"): "reserved_12m", ("RESERVATION", "36"): "reserved_36m"}
 # median_usd is GetDeploying's median_price, a median over OFFERINGS (an
@@ -683,7 +688,7 @@ def ladder_rows(result: dict) -> pd.DataFrame:
                 h = hit.iloc[0]
                 rows.append({"rung": "marketplace",
                              "series_name": f"GetDeploying {SERIES_LABELS[s]} median",
-                             "label": SERIES_LABELS[s], "usd_per_gpu_hr": float(h["median_usd"]),
+                             "label": SERIES_SHORT[s], "usd_per_gpu_hr": float(h["median_usd"]),
                              "period": newest, "as_of": newest,
                              "basis": (f"{offerings_phrase(h.get('offering_count'), h['provider_count'])}, "
                                        f"week of {newest} (newest week is provisional), "
