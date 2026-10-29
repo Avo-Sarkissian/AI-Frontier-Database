@@ -686,7 +686,10 @@ def test_the_quadrant_size_note_names_the_mix_and_the_cap():
     title = fig["layout"]["title"]["text"]
     assert "affordability at agentic" in title and "share the max size" in title
     default = _decoded(api.update_overview(None, 0, "", "speed", None, None))
-    assert "bubble size ∝ affordability (log)  ·  shape" in default["layout"]["title"]["text"]
+    # At the default the size key is the note above the plot, in the same
+    # place as on the Price and Cost / task views (constants.size_note).
+    note = next(a["text"] for a in default["layout"]["annotations"] if a.get("name") == "note")
+    assert note.startswith("size = affordability (larger = cheaper, log)")
 
 
 def test_the_observed_preset_states_an_end_of_window_lower_bound():

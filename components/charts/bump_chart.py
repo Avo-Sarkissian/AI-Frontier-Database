@@ -15,6 +15,7 @@ from components.charts.constants import (
     bar_weights_style, row_is_open,
     PROVIDER_COLORS, DEFAULT_COLOR,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+    dedupe_to_best_variant, clean_model_name, unique_labels, empty_state_figure,
 )
 
 _TOP_N = 10
@@ -191,25 +192,41 @@ def build_bump_chart(history_df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
+def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None,
+                        full_df: pd.DataFrame | None = None) -> go.Figure:
     """
-    Horizontal bar chart: top N models by quality/price ratio (value score).
-    Quality floor of 20 so tiny cheap models don't dominate.
+    Horizontal bar chart: top N model families by quality/price ratio (value
+    score), one bar per family (its best tier: every tier bills the same rate,
+    so the best tier is also the best value — under "All variants" Claude
+    Haiku 5.5 used to take four of the fifteen bars).
+    A quality floor keeps tiny cheap models from dominating: the catalogue's
+    5th percentile of family scores (data/quality_scale), read from
+    ``full_df`` (default `df`) so a filter cannot move it; it was a literal 20
+    on index v4.
     Bars are colored by provider. Directly answers: "what should I use?"
 
     ``basis`` is the workload MIX the prices are at: value = quality / that
     price, so the subtitle, hover and labels name it.
     """
+    from data.quality_scale import floor as _q_floor
+
     basis = resolve_mix(basis)
-    valid = df[(df["quality"] >= 20) & (df["price"] > 0)].copy()
+    q_floor = round(_q_floor(df if full_df is None else full_df, "value_leaders"), 1)
+    valid = dedupe_to_best_variant(df[(df["quality"] >= q_floor) & (df["price"] > 0)])
     if valid.empty:
-        return _empty("No models with quality ≥ 20 and valid price.")
+        any_priced = bool(((df["quality"] > 0) & (df["price"] > 0)).any()) if not df.empty else False
+        return empty_state_figure(
+            "Value Leaders",
+            (f"No priced model scores {q_floor:g} or higher" if any_priced
+             else "No models match these filters"),
+            "Clear the search, widen PROVIDER, or lower MIN SCORE")
 
     valid["value_score"] = valid["quality"] / valid["price"]
     top = valid.nlargest(n, "value_score").iloc[::-1].reset_index(drop=True)
 
     colors = [PROVIDER_COLORS.get(p, DEFAULT_COLOR) for p in top["provider"]]
-    names  = top["model"].apply(lambda m: m[:32] + "…" if len(m) > 32 else m)
+    names  = pd.Series(unique_labels(top["model"].apply(clean_model_name).tolist()),
+                       index=top.index)
 
     # HOLLOW = open weights: outline + faint fill; closed bars stay solid.
     is_open = row_is_open(top)
@@ -224,7 +241,7 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
         hovertemplate=(
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "Quality: %{customdata[2]:.0f}<br>"
+            "Intelligence: %{customdata[2]:.1f}<br>"
             "Price: %{customdata[3]}/M tokens  ·  " + basis.short + "%{customdata[5]}<br>"
             "Value Score: %{customdata[4]:.0f}<br>"
             "Weights: %{customdata[6]}<br>"
@@ -255,7 +272,8 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
                 "  <span style='font-size:12px;color:#777777;font-weight:400'>"
                 # Counted over the bars drawn, and first: titles do not wrap.
                 + fill_note(top, basis)
-                + f"  ·  quality ÷ price at {basis.short}  ·  quality floor ≥ 20"
+                + f"  ·  quality ÷ price at {basis.short}  ·  one per model family"
+                + f"  ·  quality floor ≥ {q_floor:g} (bottom 5% of families excluded)"
                 + ("  ·  hollow = open weights" if is_open.any() else "")
                 + "</span>"
             ),
@@ -275,6 +293,12 @@ def build_value_leaders(df: pd.DataFrame, n: int = 15, basis=None) -> go.Figure:
         ),
         margin=dict(l=20, r=200, t=52, b=36),
         height=520,
+        # Phone (docs/app.js, below 600 px): short row names and a gutter
+        # sized to the "Q36 · $0.400/M" labels, not to a desktop card.
+        meta={"narrow": {"max_width": 600,
+                         "data": {"0": {"y": unique_labels(
+                             top["model"].apply(lambda m: clean_model_name(m, max_len=15)).tolist())}},
+                         "layout": {"margin": {"r": 112}}}},
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",

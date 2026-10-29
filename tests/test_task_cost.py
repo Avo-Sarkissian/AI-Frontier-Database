@@ -181,8 +181,8 @@ def test_task_axis_is_labelled_as_aa_measured_and_mix_free(frame):
         "Cost per Intelligence Index task  (USD, log)<br>AA-measured  ·  MIX does not apply")
     assert fig.layout.xaxis.type == "log"
     assert fig.layout.title.text.startswith("Cost per Task vs. Intelligence")
-    ann = fig.layout.annotations[0].text
-    assert "log cost/task vs quality" in ann and "cheaper per token, dearer per task" in ann
+    ann = next(a.text for a in fig.layout.annotations if a.name == "note")
+    assert "log cost/task vs quality" in ann and "cheaper per token but dearer per task" in ann
 
 
 @pytest.mark.parametrize("mix", ["agentic", "chat", ["custom", 20, 50]])
@@ -240,7 +240,9 @@ def test_task_frontier_is_market_wide_not_filter_local(frame):
 def test_frame_without_the_column_draws_an_empty_task_chart(frame):
     fig = build_pareto_scatter(frame.drop(columns="cost_per_task"), x="task")
     assert not _marker_models(fig)
-    assert "0 of 5 model families" in fig.layout.title.text
+    # The empty state says why (constants.empty_state_figure), not bare axes.
+    assert fig.layout.title.text == "Cost per Task vs. Intelligence"
+    assert "no cost per task for the 5 model families" in fig.layout.annotations[0].text
 
 
 def test_empty_frame_does_not_raise():
@@ -456,11 +458,13 @@ def test_rank_flip_line_names_its_blend_and_wraps(frame):
     for mix in (None, "agentic"):
         fig = build_pareto_scatter(apply_mix(frame, resolve_mix(mix)),
                                    full_df=frame, basis=resolve_mix(mix), x="task")
-        ann = fig.layout.annotations[0]
-        assert f"list price at {tc.list_blend_short()}" in ann.text
-        assert ann.align == "left"
-        # 390 px phones: each line must fit a ~356 px plot at 10 px type.
-        assert all(len(re.sub("<[^>]+>", "", ln)) <= 60 for ln in ann.text.split("<br>"))
+        ann = next(a for a in fig.layout.annotations if a.name == "note")
+        assert f"list price, {tc.list_blend_short()}" in ann.text
+        # One line above the plot, right-aligned, in the same place on all
+        # three X AXIS views. On a 390 px phone docs/app.js keeps the leading
+        # "  ·  " segments that fit, so the first (the size key) must fit alone.
+        assert ann.align == "right" and "<br>" not in ann.text
+        assert len(ann.text.split("  ·  ")[0]) <= 60
     xt = fig.layout.xaxis.title.text
     assert all(len(ln) <= 50 for ln in xt.split("<br>"))
     # The two-line title must not run into a paper-relative legend.

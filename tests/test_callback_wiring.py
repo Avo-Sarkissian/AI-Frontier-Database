@@ -13,6 +13,7 @@ guard in the suite against a whole class of silent breakage.
 import os
 import re
 
+import pandas as pd
 import pytest
 
 # Importing app.py starts three background scrapers (network) unless DEBUG is
@@ -126,8 +127,16 @@ def test_the_detail_panel_callback_body_actually_runs(monkeypatch):
     assert class_name == "detail-panel open"
     assert name == row["model"]
     rendered = str(body)
-    for label in ("INTELLIGENCE", "Price", "Coding", "Agentic", "Omniscience"):
+    for label in ("INTELLIGENCE", "Price"):
         assert label in rendered, f"the panel body never rendered {label}"
+    # AA's sibling indices appear only where AA published one: three
+    # "not scored" rows on most panels were noise.
+    for label, col in (("Coding", "coding"), ("Agentic", "agentic"),
+                       ("Omniscience", "omniscience")):
+        present = pd.notna(row.get(col))
+        assert (label in rendered) == present, (
+            f"{label} {'missing' if present else 'shown though AA has no score'}")
+    assert "not scored" not in rendered
 
 
 def test_the_dash_and_static_panels_agree_about_an_estimated_score(monkeypatch):

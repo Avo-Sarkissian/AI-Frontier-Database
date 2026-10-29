@@ -7,12 +7,16 @@ image and video catalogues plus get_local_df at 8x B200 SXM, Q4, 128k). The
 refactor had to be invisible in the output, so every builder's annotations are
 compared against that capture. The only differences allowed are the intended
 ones, each asserted explicitly: tied bars in the Run Local ranking now order by
-name, and the Run Local scatter keeps its "N GB" VRAM label.
+name, and the Run Local scatter keeps its "N GB" VRAM label. The Run Local
+compat chart was redesigned in 2026-10 (score-led labels, one row per family,
+a 30-row cap) and is no longer compared with the capture; its keys were
+pruned from the fixture.
 
-One edit to the capture since: the Institute of Foundation Models labels in
-local_compat / local_compat_thr were recoloured #6b7280 -> #4a6ae4. The
-capture was taken while _LOCAL_ONLY_COLORS still keyed that family under its
-retired "MBZUAI " name, so the grey was the palette miss, not the output.
+Re-captured 2026-10-29, deliberately, from the current builders: cost_calc
+(one row per model family; score-colour bands are catalogue quantiles, not
+v4's 45 / 30), provider_leaderboard ("1 model", #aaaaaa labels, cleaned
+names) and image_faceted (a dot plot on one shared scale). The comparison
+still guards the batched-annotation refactor for every later change.
 """
 import gzip
 import json
@@ -73,25 +77,41 @@ def test_batched_annotations_match_the_per_row_capture_exactly(inputs, golden, n
     assert _anns(build(inputs)) == golden[name]
 
 
-@pytest.mark.parametrize("mode, gold", [("single", "local_compat"),
-                                        ("throughput", "local_compat_thr")])
-def test_local_compat_annotations_match_capture_up_to_tie_order(inputs, golden, mode, gold):
-    """The row set is identical; only tied scores may move, and they now sort by name."""
+@pytest.mark.parametrize("mode", ["single", "throughput"])
+def test_local_compat_labels_every_row_it_draws_in_bar_order(inputs, mode):
+    """The golden capture of these labels predates the 2026-10 redesign (score
+    first, one row per family, a 30-row cap, unscored rows last), so the
+    contract is asserted directly: one label per drawn row, on that row, in bar
+    order, leading with the row's score — plus the omitted-rows note."""
+    from components.charts.local_compat import MAX_COMPAT_ROWS
     fig = build_local_compat(inputs["local"], quant="Q4", vram_gb=B200X8_VRAM,
                              ctx_tokens=CTX, speed_mode=mode)
     after = _anns(fig)
-    assert sorted(map(_key, after)) == sorted(map(_key, golden[gold]))
-    # Every annotation still sits on the bar it labels, in the bar order.
-    assert [a["y"] for a in after] == list(fig.data[-1].y)
+    rows = [a for a in after if a.get("yref") == "y"]
+    assert [a["y"] for a in rows] == list(fig.data[-1].y)
+    assert len(rows) == MAX_COMPAT_ROWS
+    for a, x in zip(rows, fig.data[-1].x):
+        lead = a["text"].split(" · ")[0]
+        assert lead == ("unscored" if x is None else f"{x:.1f}"), (a["text"], x)
+    notes = [a for a in after if a.get("yref") == "paper"]
+    assert len(notes) == 1 and "more that fit" in notes[0]["text"]
 
 
-def test_local_scatter_keeps_its_legend_key_and_gains_the_vram_label(inputs, golden):
+def test_local_scatter_keeps_its_key_and_places_the_vram_label_on_its_line(inputs):
+    """The key moved into the legend title (in the plot corner it sat on the
+    best-scoring marks). The VRAM label is in the log axis's own coordinate:
+    add_vline's label took x in data units, which Plotly reads as log10 on a
+    log axis, so "1536 GB" was placed at 10^1536 and never drawn."""
+    import math
     fig = build_local_scatter(inputs["local"], vram_gb=B200X8_VRAM, quant="Q4",
                               ctx_tokens=CTX)
-    after = _anns(fig)
-    assert golden["local_scatter"][0] in after, "legend key changed"
-    vram = [a for a in after if a.get("xref") == "x" and a.get("x") == B200X8_VRAM]
+    key = fig.layout.legend.title.text
+    assert "dense" in key and "mixture-of-experts" in key and "bubble size" in key
+    vram = [a for a in _anns(fig) if a.get("xref") == "x"]
     assert len(vram) == 1 and vram[0]["text"].strip() == f"{B200X8_VRAM} GB"
+    assert vram[0]["x"] == pytest.approx(math.log10(B200X8_VRAM))
+    lo, hi = fig.layout.xaxis.range
+    assert lo <= vram[0]["x"] <= hi, "the VRAM label is off the axis"
 
 
 def test_local_compat_is_fast_at_the_largest_realistic_hardware(inputs):

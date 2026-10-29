@@ -46,6 +46,9 @@ from components.charts.econ_serve import build_econ_serve
 from components.charts.econ_compute import build_econ_compute
 from static_helpers import (
     index_label,
+    standing_note,
+    context_label,
+    scored_indices,
     apply_filters,
     task_axis_frames,
     coerce_number,
@@ -197,9 +200,6 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
     latency_val = row.get("latency", float("nan"))
     latency_str = f"{latency_val:.2f}s" if pd.notna(latency_val) and latency_val > 0 else "N/A"
 
-    n_total = len(_DF[_DF["quality"] > 0])
-    n_below = int((_DF["quality"] < quality).sum())
-    pct = round(n_below / n_total * 100) if n_total else 0
 
     def _metric(lbl, val, accent=False):
         val_class_extra = " accent" if accent else ""
@@ -242,7 +242,7 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
     )
     percentile_note = (
         "AA estimated this score — not the full evaluation suite"
-        if estimated else f"Top {100 - pct}% of all models"
+        if estimated else standing_note(quality, _DF)
     )
     percentile_div = (
         f'<div style="font-size:10px;color:var(--text-3);margin-bottom:16px;">'
@@ -256,9 +256,9 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
 
     divider = '<div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0;"></div>'
 
-    ctx_raw = (str(row.get("context", "N/A")) or "N/A") if pd.notna(row.get("context")) else "N/A"
-    # Scraped values are third-party text: escape before interpolating into HTML.
-    ctx_str = html.escape(ctx_raw, quote=True)
+    # "1M tokens", not "1m" (read as one minute). Scraped values are
+    # third-party text: escape before interpolating into HTML.
+    ctx_str = html.escape(context_label(row.get("context")), quote=True)
     provider_str = html.escape(str(provider), quote=True)
     model_str = html.escape(str(row["model"]), quote=True)
     basis = resolve_mix(mix)
@@ -273,6 +273,7 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
     # AA's cost per task and the token burn it implies (data/task_cost). The
     # burn divides by the LIST blend and is compared with the median over the
     # unmixed catalogue, so neither moves with MIX; the note names the blend.
+    indices = scored_indices(row)
     task_html = "".join(_metric(lbl, html.escape(val, quote=True))
                         for lbl, val in detail_rows(row, median_token_burn(_DF)))
     note = detail_note(row)
@@ -296,10 +297,7 @@ def _detail_html(row: pd.Series, provider: str, mix=None) -> str:
         + _metric("Latency", latency_str)
         + _metric("Context", ctx_str)
         + _metric("Weights", html.escape(_weights_text(row), quote=True))
-        + divider
-        + _metric("Coding", index_label(row.get("coding")))
-        + _metric("Agentic", index_label(row.get("agentic")))
-        + _metric("Omniscience", index_label(row.get("omniscience")))
+        + (divider + "".join(_metric(lbl, val) for lbl, val in indices) if indices else "")
     )
 
 
@@ -360,9 +358,11 @@ def update_rankings(providers, min_quality, search, sort_by, effort=None, mix=No
 
 def update_value_leaders(providers, min_quality, search, effort=None, mix=None,
                          weights=None):
+    basis = resolve_mix(mix)
+    base = _base(basis)
     return build_value_leaders(
-        _apply_filters(providers, min_quality, search or "", effort, mix, weights),
-        basis=resolve_mix(mix),
+        apply_filters(base, providers, min_quality, search or "", effort, weights),
+        basis=basis, full_df=base,
     ).to_json()
 
 
@@ -395,7 +395,8 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, search, min_intel
     # input is clamped — the HTML min attribute is a hint, not a guard.
     tokens = coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
     floor = coerce_number(min_intelligence, default=0.0, minimum=0.0)
-    fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor, basis=basis)
+    fig = build_cost_calc(f, monthly_tokens_m=tokens, min_quality=floor, basis=basis,
+                          full_df=_base(basis))
     return json.dumps({
         "figure": json.loads(fig.to_json()),
         "best": cheapest_above(f, min_quality=floor, monthly_tokens_m=tokens),

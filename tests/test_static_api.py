@@ -72,14 +72,15 @@ def test_detail_panel_escapes_scraped_names():
         assert tag not in out
     assert "&lt;svg onload=alert(1)&gt;" in out
     assert "&lt;script&gt;alert(2)&lt;/script&gt;" in out
-    assert "&lt;i&gt;1M&lt;/i&gt;" in out
+    # The context is parsed into "N tokens"; markup is not a context.
+    assert ">N/A</span>" in out
 
 
 def test_detail_panel_preserves_plain_names():
     out = api._detail_html(pd.Series(_row("Gemini 3 Pro", "Google", "1M")), "Google")
     assert ">Gemini 3 Pro</div>" in out
     assert ">Google</div>" in out
-    assert ">1M</span>" in out
+    assert ">1M tokens</span>" in out    # "1m" read as one minute
 
 
 def test_export_csv_is_text():
@@ -285,7 +286,11 @@ def test_the_detail_panel_shows_a_dash_for_an_unscored_index():
     read as "not scored", not as a zero it would be ranked on."""
     out = api._detail_html(
         pd.Series(_overhaul_row(coding=float("nan"), agentic=float("nan"))), "Google")
-    assert "0.0" not in out.split("Coding")[1][:80], "an unscored index rendered as 0"
+    # Absent, not "0.0" and not a "not scored" row on every panel: AA
+    # publishes these for a minority of models.
+    assert "Coding" not in out and "Agentic" not in out
+    assert "not scored" not in out
+    assert "Omniscience" in out
 
 
 def test_the_detail_panel_survives_a_row_without_the_overhaul_columns():

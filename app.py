@@ -144,7 +144,7 @@ def _reload_if_stale():
 
 from captions import CAPTIONS
 from static_helpers import (
-    index_label,
+    index_label, standing_note, context_label, scored_indices,
     apply_filters,
     task_axis_frames,
     coerce_number as _coerce_number,
@@ -483,7 +483,7 @@ app.layout = html.Div([
             id="filter-quality",
             # Includes the exact preset percentiles — writing 42.1 into a
             # round-ladder dropdown left the control visually blank.
-            options=_quality_options(_P75, _P90),
+            options=_quality_options(_P75, _P90, peak=float(df["quality"].max())),
             value=0,
             clearable=False,
             style={"width": "96px"},
@@ -1745,7 +1745,7 @@ def update_value_leaders(providers, min_quality, effort, search, _v,
     basis = _mix(mix_key, mix_ratio, mix_cache)
     return build_value_leaders(_apply_filters(providers, min_quality, search or "", effort, basis,
                                               weights),
-                               basis=basis)
+                               basis=basis, full_df=apply_mix(df, basis))
 
 
 
@@ -1822,7 +1822,8 @@ def update_cost_calc(monthly_tokens_m, providers, min_quality, effort, search,
     filtered = _apply_filters(providers, min_quality, search or "", effort, basis, weights)
     # 0 tokens is a real query; a negative volume would invert the "cheapest" sort.
     tokens   = _coerce_number(monthly_tokens_m, default=1.0, minimum=0.0)
-    return build_cost_calc(filtered, monthly_tokens_m=tokens, basis=basis)
+    return build_cost_calc(filtered, monthly_tokens_m=tokens, basis=basis,
+                           full_df=apply_mix(df, basis))
 
 
 # ── Agent Stack tab — sync VRAM from GPU preset ───────────────────────────────
@@ -2175,10 +2176,6 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
     latency_val = row.get("latency", float("nan"))
     latency_str = f"{latency_val:.2f}s" if pd.notna(latency_val) and latency_val > 0 else "N/A"
 
-    # Percentile rank among all models
-    n_total = len(df[df["quality"] > 0])
-    n_below = int((df["quality"] < quality).sum())
-    pct     = round(n_below / n_total * 100) if n_total else 0
 
     # AA's 2026-09 overhaul. Mirrors static_api._detail_html — the Dash app and
     # the published static site must state the same thing about the same model.
@@ -2218,7 +2215,7 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
                 },
             ),
             html.Div(("AA estimated this score — not the full evaluation suite"
-                      if estimated else f"Top {100 - pct}% of all models"),
+                      if estimated else standing_note(quality, df)),
                      style={"fontSize": "10px", "color": "var(--text-3)",
                             "marginBottom": "16px"}),
         ]),
@@ -2234,13 +2231,12 @@ def toggle_detail_panel(pareto_click, _close, mix_key=None, mix_ratio=None, mix_
           if _task_detail_note(row) else []),
         _metric("Speed",   speed_str),
         _metric("Latency", latency_str),
-        _metric("Context", str(row.get("context", "N/A")) or "N/A"),
+        _metric("Context", context_label(row.get("context"))),
         _metric("Weights", _weights_label(row.get("open_weights", False),
                                           row.get("weights_source"))),
-        html.Div(className="detail-panel-divider"),
-        _metric("Coding",      index_label(row.get("coding"))),
-        _metric("Agentic",     index_label(row.get("agentic"))),
-        _metric("Omniscience", index_label(row.get("omniscience"))),
+        *([html.Div(className="detail-panel-divider")]
+          + [_metric(lbl, val) for lbl, val in scored_indices(row)]
+          if scored_indices(row) else []),
     ]
 
     return "detail-panel open", body, model_name

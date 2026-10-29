@@ -22,7 +22,10 @@ try:
 except ImportError:  # dash-free env (Pyodide): only the HTML-string renderer is used
     html = None
 
-from components.charts.constants import PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider
+from components.charts.constants import (
+    PROVIDER_COLORS, DEFAULT_COLOR, canonical_provider, base_model_name,
+)
+from data.quality_scale import floor as _q_floor
 from data.local_models import FAMILY_COLORS as _FAMILY_COLORS, DEFAULT_FAMILY_COLOR
 from data.workload_mix import DEFAULT_MIX, fmt_price
 
@@ -34,6 +37,11 @@ from data.workload_mix import DEFAULT_MIX, fmt_price
 _PRICE_BASIS_TAG = "1:3 in:out"
 _PRICE_BASIS_TITLE = (f"Price at {DEFAULT_MIX.long}. Agent Stack does not follow the MIX "
                       "setting: its tiers (Fast ≤ $3/M, Balanced ≤ $8/M) are cut on this blend.")
+
+
+# "(Max, Default Fallback)": the qualifier is on every Claude 5.5 tier and
+# carries nothing, while it pushed the effort itself past the 36-char cut.
+_DEFAULT_FALLBACK_RE = re.compile(r",\s*Default\s+Fallback\s*\)", re.I)
 
 
 def _price_chip_text(price) -> str:
@@ -85,6 +93,11 @@ _FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 # Used both as a hard tier filter and as the cap on the latency score term.
 FAST_MAX_LATENCY_S = 10.0
 _LATENCY_SCORE_CAP_S = 5.0
+# Balanced's cap, and the TTFT above which ANY recommended API row carries a
+# warning chip (Reasoning has no cap: an orchestrator can wait, but the reader
+# should see that it will).
+BALANCED_MAX_LATENCY_S = 60.0
+SLOW_TTFT_WARN_S = 30.0
 
 
 _API_TIERS = [
@@ -94,7 +107,11 @@ _API_TIERS = [
         "tagline":     "Sub-agent workhorse — cheap, high-throughput, parallel calls",
         "color":       "#00d4ff",
         "max_price":    3.0,
-        "min_quality":  28.0,
+        # Quality floors are QUANTILES of the catalogue's family scores
+        # (data/quality_scale), not index points: v4's 28 / 30 meant something
+        # else after AA's non-uniform v5 rescale (the calibration table is in
+        # data/quality_scale).
+        "floor_key":    "stack_fast",
         "min_speed":    30,
         # A tier whose whole promise is "parallel sub-agents" cannot recommend
         # a model that takes a minute to say its first word.
@@ -108,8 +125,12 @@ _API_TIERS = [
         "tagline":     "Daily driver — coding, writing, tool use, file editing",
         "color":       "#34d399",
         "max_price":    8.0,
-        "min_quality":  30.0,
+        "floor_key":    "stack_balanced",
         "min_speed":    0,
+        # A "daily driver" that takes minutes to say its first word is not
+        # one: Claude Haiku 5.5 (Max) topped this tier at 340 s TTFT. Unmeasured
+        # rows stay in (see _tier_pool).
+        "max_latency":  BALANCED_MAX_LATENCY_S,
         "sort":        "value",
         "n":            5,
     },
@@ -119,14 +140,19 @@ _API_TIERS = [
         "tagline":     "Orchestrator — plans, delegates, and reviews sub-agent work",
         "color":       "#c084fc",
         "max_price":    None,
-        "min_quality":  0.0,
+        "floor_key":    None,
         "min_speed":    0,
         "sort":        "quality",
         "n":            5,
     },
 ]
 
-_TIER_ICONS = {"fast": "⚡", "balanced": "⚙", "reasoning": "🧠"}
+# Tier marks. These were "⚡", "⚙" and "🧠": one text glyph, one that some
+# fonts draw as text and some as emoji, and one colour emoji — three sizes and
+# three styles side by side. A plain square in the tier's colour is the same
+# mark everywhere.
+_TIER_MARK_STYLE = {"display": "inline-block", "width": "8px", "height": "8px",
+                    "borderRadius": "2px", "marginRight": "8px", "flexShrink": "0"}
 
 _TIER_ADVICE = {
     "fast": {
@@ -196,13 +222,22 @@ def _score_fast_api(row, q_max, v_max, s_max):
     return q * 0.45 + v * 0.25 + s * 0.10 + l * 0.20
 
 
-def _tier_pool(df: pd.DataFrame, tier: dict) -> pd.DataFrame:
-    """Rows eligible for a tier, before ranking."""
+def tier_floor(tier: dict, ref_df: pd.DataFrame | None, name_col: str = "model") -> float:
+    """The tier's quality floor on `ref_df` (data/quality_scale), 0 for none."""
+    key = tier.get("floor_key")
+    return _q_floor(ref_df, key, name_col) if key else 0.0
+
+
+def _tier_pool(df: pd.DataFrame, tier: dict, ref_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Rows eligible for a tier, before ranking. The quality floor is read off
+    `ref_df` (default `df`): the unfiltered catalogue, so a provider filter
+    cannot move it."""
     pool = df[(df["quality"] > 0) & (df["price"] > 0)].copy()
     if tier["max_price"] is not None:
         pool = pool[pool["price"] <= tier["max_price"]]
-    if tier.get("min_quality", 0) > 0:
-        pool = pool[pool["quality"] >= tier["min_quality"]]
+    q_min = tier_floor(tier, df if ref_df is None else ref_df)
+    if q_min > 0:
+        pool = pool[pool["quality"] >= q_min]
     if tier["min_speed"] > 0:
         pool = pool[pool["speed"] >= tier["min_speed"]]
     if tier.get("max_latency"):
@@ -223,7 +258,7 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = 
     unrelated provider box. Ordering was not even preserved: pairs demonstrably
     swapped rank between a single-provider and an all-provider selection.
     """
-    pool = _tier_pool(df, tier)
+    pool = _tier_pool(df, tier, ref_df=full_df)
     if pool.empty:
         return pool
     ref = pool if full_df is None else _tier_pool(full_df, tier)
@@ -246,6 +281,10 @@ def _pick_api_tier(df: pd.DataFrame, tier: dict, full_df: pd.DataFrame | None = 
     else:
         pool = pool.sort_values("quality", ascending=False, kind="mergesort")
 
+    # One row per model family: its best-ranked tier for THIS tier's sort.
+    # Under "All variants" the five alternates were Claude Haiku 5.5 (Max) and
+    # Claude Haiku 5.5 (Xhigh) — one model at one price, twice.
+    pool = pool[~pool["model"].astype(str).map(base_model_name).duplicated()]
     return pool.head(tier["n"])
 
 
@@ -273,11 +312,17 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
     if ref_all.empty:
         ref_all = runnable
 
+    # Quality floors as quantiles of the whole open-weight catalogue's family
+    # scores (data/quality_scale) — not of what fits, and not v4's 10 / 12,
+    # which on v5 left one model a 32 GB card can run above both floors, so
+    # all three tiers recommended Qwen3.8 27B.
+    _catalogue = local_df if full_local_df is None else full_local_df
     if tier_key == "fast":
         # Fast but intelligent — enforce a real quality floor, then balance
         # speed and quality so tiny dumb models don't win on speed alone
-        runnable = runnable[runnable["quality"] >= 10].copy()
-        ref = ref_all[ref_all["quality"] >= 10]
+        f_fast = _q_floor(_catalogue, "local_fast", "name")
+        runnable = runnable[runnable["quality"] >= f_fast].copy()
+        ref = ref_all[ref_all["quality"] >= f_fast]
         if ref.empty:
             ref = runnable
         s_max = ref["speed_tps"].replace(0, float("nan")).max() or 1
@@ -289,8 +334,9 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
         runnable = runnable.sort_values("_score", ascending=False, kind="mergesort")
     elif tier_key == "balanced":
         # Quality-weighted efficiency — quality matters more than VRAM footprint
-        runnable = runnable[runnable["quality"] >= 12].copy()
-        _ref_b = ref_all[ref_all["quality"] >= 12]
+        f_bal = _q_floor(_catalogue, "local_balanced", "name")
+        runnable = runnable[runnable["quality"] >= f_bal].copy()
+        _ref_b = ref_all[ref_all["quality"] >= f_bal]
         q_max = (_ref_b if not _ref_b.empty else runnable)["quality"].max() or 1
         # The VRAM term used to be a RAW RECIPROCAL in GB against a min-max
         # normalised quality term: measured spreads were 0.474 for quality and
@@ -317,10 +363,41 @@ def _pick_local_tier(local_df: pd.DataFrame, tier_key: str, n: int = 5,
         runnable = runnable[runnable["quality"] > 0]
         runnable = runnable.sort_values("quality", ascending=False, kind="mergesort")
 
+    # One row per family (GLM-5.3 (Max) and GLM-5.3 (Low) are one download
+    # choice, not two alternates): its best-ranked row for this tier.
+    if not runnable.empty:
+        runnable = runnable[~runnable["name"].astype(str).map(base_model_name).duplicated()]
     return runnable.head(n)
 
 
 # ── Shared chip helper ─────────────────────────────────────────────────────────
+
+def _slow(lat) -> bool:
+    try:
+        return pd.notna(lat) and float(lat) >= SLOW_TTFT_WARN_S
+    except (TypeError, ValueError):
+        return False
+
+
+def _ttft_text(lat) -> str | None:
+    """'1.36s TTFT', or '⚠ 341s to first token' past SLOW_TTFT_WARN_S: a pick
+    that keeps you waiting minutes must say so on the card, not only in a
+    number styled like every other chip."""
+    if not (pd.notna(lat) and lat > 0):
+        return None
+    if _slow(lat):
+        return f"⚠ {lat:.0f}s to first token"
+    return f"{lat:.2f}s TTFT"
+
+
+def _ttft_style(lat) -> tuple[str, str | None]:
+    """(chip background, tooltip) for the TTFT chip."""
+    if _slow(lat):
+        return ("#3a2410", f"Time to first token at or above {SLOW_TTFT_WARN_S:.0f} s "
+                           "(Artificial Analysis's median). Reasoning at high effort "
+                           "thinks before it answers.")
+    return ("#2a1a1a", None)
+
 
 def _chip(text: str, bg: str = "#1e2a1e", title: str | None = None) -> "html.Span":
     return html.Span(text, title=title, style={
@@ -353,16 +430,16 @@ def _api_row(row: pd.Series, is_top: bool = False) -> "html.Div":
     price_str = _price_chip_text(price)
     speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
     lat       = row.get("latency", float("nan"))
-    lat_str   = f"{lat:.2f}s TTFT" if pd.notna(lat) and lat > 0 else None
+    lat_str   = _ttft_text(lat)
 
-    name = str(row["model"])
+    name = _DEFAULT_FALLBACK_RE.sub(")", str(row["model"]))
     if len(name) > 36:
         name = name[:35] + "…"
 
     chips = html.Div([
         _chip(price_str, "#1a2a1a", title=_PRICE_BASIS_TITLE),
         _chip(speed_str, "#1a1a2a"),
-        *([_chip(lat_str, "#2a1a1a")] if lat_str else []),
+        *([_chip(lat_str, *_ttft_style(lat))] if lat_str else []),
     ], style={"marginTop": "5px", "display": "flex", "flexWrap": "wrap", "gap": "2px"})
 
     return _row_shell(name, quality, provider, pcolor, chips, is_top)
@@ -451,7 +528,6 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
     source: "API" | "LOCAL"
     """
     color = tier["color"]
-    icon  = _TIER_ICONS[tier["key"]]
 
     # Source badge
     badge_bg  = "rgba(0,212,255,0.12)" if source == "API" else "rgba(134,239,172,0.12)"
@@ -521,7 +597,8 @@ def _tier_card(tier: dict, picks: pd.DataFrame, source: str) -> "html.Div":
 
     return html.Div([
         html.Div([
-            html.Span(icon + " " + tier["label"], style={
+            html.Span(style={**_TIER_MARK_STYLE, "background": color}),
+            html.Span(tier["label"], style={
                 "fontSize": "14px", "fontWeight": "700", "color": color,
                 "fontFamily": _FONT, "letterSpacing": "0.02em",
             }),
@@ -601,7 +678,8 @@ def select_stack(
         api_pool = api_pool[api_pool["provider"].isin(wanted)]
 
     tiers_out = []
-    _taken: dict[str, str] = {}   # model name -> the tier that claimed it
+    cands = []                    # (tier, candidate picks, source), claim order
+    _taken: dict[str, str] = {}   # model FAMILY -> the tier key that claimed it
 
     # Claim order, not display order. Tiers are shown Fast -> Balanced ->
     # Reasoning, but if Fast and Balanced pick first they can take the very model
@@ -637,27 +715,69 @@ def select_stack(
                 picks  = _pick_api_tier(api_pool, tier, full_df=df)
                 source = "API"
 
-        # Don't hand the same model to two tiers. The point of the card is that
-        # these are three DIFFERENT recommendations; when they collapsed (11 of
-        # 32 single-provider selections in API mode, 27 of 137 GPU presets in
-        # local mode) the page asserted, of one model at one price, that it was
-        # simultaneously "not suitable for complex logic", "more expensive than
-        # Fast" and "slowest and most expensive".
-        name_col = "model" if "model" in picks.columns else "name"
-        if not picks.empty and name_col in picks.columns:
-            fresh = picks[~picks[name_col].isin(_taken)]
-            if not fresh.empty:
-                picks = fresh
-            else:
-                # Every candidate is already spoken for. Show the repeat rather
-                # than an empty card, but say so and drop the advice, which is
-                # written on the assumption the tiers differ.
-                duplicate_of = _taken.get(str(picks.iloc[0][name_col]))
-        if not picks.empty and name_col in picks.columns:
-            top = str(picks.iloc[0][name_col])
-            duplicate_of = duplicate_of or (_taken.get(top) if top in _taken else None)
-            _taken.setdefault(top, tier["label"])
+        cands.append((tier, picks, source))
 
+    # Don't hand the same model to two tiers. The point of the card is that
+    # these are three DIFFERENT recommendations; when they collapsed (11 of 32
+    # single-provider selections in API mode, 27 of 137 GPU presets in local
+    # mode) the page asserted, of one model at one price, that it was
+    # simultaneously "not suitable for complex logic", "more expensive than
+    # Fast" and "slowest and most expensive". By FAMILY: Opus 5.5 at Max effort
+    # for Reasoning and Opus 5.5 at Low for Balanced is one model at one price.
+    def _fams(frame):
+        col = "model" if "model" in frame.columns else "name"
+        return frame[col].astype(str).map(base_model_name) if col in frame.columns \
+            else pd.Series(dtype=str)
+
+    assigned: dict[str, pd.DataFrame] = {}
+    dup_of: dict[str, str | None] = {}
+    for tier, picks, _src in cands:
+        key = tier["key"]
+        dup_of[key] = None
+        if picks.empty or not len(_fams(picks)):
+            assigned[key] = picks
+            continue
+        fams = _fams(picks)
+        fresh = picks[~fams.isin(_taken)]
+        if fresh.empty:
+            assigned[key] = picks
+            dup_of[key] = _taken.get(fams.iloc[0])
+        else:
+            assigned[key] = fresh
+            _taken.setdefault(_fams(fresh).iloc[0], key)
+
+    # Repair: a tier left repeating another can take the family it wants when
+    # the tier holding it (never Reasoning, whose point is the top model) has
+    # a free alternate. With Anthropic + Google + OpenAI, Balanced claimed
+    # Claude Haiku 5.5 — Fast's only candidate — while holding four others.
+    for tier, picks, _src in cands:
+        key = tier["key"]
+        if dup_of[key] is None or picks.empty:
+            continue
+        for fam in _fams(picks):
+            owner = _taken.get(fam)
+            if owner in (None, "reasoning", key):
+                continue
+            mine = assigned[owner]
+            alt = mine[~_fams(mine).isin(set(_taken) | {fam})]
+            if alt.empty:
+                continue
+            assigned[owner] = alt
+            _taken[_fams(alt).iloc[0]] = owner
+            _taken[fam] = key
+            assigned[key] = picks[_fams(picks).eq(fam)
+                                  | ~_fams(picks).isin(_taken)]
+            # The wanted family leads.
+            assigned[key] = pd.concat([assigned[key][_fams(assigned[key]).eq(fam)],
+                                       assigned[key][~_fams(assigned[key]).eq(fam)]])
+            dup_of[key] = None
+            break
+
+    label_of = {t["key"]: t["label"] for t in _API_TIERS}
+    for tier, _picks, source in cands:
+        key = tier["key"]
+        picks = assigned[key]
+        duplicate_of = label_of.get(dup_of[key], dup_of[key])
         tiers_out.append({
             "name":      tier["label"],
             "key":       key,
@@ -790,16 +910,16 @@ def _api_row_html(row: pd.Series, is_top: bool = False) -> str:
     price_str = _price_chip_text(price)
     speed_str = f"{int(speed):,} tok/s" if speed > 0 else "—"
     lat       = row.get("latency", float("nan"))
-    lat_str   = f"{lat:.2f}s TTFT" if pd.notna(lat) and lat > 0 else None
+    lat_str   = _ttft_text(lat)
 
-    name = str(row["model"])
+    name = _DEFAULT_FALLBACK_RE.sub(")", str(row["model"]))
     if len(name) > 36:
         name = name[:35] + "…"
 
     chips_html = (
         _chip_html(price_str, "#1a2a1a", title=_PRICE_BASIS_TITLE) +
         _chip_html(speed_str, "#1a1a2a") +
-        (_chip_html(lat_str, "#2a1a1a") if lat_str else "")
+        (_chip_html(lat_str, *_ttft_style(lat)) if lat_str else "")
     )
     return _row_shell_html(name, quality, provider, pcolor, chips_html, is_top)
 
@@ -835,7 +955,7 @@ def _tier_card_html(tier_data: dict) -> str:
     source    = tier_data["source"]
     use_cases = tier_data["use_cases"]
     advice    = tier_data["advice"]
-    icon      = _TIER_ICONS[key]
+    mark      = _h("span", "", style=_dict_to_style({**_TIER_MARK_STYLE, "background": color}))
 
     # Source badge
     badge_bg  = "rgba(0,212,255,0.12)" if source == "API" else "rgba(134,239,172,0.12)"
@@ -850,7 +970,7 @@ def _tier_card_html(tier_data: dict) -> str:
 
     # Header row
     header = _h("div",
-        _h("span", icon + " " + name, style=_dict_to_style({
+        mark + _h("span", name, style=_dict_to_style({
             "fontSize": "14px", "fontWeight": "700", "color": color,
             "fontFamily": _FONT, "letterSpacing": "0.02em",
         })) + badge,

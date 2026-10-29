@@ -148,10 +148,12 @@ def csv_safe(df):
             out[col] = out[col].map(_clean)
     return out
 
+# The v4-era fixed ladder, kept only for a caller that cannot say the peak.
 _QUALITY_LADDER = [0, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 
-def quality_options(p75: float | None = None, p90: float | None = None) -> list[dict]:
+def quality_options(p75: float | None = None, p90: float | None = None,
+                    peak: float | None = None) -> list[dict]:
     """MIN SCORE options, including the exact percentiles the presets set.
 
     One value had four incompatible representations. The presets wrote 42.1 and
@@ -165,8 +167,14 @@ def quality_options(p75: float | None = None, p90: float | None = None) -> list[
 
     Carrying the percentiles as real options makes the control able to hold what
     the buttons set, and labels them so the number is not a mystery.
+
+    The round steps track the catalogue's current `peak` (data/quality_scale
+    .ladder): every 5 points below it. The fixed 0..50 ladder was set on index
+    v4 and is the fallback when no peak is given.
     """
-    entries = {float(v): f"≥ {v:g}" for v in _QUALITY_LADDER}
+    from data.quality_scale import ladder
+    steps = ladder(peak) if peak else _QUALITY_LADDER
+    entries = {float(v): f"≥ {v:g}" for v in steps}
     for value, note in ((p75, "top 25%"), (p90, "top 10%")):
         if value is not None and float(value) > 0:
             entries[float(value)] = f"≥ {float(value):g}  ·  {note}"
@@ -447,34 +455,67 @@ def cap_compare_selection(selected_models, filtered_df, triggered=None) -> list[
 
 
 def compute_diverse5(dataframe: pd.DataFrame) -> list[str]:
-    """Pick 5 diverse models spanning quality, value, speed, and budget tiers."""
+    """Pick 5 diverse models spanning quality, value, speed, and budget tiers.
+
+    Five DIFFERENT model families: the pick skipped only an identical name, so
+    under "All variants" the defaults compared Claude Opus 5.5 (Max) with
+    Claude Opus 5.5 (Xhigh) — one model at one price, twice. Each family is
+    represented by its best-scoring tier.
+
+    The tier floors are quantiles of the frame's family scores
+    (data/quality_scale), not v4-era literals (35 / 40 / 50 / 40-70), so a
+    rescale of the index moves them with the scores.
+    """
+    from components.charts.constants import base_model_name, dedupe_to_best_variant
+    from data.quality_scale import floor as q_floor
+
     valid = dataframe[(dataframe["quality"] > 0) & (dataframe["price"] > 0)].copy()
     if valid.empty:
         return []
+    valid = dedupe_to_best_variant(valid)
     picks: list = []
+    families: set = set()
 
     def _add(rows):
         for _, row in rows.iterrows():
-            if row["model"] not in picks:
+            fam = base_model_name(str(row["model"]))
+            if fam not in families:
                 picks.append(row["model"])
+                families.add(fam)
                 return
 
+    f_value, f_fast = q_floor(valid, "compare_value"), q_floor(valid, "compare_fast")
+    f_strong = q_floor(valid, "compare_strong")
+    f_lo, f_hi = q_floor(valid, "compare_mid_lo"), q_floor(valid, "compare_mid_hi")
+    valid["_val"] = valid["quality"] / valid["price"]
+
+    def _by(frame, col, asc):
+        return frame.sort_values([col, "model"], ascending=[asc, True], kind="mergesort")
+
     # 1. Best intelligence
-    _add(valid.sort_values("quality", ascending=False))
-    # 2. Best value (quality/price) with a quality floor so weak-but-cheap
-    #    models don't monopolise the "value" pick in Compare defaults.
-    v = valid[valid["quality"] >= 35].copy()
-    v["_val"] = v["quality"] / v["price"]
-    _add(v.sort_values("_val", ascending=False) if not v.empty else valid.assign(_val=valid["quality"]/valid["price"]).sort_values("_val", ascending=False))
-    # 3. Fastest model with quality >= 40
-    fast = valid[(valid["speed"] > 0) & (valid["quality"] >= 40)]
-    _add(fast.sort_values("speed", ascending=False) if not fast.empty else valid.sort_values("speed", ascending=False))
-    # 4. Cheapest with quality >= 50
-    cheap = valid[valid["quality"] >= 50]
-    _add(cheap.sort_values("price") if not cheap.empty else valid.sort_values("price"))
-    # 5. Mid-tier (40-70 quality range)
-    mid = valid[(valid["quality"] >= 40) & (valid["quality"] <= 70)]
-    _add(mid.sort_values("quality", ascending=False) if not mid.empty else valid.sort_values("quality", ascending=False))
+    _add(_by(valid, "quality", False))
+    # 2. Best value above the 30th percentile, so weak-but-cheap models don't
+    #    monopolise the "value" pick.
+    v = valid[valid["quality"] >= f_value]
+    _add(_by(v if not v.empty else valid, "_val", False))
+    # 3. Fastest in the upper half
+    fast = valid[(valid["speed"] > 0) & (valid["quality"] >= f_fast)]
+    _add(_by(fast if not fast.empty else valid, "speed", False))
+    # 4. Cheapest in the top fifth
+    cheap = valid[valid["quality"] >= f_strong]
+    _add(_by(cheap if not cheap.empty else valid, "price", True))
+    # 5. Mid-tier: best between the 50th and 95th percentiles
+    mid = valid[(valid["quality"] >= f_lo) & (valid["quality"] <= f_hi)]
+    _add(_by(mid if not mid.empty else valid, "quality", False))
+    # Fewer than five distinct families qualified for the five roles: fill
+    # from the top so the chart still compares five where five exist.
+    for _ in range(5):
+        if len(picks) >= 5:
+            break
+        before = len(picks)
+        _add(_by(valid, "quality", False))
+        if len(picks) == before:
+            break
 
     return picks[:5]
 
@@ -601,3 +642,53 @@ def index_label(v) -> str:
         return f"{float(v):.1f}"
     except (TypeError, ValueError):
         return "not scored"
+
+
+def standing_note(quality, catalogue: pd.DataFrame) -> str:
+    """Where a score stands, for the detail panel: "Scores above 85% of the 34
+    model families".
+
+    It read "Top {100 - pct}% of all models", with pct counted over every row
+    (unscored ones too) — so a score-12 model was "Top 93%", a percentile
+    phrased as praise. Now the share of model FAMILIES (each at its best tier,
+    as every chart counts them) that score strictly lower, said as exactly
+    that."""
+    from data.quality_scale import family_scores
+
+    scores = family_scores(catalogue)
+    try:
+        q = float(quality)
+    except (TypeError, ValueError):
+        return ""
+    if scores.empty or not math.isfinite(q):
+        return ""
+    n = len(scores)
+    below = int((scores < q).sum())
+    if q >= float(scores.max()):
+        return f"Highest score among the {n} model families"
+    return f"Scores above {round(below / n * 100)}% of the {n} model families"
+
+
+def context_label(value) -> str:
+    """"1M tokens" / "128K tokens" for a context string ("1m", "128k", ...).
+    A bare "1m" in the detail panel read as one minute."""
+    k = ctx_to_k(value)
+    if k is None or not math.isfinite(k) or k <= 0:
+        return "N/A"
+    if k >= 1000:
+        m = k / 1000
+        return f"{m:g}M tokens" if abs(m - round(m, 1)) < 1e-9 else f"{m:.1f}M tokens"
+    return f"{k:g}K tokens"
+
+
+def scored_indices(row) -> list[tuple[str, str]]:
+    """(label, value) for the sibling indices AA actually published for this
+    model. Most models have none of Coding / Agentic, and three "not scored"
+    rows on every panel were noise; an absent index is now simply absent."""
+    out = []
+    for label, col in (("Coding", "coding"), ("Agentic", "agentic"),
+                       ("Omniscience", "omniscience")):
+        text = index_label(row.get(col))
+        if text != "not scored":
+            out.append((label, text))
+    return out

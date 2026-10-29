@@ -17,6 +17,7 @@ from components.charts.constants import (
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     dedupe_to_best_variant, BUBBLE_PRICE_REF, BUBBLE_PRICE_FLOOR, bubble_size, safe_corr,
     marker_outline, legend_below, CHART_MARGIN, spotlight_split, log_ticks,
+    place_point_labels, family_label, legend_reference, size_note, NOTE_MARGIN_T, empty_state_figure,
     weights_symbol, row_is_open,
 )
 from data.open_weights import weights_labels
@@ -68,7 +69,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         # Plotly.react — so a bright white card landed in the middle of the dark
         # dashboard, under a caption still saying "Click any bubble for details".
         # Reachable from 24 of 32 providers at some MIN SCORE setting.
-        return empty_figure("No models match these filters")
+        return empty_state_figure("Speed vs. Intelligence", "No models match these filters",
+                                  "Clear the search, widen PROVIDER, or lower MIN SCORE")
     if ref_df.empty:
         ref_df = plot_df
 
@@ -94,8 +96,10 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     # basis is in the MIX control, and with it the subtitle ran ~450 px past
     # the card at 1366 px. It also moves to a second subtitle line there
     # (below), since the fill note leads the first.
+    # At the default the size key is the note above the plot (size_note);
+    # off it the subtitle adds how many bubbles share the capped maximum.
     _size_note = (
-        "  ·  bubble size ∝ affordability (log)"
+        ""
         if basis.is_default else
         f"size ∝ affordability at {basis.short.split()[0]} (log"
         + (f"; {_n_pinned} at ≤ ${BUBBLE_PRICE_FLOOR:g} share the max size"
@@ -152,7 +156,8 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     # Only spotlight providers get their own colour — the previous top-10-by-
     # count rule put whichever providers happened to be dense on screen
     # together, including pairs the palette validator never cleared.
-    plot_df, providers = spotlight_split(plot_df)
+    plot_df, providers = spotlight_split(
+        plot_df, order_df=legend_reference(df if full_df is None else full_df))
     for provider in providers:
         pdf = plot_df[plot_df["display_provider"] == provider]
         color  = PROVIDER_COLORS.get(provider, DEFAULT_COLOR)
@@ -165,7 +170,7 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         hover = (
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "Quality: %{y}<br>"
+            "Intelligence: %{y:.1f}<br>"
             "Speed: %{x:.0f} tok/s<br>"
             "Price: %{customdata[2]}/M tokens  ·  " + basis.short + "<br>"
             "Rates: %{customdata[4]}<br>"
@@ -230,57 +235,26 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             xref="x", yref="y",
         ))
 
-    # Correlation sits above the plot, not inside it — all four in-plot corners
-    # are taken by zone captions, and it collided with "Slow · Smart".
-    if _corr_r is not None:
-        annotations.append(dict(
-            x=1.0, y=1.04,
-            xref="paper", yref="paper",
-            text=f"r = {_corr_r:.2f}  (log speed vs quality)",
-            showarrow=False,
-            xanchor="right", yanchor="bottom",
-            font=dict(color="#666666", size=10, family=_FONT),
-        ))
+    # The note above the plot (constants.size_note): bubble size first —
+    # here it is affordability, not speed as on the other two X AXIS views,
+    # because speed is already the x axis — then the correlation. Same place,
+    # same words as Price and Cost / task.
+    annotations.append(size_note(
+        "size = affordability (larger = cheaper, log)",
+        [f"r = {_corr_r:.2f}  (log speed vs quality)" if _corr_r is not None else ""]))
 
-    # Label top-right quadrant outliers (Fast · Smart).
-    # Use 75th-percentile speed as threshold so labels stay in the genuinely
-    # fast region, and cap at 5 to avoid label pile-ups.
+    # Label top-right quadrant outliers (Fast · Smart): the best models above
+    # the 75th-percentile speed, placed as offset plates that never cover a
+    # mark or another label (constants.place_point_labels), at most five.
     speed_p75 = ref_df["speed"].quantile(0.75)
     candidates = plot_df[
         (plot_df["speed"] > speed_p75) & (plot_df["quality"] > med_quality)
     ].sort_values(["quality", "model"], ascending=[False, True], kind="mergesort")
-
-    # Take the best models that are far enough apart *on screen* to be legible.
-    # Simply taking the top 5 stacked three labels on one another — the leaders
-    # cluster tightly, so "Gemini 3.6 Flash" and "Gemini 3.5 Flash" landed on
-    # the same pixels. Distance is measured in normalised plot space so it
-    # tracks the log x axis rather than raw tok/s.
-    kept_rows, kept_pos, positions = [], [], []
-    x_span = (lx1 - lx0) or 1.0
-    for _, row in candidates.iterrows():
-        if len(kept_rows) >= 5:
-            break
-        nx = (math.log10(row["speed"]) - lx0) / x_span
-        ny = row["quality"] / y_max if y_max else 0.0
-        if any(math.dist((nx, ny), q) < 0.09 for q in kept_pos):
-            continue
-        kept_pos.append((nx, ny))
-        kept_rows.append(row)
-        positions.append("top center" if len(kept_rows) % 2 else "bottom center")
-
-    if kept_rows:
-        label_df = pd.DataFrame(kept_rows)
-        fig.add_trace(go.Scatter(
-            x=label_df["speed"],
-            y=label_df["quality"],
-            mode="text",
-            text=label_df["model"].apply(
-                    lambda m: plot_text(m[:20] + "…" if len(m) > 20 else m)),
-            textposition=positions,
-            textfont=dict(color="rgba(255,255,255,0.5)", size=10, family=_FONT),
-            hoverinfo="skip",
-            showlegend=False,
-        ))
+    markers = list(zip(plot_df["speed"], plot_df["quality"], plot_df["size"]))
+    annotations += place_point_labels(
+        [(r["speed"], r["quality"], family_label(r["model"]), r["size"])
+         for _, r in candidates.iterrows()],
+        markers, (lx0, lx1), (0, y_max), x_log=True, max_labels=5)
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -320,7 +294,7 @@ def build_quadrant(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             range=[0, y_max],
         ),
         legend=legend_below(),
-        margin={**CHART_MARGIN, "t": CHART_MARGIN["t"] + (18 if _two_lines else 0)},
+        margin={**CHART_MARGIN, "t": NOTE_MARGIN_T + (18 if _two_lines else 0)},
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616", bordercolor="rgba(255,255,255,0.1)",

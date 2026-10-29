@@ -40,6 +40,7 @@ from components.charts.econ_serve import build_econ_serve
 from components.charts.econ_compute import build_econ_compute
 from components.charts.lab_economics import build_labs_figures, labs_ledger_html
 from data import lab_economics
+from data.quality_scale import slider_max
 
 from captions import CAPTIONS
 from data import scrape_status
@@ -303,7 +304,11 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "econ_compute_options": gpu_tco.compute_options(),
         "quality_options": quality_options(
             round(float(df["quality"].quantile(0.75)), 1),
-            round(float(df["quality"].quantile(0.90)), 1)),
+            round(float(df["quality"].quantile(0.90)), 1),
+            peak=float(df["quality"].max())),
+        # The Budget MIN INTELLIGENCE slider's max: the current peak, rounded
+        # up (data/quality_scale.slider_max), not index v4's 65.
+        "budget_slider_max": slider_max(float(df["quality"].max())),
         "generated":        _now.strftime("%b %d  %H:%M"),
         "version":          _now.strftime("%Y%m%dT%H%M%SZ"),
         "generated_iso":    _now.isoformat(),
@@ -416,7 +421,7 @@ def build_pybundle(docs: Path | None = None):
         "data/__init__.py", "data/ingest.py", "data/local_models.py",
         "data/image_models.py", "data/video_models.py",
         "data/pending_models.py", "data/scrape_status.py",
-        "data/workload_mix.py", "data/task_cost.py",
+        "data/workload_mix.py", "data/task_cost.py", "data/quality_scale.py",
         "data/open_weights.py", "data/open_gap.py",
         "components/charts/open_gap.py",
         "data/econ_common.py", "data/serving_cost.py",

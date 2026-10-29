@@ -12,6 +12,7 @@ from components.charts.constants import (
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
     empty_figure, unique_labels, bar_weights_style, row_is_open,
+    dedupe_to_best_variant, text_on, OPEN_BAR_FILL_ALPHA, empty_state_figure,
 )
 from data.open_weights import weights_labels
 
@@ -42,7 +43,12 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     ``basis`` is the workload MIX the prices are at. Value divides by that
     price, so its axis and title name the mix; every price label does too."""
     basis = resolve_mix(basis)
-    valid = df[df["quality"] > 0].copy()
+    # One bar per model family, its best-scoring tier. AA publishes up to five
+    # effort tiers per model, so under "All variants" Claude Opus 5.5 held
+    # three of the top 25 slots and Claude Fable five — a leaderboard of
+    # configurations, not models. With an EFFORT set the frame already holds
+    # one row per family and this is a no-op.
+    valid = dedupe_to_best_variant(df[df["quality"] > 0])
 
     if metric == "value":
         valid = valid[valid["price"] > 0].copy()
@@ -60,9 +66,13 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
     if valid.empty:
         # Reachable from the UI: any filter combination matching nothing used to
         # raise IndexError out of _assign_tiers rather than render.
-        return empty_figure()
+        return empty_state_figure(f"Top Models by {title_metric}", "No models match these filters",
+                                  "Clear the search, widen PROVIDER, or lower MIN SCORE")
 
     ranked = valid.sort_values("_metric", ascending=False).head(top_n).copy()
+    # The title counts what is drawn: callers pass min(25, rows) on the frame
+    # BEFORE the family dedupe.
+    top_n = len(ranked)
     # Intelligence is a property of the model, so this view carries open-weight
     # models no API host sells. Value and Speed cannot: their `> 0` filters above
     # drop rows whose price and speed are NaN, which is exactly what those rows
@@ -135,8 +145,19 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
         hovertemplate=hover,
         showlegend=False,
         text=ranked["_metric"].apply(lambda q: f"{q:.0f}"),
+        # Upright, at the bar's end, in a colour read off the bar actually on
+        # screen: Plotly rotated inside labels 90° whenever a bar was too thin
+        # for them flat, and a fixed 60%-white label was 1.6:1 on OpenAI's
+        # light grey. Hollow (open-weights) bars are a faint tint, so they get
+        # light text like the background.
         textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
+        textangle=0,
+        insidetextanchor="end",
+        constraintext="none",
+        insidetextfont=dict(
+            color=[text_on(c, OPEN_BAR_FILL_ALPHA * 0.85 if o else 0.85)
+                   for c, o in zip(colors, is_open)],
+            size=11, family=_FONT),
     ))
 
     # Provider label on the right (with price sub-label). Collected into a list
@@ -214,7 +235,7 @@ def build_rankings(df: pd.DataFrame, top_n: int = 25, metric: str = "intelligenc
                 # price is ranked on that assumption; the note leads (titles
                 # do not wrap). Other metrics ignore price: no note.
                 + (fill_note(ranked, basis) if metric == "value" else "")
-                + f"  ·  {x_label}{_self_host_note}"
+                + f"  ·  one per model family  ·  {x_label}{_self_host_note}"
                 + ("  ·  hollow = open weights" if is_open.any() else "")
                 + "  ·  dashed lines = tier boundaries (8% gap)</span>"
             ),

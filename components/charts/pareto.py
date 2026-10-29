@@ -20,6 +20,7 @@ from components.charts.constants import (
     BUBBLE_SPEED_REF, bubble_size, safe_corr, marker_outline,
     legend_below, CHART_MARGIN, spotlight_split, log_ticks,
     weights_symbol, row_is_open, UNTIMED_RIM,
+    place_point_labels, family_label, legend_reference, size_note, NOTE_MARGIN_T, empty_state_figure,
 )
 from data.open_weights import weights_labels
 from data.workload_mix import resolve_mix, fill_note, fill_hover, price_marks
@@ -133,6 +134,20 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
     xcol = X_COLUMNS["task" if task else "price"]
     plot_df = _plottable(df, xcol)
     ref_df = plot_df if full_df is None else _plottable(full_df, xcol)
+    if plot_df.empty:
+        # A bare pair of axes read as "broken"; say what matched nothing and
+        # what to change, the way Budget does (constants.empty_state_figure).
+        n_on_screen = len(_plottable(df if count_df is None else count_df))
+        if task and n_on_screen:
+            return empty_state_figure(
+                "Cost per Task vs. Intelligence",
+                f"Artificial Analysis has no cost per task for the {n_on_screen} "
+                f"model famil{'y' if n_on_screen == 1 else 'ies'} matching these filters",
+                "Switch X AXIS to Price, or widen the filters")
+        return empty_state_figure(
+            "Cost per Task vs. Intelligence" if task else "Cost vs. Intelligence",
+            "No models match these filters",
+            "Clear the search, widen PROVIDER, or lower MIN SCORE")
 
     plot_df["size"] = bubble_size(plot_df["speed"], BUBBLE_SPEED_REF).values
 
@@ -141,7 +156,8 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
 
     fig = go.Figure()
 
-    plot_df, providers = spotlight_split(plot_df)
+    plot_df, providers = spotlight_split(
+        plot_df, order_df=legend_reference(df if full_df is None else full_df))
     for provider in providers:
         pdf = plot_df[plot_df["display_provider"] == provider]
         # Draw the biggest bubbles first so small ones land on top and stay
@@ -156,7 +172,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
         hover = (
             "<b>%{customdata[0]}</b><br>"
             "Provider: %{customdata[1]}<br>"
-            "Quality: %{y}<br>"
+            "Intelligence: %{y:.1f}<br>"
             + ("Cost / task: %{customdata[8]}  ·  AA-measured<br>" if task else "")
             + "Price: %{customdata[7]}/M tokens  ·  " + basis.short + "<br>"
             + ("Token burn: %{customdata[9]}  ·  at " + list_blend_short() + "<br>"
@@ -256,67 +272,70 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             line=dict(color="rgba(0,212,255,0.5)", width=1, dash="dot"),
             hoverinfo="skip",
             showlegend=True,
+            # Leads the legend: trailing it, its dashed swatch ran into the
+            # "Other" label before it and read as one entry.
+            legendrank=1,
         ))
-
-        # Label Pareto-optimal models — skip models too close in log-price space
-        spaced_rows, spaced_pos = [], []
-        last_log_price = -math.inf
-        for _, prow in pareto_df.iterrows():
-            log_p = math.log10(prow[xcol])
-            if log_p - last_log_price >= 0.4:
-                spaced_rows.append(prow)
-                spaced_pos.append("top center" if len(spaced_rows) % 2 == 1 else "bottom center")
-                last_log_price = log_p
-        if spaced_rows:
-            label_df = pd.DataFrame(spaced_rows)
-            fig.add_trace(go.Scatter(
-                x=label_df[xcol],
-                y=label_df["quality"],
-                mode="text",
-                text=label_df["model"].apply(
-                    lambda m: plot_text(m[:22] + "…" if len(m) > 22 else m)),
-                textposition=spaced_pos,
-                textfont=dict(color="rgba(0,212,255,0.65)", size=10, family=FONT),
-                hoverinfo="skip",
-                showlegend=False,
-            ))
 
     _zero = "rgba(255,255,255,0.06)"
 
-    if not plot_df.empty:
-        tickvals, ticktext = _log_price_ticks(
-            float(plot_df[xcol].min()), float(plot_df[xcol].max())
-        )
+    # Axis ranges from the UNFILTERED catalogue (ref_df), like the frontier: a
+    # mark keeps its screen position under a filter, and the label placement
+    # below needs to know where every mark lands.
+    rng_df = ref_df if not ref_df.empty else plot_df
+    if not rng_df.empty:
+        lo_x, hi_x = float(rng_df[xcol].min()), float(rng_df[xcol].max())
+        lx0, lx1 = math.log10(lo_x), math.log10(hi_x)
+        pad_x = max(0.08, (lx1 - lx0) * 0.06)
+        x_range = [lx0 - pad_x, lx1 + pad_x]
+        q_lo, q_hi = float(rng_df["quality"].min()), float(rng_df["quality"].max())
+        pad_y = max(2.0, (q_hi - q_lo) * 0.08)
+        y_range = [max(0.0, q_lo - pad_y), q_hi + pad_y]
+    else:
+        x_range = y_range = None
+
+    # Label the frontier models on screen, cheapest first: offset plates that
+    # never cover a mark or another label (constants.place_point_labels).
+    annotations = []
+    if not pareto_df.empty and x_range:
+        markers = list(zip(plot_df[xcol], plot_df["quality"],
+                           [s if _ok else UNMEASURED_PX for s, _ok in
+                            zip(plot_df["size"], _speed_measured(plot_df))]))
+        cands = [(r[xcol], r["quality"], family_label(r["model"]),
+                  dict(zip(plot_df["model"], [m[2] for m in markers])).get(r["model"], 12))
+                 for _, r in pareto_df.iterrows()]
+        annotations = place_point_labels(cands, markers, x_range, y_range, x_log=True,
+                                         color="rgba(0,212,255,0.85)")
+
+    _zero = "rgba(255,255,255,0.06)"
+
+    if x_range:
+        tickvals, ticktext = _log_price_ticks(10 ** x_range[0], 10 ** x_range[1])
+        inside = [i for i, v in enumerate(tickvals)
+                  if x_range[0] <= math.log10(v) <= x_range[1]]
+        tickvals = [tickvals[i] for i in inside]
+        ticktext = [ticktext[i] for i in inside]
     else:
         tickvals, ticktext = [], []
 
-    # Correlation annotation
-    corr_text = (
-        f"r = {_corr_r:.2f}  (log {'cost/task' if task else 'price'} vs quality)"
-        if _corr_r is not None else ""
-    )
-    if task and corr_text:
+    # The note above the plot: what bubble size means, then the correlation.
+    # Same place and same order in all three X AXIS views (quadrant.py builds
+    # it with the same helper): it used to sit inside the plot's top-left on
+    # Price and Cost / task and above the plot's right on Speed, and size
+    # silently changed meaning between them.
+    parts = []
+    if _corr_r is not None:
+        parts.append(f"r = {_corr_r:.2f}  (log {'cost/task' if task else 'price'} vs quality)")
+    if task and _corr_r is not None:
         # Why the axis exists: list price per token mis-orders cost per task.
-        # Ranked at the LIST blend whatever the MIX (as the token burn is), and
-        # the third line says so: the hover's Price line follows the MIX, and
-        # at agentic the share computed on that price is 23%, not 18%.
-        # Separate lines: on one line it ran 137 px off a 390 px screen.
+        # Ranked at the LIST blend whatever the MIX (as the token burn is):
+        # the hover's Price line follows the MIX, and at agentic the share
+        # computed on that price is 23%, not 18%.
         flips = rank_flip_share(plot_df)
         if flips is not None:
-            corr_text += (f"<br>{flips[0]:.0%} of {flips[1]:,} pairs: cheaper per "
-                          "token, dearer per task"
-                          f"<br>per token = list price at {list_blend_short()}")
-
-    annotations = []
-    if corr_text:
-        annotations.append(dict(
-            x=0.01, y=0.99,
-            xref="paper", yref="paper",
-            text=corr_text,
-            showarrow=False,
-            xanchor="left", yanchor="top", align="left",
-            font=dict(color="#666666", size=10, family=FONT),
-        ))
+            parts.append(f"{flips[0]:.0%} of {flips[1]:,} pairs cheaper per token but "
+                         f"dearer per task (list price, {list_blend_short()})")
+    annotations.append(size_note("size = speed (tok/s)", parts))
 
     # Each key appears only when its encoding is on screen. Terse on purpose:
     # Plotly titles do not wrap, and the longer "hollow = open weights  ·
@@ -339,7 +358,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             "  <span style='font-size:12px;color:#777777;font-weight:400'>"
             f"{len(plot_df)} of {n_fam} model families have an AA cost per task"
             f" ({n_fam - len(plot_df)} lack one; not imputed)"
-            "  ·  size = tok/s  ·  shape = provider"
+            "  ·  shape = provider"
             + hollow + "</span>"
         )
         # Two lines: on one it overflowed a 390 px plot at both ends.
@@ -358,7 +377,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             # the tail of this subtitle ran off the card.
             + fill_note(plot_df, basis)
             + f"  ·  {len(plot_df)} of {len(df)} rows, one per model family"
-            + "  ·  size = tok/s  ·  shape = provider"
+            + "  ·  shape = provider"
             + hollow
             + "</span>"
         )
@@ -383,6 +402,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
                 standoff=12,
             ),
             type="log",
+            range=x_range,
             tickmode="array" if tickvals else "auto",
             tickvals=tickvals or None,
             ticktext=ticktext or None,
@@ -400,6 +420,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
                 font=dict(color=AXIS, size=12),
                 standoff=12,
             ),
+            range=y_range,
             gridcolor=GRID,
             zerolinecolor=_zero,
             zerolinewidth=1,
@@ -409,7 +430,7 @@ def build_pareto_scatter(df: pd.DataFrame, full_df: pd.DataFrame | None = None,
             ticks="",
         ),
         legend=legend,
-        margin=CHART_MARGIN,
+        margin={**CHART_MARGIN, "t": NOTE_MARGIN_T},
         hovermode="closest",
         hoverlabel=dict(
             bgcolor="#161616",

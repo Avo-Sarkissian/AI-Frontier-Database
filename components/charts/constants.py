@@ -10,6 +10,10 @@ from components.charts import auto_palette as _auto_palette
 
 # Ordered from most-specific to least-specific so longer matches win
 _NAME_SUBS = [
+    # AA's Claude 5.5 / Fable 5.1 tiers all read "(Max, Default Fallback)":
+    # the qualifier is identical on every tier, so it carries no information
+    # and cost 18 characters of every label (truncating the effort itself).
+    (_re.compile(r',\s*Default\s+Fallback\s*\)',   _re.I), ')'),
     (_re.compile(r'\(\s*Adaptive\s+Reasoning\s*\)', _re.I), '(AR)'),
     (_re.compile(r'\(\s*Non-reasoning\s*\)',          _re.I), '(NR)'),
     (_re.compile(r'\(\s*Reasoning\s*\)',              _re.I), '(R)'),
@@ -84,6 +88,13 @@ def clean_model_name(name: str, max_len: int = 32) -> str:
 
 
 _BASE_MODEL_RE = _re.compile(r'\s*\([^)]*\)\s*$')
+
+
+def family_label(name: str, max_len: int = 26) -> str:
+    """A point label for a chart that shows ONE row per model family: the
+    family name with the effort / snapshot parenthetical dropped, escaped and
+    truncated. The hover still names the exact variant."""
+    return clean_model_name(base_model_name(str(name)), max_len=max_len)
 
 
 def base_model_name(name: str) -> str:
@@ -909,7 +920,8 @@ def log_ticks(lo: float, hi: float, fmt=None) -> tuple[list[float], list[str]]:
     return vals, [fmt(v) for v in vals]
 
 
-def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider"):
+def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider",
+                    order_df: _pd.DataFrame | None = None):
     """Split providers into their own series vs a shared "Other" bucket.
 
     Returns ``(df, ordered_names)`` where df gains a ``display_provider``
@@ -920,7 +932,12 @@ def spotlight_split(df: _pd.DataFrame, provider_col: str = "provider"):
     """
     out = df.copy()
     out["_canon_provider"] = out[provider_col].apply(canonical_provider)
-    counts = out["_canon_provider"].value_counts()
+    # `order_df` (see legend_reference): decide who is named, and in which
+    # order, on a fixed reference instead of the frame on screen, so switching
+    # Overview's X AXIS or narrowing a filter cannot reshuffle the legend.
+    ref = out if order_df is None or order_df.empty else order_df
+    counts = (ref[provider_col].apply(canonical_provider).value_counts()
+              if ref is not out else out["_canon_provider"].value_counts())
     # Total order, not just value_counts' order. value_counts does not define
     # how ties break, and after dedupe the top providers genuinely tie (OpenAI
     # 8 / Google 8 / Mistral 8) — so pandas 3.x in CI and pandas 2.2.3 in the
@@ -975,3 +992,237 @@ def fit_text(text: str, gutter_px: int, size_px: int = 10, pad_px: int = 20) -> 
     text = str(text)
     max_chars = max(8, int((gutter_px - pad_px) / (size_px * 0.55)))
     return text if len(text) <= max_chars else text[: max_chars - 1] + "…"
+
+
+# ── Direct point labels ──────────────────────────────────────────────────────
+# Labels used to be "text" traces centred on their marker with a fixed 0.4-
+# decade spacing rule, so on Overview a label sat on its own bubble and on its
+# neighbours' (GPT-6.1 Terra's name ran through the diamond it named). They are
+# now annotations offset from the marker on a small dark plate, placed by a
+# greedy search in a NOMINAL desktop plot box: each candidate position is
+# tried in turn and the first that stays inside the plot and clears every
+# marker and every label already placed wins; a label with no free position is
+# skipped (the hover still names every mark). Placement is computed in Python
+# so the pre-rendered figure and the live render agree exactly.
+#
+# The phone transform in docs/app.js hides annotations named POINT_LABEL, the
+# same way it hides text traces: at 356 px there is no room for them.
+POINT_LABEL = "point-label"
+LABEL_PLOT_W = 1200.0     # px: a 1440 viewport's plot area, less margins
+LABEL_PLOT_H = 360.0
+LABEL_CHAR_PX = 6.0       # 10 px Inter
+LABEL_H_PX = 15.0
+
+
+def _label_box(cx, cy, w, h):
+    return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+
+
+def _boxes_hit(a, b, pad: float = 2.0) -> bool:
+    return not (a[2] + pad <= b[0] or b[2] + pad <= a[0]
+                or a[3] + pad <= b[1] or b[3] + pad <= a[1])
+
+
+def _circle_hits_box(cx, cy, r, box) -> bool:
+    nx = min(max(cx, box[0]), box[2])
+    ny = min(max(cy, box[1]), box[3])
+    return (cx - nx) ** 2 + (cy - ny) ** 2 < r * r
+
+
+def place_point_labels(candidates, markers, x_range, y_range, x_log: bool = False,
+                       color: str = "rgba(255,255,255,0.72)", max_labels: int = 8,
+                       plot_w: float = LABEL_PLOT_W, plot_h: float = LABEL_PLOT_H):
+    """Annotations for `candidates` [(x, y, text, marker_px)] in priority order.
+
+    `markers` [(x, y, marker_px)] are every mark on the plot (obstacles).
+    `x_range`/`y_range` are the axis ranges as Plotly stores them (exponents on
+    a log axis). Returns at most `max_labels` annotation dicts; candidates with
+    no free position are left out."""
+    lx0, lx1 = x_range
+    ly0, ly1 = y_range
+    xs = (lx1 - lx0) or 1.0
+    ys = (ly1 - ly0) or 1.0
+
+    def px(x, y):
+        xv = _math.log10(x) if x_log else float(x)
+        return ((xv - lx0) / xs * plot_w, (ly1 - float(y)) / ys * plot_h)
+
+    obstacles = [(*px(x, y), float(s) / 2 + 1.5) for x, y, s in markers
+                 if x is not None and y is not None and (not x_log or x > 0)]
+    placed, out = [], []
+    for x, y, text, size in candidates:
+        if len(out) >= max_labels:
+            break
+        if x is None or y is None or (x_log and not x > 0):
+            continue
+        cx, cy = px(x, y)
+        w = len(str(text)) * LABEL_CHAR_PX + 8
+        h = LABEL_H_PX
+        gap = float(size) / 2 + 4
+        offsets = [
+            (0, -(gap + h / 2)),                     # above
+            (gap + w / 2, 0),                        # right
+            (-(gap + w / 2), 0),                     # left
+            (0, gap + h / 2),                        # below
+            (gap * 0.7 + w / 2, -(gap * 0.7 + h / 2)),
+            (-(gap * 0.7 + w / 2), -(gap * 0.7 + h / 2)),
+            (gap * 0.7 + w / 2, gap * 0.7 + h / 2),
+            (-(gap * 0.7 + w / 2), gap * 0.7 + h / 2),
+        ]
+        for dx, dy in offsets:
+            box = _label_box(cx + dx, cy + dy, w, h)
+            if box[0] < 2 or box[2] > plot_w - 2 or box[1] < 2 or box[3] > plot_h - 2:
+                continue
+            if any(_boxes_hit(box, b) for b in placed):
+                continue
+            if any(_circle_hits_box(ox, oy, r, box) for ox, oy, r in obstacles):
+                continue
+            placed.append(box)
+            out.append(dict(
+                name=POINT_LABEL,
+                x=_math.log10(x) if x_log else x, y=y, xref="x", yref="y",
+                text=str(text), showarrow=True, arrowhead=0, arrowwidth=0.6,
+                arrowcolor="rgba(255,255,255,0.25)", standoff=float(size) / 2,
+                ax=round(dx), ay=round(dy), axref="pixel", ayref="pixel",
+                bgcolor="rgba(17,17,17,0.82)", borderpad=2,
+                font=dict(color=color, size=10, family=FONT),
+            ))
+            break
+    return out
+
+
+def legend_reference(full_df: _pd.DataFrame) -> _pd.DataFrame:
+    """The frame legend membership and order are decided on: every scored
+    family in the unfiltered catalogue. Shared by Overview's three X AXIS views
+    so a provider keeps its colour, its legend slot and its Other/own-entry
+    status whichever view (or filter) is on screen."""
+    if full_df is None or full_df.empty or "quality" not in full_df.columns:
+        return full_df
+    return dedupe_to_best_variant(full_df[full_df["quality"] > 0])
+
+
+# Top margin for charts carrying size_note(): the title line plus the note.
+NOTE_MARGIN_T = 70
+
+
+def size_note(size_key: str, extras=()) -> dict:
+    """The one-line key above an Overview plot, right-aligned: what bubble
+    size means first, then `extras` (the correlation, ...). One builder so all
+    three X AXIS views put it in the same place in the same words. Named
+    "note": the phone transform keeps its leading segments that fit."""
+    text = "  ·  ".join([size_key, *[e for e in extras if e]])
+    return dict(name="note", x=1.0, y=1.0, xref="paper", yref="paper",
+                xanchor="right", yanchor="bottom", yshift=4, showarrow=False,
+                align="right", text=text,
+                font=dict(color="#8a8a8a", size=10, family=FONT))
+
+
+# ── Text on a filled mark ────────────────────────────────────────────────────
+# Bar value labels were a fixed 60%-white, which is 1.6:1 on OpenAI's light
+# grey bar — unreadable — while fine on Anthropic's orange. The label colour is
+# now chosen per bar from the colour actually on screen: the fill composited
+# over the chart background at the bar's opacity.
+TEXT_DARK = "#000000"
+TEXT_LIGHT = "#ffffff"
+
+
+def parse_rgba(color: str) -> tuple[float, float, float, float] | None:
+    """'#rgb', '#rrggbb', 'rgb(...)' or 'rgba(...)' -> (r, g, b, a), else None."""
+    c = str(color or "").strip().lower()
+    if c.startswith("#"):
+        h = c[1:]
+        if len(h) == 3:
+            h = "".join(ch * 2 for ch in h)
+        if len(h) != 6:
+            return None
+        try:
+            return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 1.0)
+        except ValueError:
+            return None
+    m = _re.match(r"rgba?\(([^)]*)\)", c)
+    if not m:
+        return None
+    parts = [p.strip() for p in m.group(1).split(",")]
+    try:
+        r, g, b = (float(p) for p in parts[:3])
+        a = float(parts[3]) if len(parts) > 3 else 1.0
+    except ValueError:
+        return None
+    return (r, g, b, a)
+
+
+def _luminance(rgb) -> float:
+    def ch(v):
+        v = v / 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb[:3]
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast_ratio(a, b) -> float:
+    la, lb = _luminance(a), _luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def composite(color: str, opacity: float = 1.0, bg: str = BG) -> tuple[float, float, float]:
+    """The colour a mark shows: `color` (with its own alpha) at `opacity`
+    over `bg`."""
+    fg = parse_rgba(color) or parse_rgba(DEFAULT_COLOR)
+    back = parse_rgba(bg)
+    a = max(0.0, min(1.0, fg[3] * float(opacity)))
+    return tuple(fg[i] * a + back[i] * (1 - a) for i in range(3))
+
+
+def text_on(color: str, opacity: float = 1.0, bg: str = BG) -> str:
+    """TEXT_DARK or TEXT_LIGHT, whichever reads better on the shown colour."""
+    shown = composite(color, opacity, bg)
+    dark, light = parse_rgba(TEXT_DARK), parse_rgba(TEXT_LIGHT)
+    return TEXT_DARK if contrast_ratio(shown, dark) > contrast_ratio(shown, light) else TEXT_LIGHT
+
+
+def empty_state_figure(title: str, headline: str, hint: str = "", height: int = 320):
+    """The Budget tab's empty state, for every chart that can filter to
+    nothing: the chart's own title, what matched nothing, and what to change.
+    Axes are hidden — a bare grid reads as "broken", not "no match"."""
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    fig.add_annotation(
+        text=(plot_text(headline)
+              + (f"<br><span style='font-size:12px;color:#777777'>{plot_text(hint)}</span>"
+                 if hint else "")),
+        showarrow=False, xref="paper", yref="paper", x=0.5, y=0.5,
+        font=dict(size=15, family=FONT, color="#999999"), align="center",
+    )
+    fig.update_layout(
+        paper_bgcolor=BG, plot_bgcolor=BG,
+        xaxis=dict(visible=False), yaxis=dict(visible=False),
+        margin=dict(l=20, r=20, t=52, b=36), height=height, showlegend=False,
+        title=dict(text=title, font=dict(size=15, color="#f2f2f2", family=FONT, weight=600),
+                   x=0.0, xanchor="left", pad=dict(l=20, t=16)),
+    )
+    return fig
+
+
+# Plot-area widths the bar label placement assumes: a 1440 desktop card and a
+# 390 px phone (docs/app.js applies layout.meta.narrow below PHONE_PX = 600).
+BAR_PLOT_PX_DESKTOP = 900.0
+BAR_PLOT_PX_PHONE = 140.0
+PHONE_PX = 600
+
+
+def bar_text_positions(values, texts, axis_max: float, plot_px: float) -> list[str]:
+    """"inside" where the bar is long enough to hold its label at 11 px,
+    else "outside". Plotly's own "auto" shrank a label that did not fit to
+    ~5 px ($8.00 on a short phone bar) instead of moving it out; deciding here
+    keeps every label full size and the anchor predictable."""
+    hi = float(axis_max) if axis_max and axis_max > 0 else 1.0
+    out = []
+    for v, t in zip(values, texts):
+        try:
+            px = max(0.0, float(v)) / hi * plot_px
+        except (TypeError, ValueError):
+            px = 0.0
+        out.append("inside" if px >= len(str(t)) * 6.6 + 10 else "outside")
+    return out

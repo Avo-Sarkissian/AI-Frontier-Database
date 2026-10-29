@@ -61,7 +61,8 @@ def test_quadrant_zone_captions_stay_in_exponent_space():
 
     layout = _fig(build_quadrant(DF, full_df=DF))["layout"]
     lx0, lx1 = layout["xaxis"]["range"]
-    captions = [a for a in layout["annotations"] if a.get("xref") == "x"]
+    captions = [a for a in layout["annotations"]
+                if a.get("xref") == "x" and a.get("name") != "point-label"]
     assert len(captions) == 4
     for a in captions:
         assert lx0 <= a["x"] <= lx1, f"caption {a['text']!r} at {a['x']} is off the axis"

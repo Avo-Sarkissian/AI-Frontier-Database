@@ -36,7 +36,8 @@ CAPTIONS: dict[str, str] = {
         "provider average. Right labels show model count and top model."
     ),
     'rankings_intelligence': (
-        "Intelligence = AA Intelligence Index (composite benchmark). Value = "
+        "One bar per model family — its best-scoring effort tier unless EFFORT "
+        "picks another. Intelligence = AA Intelligence Index (composite benchmark). Value = "
         "Intelligence ÷ Price (higher = more score per dollar). Speed = throughput "
         "in tokens/second. Models within ±2 points of each other are effectively "
         "tied — small deltas are within measurement variance. About half these "
@@ -48,11 +49,13 @@ CAPTIONS: dict[str, str] = {
         "solid = closed."
     ),
     'rankings_value': (
-        "Top 15 models ranked by intelligence per dollar (quality score ÷ price per "
-        "1M tokens at the MIX setting, so an input-heavy or cached workload can "
-        "re-rank the list). Quality floor of 20 so ultra-cheap but weak models don't "
-        "pollute the list. Bar length = value score. Labels show raw quality and "
-        "price."
+        "Top 15 model families ranked by intelligence per dollar (quality score ÷ "
+        "price per 1M tokens at the MIX setting, so an input-heavy or cached "
+        "workload can re-rank the list), one bar per family. A quality floor "
+        "excludes the weakest 5% of model families so ultra-cheap but weak models stay "
+        "out; it is a percentile, not a fixed score, so it follows the index through a "
+        "rescale. "
+        "Bar length = value score. Labels show raw quality and price."
     ),
     'compare': (
         "Radar comparing up to 5 models across 5 dimensions, each scaled 0–100% "
@@ -60,7 +63,8 @@ CAPTIONS: dict[str, str] = {
         "means the same thing whatever the filter. Speed, price, context and "
         "latency are heavy-tailed, so those four use a log scale: one step is a 10× "
         "change, not a fixed amount. Affordability = inverted price (100% = "
-        "cheapest). Latency = inverted TTFT (100% = fastest). Raw values for each "
+        "cheapest). Latency = inverted TTFT (100% = fastest). Rings mark 25% "
+        "steps; hover a shape for its exact percentages. Raw values for each "
         "model are shown in the table below the chart."
     ),
     'budget': (
@@ -89,9 +93,13 @@ CAPTIONS: dict[str, str] = {
     ),
     'local': (
         "Model specs come from Artificial Analysis, plus a short curated list of "
-        "notable open-weight releases AA has not benchmarked yet — those are drawn "
-        "with an outlined bar and no score, never a guessed one, and are excluded "
-        "from the Agent Stack recommendations. "
+        "notable open-weight releases AA has not benchmarked yet — those are listed "
+        "last in the ranking as \"unscored\" with no bar, never a guessed score, and "
+        "are excluded from the Agent Stack recommendations. Each model appears once, "
+        "as its best-scoring reasoning-effort variant (the tiers share weights, VRAM "
+        "and speed); the ranking shows the top 30 that fit and counts the rest, and "
+        "↓CSV carries every row. Colour names a lab only where it stays tellable "
+        "apart; other labs share grey. "
         "VRAM covers model WEIGHTS, the KV cache at the context you select, and "
         "about 1.5 GB of runtime overhead. The KV cache is the term that used to "
         "be missing and it is not small: Llama 3.1 8B at Q4 needs about 7 GB at 8k "
@@ -140,7 +148,8 @@ CAPTIONS: dict[str, str] = {
         "ranks on do not: Artificial Analysis retired its public per-category "
         "breakdown on 2026-09-07 and now publishes it only to API-key holders, "
         "so those are the last published figures and a model released since "
-        "then carries none. Annotations show price per 1,000 images."
+        "then carries none. One dot per model, all three columns on one shared "
+        "ELO scale; hollow = open weights; the label is price per 1,000 images."
     ),
     'video': (
         "Compare video generation models on quality and cost, scraped hourly from the "
@@ -271,8 +280,8 @@ CAPTIONS: dict[str, str] = {
         "interpolations (booked half-year or quarterly revenue × 2 or × 4, backward-looking) "
         "sit on a dotted line of their own, never joined to a run-rate or ARR snapshot. "
         "MARGINS: each "
-        "row is ONE definition and rows are not comparable to each other: Zhipu's and "
-        "MiniMax's IFRS gross margins (HKEX filings), Zhipu's cloud/API segment margin, "
+        "row is ONE definition and rows are not comparable to each other: Z AI's (Zhipu) "
+        "and MiniMax's IFRS gross margins (HKEX filings), Z AI's cloud/API segment margin, "
         "Anthropic's gross margin on the cost of revenue in S-1 Note 8 (the statement of "
         "operations presents expenses by nature; Note 8 gives them by function, and "
         "substantially all cost of revenue is compute for customer-serving workloads), "

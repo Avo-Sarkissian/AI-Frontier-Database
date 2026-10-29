@@ -552,16 +552,158 @@ function pinFigureHeight(divId, layout) {
 // one level deep into the layout key, anything else replaces it.
 function narrowFigure(fig, width) {
   const n = fig.layout && fig.layout.meta && fig.layout.meta.narrow;
-  if (!n || !(width > 0) || width >= n.max_width) return fig;
-  const data = fig.data.map((t, i) =>
-    (n.data && n.data[i]) ? Object.assign({}, t, n.data[i]) : t);
-  const layout = Object.assign({}, fig.layout);
-  for (const [k, v] of Object.entries(n.layout || {})) {
-    const cur = layout[k];
-    layout[k] = (v && typeof v === "object" && !Array.isArray(v)
-                 && cur && typeof cur === "object" && !Array.isArray(cur))
-      ? Object.assign({}, cur, v) : v;
+  let out = fig;
+  if (n && width > 0 && width < n.max_width) {
+    const data = fig.data.map((t, i) =>
+      (n.data && n.data[i]) ? Object.assign({}, t, n.data[i]) : t);
+    const layout = Object.assign({}, fig.layout);
+    for (const [k, v] of Object.entries(n.layout || {})) {
+      const cur = layout[k];
+      layout[k] = (v && typeof v === "object" && !Array.isArray(v)
+                   && cur && typeof cur === "object" && !Array.isArray(cur))
+        ? Object.assign({}, cur, v) : v;
+    }
+    out = { data, layout };
   }
+  return phoneFigure(out, width);
+}
+
+// Below PHONE_PX every figure gets the same treatment, so no chart has to
+// remember it: a desktop title runs 725-1380 px and Plotly titles neither wrap
+// nor clip, so on a 356 px phone plot they ran off the card on every tab;
+// point-label text traces collided and ran off the left edge; a legend parked
+// a paper fraction under the axis landed on rotated tick labels. Here:
+//   - the title keeps its headline only (the grey <span> subtitle is the
+//     desktop key; the caption above the card carries the same facts), wrapped
+//     at word boundaries to the plot width;
+//   - pure text traces (point labels) are hidden and "markers+text" loses its
+//     text; hover still names every mark. layout.meta.keep_text opts out;
+//   - an explicit tick list is thinned until it fits without rotating;
+//   - the legend goes under everything, pinned to the figure's bottom edge,
+//     with the bottom margin and height grown by the rows it needs.
+// Applied to a copy; the cached figure is never touched.
+const PHONE_PX = 600;
+const PHONE_TITLE_CHAR_PX = 8.4;      // 14 px Inter, average glyph
+const PHONE_LEGEND_ROW_PX = 22;
+
+function phoneTitle(text, width) {
+  const head = String(text || "").split(/<span|<br>/i)[0].replace(/\s+/g, " ").trim();
+  const max = Math.max(12, Math.floor((width - 32) / PHONE_TITLE_CHAR_PX));
+  const lines = [];
+  let cur = "";
+  head.split(" ").forEach(w => {
+    if (cur && (cur + " " + w).length > max) { lines.push(cur); cur = w; }
+    else cur = cur ? cur + " " + w : w;
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function legendEntries(data) {
+  const seen = new Set();
+  const names = [];
+  data.forEach(t => {
+    if (t.showlegend === false || t.visible === false || !t.name) return;
+    if (t.showlegend !== true && (t.type === "pie" || t.type === "treemap")) return;
+    const key = t.legendgroup ? "g:" + t.legendgroup : "n:" + t.name + names.length;
+    if (seen.has(key)) return;
+    seen.add(key);
+    names.push(String(t.name).replace(/<[^>]*>/g, ""));
+  });
+  return names;
+}
+
+function phoneFigure(fig, width) {
+  if (!(width > 0) || width >= PHONE_PX || !fig || !fig.layout) return fig;
+  const src = fig.layout;
+  const keepText = !!(src.meta && src.meta.keep_text);
+  const layout = Object.assign({}, src);
+  const margin = Object.assign({ l: 56, r: 28, t: 52, b: 52 }, src.margin || {});
+  let height = Number(src.height) || 0;
+
+  // Title: headline only, wrapped.
+  const title = src.title && (typeof src.title === "string" ? { text: src.title } : src.title);
+  if (title && title.text) {
+    const lines = phoneTitle(title.text, width);
+    layout.title = Object.assign({}, title, {
+      text: lines.join("<br>"),
+      font: Object.assign({}, title.font || {}, { size: 14 }),
+      pad: Object.assign({}, title.pad || {}, { l: 12 }),
+    });
+    const extra = (lines.length - 1) * 18;
+    if (extra > 0) { margin.t += extra; if (height) height += extra; }
+  }
+
+  // Point labels.
+  const data = fig.data.map(t => {
+    const isScatter = !t.type || t.type === "scatter" || t.type === "scattergl";
+    if (keepText || !isScatter || typeof t.mode !== "string" || !t.mode.includes("text")) return t;
+    if (t.mode === "text") return Object.assign({}, t, { visible: false });
+    return Object.assign({}, t, { mode: t.mode.split("+").filter(m => m !== "text").join("+") });
+  });
+
+  // Annotations: point-label plates go the way of text traces; a "note"
+  // (constants.size_note) keeps the leading " · " segments that fit; other
+  // multi-line paper notes keep their first line.
+  if (Array.isArray(src.annotations) && !keepText) {
+    const maxChars = Math.floor((width - 24) / 5.6);
+    layout.annotations = src.annotations.filter(a => a.name !== "point-label").map(a => {
+      if (a.name === "note") {
+        const segs = String(a.text || "").split("  ·  ");
+        let txt = segs[0];
+        for (const sgm of segs.slice(1)) {
+          if ((txt + "  ·  " + sgm).length > maxChars) break;
+          txt += "  ·  " + sgm;
+        }
+        return Object.assign({}, a, { text: txt });
+      }
+      return a;
+    });
+  }
+
+  // Explicit tick lists: thin until they fit flat.
+  const maxTicks = Math.max(3, Math.floor((width - margin.l - margin.r) / 52));
+  Object.keys(layout).filter(k => /^xaxis\d*$/.test(k)).forEach(k => {
+    const ax = layout[k];
+    if (!ax || !Array.isArray(ax.tickvals) || ax.tickvals.length <= maxTicks) return;
+    const step = Math.ceil(ax.tickvals.length / maxTicks);
+    const keep = (_, i) => i % step === 0;
+    layout[k] = Object.assign({}, ax, {
+      tickvals: ax.tickvals.filter(keep),
+      ticktext: Array.isArray(ax.ticktext) ? ax.ticktext.filter(keep) : ax.ticktext,
+      tickangle: 0,
+    });
+  });
+
+  // Legend under everything.
+  const names = src.showlegend === false ? [] : legendEntries(data);
+  if (names.length) {
+    const usable = width - 16;
+    let rows = 1, x = 0;
+    names.forEach(nm => {
+      const w = 34 + Math.min(nm.length, 22) * 6.2;
+      if (x && x + w > usable) { rows += 1; x = 0; }
+      x += w;
+    });
+    const hasTitle = !!(src.legend && src.legend.title && src.legend.title.text);
+    const legendH = (rows + (hasTitle ? 1 : 0)) * PHONE_LEGEND_ROW_PX + 8;
+    const leg = Object.assign({}, src.legend || {});
+    layout.legend = Object.assign(leg, {
+      orientation: "h", x: 0, xanchor: "left", xref: "container",
+      y: 0, yanchor: "bottom", yref: "container",
+      font: Object.assign({}, leg.font || {}, { size: 10 }),
+    });
+    // Room for the tick labels and the x title's lines above the legend.
+    const xt = layout.xaxis && layout.xaxis.title;
+    const xtText = String((xt && (xt.text || xt)) || "");
+    const xtLines = xtText ? xtText.split(/<br>/i).length : 0;
+    const oldB = margin.b;
+    margin.b = 30 + xtLines * 17 + legendH;
+    // Keep the plot area the desktop figure had (or a phone default).
+    height = Math.max(320, (height || 440) - oldB + margin.b);
+  }
+  layout.margin = margin;
+  if (height) layout.height = height;
   return { data, layout };
 }
 
@@ -660,6 +802,13 @@ async function loadManifest() {
   window.AF.mixInfo = { short: null, table_header: m.table_price_header || null,
                         floor_label: m.floor_price_label || null };
   document.getElementById("stat-peak-quality").textContent = m.peak_quality;
+  // The Budget floor slider ends at the catalogue's peak (rounded up), so
+  // every position it offers can match a model; the HTML max is a fallback.
+  const budgetSlider = document.getElementById("budget-min-intelligence");
+  if (budgetSlider && Number(m.budget_slider_max) > 0) {
+    budgetSlider.max = String(m.budget_slider_max);
+    if (Number(budgetSlider.value) > Number(m.budget_slider_max)) budgetSlider.value = budgetSlider.max;
+  }
   const sel = document.getElementById("filter-provider");
   m.provider_options.forEach(o => {
     const opt = document.createElement("option");
@@ -1477,8 +1626,9 @@ function renderBudgetAnswer(best, floor, basis) {
   host.style.display = window.AF.state.tab === "budget" ? "block" : "none";
 
   const card = document.createElement("div");
+  card.className = "budget-answer-card";     // side margins track .chart-card
   card.style.cssText =
-    "margin:0 24px 4px;padding:12px 16px;border:1px solid var(--border);" +
+    "padding:12px 16px;border:1px solid var(--border);" +
     "border-left:2px solid #00d4ff;border-radius:4px;background:var(--bg-card);" +
     "font-family:Inter,sans-serif;";
 
@@ -1523,7 +1673,7 @@ function renderBudgetAnswer(best, floor, basis) {
   meta.textContent =
     `${best.quality.toFixed(1)} pts · ${fmtPrice(best.price)}${mark}/M tok` +
     (basis ? ` at ${basis}` : "") + " · " +
-    `${best.n_qualifying} model${best.n_qualifying === 1 ? "" : "s"} qualify` +
+    `${best.n_qualifying} model famil${best.n_qualifying === 1 ? "y qualifies" : "ies qualify"}` +
     (best.cache_price_filled && best.fill_key ? ` · ${best.fill_key}` : "");
 
   line.append(name, prov, cost);
@@ -2454,8 +2604,10 @@ function applyLocalUrlState() {
 
 // ---- Detail panel — Plotly click on pareto → model_detail HTML ----
 function wireDetailPanel() {
-  document.getElementById("detail-close").onclick = () =>
+  document.getElementById("detail-close").onclick = () => {
     document.getElementById("detail-panel").className = "detail-panel";
+    highlightPoint(null);
+  };
   document.getElementById("detail-add-compare").onclick = async () => {
     const m = window.AF.detailModel; if (!m) return;
     const sel = document.getElementById("radar-model-select");
@@ -2480,6 +2632,28 @@ function wireDetailPanel() {
   attachParetoClickHandler();
 }
 
+// Ring the mark whose details the panel is showing, so the reader can see
+// which bubble they clicked once the hover is gone. One extra trace, tagged by
+// meta; null removes it. A Python re-render (Plotly.react) drops it too.
+function highlightPoint(pt) {
+  const div = document.getElementById("chart-pareto");
+  if (!div || !Array.isArray(div.data) || typeof Plotly === "undefined") return;
+  const idx = div.data.findIndex(t => t.meta === "af-selected");
+  try {
+    if (idx >= 0) Plotly.deleteTraces(div, idx);
+    if (!pt || pt.x == null || pt.y == null) return;
+    const size = Number(pt["marker.size"]) || (pt.data && pt.data.marker
+      && Number(Array.isArray(pt.data.marker.size) ? pt.data.marker.size[pt.pointIndex]
+                                                     : pt.data.marker.size)) || 14;
+    Plotly.addTraces(div, {
+      type: "scatter", mode: "markers", x: [pt.x], y: [pt.y], meta: "af-selected",
+      showlegend: false, hoverinfo: "skip", zorder: 10,
+      marker: { symbol: "circle-open", size: size + 12, color: "#00d4ff",
+                line: { width: 2, color: "#00d4ff" } },
+    });
+  } catch (e) { console.warn("highlight:", e); }
+}
+
 // Attach (or re-attach) plotly_click on the Pareto chart.
 // Must be called after every Plotly.react on that div because react() clears handlers.
 function attachParetoClickHandler() {
@@ -2501,6 +2675,7 @@ function attachParetoClickHandler() {
       if (!html) return;
       document.getElementById("detail-panel-body").innerHTML = html;
       document.getElementById("detail-panel").className = "detail-panel open";
+      highlightPoint(ev.points[0]);
       window.AF.detailModel = model;
       window.AF.detailProvider = provider;
       window.AF.detailMix = JSON.stringify(mix);

@@ -14,6 +14,8 @@ from components.charts.constants import (
     right_gutter, ANNOTATED_AXIS_HEADROOM,
     PROVIDER_COLORS, DEFAULT_COLOR, clean_model_name, unique_labels,
     BG as _BG, GRID as _GRID, TICK as _TICK, AXIS as _AXIS, FONT as _FONT,
+    dedupe_to_best_variant, text_on, empty_state_figure,
+    bar_text_positions, BAR_PLOT_PX_DESKTOP, BAR_PLOT_PX_PHONE, PHONE_PX,
 )
 
 
@@ -26,6 +28,11 @@ def _spendable(df: pd.DataFrame, monthly_tokens_m: float, min_quality: float) ->
     ].copy()
     if min_quality:
         out = out[out["quality"] >= float(min_quality)]
+    # One row per model family (its best-scoring tier). Every tier of a family
+    # is billed at the same rate, so under "All variants" Claude Opus 5.5 took
+    # three adjacent rows at one price and pushed real alternatives off the
+    # list; the answer is the same either way.
+    out = dedupe_to_best_variant(out)
     out["monthly_cost"] = monthly_tokens_m * out["price"]
     # Rank on (cost, unit price, name), not cost alone. At a volume of 0 every
     # model costs $0.000, so a single-key sort is a no-op and "CHEAPEST MODEL
@@ -73,32 +80,19 @@ def cheapest_above(df: pd.DataFrame, min_quality: float = 0.0,
 def _no_match_figure(min_quality: float) -> go.Figure:
     """Explicit empty state. A blank chart reads as 'broken', and silently
     showing an unfiltered list would be worse — it would answer a question the
-    user did not ask."""
-    fig = go.Figure()
-    fig.add_annotation(
-        text=(
-            f"No model scores {min_quality:g} or higher<br>"
-            "<span style='font-size:12px;color:#777777'>"
-            "Lower the minimum intelligence, or widen the provider filter</span>"
-        ),
-        showarrow=False, xref="paper", yref="paper", x=0.5, y=0.5,
-        font=dict(size=15, family=_FONT, color="#999999"), align="center",
-    )
-    fig.update_layout(
-        paper_bgcolor=_BG, plot_bgcolor=_BG,
-        xaxis=dict(visible=False), yaxis=dict(visible=False),
-        margin=dict(l=20, r=20, t=52, b=36), height=320,
-        title=dict(
-            text="Monthly API Cost",
-            font=dict(size=15, color="#f2f2f2", family=_FONT, weight=600),
-            x=0.0, xanchor="left", pad=dict(l=20, t=16),
-        ),
-    )
-    return fig
+    user did not ask. The pattern every empty chart now shares
+    (constants.empty_state_figure)."""
+    if min_quality:
+        return empty_state_figure(
+            "Monthly API Cost", f"No model scores {min_quality:g} or higher",
+            "Lower the minimum intelligence, or widen the provider filter")
+    return empty_state_figure("Monthly API Cost", "No priced model matches these filters",
+                              "Clear the search or widen the provider filter")
 
 
 def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int = 30,
-                    min_quality: float = 0.0, basis=None) -> go.Figure:
+                    min_quality: float = 0.0, basis=None,
+                    full_df: pd.DataFrame | None = None) -> go.Figure:
     """Horizontal bar chart: monthly cost = monthly_tokens_m × price/M tokens.
 
     `min_quality` keeps only models scoring at least that on the AA Intelligence
@@ -106,6 +100,10 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
 
     ``basis`` is the workload MIX `price` is at (data/workload_mix); the title
     states the token mix every bar assumes.
+
+    ``full_df`` (default: `df`) is the unfiltered catalogue the score colours'
+    bands are read from (data/quality_scale quantiles), so a
+    filter cannot recolour a model.
     """
     basis = resolve_mix(basis)
     plot_df = _spendable(df, monthly_tokens_m, min_quality)
@@ -155,6 +153,11 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     opacities = (
         [1.0] + [0.45] * (len(plot_df) - 1) if min_quality else [0.85] * len(plot_df)
     )
+    # Value labels: upright, at the bar's end, coloured for the bar actually
+    # on screen (fill at its opacity over the background); a bar too short to
+    # hold its label gets it just outside, in the axis grey.
+    inside_colors = [text_on(c, o) for c, o in zip(colors, opacities)]
+    _x_hi = plot_df["monthly_cost"].max() * ANNOTATED_AXIS_HEADROOM
     fig.add_trace(go.Bar(
         y=short_names,
         x=plot_df["monthly_cost"],
@@ -167,8 +170,14 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         hovertemplate=hover,
         showlegend=False,
         text=cost_text,
-        textposition="inside",
-        textfont=dict(color="rgba(255,255,255,0.6)", size=11, family=_FONT),
+        textposition=bar_text_positions(plot_df["monthly_cost"], cost_text, _x_hi,
+                                        BAR_PLOT_PX_DESKTOP),
+        textangle=0,
+        insidetextanchor="end",
+        constraintext="none",
+        insidetextfont=dict(color=inside_colors, size=11, family=_FONT),
+        outsidetextfont=dict(color="#999999", size=11, family=_FONT),
+        cliponaxis=False,
     ))
 
     _gutter = right_gutter(
@@ -178,12 +187,15 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     # Collected as plain dicts and set once in update_layout below: one
     # fig.add_annotation per row re-validates the whole annotations tuple on
     # every call, which makes the build quadratic in rows.
+    from data.quality_scale import floor as _q_floor
+    _ref = df if full_df is None else full_df
+    _strong, _mid = _q_floor(_ref, "budget_strong"), _q_floor(_ref, "budget_mid")
     annotations = []
     for i, row in plot_df.iterrows():
         color = PROVIDER_COLORS.get(row["provider"], DEFAULT_COLOR)
         score_color = (
-            "#00d4ff" if row["quality"] >= 45
-            else "#7ecfaa" if row["quality"] >= 30
+            "#00d4ff" if row["quality"] >= _strong
+            else "#7ecfaa" if row["quality"] >= _mid
             else "#888888"
         )
         annotations.append(dict(
@@ -200,6 +212,21 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
         ))
 
     height = max(500, top_n * 26)
+
+    # Phone (docs/app.js, below PHONE_PX): shorter row names — the full ones
+    # took two thirds of a 356 px plot and ran off its left edge — with the
+    # right-hand labels re-keyed to them, and labels placed for a ~140 px bar.
+    phone_names = unique_labels(plot_df["model"].apply(
+        lambda m: clean_model_name(m, max_len=16)).tolist())
+    narrow = {"narrow": {
+        "max_width": PHONE_PX,
+        "data": {"0": {"y": phone_names},
+                 "1": {"y": phone_names,
+                       "textposition": bar_text_positions(
+                           plot_df["monthly_cost"], cost_text, _x_hi, BAR_PLOT_PX_PHONE)}},
+        "layout": {"annotations": [{**a, "y": phone_names[i]}
+                                   for i, a in enumerate(annotations)]},
+    }}
 
     fig.update_layout(
         paper_bgcolor=_BG,
@@ -234,7 +261,11 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             title=dict(text="Estimated Monthly Cost  (USD)", font=dict(color=_AXIS, size=12), standoff=12),
             gridcolor=_GRID, zerolinecolor="rgba(255,255,255,0.06)", zerolinewidth=1,
             tickfont=dict(color=_TICK, size=11, family=_FONT),
-            tickprefix="$",
+            # Tick labels in the same format as the bar labels (fmt_price):
+            # Plotly's own "$0.1" sat under bars reading "$0.100".
+            tickmode="array",
+            tickvals=_money_ticks(plot_df["monthly_cost"].max())[0],
+            ticktext=_money_ticks(plot_df["monthly_cost"].max())[1],
             showgrid=True, showline=False, ticks="",
             range=[0, plot_df["monthly_cost"].max() * ANNOTATED_AXIS_HEADROOM],
         ),
@@ -245,6 +276,7 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
             autorange="reversed",  # cheapest at top
         ),
         annotations=annotations,
+        meta=narrow,
         barmode="overlay",
         margin=dict(l=20, r=_gutter, t=52, b=36),
         height=height,
@@ -256,6 +288,17 @@ def build_cost_calc(df: pd.DataFrame, monthly_tokens_m: float = 1.0, top_n: int 
     )
 
     return fig
+
+
+def _money_ticks(hi: float, n: int = 5) -> tuple[list[float], list[str]]:
+    """About `n` round ticks from 0 to `hi`, labelled with fmt_price."""
+    import math
+    hi = float(hi) if hi and math.isfinite(float(hi)) and float(hi) > 0 else 1.0
+    raw = hi / n
+    mag = 10 ** math.floor(math.log10(raw))
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+    vals = [round(i * step, 10) for i in range(int(hi / step) + 1)]
+    return vals, [fmt_price(v) for v in vals]
 
 
 def _rate_pair(df) -> list[str]:
