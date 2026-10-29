@@ -30,7 +30,7 @@ import pandas as pd
 import pytest
 
 import build_static
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from data.ingest import load_history, get_models
 from data import open_gap as og
 from data.workload_mix import resolve_mix
@@ -425,7 +425,7 @@ def test_the_bundle_ships_the_new_modules():
 
 
 def test_the_economics_caption_cites_its_sources_and_limits():
-    c = CAPTIONS["economics_open_gap"]
+    c = CAPTION_TEXT["economics_open_gap"]
     for needle in ("artificialanalysis.ai", "epoch.ai/data-insights/open-closed-eci-gap",
                    "CC BY 4.0", "openrouter.ai/data/newsletter/the-token-state-of-play",
                    "quoted, not scraped", "nousresearch.com", "August 2025",
@@ -436,9 +436,9 @@ def test_the_economics_caption_cites_its_sources_and_limits():
 
 
 def test_the_hosted_captions_explain_hollow():
-    assert "Hollow = open weights" in CAPTIONS["overview_price"]
-    assert "Hollow = open weights" in CAPTIONS["overview_speed"]
-    assert "Outlined bars = open weights" in CAPTIONS["rankings_intelligence"]
+    assert "Hollow = open weights" in CAPTION_TEXT["overview_price"]
+    assert "Hollow = open weights" in CAPTION_TEXT["overview_speed"]
+    assert "Outlined bars = open weights" in CAPTION_TEXT["rankings_intelligence"]
 
 
 def test_the_readme_no_longer_claims_the_index_scale_never_moved():

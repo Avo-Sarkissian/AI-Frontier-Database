@@ -12,7 +12,7 @@ import pytest
 
 import build_static
 import static_api as api
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from components.charts.econ_serve import build_econ_serve, MEASURED_SYMBOL, MODELLED_SYMBOL
 from data import serving_cost as sc
 from static_helpers import (
@@ -317,7 +317,7 @@ def test_agent_stack_prices_datacenter_local_and_not_consumer():
     assert "/M out · rent, " in dc["cards_html"]
     consumer = json.loads(api.update_recommend([], "hybrid", "NVIDIA RTX 5090", 32, 1, "Q4"))
     assert "· rent, " not in consumer["cards_html"]
-    assert "free" not in CAPTIONS["recommend"].lower()
+    assert "free" not in CAPTION_TEXT["recommend"].lower()
     from components import stack_recommender
     assert "(free)" not in inspect.getsource(stack_recommender)
 

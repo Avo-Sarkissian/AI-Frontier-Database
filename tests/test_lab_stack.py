@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 import static_api as api
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from components.charts import lab_economics as C
 from data import lab_economics as L
 from static_helpers import econ_export
@@ -206,6 +206,6 @@ def test_stack_ships_everywhere():
 
 
 def test_caption_names_the_stack_sources():
-    c = CAPTIONS["economics_labs"]
+    c = CAPTION_TEXT["economics_labs"]
     for s in ("STACK", "Sequoia", "× 2", "Dealroom", "capex", "10-Q", "Cursor", "floor"):
         assert s in c, s

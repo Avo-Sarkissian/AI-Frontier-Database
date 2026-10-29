@@ -14,7 +14,7 @@ import pytest
 
 import build_static
 import static_api as api
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from components.charts import lab_economics as C
 from components.charts.constants import DEFAULT_COLOR
 from data import lab_economics as L
@@ -127,9 +127,9 @@ def test_anthropic_gross_margin_uses_note_8_cost_of_revenue():
     gm = "Anthropic · gross margin (S-1 Note 8)"
     assert labels.index(gm) < labels.index("Anthropic · revenue − all compute (S-1, derived)")
     # nobody claims any more that the S-1 has no cost-of-revenue line
-    blob = " ".join(_ledger_csv()["definition"]) + CAPTIONS["economics_labs"] \
+    blob = " ".join(_ledger_csv()["definition"]) + CAPTION_TEXT["economics_labs"] \
         + (ROOT / "README.md").read_text()
-    assert "no cost-of-revenue" not in blob and "Note 8" in CAPTIONS["economics_labs"]
+    assert "no cost-of-revenue" not in blob and "Note 8" in CAPTION_TEXT["economics_labs"]
 
 
 def test_anthropic_derived_margin_matches_the_s1():
@@ -413,7 +413,7 @@ def test_runrate_never_joins_period_interpolation_to_a_run_rate():
     # one legend entry per company
     shown = [t.meta["company"] for t in _data_traces(fig) if t.showlegend is not False]
     assert sorted(shown) == sorted(set(rr["company"]))
-    assert "economics_labs" in CAPTIONS and "dotted line" in CAPTIONS["economics_labs"]
+    assert "economics_labs" in CAPTIONS and "dotted line" in CAPTION_TEXT["economics_labs"]
 
 
 def test_badge_symbols_follow_the_economics_convention():
@@ -589,7 +589,7 @@ def test_labs_prerender_matches_live(tmp_path):
 
 
 def test_caption_credits_sources():
-    c = CAPTIONS["economics_labs"]
+    c = CAPTION_TEXT["economics_labs"]
     for s in ("Epoch AI", "CC BY 4.0", "EDGAR", "HKEX", "across models", "×13", "÷ 30",
               "$518B", "$665B", "not a gross margin"):
         assert s in c, s

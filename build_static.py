@@ -42,7 +42,7 @@ from components.charts.lab_economics import build_labs_figures, labs_ledger_html
 from data import lab_economics
 from data.quality_scale import slider_max
 
-from captions import CAPTIONS
+from captions import CAPTIONS, method_payload
 from data import scrape_status
 from components.charts.constants import PROVIDER_ALIASES, AUTO_PROVIDER_COLORS
 from static_helpers import (
@@ -274,6 +274,7 @@ def export_default_figures(out_dir: Path) -> list[str]:
         "auto_provider_colors": dict(sorted(AUTO_PROVIDER_COLORS.items())),
         # One source for the prose too — the public site used to ship 1 of 14.
         "captions":         dict(CAPTIONS),
+        "caption_methods":  method_payload(),
         # Per-dataset scrape status. `generated_iso` below is the BUILD time and
         # is kept only for cache-busting — the badge must report when the DATA
         # was last fetched, per dataset, or one succeeding scraper resets the

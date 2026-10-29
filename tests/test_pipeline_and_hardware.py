@@ -477,7 +477,7 @@ def test_quantising_changes_vram_and_speed_but_never_the_score():
     assert (q2.loc[shared, "vram_req_gb"] < fp16.loc[shared, "vram_req_gb"]).all()
     assert (q2.loc[shared, "speed_tps"] >= fp16.loc[shared, "speed_tps"]).all()
     unchanged = fp16.loc[shared, "quality"].fillna(-1) == q2.loc[shared, "quality"].fillna(-1)
-    assert unchanged.all(), "quality now moves with quant — update CAPTIONS['local']"
+    assert unchanged.all(), "quality now moves with quant — update CAPTION_TEXT['local']"
 
 
 def test_the_local_tab_discloses_what_quantising_actually_costs():
@@ -485,10 +485,10 @@ def test_the_local_tab_discloses_what_quantising_actually_costs():
     identical score, so the control makes aggressive quantisation look free.
     The missing term is disclosed in two places, because a warning in only one
     render path is a warning the deployed site may not carry."""
-    from captions import CAPTIONS
+    from captions import CAPTIONS, CAPTION_TEXT
     from data.local_models import QUANT_LOSSY, quant_options
 
-    caption = CAPTIONS["local"].lower()
+    caption = CAPTION_TEXT["local"].lower()
     assert "native precision" in caption, "caption does not say what the score measures"
     assert "lossy" in caption, "caption does not tie the warning to the control's labels"
 
@@ -511,9 +511,9 @@ def test_the_video_tab_no_longer_claims_to_be_curated():
     the lie on the page while staying green. It is inverted, not deleted: the
     caption still has to say where the numbers come from and what they mean.
     """
-    from captions import CAPTIONS
+    from captions import CAPTIONS, CAPTION_TEXT
 
-    caption = CAPTIONS["video"].lower()
+    caption = CAPTION_TEXT["video"].lower()
     assert "curated" not in caption and "not live" not in caption.replace("-", " "), (
         "the video caption still calls the dataset curated, but it is scraped"
     )

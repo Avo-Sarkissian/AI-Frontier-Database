@@ -87,7 +87,7 @@ def test_table_rows_escape_scraped_text():
     """docs/app.js:539 spliced ${r.model} straight into a template literal that
     line 549 assigns to tbody.innerHTML — a second XSS sink independent of the
     Python-rendered HTML."""
-    assert "${escapeHtml(r.model)}" in APP
+    assert "escapeHtml(r.model)" in APP
     assert "${escapeHtml(r.provider)}" in APP
     # the raw interpolations are gone
     assert "${r.model}</td>" not in APP

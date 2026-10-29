@@ -330,7 +330,7 @@ def test_the_radio_offers_cost_per_task_and_the_prerender_exists():
     assert re.search(r'name="overview-xaxis" value="task" />\s*Cost / task', html)
     js = (ROOT / "docs" / "app.js").read_text()
     assert 'task: "pareto_task"' in js
-    assert "captions?.overview_task" in js
+    assert 'task: "overview_task"' in js       # OVERVIEW_CAPTION_KEYS → manifest
     import build_static
     assert "data/task_cost.py" in Path(build_static.__file__).read_text()
 
@@ -347,8 +347,8 @@ def test_prerendered_task_figure_equals_the_live_default(tmp_path):
 
 
 def test_caption_says_no_imputation_and_credits_aa():
-    from captions import CAPTIONS
-    text = CAPTIONS["overview_task"]
+    from captions import CAPTIONS, CAPTION_TEXT
+    text = CAPTION_TEXT["overview_task"]
     assert "never estimated" in text and "MIX does not move it" in text
     # AA prices cache reads at its live typical hit rate, not what the run saw,
     # and falls back to a tokenizer where a provider reports no counts.
@@ -374,8 +374,9 @@ def test_dash_offers_the_task_axis_and_matches_the_static_figure(dash_app):
     dash = _decoded(fig.to_json())
     assert dash["layout"]["title"] == static["layout"]["title"]
     assert [t.get("x") for t in dash["data"]] == [t.get("x") for t in static["data"]]
-    from captions import CAPTIONS
+    from captions import CAPTIONS, CAPTION_TEXT
     assert CAPTIONS["overview_task"] in str(desc)
+    assert "Method & sources" in str(desc)
 
 
 @real

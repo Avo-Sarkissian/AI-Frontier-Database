@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from data import serving_cost as sc
 from data.local_models import GPU_BY_NAME, SLO_FLOORS_TPS, get_local_df
 
@@ -65,7 +65,7 @@ def test_deepseek_anchor_in_caption():
     cost = sc.cost_per_m(a["usd_per_node_hr"], a["decode_tok_s_per_node"], 1.0)
     assert cost == pytest.approx(0.300, abs=5e-4)
     assert a["r1_output_price"] / cost == pytest.approx(7.29, abs=0.01)
-    cap = CAPTIONS["economics_serve"]
+    cap = CAPTION_TEXT["economics_serve"]
     for s in ("$0.30", "$2.19", "545%", "CC0"):
         assert s in cap
     assert a["source_url"].startswith("https://github.com/deepseek-ai/open-infra-index/")

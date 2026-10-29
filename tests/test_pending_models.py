@@ -217,9 +217,9 @@ def test_both_local_charts_disclose_what_they_leave_out():
 
 
 def test_the_tab_caption_says_the_list_is_partly_curated():
-    from captions import CAPTIONS
+    from captions import CAPTIONS, CAPTION_TEXT
 
-    caption = CAPTIONS["local"].lower()
+    caption = CAPTION_TEXT["local"].lower()
     assert "curated" in caption and "not benchmarked" in caption.replace("-", " ")
 
 

@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT, method_payload
 from data.ingest import get_models
 from static_helpers import (
     apply_filters, cap_compare_selection, compute_diverse5, quality_options,
@@ -219,16 +219,20 @@ def test_every_caption_has_one_source():
     site that actually deploys explained nothing."""
     assert len(CAPTIONS) >= 12
     assert "from captions import CAPTIONS" in APP_PY
-    literal_descs = re.findall(r'_desc\(\s*\n?\s*"', APP_PY)
-    assert not literal_descs, (
-        f"{len(literal_descs)} captions are still inline string literals in app.py"
-    )
+    # _desc takes a captions.py KEY; a literal sentence there would be prose
+    # app.py owns and the static site never sees.
+    keys = re.findall(r'_desc\(\s*"([^"]*)"', APP_PY)
+    assert keys, "app.py renders no captions by key"
+    unknown = [k for k in keys if k not in CAPTIONS]
+    assert not unknown, f"app.py renders captions captions.py does not define: {unknown}"
 
 
 def test_the_manifest_ships_the_captions():
     caps = _manifest().get("captions")
     assert caps, "manifest has no captions — re-run build_static.py"
     assert caps == dict(CAPTIONS), "manifest captions have drifted from captions.py"
+    assert _manifest().get("caption_methods") == method_payload(), (
+        "manifest Method & sources text has drifted from captions.py")
 
 
 def test_the_static_site_renders_a_caption_on_every_tab():
@@ -334,7 +338,7 @@ def test_the_budget_chart_states_the_token_mix_it_assumes():
 
 
 def test_the_run_local_caption_says_what_the_vram_figure_covers():
-    caption = CAPTIONS["local"].lower()
+    caption = CAPTION_TEXT["local"].lower()
     assert "kv cache" in caption and "weights" in caption
 
 

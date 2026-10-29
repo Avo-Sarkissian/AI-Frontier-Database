@@ -313,6 +313,19 @@ def build_local_scatter(
             font=dict(color="#f2f2f2", size=12, family=_FONT), namelength=-1,
         ),
     )
+    # Nothing fits: no trace has a legend entry, so Plotly drops the legend AND
+    # its title (the dense/MoE key) and the 148px reserved for it sat empty
+    # under the axis. The key moves to one line under the axis title instead.
+    if not _legend_families:
+        fig.update_layout(margin=dict(l=56, r=28, t=52, b=92))
+        fig.add_annotation(
+            x=0, xref="paper", xanchor="left", y=0, yref="paper", yanchor="top",
+            yshift=-62, showarrow=False, align="left",
+            text=("nothing fits · ● dense  ◆ mixture-of-experts  ·  "
+                  f"bubble size = {_speed_label} tok/s"),
+            font=dict(color="#777", size=10, family=_FONT),
+        )
+
     # The VRAM line's value. add_vline's own label took x in DATA units, and on
     # a log axis Plotly reads an annotation's x as log10(value): "32 GB" was
     # placed at 10^32 and never drawn, and "1 GB" sat over 10 GB, a decade

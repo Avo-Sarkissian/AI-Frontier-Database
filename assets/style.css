@@ -898,6 +898,117 @@ input[id^="local-"].dash-input:focus {
   color: #888888;   /* was var(--text-3) = #666666 — raised to meet WCAG AA */
 }
 
+/* ── Model table (static site) ─────────────────────
+   Its own scroll box in both directions, so the header row can stick to its
+   top and the Model column to its left edge (a sticky cell inside an
+   overflow-x box would otherwise stick to nothing as the page scrolls). */
+.model-table-scroll {
+  padding: 0;
+  overflow: auto;
+  max-height: max(360px, calc(100vh - 120px));
+  overscroll-behavior-x: contain;
+}
+.model-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: Inter, sans-serif;
+}
+.model-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-card);
+  padding: 9px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a3a3a3;               /* 7.4:1 on #111 (was #555, 2.53:1) */
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.model-table td {
+  padding: 7px 14px;
+  font-size: 11px;
+  color: #9a9a9a;
+  white-space: nowrap;
+  text-align: left;
+  border-bottom: 1px solid var(--border-faint);
+}
+.model-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.model-table td.model {
+  color: #d4d4d4;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.model-table td.score { color: #f2f2f2; }
+.model-table td.value { color: #34d399; }
+.model-table td.provider { color: #bdbdbd; }
+.prov-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+.model-table th:first-child,
+.model-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-card);
+  box-shadow: inset -1px 0 0 var(--border);
+}
+.model-table th:first-child { z-index: 3; }
+.model-table tbody tr:hover td { background: var(--bg-elevated); }
+@media (max-width: 768px) {
+  .model-table td.model { max-width: 148px; }
+  .model-table th, .model-table td { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Caption = one or two sentences on how to read the chart; method, sources
+   and caveats sit in a closed native <details> under it (captions.py). */
+.chart-caption__lede { display: block; max-width: 120ch; }
+.caption-method { margin-top: 4px; max-width: 120ch; }
+.caption-method > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-label);
+  padding: 2px 0;
+  user-select: none;
+}
+.caption-method > summary::-webkit-details-marker { display: none; }
+.caption-method > summary::before {
+  content: "";
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transition: transform 0.12s ease;
+}
+.caption-method[open] > summary::before { transform: rotate(90deg); }
+.caption-method > summary:hover,
+.caption-method > summary:focus-visible { color: var(--text-1); outline: none; }
+.caption-method > summary:focus-visible { text-decoration: underline; }
+.caption-method p {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  color: #8f8f8f;
+}
+.caption-method a { color: #b0b0b0; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.25); text-underline-offset: 2px; overflow-wrap: anywhere; }
+.caption-method a:hover { color: var(--accent); }
+
 /* ── Responsive: 1024px ───────────────────────────── */
 @media (max-width: 1024px) {
   .header { padding: 0 20px; }
@@ -905,6 +1016,7 @@ input[id^="local-"].dash-input:focus {
   .filters { padding: 10px 20px; }
   .tabs { padding: 0 20px !important; }
   .chart-desc-wrap { padding: 12px 20px 0; }
+  .chart-caption { padding: 10px 20px 2px; }
   .chart-card { margin: 12px 20px 20px; }
   .footer { padding: 12px 20px; }
 
@@ -993,6 +1105,7 @@ input[id^="local-"].dash-input:focus {
   .tab { padding: 10px 12px !important; font-size: 11px !important; }
 
   .chart-desc-wrap { padding: 10px 16px 0; }
+  .chart-caption { padding: 10px 16px 2px; }
   .chart-card { margin: 10px 16px 16px; }
   .footer { padding: 10px 16px; }
 

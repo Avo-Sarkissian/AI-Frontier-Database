@@ -19,7 +19,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from data.ingest import get_models
 from data.image_models import get_image_df, PROVIDER_COLORS as IMG_COLORS
 from data.video_models import get_video_df
@@ -80,11 +80,11 @@ def test_the_overview_caption_does_not_say_one_bubble_per_model():
     mark per FAMILY — 95 for a 148-row frame — while the header tile said 148
     and the treemap said OpenAI ships 25 where Overview drew 8."""
     js = (ROOT / "docs" / "app.js").read_text()
-    for text in (CAPTIONS["overview_price"], js):
+    for text in (CAPTION_TEXT["overview_price"], js):
         assert "Each bubble is one model." not in text, (
             "a caption still claims one bubble per model"
         )
-    assert "family" in CAPTIONS["overview_price"].lower()
+    assert "family" in CAPTION_TEXT["overview_price"].lower()
 
 
 def test_the_image_caption_does_not_promise_generation_time_it_has_none_of():
@@ -98,7 +98,7 @@ def test_the_image_caption_does_not_promise_generation_time_it_has_none_of():
     df = get_image_df()
     if (df["gen_time_s"] != 0).any():
         pytest.skip("the image catalogue now carries generation time")
-    assert "generation time" not in CAPTIONS["image"].lower(), (
+    assert "generation time" not in CAPTION_TEXT["image"].lower(), (
         "the caption promises generation-time annotations the data cannot fill"
     )
 
@@ -115,7 +115,7 @@ def test_the_image_caption_does_not_call_the_style_scores_current():
     if not category_cols:
         pytest.skip("no per-category columns in this catalogue")
     assert live_cols <= set(df.columns)
-    cap = CAPTIONS["image"].lower()
+    cap = CAPTION_TEXT["image"].lower()
     for overclaim in ("updated hourly", "scraped hourly", "refreshed hourly"):
         assert overclaim not in cap, (
             f"the caption says style ELOs are {overclaim!r}, but "
@@ -400,7 +400,7 @@ def test_the_captions_that_define_the_score_disclose_aa_estimation():
     if share < 0.10:
         pytest.skip(f"only {share:.0%} of the catalogue is AA-estimated")
     for key in ("rankings_intelligence", "table"):
-        cap = CAPTIONS[key].lower()
+        cap = CAPTION_TEXT[key].lower()
         assert "estimat" in cap, (
             f"{share:.0%} of published scores are AA estimates and the "
             f"{key!r} caption, which defines the metric, does not say so"

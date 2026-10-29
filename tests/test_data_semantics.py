@@ -68,8 +68,9 @@ def test_the_price_label_says_whose_blend_it_is():
     """Removing the false claim is not enough — a bare '3:1' still reads as
     upstream. Each surface must say the weighting is ours."""
     # captions.py is now the single source for the Budget tab's prose, and it
-    # rides the manifest to the browser — so checking it covers both renderings.
-    for rel in ("docs/app.js", "captions.py", "README.md"):
+    # rides the manifest to the browser (docs/app.js holds no caption prose
+    # since the Overview's copy moved there too) — so check what ships.
+    for rel in ("docs/figures/manifest.json", "captions.py", "README.md"):
         text = (ROOT / rel).read_text().lower()
         assert "our blend" in text or "our own blend" in text or "not aa's" in text, (
             f"{rel} does not disclose that the 3:1 blend is ours"

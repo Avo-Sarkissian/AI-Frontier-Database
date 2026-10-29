@@ -334,8 +334,8 @@ function buildTabsAndPanels() {
     // Special panels that need extra containers beyond charts
     if (t.id === "table") {
       panel.innerHTML = `
-        <div class="chart-card" style="overflow-x:auto;padding:0;">
-          <table id="model-table" style="width:100%;border-collapse:collapse;">
+        <div class="chart-card model-table-scroll">
+          <table id="model-table" class="model-table">
             <thead id="model-table-head"></thead>
             <tbody id="model-table-body"></tbody>
           </table>
@@ -543,6 +543,16 @@ function pinFigureHeight(divId, layout) {
   if (!el) return;
   const h = Number(layout && layout.height);
   el.style.height = h > 0 ? `${h}px` : "";
+  // A pinned figure also owns its box's MIN height: the site-wide clamp
+  // (shell.css, ~56vh) otherwise left a short figure — Run Local's ranking of
+  // five models — sitting on 100-200px of empty card.
+  if (h > 0) {
+    el.classList.add("chart--own-height");
+    if (!ECON_CHART_MIN_HEIGHT[divId.replace(/^chart-/, "")]) el.style.setProperty("--chart-min", `${h}px`);
+  } else if (!ECON_CHART_MIN_HEIGHT[divId.replace(/^chart-/, "")]) {
+    el.classList.remove("chart--own-height");
+    el.style.removeProperty("--chart-min");
+  }
 }
 
 // A figure may carry layout.meta.narrow = {max_width, data: {index: trace
@@ -1012,22 +1022,61 @@ function syncEconComputePlaceholders() {
   set("econ-compute-colo", f.colo_usd_kw_month?.value, f.colo_usd_kw_month?.title);
 }
 
-// Captions are written as text, never markup — they come from the manifest.
+// Fill one caption element from the manifest: the short reading guide, then a
+// closed "Method & sources" <details> with the method, sources and caveats
+// (captions.py METHODS). Written as text nodes and <a> elements, never markup;
+// the links were split out in Python (captions.link_segments).
+function fillCaption(el, key) {
+  const m = window.AF.manifest || {};
+  const text = (m.captions || {})[key];
+  if (!el || !text) return false;
+  const lede = document.createElement("span");
+  lede.className = "chart-caption__lede";
+  lede.textContent = text;
+  const kids = [lede];
+  const paras = (m.caption_methods || {})[key];
+  if (Array.isArray(paras) && paras.length) {
+    const box = document.createElement("details");
+    box.className = "caption-method";
+    const sum = document.createElement("summary");
+    sum.textContent = "Method & sources";
+    box.appendChild(sum);
+    paras.forEach(segs => {
+      const p = document.createElement("p");
+      (segs || []).forEach(seg => {
+        if (typeof seg === "string") { p.appendChild(document.createTextNode(seg)); return; }
+        if (!seg) return;
+        if (/^https:\/\//.test(seg.href || "")) {
+          const a = document.createElement("a");
+          a.href = seg.href; a.textContent = seg.text;
+          a.target = "_blank"; a.rel = "noopener noreferrer";
+          p.appendChild(a);
+        } else {
+          p.appendChild(document.createTextNode(seg.text || ""));
+        }
+      });
+      box.appendChild(p);
+    });
+    kids.push(box);
+  }
+  el.replaceChildren(...kids);
+  el.dataset.caption = key;
+  return true;
+}
+
 function renderCaptions(captions) {
   if (!captions) return;
   Object.entries(TAB_CAPTIONS).forEach(([tab, keys]) => {
     const panel = document.getElementById("panel-" + tab);
     if (!panel) return;
     keys.slice().reverse().forEach((key, revIdx) => {
-      const text = captions[key];
-      if (!text) return;
+      if (!captions[key]) return;
       // Overview already owns #overview-desc, which swaps with the x-axis radio.
       if (key === "overview_price" && document.getElementById("overview-desc")) return;
       const existing = panel.querySelector(`[data-caption="${key}"]`);
       const el = existing || document.createElement("div");
       el.className = "chart-caption";
-      el.dataset.caption = key;
-      el.textContent = text;
+      fillCaption(el, key);
       if (!existing) {
         const cards = panel.querySelectorAll(".chart-card");
         const anchor = cards[keys.length - 1 - revIdx];
@@ -1921,32 +1970,30 @@ function renderTableRows(records) {
   const tbody = document.getElementById("model-table-body");
   if (!thead || !tbody) return;
 
-  const hStyle = "padding:8px 14px;font-size:9px;letter-spacing:0.08em;color:#555;" +
-    "font-family:Inter,sans-serif;font-weight:600;text-transform:uppercase;" +
-    "text-align:right;white-space:nowrap;";
-  const hStyleLeft = hStyle.replace("text-align:right", "text-align:left");
-
+  // Styles live in assets/style.css (.model-table): the header row sticks to
+  // the top of the scroll box and the Model column to its left edge, so a
+  // ~5,500px table and a phone's sideways scroll both keep their labels.
   if (!thead.hasChildNodes()) {
     thead.innerHTML = `<tr>
-      <th style="${hStyleLeft}">Model</th>
-      <th style="${hStyleLeft}">Provider</th>
-      <th style="${hStyle}">Intelligence</th>
-      <th style="${hStyle}">Value (score/$)</th>
-      <th id="table-price-th" style="${hStyle}"></th>
-      <th style="${hStyle}">Speed (tok/s)</th>
-      <th style="${hStyle}">Latency (s)</th>
-      <th style="${hStyle}">Context</th>
+      <th>Model</th>
+      <th>Provider</th>
+      <th class="num">Intelligence</th>
+      <th class="num">Value (score/$)</th>
+      <th id="table-price-th" class="num"></th>
+      <th class="num">Speed (tok/s)</th>
+      <th class="num">Latency (s)</th>
+      <th class="num">Context</th>
     </tr>`;
   }
   // Built once, so the price header is (re)written here and by
   // refreshMixInfo: it names the MIX the column is priced at.
   syncTablePriceHeader();
 
-  const cellBase = "padding:7px 14px;font-size:11px;font-family:Inter,sans-serif;" +
-    "border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;white-space:nowrap;";
-
   const rows = records.map(r => {
-    const pcolor = PROVIDER_COLORS[r.provider] || DEFAULT_PROVIDER_COLOR;
+    // Provider colour is a dot, not the text colour: several brand colours
+    // (Z AI #1e710d, Inception) sit near 3:1 on the card as text.
+    const pc = PROVIDER_COLORS[r.provider] || DEFAULT_PROVIDER_COLOR;
+    const pcolor = /^#[0-9a-f]{3,8}$/i.test(pc) ? pc : DEFAULT_PROVIDER_COLOR;
     const qual = r.quality != null ? r.quality.toFixed(1) : "—";
     const val  = r.value  != null && r.value > 0  ? r.value.toFixed(2) : "—";
     // '*' = no AA cache price at this mix (cache hits billed at full input),
@@ -1956,21 +2003,22 @@ function renderTableRows(records) {
     const priceTitle = r.cache_price_filled
       ? ` title="${escapeHtml((window.AF.mixInfo && window.AF.mixInfo.fill_key) || "* no AA cache price")}"` : "";
     // "en-US", not the visitor's locale: a bare toLocaleString renders 1560 as
-  // "1.560" in de-DE — a 1000x ambiguity in a column sitting next to $0.1580.
-  const speed = r.speed != null && r.speed > 0
-    ? Math.round(r.speed).toLocaleString("en-US") : "—";
+    // "1.560" in de-DE — a 1000x ambiguity in a column sitting next to $0.1580.
+    const speed = r.speed != null && r.speed > 0
+      ? Math.round(r.speed).toLocaleString("en-US") : "—";
     const lat   = r.latency != null && r.latency > 0 ? r.latency.toFixed(2) + "s" : "—";
     const ctx   = r.context != null ? escapeHtml(r.context) : "—";
+    const name  = escapeHtml(r.model);
 
     return `<tr>
-      <td style="${cellBase}text-align:left;color:#ccc;max-width:260px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.model)}</td>
-      <td style="${cellBase}text-align:left;color:${pcolor};">${escapeHtml(r.provider)}</td>
-      <td style="${cellBase}color:#f2f2f2;">${qual}</td>
-      <td style="${cellBase}color:#34d399;">${val}</td>
-      <td style="${cellBase}color:#888;"${priceTitle}>${price}</td>
-      <td style="${cellBase}color:#888;">${speed}</td>
-      <td style="${cellBase}color:#888;">${lat}</td>
-      <td style="${cellBase}color:#888;">${ctx}</td>
+      <td class="model" title="${name}">${name}</td>
+      <td class="provider"><span class="prov-dot" style="background:${pcolor}"></span>${escapeHtml(r.provider)}</td>
+      <td class="num score">${qual}</td>
+      <td class="num value">${val}</td>
+      <td class="num"${priceTitle}>${price}</td>
+      <td class="num">${speed}</td>
+      <td class="num">${lat}</td>
+      <td class="num">${ctx}</td>
     </tr>`;
   });
   tbody.innerHTML = rows.join("");
@@ -2704,18 +2752,14 @@ async function refreshDetailPanel() {
   } catch (e) { console.error("model_detail failed:", e); }
 }
 
-// ---- Overview caption text (mirrors app.py) ----
-const OVERVIEW_CAPTIONS = {
-  price: "Each bubble is one model FAMILY — the best-scoring variant, so five Claude Opus 5 effort tiers collapse to one point rather than five near-duplicates at the same price. X = price per 1M tokens at the MIX setting (log scale; default = our 1:3 in:out blend, not AA's), Y = AA Intelligence Index. Bubble size = throughput (tok/s). Hollow = open weights, filled = closed (Artificial Analysis's flag; WEIGHTS filters them). Dotted line = Pareto frontier, recomputed for the mix. Click any bubble for full details.",
-  speed: "Speed (tok/s) vs. AA Intelligence Index, one bubble per model family (best-scoring variant). Top-right = fast and smart. Bubble size = affordability (larger = cheaper, log-scaled). Hollow = open weights. Click any bubble for full details.",
-};
-// Cost / task has no copy here: its caption comes from the manifest
-// (captions.py overview_task), the one source both renderings read.
+// ---- Overview caption: one captions.py key per x axis ----
+const OVERVIEW_CAPTION_KEYS = { price: "overview_price", speed: "overview_speed", task: "overview_task" };
 function updateOverviewCaption() {
   const x = document.querySelector('input[name="overview-xaxis"]:checked')?.value || "price";
   const el = document.getElementById("overview-desc");
-  const text = x === "task" ? window.AF.manifest?.captions?.overview_task : OVERVIEW_CAPTIONS[x];
-  if (el) el.textContent = text || OVERVIEW_CAPTIONS.price;
+  if (el && !fillCaption(el, OVERVIEW_CAPTION_KEYS[x] || "overview_price")) {
+    fillCaption(el, "overview_price");
+  }
 }
 
 // Pre-rendered figure per Overview x axis (docs/figures/<id>.json).
@@ -2942,7 +2986,7 @@ async function init() {
   // Inject overview caption just above the chart-pareto card (matches Dash app layout)
   const overviewPanel = document.getElementById("panel-overview");
   if (overviewPanel) {
-    const cap = document.createElement("p");
+    const cap = document.createElement("div");  // holds a <details>: not a <p>
     cap.id = "overview-desc";
     cap.className = "chart-caption";
     overviewPanel.insertBefore(cap, overviewPanel.firstChild);

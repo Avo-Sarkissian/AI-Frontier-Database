@@ -142,7 +142,7 @@ def _reload_if_stale():
     except Exception:
         pass
 
-from captions import CAPTIONS
+from captions import CAPTIONS, METHODS, link_segments
 from static_helpers import (
     index_label, standing_note, context_label, scored_indices,
     apply_filters,
@@ -244,8 +244,21 @@ def _mix_option_items() -> list[dict]:
             for o in _mix_options()]
 
 
-def _desc(text: str) -> html.Div:
-    return html.Div(text, className="chart-caption")
+def _desc(key: str) -> html.Div:
+    """A chart caption by captions.py key: the one- or two-sentence reading
+    guide, then method, sources and caveats in a closed disclosure (the same
+    markup docs/app.js builds from the manifest)."""
+    children = [html.Span(CAPTIONS[key], className="chart-caption__lede")]
+    paras = METHODS.get(key) or []
+    if paras:
+        children.append(html.Details([
+            html.Summary("Method & sources"),
+            *[html.P([seg if isinstance(seg, str) else
+                      html.A(seg["text"], href=seg["href"], target="_blank",
+                             rel="noopener noreferrer")
+                      for seg in link_segments(p)]) for p in paras],
+        ], className="caption-method"))
+    return html.Div(children, className="chart-caption")
 
 
 # Economics › Serve control options and the Run Local $/GPU-HR tooltip: one
@@ -570,7 +583,7 @@ app.layout = html.Div([
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            html.Div(id="overview-desc", children=[_desc(CAPTIONS["overview_price"])]),
+            html.Div(id="overview-desc", children=[_desc("overview_price")]),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="pareto-chart", figure=build_pareto_scatter(df),
                           config=_GRAPH_CONFIG, style={"height": "620px"}),
@@ -581,7 +594,7 @@ app.layout = html.Div([
         # Agent Stack ──────────────────────────────────────────────────────────
         dcc.Tab(label="Agent Stack", value="recommend",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["recommend"]),
+            _desc("recommend"),
             # Row 1: workflow mode
             html.Div([
                 html.Span("WORKFLOW", className="filter-label"),
@@ -675,12 +688,12 @@ app.layout = html.Div([
         # Landscape ────────────────────────────────────────────────────────────
         dcc.Tab(label="Landscape", value="landscape",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["landscape_treemap"]),
+            _desc("landscape_treemap"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="treemap-chart", figure=build_treemap(df),
                           config=_GRAPH_CONFIG, style={"height": "600px"}),
             ])], className="chart-card"),
-            _desc(CAPTIONS["landscape_leaderboard"]),
+            _desc("landscape_leaderboard"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="provider-leaderboard-chart",
                           figure=build_provider_leaderboard(df),
@@ -707,7 +720,7 @@ app.layout = html.Div([
                                 "fontSize": "12px", "color": "#aaa"},
                 ),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
-            _desc(CAPTIONS["rankings_intelligence"]),
+            _desc("rankings_intelligence"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(id="rankings-chart",
                           figure=build_rankings(ranking_frame(df), top_n=25),
@@ -715,7 +728,7 @@ app.layout = html.Div([
             ])], className="chart-card"),
 
             # ── Value Leaders ─────────────────────────────────────────────────
-            _desc(CAPTIONS["rankings_value"]),
+            _desc("rankings_value"),
             html.Div([dcc.Loading(**_LOADING, children=[
                 dcc.Graph(
                     id="value-leaders-chart",
@@ -729,7 +742,7 @@ app.layout = html.Div([
         # Compare ──────────────────────────────────────────────────────────────
         dcc.Tab(label="Compare", value="compare",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["compare"]),
+            _desc("compare"),
             html.Div([
                 html.Span("SELECT MODELS", className="filter-label"),
                 dcc.Dropdown(
@@ -755,7 +768,7 @@ app.layout = html.Div([
         # Budget ───────────────────────────────────────────────────────────────
         dcc.Tab(label="Budget", value="budget",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["budget"]),
+            _desc("budget"),
             html.Div([
                 html.Span("MONTHLY TOKENS", className="filter-label"),
                 dcc.Input(
@@ -783,7 +796,7 @@ app.layout = html.Div([
         # Table ────────────────────────────────────────────────────────────────
         dcc.Tab(label="Table", value="table",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["table"]),
+            _desc("table"),
             html.Div([
                 html.Span("SORT BY", className="filter-label"),
                 dcc.Dropdown(
@@ -818,7 +831,10 @@ app.layout = html.Div([
                     id="model-table",
                     columns=[
                         {"name": "Model",            "id": "model",      "type": "text"},
-                        {"name": "Provider",          "id": "provider",   "type": "text"},
+                        # Provider colour is a dot beside neutral text: as
+                        # the text colour, Z AI's #1e710d read at ~3:1.
+                        {"name": "Provider",          "id": "provider_md",
+                         "presentation": "markdown"},
                         {"name": "Intelligence",      "id": "quality",    "type": "numeric",
                          "format": {"specifier": ".1f"}},
                         {"name": "Value (score/$)",   "id": "value",      "type": "numeric",
@@ -834,7 +850,14 @@ app.layout = html.Div([
                     sort_action="none",
                     filter_action="none",
                     page_action="none",
-                    style_table={"overflowX": "auto"},
+                    markdown_options={"html": True},
+                    # Header row and Model column stay put while the table
+                    # scrolls (the static site's .model-table does the same).
+                    # Plain CSS sticky in a box that scrolls both ways:
+                    # fixed_rows/fixed_columns split the header into its own
+                    # table and its widths drifted off the data columns.
+                    style_table={"overflow": "auto",
+                                 "maxHeight": "max(360px, calc(100vh - 120px))"},
                     style_header={
                         "backgroundColor": "#111111",
                         "color": "#aaaaaa",
@@ -880,13 +903,18 @@ app.layout = html.Div([
                         {"if": {"state": "active"},
                          "backgroundColor": "rgba(0,212,255,0.06)",
                          "border": "1px solid rgba(0,212,255,0.2)"},
-                        *[
-                            {"if": {"filter_query": f'{{provider}} = "{p}"',
-                                    "column_id": "provider"},
-                             "color": c}
-                            for p, c in PROVIDER_COLORS.items()
-                        ],
+                        {"if": {"column_id": "provider_md"}, "color": "#bdbdbd"},
                     ],
+                    css=[{"selector": ".dash-cell .prov-dot",
+                          "rule": "display:inline-block;width:7px;height:7px;"
+                                  "border-radius:50%;margin-right:7px"},
+                         {"selector": ".dash-cell p", "rule": "margin:0"},
+                         {"selector": "th.dash-header",
+                          "rule": "position:sticky;top:0;z-index:2"},
+                         {"selector": "td.dash-cell.column-0, th.dash-header.column-0",
+                          "rule": "position:sticky;left:0;z-index:1;"
+                                  "box-shadow:inset -1px 0 0 rgba(255,255,255,0.07)"},
+                         {"selector": "th.dash-header.column-0", "rule": "z-index:3"}],
                     style_as_list_view=True,
                 ),
             ], className="chart-card", style={"padding": "0"}),
@@ -895,7 +923,7 @@ app.layout = html.Div([
         # Run Local ────────────────────────────────────────────────────────────
         dcc.Tab(label="Run Local", value="local",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["local"]),
+            _desc("local"),
             html.Div([
                 html.Span("GPU", className="filter-label"),
                 dcc.Dropdown(
@@ -1116,27 +1144,27 @@ app.layout = html.Div([
                 ], style={"display": "none"}),
             ], className="filters", style={"borderTop": "none", "paddingTop": "0"}),
             html.Div(id="econ-view-serve", children=[
-                _desc(CAPTIONS["economics_serve"]),
+                _desc("economics_serve"),
                 html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id="econ-serve-chart", figure=_econ_serve_figure(),
                               config=_GRAPH_CONFIG, style={"height": "640px"}),
                 ])], className="chart-card"),
             ]),
             html.Div(id="econ-view-compute", style={"display": "none"}, children=[
-                _desc(CAPTIONS["economics_compute"]),
+                _desc("economics_compute"),
                 *[html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id=gid, config=_GRAPH_CONFIG, style={"minHeight": "460px"}),
                 ])], className="chart-card")
                   for gid in ("econ-tco-chart", "econ-ladder-chart", "econ-rental-series-chart")],
             ]),
             html.Div(id="econ-view-labs", style={"display": "none"}, children=[
-                _desc(CAPTIONS["economics_labs"]),
+                _desc("economics_labs"),
                 *[html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id=f"econ-labs-{gid}-chart", config=_GRAPH_CONFIG,
                               style={"minHeight": "300px"}),
                 ])], className="chart-card")
                   for gid in ("runrate", "margins", "commitments", "tokens", "stack")],
-                _desc(CAPTIONS["economics_open_gap"]),
+                _desc("economics_open_gap"),
                 *[html.Div([dcc.Loading(**_LOADING, children=[
                     dcc.Graph(id=f"{gid}-chart", config=_GRAPH_CONFIG,
                               style={"minHeight": "460px"}),
@@ -1151,7 +1179,7 @@ app.layout = html.Div([
         # Image Gen ────────────────────────────────────────────────────────────
         dcc.Tab(label="Image Gen", value="image",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["image"]),
+            _desc("image"),
             html.Div([
                 html.Span("PROVIDERS", className="filter-label"),
                 dcc.Dropdown(
@@ -1184,7 +1212,7 @@ app.layout = html.Div([
         # Video Gen ────────────────────────────────────────────────────────────
         dcc.Tab(label="Video Gen", value="video",
                 className="tab", selected_className="tab--selected", children=[
-            _desc(CAPTIONS["video"]),
+            _desc("video"),
             html.Div([
                 html.Span("MODE", className="filter-label"),
                 dcc.Dropdown(
@@ -1656,7 +1684,7 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
     base = _base(basis)
     filtered = apply_filters(base, providers, min_quality, search or "", effort, weights)
     if xaxis == "speed":
-        desc = _desc(CAPTIONS["overview_speed"])
+        desc = _desc("overview_speed")
         # `base` is the unfiltered catalogue at this mix: the median crosshairs
         # that decide "Fast · Smart" and the frontier are market-wide claims,
         # so they must not move when the user narrows the frame.
@@ -1668,8 +1696,8 @@ def update_overview(providers, min_quality, effort, search, xaxis, _v,
                                          search or "", effort, weights)
         return (build_pareto_scatter(costed, full_df=base, basis=basis, x="task",
                                      count_df=every),
-                _desc(CAPTIONS["overview_task"]))
-    desc = _desc(CAPTIONS["overview_price_dyn"])
+                _desc("overview_task"))
+    desc = _desc("overview_price_dyn")
     return build_pareto_scatter(filtered, full_df=base, basis=basis), desc
 
 
@@ -2267,6 +2295,17 @@ def add_to_compare(n_clicks, model_name, current_selection):
 
 
 # ── Table view ────────────────────────────────────────────────────────────────
+def _provider_dot_md(provider: str) -> str:
+    """Markdown-cell HTML for the table's Provider column: a brand-colour dot
+    and the name in neutral text (the name escaped, the colour validated)."""
+    import html as _html
+    c = PROVIDER_COLORS.get(provider, "#666666")
+    if not re.fullmatch(r"#[0-9a-fA-F]{3,8}", str(c)):
+        c = "#666666"
+    return (f'<span class="prov-dot" style="background:{c}"></span>'
+            f'{_html.escape(str(provider))}')
+
+
 @callback(
     Output("model-table", "data"),
     Output("model-table", "tooltip_data"),
@@ -2299,7 +2338,9 @@ def update_table(providers, min_quality, effort, search, sort_col, sort_dir,
     else:
         filtered = filtered.sort_values(col, ascending=asc, na_position="last",
                                         kind="mergesort")
-    cols = ["model", "provider", "quality", "value", "price", "speed", "latency", "context"]
+    filtered["provider_md"] = filtered["provider"].map(_provider_dot_md)
+    cols = ["model", "provider", "provider_md", "quality", "value", "price", "speed",
+            "latency", "context"]
     # Mirrors the static table's '*': a row whose price rests on the
     # no-cache-price fill-in says so on its price cell.
     flags = _filled_flags(filtered)

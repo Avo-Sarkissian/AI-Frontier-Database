@@ -14,7 +14,7 @@ import pytest
 
 import build_static
 import static_api as api
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from components.charts import econ_serve
 from components.charts.econ_serve import build_econ_serve, label_positions
 from data import econ_common, local_models as lm, open_gap, serving_cost as sc
@@ -56,7 +56,7 @@ def test_measured_hover_says_median_user_not_every_user():
 
 
 def test_no_surface_claims_every_user():
-    cap = CAPTIONS["economics_serve"]
+    cap = CAPTION_TEXT["economics_serve"]
     assert "MEDIAN user" in cap and "every user" not in cap
     row = next(l for l in README.splitlines() if l.startswith("| **Economics**"))
     assert "median user ≥ 35 tok/s" in row and "every user" not in row
@@ -204,7 +204,7 @@ def test_deepseek_anchor_gives_the_like_for_like_figure():
     a = sc.deepseek_anchor()
     assert a["day_usd_per_m"] == pytest.approx(87072 / 168000, rel=1e-9)
     assert a["decode_usd_per_m"] == pytest.approx(16 * 1e6 / (14800 * 3600), rel=1e-9)
-    cap = CAPTIONS["economics_serve"]
+    cap = CAPTION_TEXT["economics_serve"]
     assert f"${a['day_usd_per_m']:.2f}" in cap and f"{a['day_ratio']:.1f}×" in cap
     assert f"${a['decode_usd_per_m']:.2f}" in cap and "before prefill" in cap
     assert f"{a['decode_ratio']:.0f}×" in cap
@@ -231,7 +231,7 @@ def test_agent_stack_chip_carries_the_session_count():
 # ── 10. The rate basis is hyperscaler volume ─────────────────────────────────
 
 def test_rates_are_called_hyperscaler_volume_everywhere():
-    assert "large-hyperscaler-volume" in CAPTIONS["economics_serve"]
+    assert "large-hyperscaler-volume" in CAPTION_TEXT["economics_serve"]
     o = sc.serve_options()
     assert all("hyperscaler" in b["title"] for b in o["bases"])
     assert "hyperscaler" in o["basis_title"]
@@ -336,10 +336,10 @@ def test_rate_tooltips_name_the_seven_priced_cards():
     assert all(sc.preset_label(p) in phrase for p in sc.IX_HARDWARE_TO_PRESET.values())
     assert phrase in INDEX
     assert "_serving_cost.priced_cards_phrase()" in APP_PY
-    for text in (INDEX, APP_PY, CAPTIONS["local"]):
+    for text in (INDEX, APP_PY, CAPTION_TEXT["local"]):
         assert "Picking a datacenter card" not in text
         assert "consumer cards have no published rate" not in text
-    assert "seven datacenter cards InferenceX prices" in CAPTIONS["local"]
+    assert "seven datacenter cards InferenceX prices" in CAPTION_TEXT["local"]
 
 
 # ── 16. A figure's own height survives a resize ──────────────────────────────

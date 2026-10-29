@@ -12,7 +12,7 @@ import pytest
 
 import build_static
 import static_api as api
-from captions import CAPTIONS
+from captions import CAPTIONS, CAPTION_TEXT
 from components.charts.econ_compute import (
     build_econ_compute, build_rental_series, build_spread_ladder, build_tco_stack,
     MUTED_OPACITY,
@@ -222,7 +222,7 @@ def test_compute_view_is_registered_between_serve_and_labs():
     assert "economics_compute" in CAPTIONS
     for credit in ("GetDeploying (CC BY 4.0", "Epoch AI", "CC BY 4.0", "New York",
                    "InferenceX", "Azure Retail Prices API", "AWS Price List"):
-        assert credit in CAPTIONS["economics_compute"], credit
+        assert credit in CAPTION_TEXT["economics_compute"], credit
 
 
 def test_compute_modules_ship_and_curated_data_rides_the_data_zip():
