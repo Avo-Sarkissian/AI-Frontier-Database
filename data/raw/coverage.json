@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 274,
-  "distinct_upstream_models": 274,
-  "kept": 79,
+  "upstream_host_model_rows": 275,
+  "distinct_upstream_models": 275,
+  "kept": 81,
   "skipped_no_score": [
     "A.X-K2",
     "Agnes 2.5 Pro Beta",
@@ -52,7 +52,6 @@
     "Granite 4.0 H Small",
     "Granite 4.0 Micro",
     "Granite 4.2 30B",
-    "Granite 4.2 3B",
     "Granite 4.2 8B",
     "Hermes 4 - Llama-3.1 405B (Non-reasoning)",
     "Hermes 4 - Llama-3.1 405B (Reasoning)",
@@ -173,7 +172,6 @@
     "Qwen3.6 35B A3B (Reasoning)",
     "Qwen3.7 Plus",
     "Qwen3.8 2.4T A95B",
-    "Qwen3.8 27B (Non-reasoning)",
     "Qwen3.8-Flash-Next",
     "R1 1776",
     "Reka Flash 3",
@@ -197,6 +195,7 @@
   ],
   "skipped_no_price": [
     "Command A+",
+    "Granite 4.2 3B",
     "K2 Horizon 375B A23B",
     "Muse Wonder Full (Max)",
     "NVIDIA Nemotron 3 Nano 4B"
@@ -204,20 +203,20 @@
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 79,
-    "cost_per_task": 78,
-    "cache_hit_price": 79,
+    "rows": 81,
+    "cost_per_task": 79,
+    "cache_hit_price": 81,
     "cache_write_price": 49,
-    "is_open_weights": 79,
-    "is_reasoning": 79,
-    "release_date": 79,
-    "aa_slug": 79
+    "is_open_weights": 81,
+    "is_reasoning": 81,
+    "release_date": 81,
+    "aa_slug": 81
   },
   "release_date_join": {
     "record": 0,
     "slug": 34,
     "name": 2,
-    "effort_slug": 42,
+    "effort_slug": 44,
     "paren_name": 1,
     "unmatched": []
   }
