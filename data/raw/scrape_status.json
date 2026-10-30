@@ -1,19 +1,19 @@
 {
   "hosted": {
-    "checked_at": "2026-10-30T10:12:24+00:00",
-    "fetched_at": "2026-10-30T10:12:24+00:00",
+    "checked_at": "2026-10-30T13:31:28+00:00",
+    "fetched_at": "2026-10-30T13:31:28+00:00",
     "ok": true,
     "rows": 79
   },
   "image": {
-    "checked_at": "2026-10-30T10:12:29+00:00",
-    "fetched_at": "2026-10-30T10:12:29+00:00",
+    "checked_at": "2026-10-30T13:31:32+00:00",
+    "fetched_at": "2026-10-30T13:31:32+00:00",
     "ok": true,
     "rows": 106
   },
   "local": {
-    "checked_at": "2026-10-30T10:12:28+00:00",
-    "fetched_at": "2026-10-30T10:12:28+00:00",
+    "checked_at": "2026-10-30T13:31:31+00:00",
+    "fetched_at": "2026-10-30T13:31:31+00:00",
     "ok": true,
     "rows": 28
   },
@@ -22,7 +22,7 @@
       "i2v": 81,
       "t2v": 32
     },
-    "checked_at": "2026-10-30T10:12:30+00:00",
+    "checked_at": "2026-10-30T13:31:33+00:00",
     "error": "row count 94 -> 37, a 61% drop (limit 20%); only 89% of the surviving rows are already published (need 90%) \u2014 this looks like a different array, not a prune, and will not publish itself",
     "fetched_at": "2026-10-28T14:06:10+00:00",
     "ok": false,
