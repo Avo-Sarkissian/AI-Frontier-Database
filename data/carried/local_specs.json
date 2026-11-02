@@ -1826,6 +1826,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 3.93
  },
+ "nanbeige4-3-33b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 33.0
+ },
  "nemotron-3-5-bolt-74b-a9b": {
   "inferenceParametersActiveBillions": 9.0,
   "inputModalityImage": true,

@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 277,
-  "distinct_upstream_models": 277,
+  "upstream_host_model_rows": 278,
+  "distinct_upstream_models": 278,
   "kept": 83,
   "skipped_no_score": [
     "A.X-K2",
@@ -198,7 +198,8 @@
     "Granite 4.2 3B",
     "K2 Horizon 375B A23B",
     "Muse Wonder Full (Max)",
-    "NVIDIA Nemotron 3 Nano 4B"
+    "NVIDIA Nemotron 3 Nano 4B",
+    "Nanbeige4.3-33B"
   ],
   "skipped_deprecated": [],
   "held_deprecated": [],
