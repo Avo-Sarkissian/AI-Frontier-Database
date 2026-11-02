@@ -1,6 +1,7 @@
 model,provider,context,quality,price,speed,latency,price_in,price_out,quality_estimated,coding,agentic,omniscience,cost_per_task,cache_hit_price,cache_write_price,is_open_weights,is_reasoning,release_date,aa_slug
 Gemini 4 Carbon (High),Google,1m,59.43,16.0,94.6248042744194,140.410884252,4.0,20.0,False,,,53.5,7.755545745286556,0.2,4.0,0,1,2026-10-28,gemini-4-carbon
 "Claude Opus 5.5 (Max, Default Fallback)",Anthropic,1m,58.41,16.0,95.5293924557226,721.3018552475,4.0,20.0,False,,,48.13,10.036409719512749,0.2,5.0,0,1,2026-09-22,claude-opus-5-5
+Gemini 4 Carbon (Medium),Google,1m,57.71,16.0,0.0,0.0,4.0,20.0,False,,,46.77,6.585776867225546,0.2,4.0,0,1,2026-10-28,gemini-4-carbon-medium
 "Claude Opus 5.5 (Xhigh, Default Fallback)",Anthropic,1m,56.99,16.0,83.463024712506,128.762213329,4.0,20.0,False,,,43.13,6.047194490848774,0.2,5.0,0,1,2026-09-22,claude-opus-5-5-xhigh
 GPT-6 Astra (Max),OpenAI,1m,56.85,40.0,74.3247911756291,370.012746094,10.0,50.0,False,,,42.43,6.244666943602518,1.0,12.5,0,1,2026-09-03,gpt-6-astra
 GPT-6 Astra (Xhigh),OpenAI,1m,55.26,40.0,69.6288896933084,194.861609698,10.0,50.0,False,,,43.67,3.6589264906126227,1.0,12.5,0,1,2026-09-03,gpt-6-astra-xhigh
