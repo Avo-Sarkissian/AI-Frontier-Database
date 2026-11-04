@@ -204,7 +204,7 @@
   "held_deprecated": [],
   "field_coverage": {
     "rows": 85,
-    "cost_per_task": 83,
+    "cost_per_task": 84,
     "cache_hit_price": 85,
     "cache_write_price": 51,
     "is_open_weights": 85,
