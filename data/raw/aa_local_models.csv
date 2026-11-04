@@ -23,6 +23,7 @@ Qwen3.8 27B (Medium),Alibaba,27.0,27.0,256,17.48,Apache 2.0,"vision,reasoning",F
 Qwen3.8 27B (Low),Alibaba,27.0,27.0,256,15.69,Apache 2.0,"vision,reasoning",False,False,,,-21.47
 Nemotron 3.5 Super VL,NVIDIA,120.0,12.0,1000,13.62,OpenMDW-1.1,"vision,reasoning",True,False,,,-2.87
 Inkling Small,Thinking Machines,266.0,12.0,1000,12.91,Apache 2.0,"vision,audio,reasoning",True,False,52.95,24.95,-9.47
+DeepSeek V4 Pro 0813 (Non-reasoning),DeepSeek,1600.0,49.0,1000,12.57,MIT,,True,False,,,-19.07
 Inkling (Xhigh),Thinking Machines,975.0,41.0,1000,12.48,Apache 2.0,"vision,audio,reasoning",True,False,,,-1.5
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,11.76,OpenMDW,reasoning,True,False,49.27,21.68,3.43
 Qwen3.8 27B (Non-reasoning),Alibaba,27.0,27.0,256,10.03,Apache 2.0,vision,False,False,44.59,,-7.27
@@ -31,5 +32,6 @@ Command A+,Cohere,218.0,25.0,192,6.24,Apache 2.0,"vision,reasoning",True,False,2
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,5.53,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-15.7
 Granite 4.2 8B,IBM,8.0,8.0,131,5.1,Apache 2.0,reasoning,False,False,22.38,3.71,-16.67
 Granite 4.2 3B,IBM,3.0,3.0,131,4.72,Apache 2.0,reasoning,False,False,17.53,0.93,-18.33
+Mistral Medium 3.5,Mistral,128.0,128.0,256,4.65,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-38.7
 Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,4.3,Apache 2.0,"vision,reasoning",True,False,26.64,1.44,-30.97
 NVIDIA Nemotron 3 Nano 4B,NVIDIA,3.97,3.97,262,1.82,Nvidia Nemotron Open Model License,reasoning,False,False,7.98,,-71.17
