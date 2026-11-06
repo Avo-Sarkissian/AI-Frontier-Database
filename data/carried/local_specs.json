@@ -1175,6 +1175,13 @@
   "licenseName": "Kimi K3 License",
   "parameters": 2800.0
  },
+ "kimi-k3-1-pro": {
+  "inferenceParametersActiveBillions": 104.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Kimi K3.1-Pro Licence",
+  "parameters": 2800.0
+ },
  "kimi-k3-low": {
   "inferenceParametersActiveBillions": 104.0,
   "inputModalityImage": true,
