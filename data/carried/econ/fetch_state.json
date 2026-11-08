@@ -1,48 +1,48 @@
 {
   "epoch_companies": {
-    "checked_at": "2026-11-02T21:46:40Z",
+    "checked_at": "2026-11-08T23:47:36Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-02T21:46:40Z",
+    "fetched_at": "2026-11-08T23:47:36Z",
     "ok": true,
-    "rows": 186,
-    "upstream_rows": 186
+    "rows": 187,
+    "upstream_rows": 187
   },
   "epoch_hardware": {
-    "checked_at": "2026-11-02T21:46:40Z",
+    "checked_at": "2026-11-08T23:47:36Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-02T21:46:40Z",
+    "fetched_at": "2026-11-08T23:47:36Z",
     "ok": true,
     "rows": 183,
     "upstream_rows": 183
   },
   "getdeploying": {
-    "checked_at": "2026-11-02T21:46:40Z",
+    "checked_at": "2026-11-08T23:47:36Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-02T21:46:40Z",
+    "fetched_at": "2026-11-08T23:47:36Z",
     "ok": true,
-    "rows": 16986,
-    "upstream_rows": 16696
+    "rows": 17004,
+    "upstream_rows": 16712
   },
   "hyperscaler": {
-    "checked_at": "2026-11-02T21:46:40Z",
+    "checked_at": "2026-11-08T23:47:36Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-02T21:46:40Z",
+    "fetched_at": "2026-11-08T23:47:36Z",
     "ok": true,
     "rows": 8,
     "upstream_rows": 8
   },
   "inferencex": {
-    "checked_at": "2026-11-02T21:46:40Z",
+    "checked_at": "2026-11-08T23:47:36Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-02T21:46:40Z",
+    "fetched_at": "2026-11-08T23:47:36Z",
     "ok": true,
-    "rows": 4635,
-    "upstream_rows": 4429
+    "rows": 5232,
+    "upstream_rows": 4705
   },
   "sofr": {
     "checked_at": "2026-11-08T10:08:05Z",
