@@ -37,5 +37,6 @@ Granite 4.2 3B,IBM,3.0,3.0,131,4.72,Apache 2.0,reasoning,False,False,17.53,0.93,
 Mistral Medium 3.5,Mistral,128.0,128.0,256,4.65,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-38.7
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,4.38,Apache 2.0,"vision,reasoning",False,False,43.43,6.73,-48.53
 Mistral Small 4 (Reasoning),Mistral,119.0,6.5,256,4.3,Apache 2.0,"vision,reasoning",True,False,26.64,1.44,-30.97
+gpt-oss-120b (High),OpenAI,117.0,5.1,131,3.82,Apache 2.0,reasoning,True,False,,,-46.43
 North Mini Code,Cohere,30.0,3.0,256,3.42,Apache 2.0,"reasoning,code",True,False,36.45,1.07,-49.8
 NVIDIA Nemotron 3 Nano 4B,NVIDIA,3.97,3.97,262,1.82,Nvidia Nemotron Open Model License,reasoning,False,False,7.98,,-71.17
