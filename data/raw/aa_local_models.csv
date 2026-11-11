@@ -6,6 +6,7 @@ MiMo-V2.6-Pro,Xiaomi,1020.0,42.0,1000,29.89,MIT,"vision,audio,reasoning",True,Fa
 Ling 3.1 Flash 1019,InclusionAI,560.0,25.0,1049,29.57,MIT,reasoning,True,False,,,-0.13
 MiniMax-M3.1-Flash,MiniMax,428.0,23.0,1000,29.06,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,,,-6.4
 DeepSeek V4.1 Flash 1017 (High),DeepSeek,552.0,16.0,1000,28.64,MIT,"vision,reasoning",True,False,,,1.53
+Qwen3.8-Flash-Next,Alibaba,180.0,6.0,256,28.58,Qwen Community License 1.0,"vision,reasoning",True,False,73.05,,-12.23
 Step 5 Preview,StepFun,600.0,27.0,1000,28.53,StepFun Model License 1.0,"vision,reasoning",True,False,,,16.43
 GLM-5.3-Flash,Z AI,320.0,18.0,1000,27.8,MIT,"vision,reasoning",True,False,71.53,51.23,0.67
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,26.73,MIT,"vision,reasoning",True,False,,,-10.83
