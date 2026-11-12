@@ -965,6 +965,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 975.0
  },
+ "inkling-2-small": {
+  "inferenceParametersActiveBillions": 17.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 594.0
+ },
  "inkling-small": {
   "inferenceParametersActiveBillions": 12.0,
   "inputModalityImage": true,

@@ -2,6 +2,7 @@ name,family,params_b,active_b,context_k,quality,license,tags,moe,quality_estimat
 Kimi K3.1 Pro,Kimi,2800.0,104.0,1000,46.45,Kimi K3.1-Pro Licence,"vision,reasoning",True,False,,,29.87
 DeepSeek V4.1 Flash 1017 (Max),DeepSeek,552.0,16.0,1000,32.59,MIT,"vision,reasoning",True,False,,,0.9
 GLM-5.3 (Max),Z AI,753.0,40.0,1000,31.65,GLM-5.3 License,reasoning,True,False,,,6.03
+Inkling 2 Small,Thinking Machines,594.0,17.0,1024,30.63,Apache 2.0,"vision,reasoning",True,False,,,16.1
 MiMo-V2.6-Pro,Xiaomi,1020.0,42.0,1000,29.89,MIT,"vision,audio,reasoning",True,False,,,-4.47
 Ling 3.1 Flash 1019,InclusionAI,560.0,25.0,1049,29.57,MIT,reasoning,True,False,,,-0.13
 MiniMax-M3.1-Flash,MiniMax,428.0,23.0,1000,29.06,MINIMAX COMMUNITY LICENSE,"vision,reasoning",True,False,,,-6.4

@@ -180,3 +180,4 @@ Ling 3.1 Flash 1019,inclusionAI/Ling-3.1-flash-1019,mla,72,512.0,64.0,,,,,572.12
 MiniMax-M3.1-Flash,mlx-community/MiniMax-M3.1-Flash-oQ4e-mtp,gqa,60,,,4.0,128.0,,,427.052,2026-10-29,
 Nanbeige4.3-33B,Nanbeige/Nanbeige4.3-33B,gqa,52,,,8.0,128.0,,,33.119,2026-11-02,
 Kimi K3.1 Pro,moonshotai/Kimi-K3.1-Pro,mla,93,512.0,64.0,,,,,2780.11,2026-11-06,
+Inkling 2 Small,thinkingmachines/Inkling-2-Small-MXFP8,gqa,48,,,8.0,128.0,,,612.397,2026-11-12,
