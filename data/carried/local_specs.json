@@ -1042,6 +1042,13 @@
   "licenseName": "K Exaone",
   "parameters": 236.0
  },
+ "k-exaone-2-0": {
+  "inferenceParametersActiveBillions": 37.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 750.0
+ },
  "k-exaone-2-0-0803": {
   "inferenceParametersActiveBillions": 37.0,
   "inputModalityImage": false,
