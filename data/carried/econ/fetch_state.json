@@ -1,48 +1,48 @@
 {
   "epoch_companies": {
-    "checked_at": "2026-11-08T23:47:36Z",
+    "checked_at": "2026-11-15T01:44:10Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-08T23:47:36Z",
+    "fetched_at": "2026-11-15T01:44:10Z",
     "ok": true,
-    "rows": 187,
-    "upstream_rows": 187
+    "rows": 188,
+    "upstream_rows": 188
   },
   "epoch_hardware": {
-    "checked_at": "2026-11-08T23:47:36Z",
+    "checked_at": "2026-11-15T01:44:10Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-08T23:47:36Z",
+    "fetched_at": "2026-11-15T01:44:10Z",
     "ok": true,
     "rows": 183,
     "upstream_rows": 183
   },
   "getdeploying": {
-    "checked_at": "2026-11-08T23:47:36Z",
+    "checked_at": "2026-11-15T01:44:10Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-08T23:47:36Z",
+    "fetched_at": "2026-11-15T01:44:10Z",
     "ok": true,
-    "rows": 17004,
-    "upstream_rows": 16712
+    "rows": 17378,
+    "upstream_rows": 16944
   },
   "hyperscaler": {
-    "checked_at": "2026-11-08T23:47:36Z",
-    "error": "",
-    "failing_since": null,
+    "checked_at": "2026-11-15T01:44:10Z",
+    "error": "HTTPError: 429 Client Error: Too Many Requests for url: https://prices.azure.com/api/retail/prices?%24filter=serviceName+eq+%27Virtual+Machines%27+and+priceType+eq+%27Consumption%27+and+%28armSkuName+eq+%27Standard_ND96isr_H100_v5%27+or+armSkuName+eq+%27Standard_ND96isr_H200_v5%27+or+armSkuName+eq+%27Standard_ND96isr_MI300X_v5%27+or+armSkuName+eq+%27Standard_ND128isr_NDR_GB200_v6%27%29",
+    "failing_since": "2026-11-15T01:44:10Z",
     "fetched_at": "2026-11-08T23:47:36Z",
-    "ok": true,
+    "ok": false,
     "rows": 8,
     "upstream_rows": 8
   },
   "inferencex": {
-    "checked_at": "2026-11-08T23:47:36Z",
+    "checked_at": "2026-11-15T01:44:10Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-08T23:47:36Z",
+    "fetched_at": "2026-11-15T01:44:10Z",
     "ok": true,
-    "rows": 5232,
-    "upstream_rows": 4705
+    "rows": 5573,
+    "upstream_rows": 4743
   },
   "sofr": {
     "checked_at": "2026-11-14T14:16:29Z",
