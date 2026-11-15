@@ -27,11 +27,11 @@
     "upstream_rows": 16944
   },
   "hyperscaler": {
-    "checked_at": "2026-11-15T01:44:10Z",
-    "error": "HTTPError: 429 Client Error: Too Many Requests for url: https://prices.azure.com/api/retail/prices?%24filter=serviceName+eq+%27Virtual+Machines%27+and+priceType+eq+%27Consumption%27+and+%28armSkuName+eq+%27Standard_ND96isr_H100_v5%27+or+armSkuName+eq+%27Standard_ND96isr_H200_v5%27+or+armSkuName+eq+%27Standard_ND96isr_MI300X_v5%27+or+armSkuName+eq+%27Standard_ND128isr_NDR_GB200_v6%27%29",
-    "failing_since": "2026-11-15T01:44:10Z",
-    "fetched_at": "2026-11-08T23:47:36Z",
-    "ok": false,
+    "checked_at": "2026-11-15T09:09:33Z",
+    "error": "",
+    "failing_since": null,
+    "fetched_at": "2026-11-15T09:09:33Z",
+    "ok": true,
     "rows": 8,
     "upstream_rows": 8
   },
