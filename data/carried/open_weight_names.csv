@@ -3,6 +3,7 @@ A.X-K2,1,aa_open_weights_catalogue,2026-08-17
 Agnes 2.5 Pro Alpha,1,aa_open_weights_catalogue,2026-08-27
 Agnes 2.5 Pro Alpha (based on Qwen3.5 397B A17B),1,aa_open_weights_catalogue,2026-09-23
 Agnes 2.5 Pro Beta,0,aa_isOpenWeights,2026-10-27
+Agnes 2.5 Pro Theta,0,aa_isOpenWeights,2026-11-16
 Apertus 70B Instruct,1,aa_open_weights_catalogue,2026-08-17
 Apertus 8B Instruct,1,aa_isOpenWeights,2026-08-17
 Apodex 1.1,0,aa_isOpenWeights,2026-10-27
@@ -14,6 +15,11 @@ Celeris-1,0,aa_isOpenWeights,2026-10-27
 "Claude Fable 5.1 (Max, Default Fallback)",0,aa_isOpenWeights,2026-10-27
 "Claude Fable 5.1 (Medium, Default Fallback)",0,aa_isOpenWeights,2026-10-27
 "Claude Fable 5.1 (Xhigh, Default Fallback)",0,aa_isOpenWeights,2026-10-27
+"Claude Fable 5.2 (High, Default Fallback)",0,aa_isOpenWeights,2026-11-16
+"Claude Fable 5.2 (Low, Default Fallback)",0,aa_isOpenWeights,2026-11-16
+"Claude Fable 5.2 (Max, Default Fallback)",0,aa_isOpenWeights,2026-11-16
+"Claude Fable 5.2 (Medium, Default Fallback)",0,aa_isOpenWeights,2026-11-16
+"Claude Fable 5.2 (Xhigh, Default Fallback)",0,aa_isOpenWeights,2026-11-16
 Claude Haiku 5.5 (High),0,aa_isOpenWeights,2026-10-27
 Claude Haiku 5.5 (Low),0,aa_isOpenWeights,2026-10-27
 Claude Haiku 5.5 (Max),0,aa_isOpenWeights,2026-10-27
@@ -30,7 +36,7 @@ Claude Haiku 5.5 (Xhigh),0,aa_isOpenWeights,2026-10-27
 "Claude Sonnet 5.5 (Medium, Default Fallback)",0,aa_isOpenWeights,2026-10-27
 "Claude Sonnet 5.5 (Xhigh, Default Fallback)",0,aa_isOpenWeights,2026-10-27
 Command A,1,aa_isOpenWeights,2026-05-06
-Command A+,1,aa_open_weights_catalogue,2026-06-09
+Command A+,1,aa_isOpenWeights,2026-06-09
 Command-R (Mar '24),1,aa_open_weights_catalogue,2026-06-16
 Command-R+ (Apr '24),1,aa_open_weights_catalogue,2026-06-16
 DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning),1,aa_open_weights_catalogue,2026-08-17
@@ -60,6 +66,7 @@ DeepSeek V4 Pro (Non-reasoning),1,aa_open_weights_catalogue,2026-05-06
 DeepSeek V4 Pro 0424 (Non-reasoning),1,aa_open_weights_catalogue,2026-09-17
 "DeepSeek V4 Pro 0424 (Reasoning, High Effort)",1,aa_open_weights_catalogue,2026-09-17
 "DeepSeek V4 Pro 0424 (Reasoning, Max Effort)",1,aa_open_weights_catalogue,2026-09-17
+DeepSeek V4 Pro 0813 (High),1,aa_isOpenWeights,2026-11-16
 DeepSeek V4 Pro 0813 (Max),1,aa_isOpenWeights,2026-09-30
 DeepSeek V4 Pro 0813 (Non-reasoning),1,aa_isOpenWeights,2026-09-30
 "DeepSeek V4 Pro 0813 (Reasoning, Max Effort)",1,aa_open_weights_catalogue,2026-08-13
@@ -138,9 +145,14 @@ Gemini 3.8 Flash (High),0,aa_isOpenWeights,2026-10-27
 Gemini 3.8 Flash (Low),0,aa_isOpenWeights,2026-10-27
 Gemini 3.8 Flash (Medium),0,aa_isOpenWeights,2026-10-27
 Gemini 4 Argon (High),0,aa_isOpenWeights,2026-10-27
+Gemini 4 Argon (Medium),0,aa_isOpenWeights,2026-11-16
 Gemini 4 Carbon (High),0,aa_isOpenWeights,2026-10-29
 Gemini 4 Carbon (Low),0,aa_isOpenWeights,2026-11-03
 Gemini 4 Carbon (Medium),0,aa_isOpenWeights,2026-11-02
+Gemini 4 Hydrogen (High),0,aa_isOpenWeights,2026-11-16
+Gemini 4 Hydrogen (Low),0,aa_isOpenWeights,2026-11-16
+Gemini 4 Hydrogen (Medium),0,aa_isOpenWeights,2026-11-16
+Gemini 4 Hydrogen (Xhigh),0,aa_isOpenWeights,2026-11-16
 Gemma 3 12B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 1B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 270M,1,aa_open_weights_catalogue,2026-08-17
@@ -153,7 +165,7 @@ Gemma 4 12B (Reasoning),1,aa_isOpenWeights,2026-06-16
 Gemma 4 26B A4B (Non-reasoning),1,aa_isOpenWeights,2026-05-27
 Gemma 4 26B A4B (Reasoning),1,aa_isOpenWeights,2026-05-06
 Gemma 4 31B (Non-reasoning),1,aa_isOpenWeights,2026-05-27
-Gemma 4 31B (Reasoning),1,aa_open_weights_catalogue,2026-05-06
+Gemma 4 31B (Reasoning),1,aa_isOpenWeights,2026-05-06
 Gemma 4 E2B (Non-reasoning),1,aa_open_weights_catalogue,2026-08-17
 Gemma 4 E2B (Reasoning),1,aa_open_weights_catalogue,2026-08-17
 Gemma 4 E4B (Non-reasoning),1,aa_isOpenWeights,2026-05-06
@@ -193,6 +205,7 @@ INTELLECT-3 (based on GLM-4.5-Air),1,aa_open_weights_catalogue,2026-09-23
 Inkling,1,aa_open_weights_catalogue,2026-07-15
 Inkling (Xhigh),1,aa_isOpenWeights,2026-09-30
 Inkling (xhigh),1,aa_open_weights_catalogue,2026-07-16
+Inkling 2 Small,1,aa_isOpenWeights,2026-11-16
 Inkling Small,1,aa_isOpenWeights,2026-07-30
 Jamba 1.5 Large,1,aa_open_weights_catalogue,2026-06-16
 Jamba 1.5 Mini,1,aa_open_weights_catalogue,2026-06-16
@@ -203,11 +216,11 @@ Jamba 1.7 Mini,1,aa_open_weights_catalogue,2026-08-17
 Jamba Reasoning 3B,1,aa_open_weights_catalogue,2026-08-17
 K-EXAONE (Non-reasoning),1,aa_open_weights_catalogue,2026-08-17
 K-EXAONE (Reasoning),1,aa_open_weights_catalogue,2026-08-17
-K-EXAONE 2.0,1,aa_open_weights_catalogue,2026-08-29
+K-EXAONE 2.0,1,aa_isOpenWeights,2026-08-29
 K-EXAONE 2.0 0803,1,aa_open_weights_catalogue,2026-08-17
 K2 Horizon 0.9B,1,aa_open_weights_catalogue,2026-09-13
 K2 Horizon 3.7B,1,aa_open_weights_catalogue,2026-09-13
-K2 Horizon 375B A23B,1,aa_open_weights_catalogue,2026-09-03
+K2 Horizon 375B A23B,1,aa_isOpenWeights,2026-09-03
 K2 Horizon 7B,1,aa_open_weights_catalogue,2026-09-13
 K2 Horizon MoVA 36B A4B,1,aa_open_weights_catalogue,2026-09-13
 K2 Think V2,1,aa_open_weights_catalogue,2026-08-17
@@ -230,7 +243,7 @@ Kimi K3 (Low),1,aa_open_weights_catalogue,2026-09-30
 Kimi K3 (Max),1,aa_open_weights_catalogue,2026-09-30
 Kimi K3 (low),1,aa_open_weights_catalogue,2026-07-31
 Kimi K3 (max),1,aa_open_weights_catalogue,2026-07-31
-Kimi K3.1 Pro,0,aa_isOpenWeights,2026-10-27
+Kimi K3.1 Pro,1,aa_isOpenWeights,2026-10-27
 Kimi Linear 48B A3B Instruct,1,aa_open_weights_catalogue,2026-08-17
 LFM2 1.2B,1,aa_open_weights_catalogue,2026-06-16
 LFM2 2.6B,1,aa_open_weights_catalogue,2026-06-16
@@ -310,19 +323,23 @@ Mixtral 8x7B Instruct,1,aa_open_weights_catalogue,2026-06-16
 Molmo 7B-D,1,aa_open_weights_catalogue,2026-08-17
 Molmo2-8B,1,aa_open_weights_catalogue,2026-08-17
 Motif 3,1,aa_open_weights_catalogue,2026-08-17
+Muse Ember (Max),0,aa_isOpenWeights,2026-11-16
+Muse Ember (Xhigh),0,aa_isOpenWeights,2026-11-16
 Muse Glimmer (High),1,aa_isOpenWeights,2026-09-30
 Muse Glimmer (high),1,aa_open_weights_catalogue,2026-08-12
 Muse Spark Open (Xhigh),1,aa_isOpenWeights,2026-10-15
+Muse Wonder (High),0,aa_isOpenWeights,2026-11-16
 Muse Wonder (Max),0,aa_isOpenWeights,2026-10-27
 NVIDIA Nemotron 3 Nano 30B A3B (Non-reasoning),1,aa_isOpenWeights,2026-05-06
 NVIDIA Nemotron 3 Nano 30B A3B (Reasoning),1,aa_isOpenWeights,2026-05-06
-NVIDIA Nemotron 3 Nano 4B,1,aa_open_weights_catalogue,2026-08-17
+NVIDIA Nemotron 3 Nano 4B,1,aa_isOpenWeights,2026-08-17
 NVIDIA Nemotron 3 Super 120B A12B (Reasoning),1,aa_open_weights_catalogue,2026-05-06
 NVIDIA Nemotron Nano 12B v2 VL (Non-reasoning),1,aa_isOpenWeights,2026-05-06
 NVIDIA Nemotron Nano 12B v2 VL (Reasoning),1,aa_open_weights_catalogue,2026-05-06
 NVIDIA Nemotron Nano 9B V2 (Non-reasoning),1,aa_isOpenWeights,2026-05-06
 NVIDIA Nemotron Nano 9B V2 (Reasoning),1,aa_isOpenWeights,2026-05-06
 Nanbeige4.1-3B,1,aa_open_weights_catalogue,2026-08-17
+Nanbeige4.3-33B,1,aa_isOpenWeights,2026-11-16
 Nemotron 3 Nano Omni 30B A3B Reasoning,1,aa_isOpenWeights,2026-05-06
 Nemotron 3 Super 120B A12B (Reasoning),1,aa_open_weights_catalogue,2026-08-10
 Nemotron 3 Ultra 550B A55B (Reasoning),1,aa_isOpenWeights,2026-06-09
@@ -333,7 +350,7 @@ Nemotron Cascade 2 30B A3B,1,aa_open_weights_catalogue,2026-08-17
 Nex-N2-Pro,1,aa_open_weights_catalogue,2026-06-25
 Nex-N2-Pro (Based on Qwen3.5-397B-A17B),1,aa_open_weights_catalogue,2026-09-30
 Nex-N2-Pro (based on Qwen3.5-397B-A17B),1,aa_open_weights_catalogue,2026-09-17
-North Mini Code,1,aa_open_weights_catalogue,2026-06-09
+North Mini Code,1,aa_isOpenWeights,2026-06-09
 Nova 2.0 Lite (High),0,aa_isOpenWeights,2026-10-27
 Nova 2.0 Lite (Low),0,aa_isOpenWeights,2026-10-27
 Nova 2.0 Lite (Medium),0,aa_isOpenWeights,2026-10-27
@@ -439,6 +456,7 @@ Step 3.5 Flash,1,aa_open_weights_catalogue,2026-05-06
 Step 3.7 Flash,1,aa_open_weights_catalogue,2026-06-09
 Step 5 Preview,1,aa_isOpenWeights,2026-10-16
 Step3 VL 10B,1,aa_open_weights_catalogue,2026-08-17
+Tencent Hy4,0,aa_isOpenWeights,2026-11-16
 Tiny Aya Global,1,aa_open_weights_catalogue,2026-05-06
 Tri-21B-Think,1,aa_open_weights_catalogue,2026-08-17
 Trinity Large Thinking,1,aa_isOpenWeights,2026-05-06
