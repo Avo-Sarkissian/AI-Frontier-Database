@@ -45,6 +45,17 @@ def test_absolute_floor_still_applies(monkeypatch):
     assert problems and "floor" in problems[0]
 
 
+def test_a_catalogue_upstream_pruned_below_50_keeps_publishing(monkeypatch):
+    """The video arena went 94 -> 43 on 2026-11-15 because AA lists fewer
+    models; once that is committed, 50 must not refuse every scrape after —
+    but a broken parse from there is still a row drop."""
+    _fake_counts(monkeypatch, {"v.csv": 42}, {"v.csv": 43})
+    assert data_guard.check(["v.csv"]) == []
+    _fake_counts(monkeypatch, {"v.csv": 30}, {"v.csv": 43})
+    problems = data_guard.check(["v.csv"])
+    assert problems and "drop" in problems[0]
+
+
 def test_missing_file_is_a_violation(monkeypatch):
     _fake_counts(monkeypatch, {}, {"a.csv": 155})
     problems = data_guard.check(["a.csv"])

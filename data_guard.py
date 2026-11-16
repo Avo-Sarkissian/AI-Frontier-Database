@@ -289,7 +289,13 @@ def check(paths: list[str] | None = None,
         committed = committed_rows(path, rev)
         change = _index_change(path, rev)
         refilling = None if change else _refilling(path, rev, committed)
-        floor = RESCALE_MIN_ROWS if (change or refilling) else MIN_ROWS
+        # A catalogue AA itself shrank below MIN_ROWS (the video arena, 94 -> 43
+        # on 2026-11-15) was published that small by an accepted prune or
+        # allow_shrink; holding it to 50 would refuse every scrape after. The
+        # row-drop and cumulative checks below still measure against HEAD.
+        pruned = (not change and not refilling and path not in _INDEX_DATASET
+                  and committed is not None and committed < MIN_ROWS)
+        floor = RESCALE_MIN_ROWS if (change or refilling or pruned) else MIN_ROWS
         if now < floor:
             problems.append(f"{path}: only {now} rows (floor {floor})")
             continue
@@ -300,6 +306,9 @@ def check(paths: list[str] | None = None,
                   f"{CUMULATIVE_BASELINE_HOURS}h cumulative and median checks are "
                   f"waived this run (floor {RESCALE_MIN_ROWS})")
             continue
+        if pruned and now < MIN_ROWS:
+            print(f"  {path}: {now} rows, under the usual floor of {MIN_ROWS} since "
+                  f"upstream pruned it (floor {RESCALE_MIN_ROWS})")
         if refilling and now < MIN_ROWS:
             print(f"  {path}: {now} rows, under the usual floor of {MIN_ROWS} while "
                   f"AA re-scores under Intelligence Index {refilling} "
