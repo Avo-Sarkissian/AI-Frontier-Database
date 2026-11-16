@@ -437,6 +437,7 @@ Qwen3.8 27B (medium),1,aa_open_weights_catalogue,2026-08-21
 Qwen3.8 27B (xhigh),1,aa_open_weights_catalogue,2026-08-21
 Qwen3.8 Max (0902),0,aa_isOpenWeights,2026-10-27
 Qwen3.8-Flash-Next,1,aa_isOpenWeights,2026-08-27
+Qwen4 Max,0,aa_isOpenWeights,2026-11-16
 R1 1776,1,aa_open_weights_catalogue,2026-08-17
 Reka Flash 3,1,aa_isOpenWeights,2026-05-06
 Ring-2.6-1T,1,aa_isOpenWeights,2026-05-27
