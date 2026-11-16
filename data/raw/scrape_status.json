@@ -1,19 +1,19 @@
 {
   "hosted": {
-    "checked_at": "2026-11-16T00:06:32+00:00",
-    "fetched_at": "2026-11-16T00:06:32+00:00",
+    "checked_at": "2026-11-16T01:48:28+00:00",
+    "fetched_at": "2026-11-16T01:48:28+00:00",
     "ok": true,
     "rows": 103
   },
   "image": {
-    "checked_at": "2026-11-16T00:06:35+00:00",
-    "fetched_at": "2026-11-16T00:06:35+00:00",
+    "checked_at": "2026-11-16T01:48:31+00:00",
+    "fetched_at": "2026-11-16T01:48:31+00:00",
     "ok": true,
     "rows": 114
   },
   "local": {
-    "checked_at": "2026-11-16T00:06:34+00:00",
-    "fetched_at": "2026-11-16T00:06:34+00:00",
+    "checked_at": "2026-11-16T01:48:30+00:00",
+    "fetched_at": "2026-11-16T01:48:30+00:00",
     "ok": true,
     "rows": 44
   },
@@ -22,11 +22,8 @@
       "i2v": 40,
       "t2v": 39
     },
-    "checked_at": "2026-11-16T00:06:36+00:00",
-    "fetched_at": "2026-11-16T00:06:36+00:00",
-    "notes": [
-      "i2v arena re-scaled upstream: 81 -> 40 models; 19 in both moved -308 Elo (median), rank correlation 0.87. Old-scale scores were discarded, not carried."
-    ],
+    "checked_at": "2026-11-16T01:48:32+00:00",
+    "fetched_at": "2026-11-16T01:48:32+00:00",
     "ok": true,
     "rebaselined": {
       "i2v": {
