@@ -119,6 +119,22 @@ def find_array(payload: str, key: str, where=None) -> list | None:
 _RECORD_ARRAY_RE = re.compile(r'"[A-Za-z0-9_$]+":\s*\[\s*\{')
 
 
+def _lift_release_slug(rec) -> None:
+    """Give a record whose own ``slug`` is gone its release's.
+
+    ~2026-11-04 the leaderboard records lost their top-level ``slug``; the only
+    one left is nested, ``"release":{"slug":"claude-sonnet-5-5",...}``, and it
+    names the BASE model, so every effort variant of a model shares it. Every
+    scraper here keys on ``slug``, so the nested one is lifted in place — the
+    variant's own slug still appears on /models/<slug> pages, and a record that
+    carries it keeps it.
+    """
+    if isinstance(rec, dict) and "slug" not in rec:
+        release = rec.get("release")
+        if isinstance(release, dict) and isinstance(release.get("slug"), str):
+            rec["slug"] = release["slug"]
+
+
 def find_records(payload: str, fields: tuple[str, ...]) -> list[dict] | None:
     """The largest array whose first record carries every one of ``fields``,
     under ANY key.
@@ -149,6 +165,9 @@ def find_records(payload: str, fields: tuple[str, ...]) -> list[dict] | None:
             arr = json.loads(slice_json_array(payload, start))
         except ValueError:
             continue
+        if "slug" in fields:
+            for rec in arr:
+                _lift_release_slug(rec)
         if not arr or not isinstance(arr[0], dict) \
                 or not all(f in arr[0] for f in fields):
             continue

@@ -330,10 +330,13 @@ def test_lag_connectors_are_accent_and_labelled_not_hidden_on_the_staircase():
     assert len(conns) == len(drawn) > 0
     assert all(t.line.color == "#00d4ff" for t in conns)
     assert fig.data[-1] is conns[-1], "connectors are drawn above the staircases"
+    # _clear_lag_labels drops a label that would print across another line (the
+    # hover keeps its value), so every label shown is a drawn record's and at
+    # least one survives — not every record has one.
     texts = [a.text for a in fig.layout.annotations]
-    for _, r in drawn.iterrows():
-        want = (f"≥{r['lag_months']:.1f} mo" if r["censored"] else f"{r['lag_months']:.1f} mo")
-        assert want in texts
+    wants = [f"≥{r['lag_months']:.1f} mo" if r["censored"] else f"{r['lag_months']:.1f} mo"
+             for _, r in drawn.iterrows()]
+    assert texts and all(t in wants for t in texts)
 
 
 # ── Iso-quality price ─────────────────────────────────────────────────────────

@@ -68,6 +68,42 @@ def test_local_scraper_reads_the_2026_10_page_shape():
     assert len(_leaderboard(payload)) == 4
 
 
+def _rec_1104(i: int) -> dict:
+    """A leaderboard record as AA ships it since ~2026-11-04: no top-level
+    slug, the release's nested, speed and TTFT renamed."""
+    return {"id": f"u-{i}", "release": {"slug": f"m-{i}", "name": f"Model {i}"},
+            "name": f"Model {i} (High)", "isOpenWeights": i % 2 == 0,
+            "modelCreatorName": "Lab", "intelligenceIndex": 40.0 + i,
+            "price1mInputTokens": 1, "price1mOutputTokens": 4,
+            "outputSpeed": 100.0 + i, "timeToFirstToken": 2.5}
+
+
+def test_the_release_slug_stands_in_for_a_missing_slug():
+    payload = '0:{"initialModels":' + json.dumps([_rec_1104(i) for i in range(4)]) + "}"
+    found = find_records(payload, ("slug", "intelligenceIndex"))
+    assert [r["slug"] for r in found] == [f"m-{i}" for i in range(4)]
+
+
+def test_hosted_scraper_reads_the_2026_11_page_shape():
+    from data.scraper import _extract_models, _parse_api_response
+    recs = [_rec_1104(i) for i in range(4)]
+    releases = [{"slug": f"m-{i}", "name": f"Model {i}", "releaseDate": "2026-11-0" + str(i + 1),
+                 "modelNames": [f"Model {i} (High)"]} for i in range(4)]
+    html = _page('0:{"releases":' + json.dumps(releases)
+                 + ',"initialModels":' + json.dumps(recs) + "}")
+    models = _extract_models(html)
+    assert [m["releaseDate"] for m in models] == [r["releaseDate"] for r in releases]
+    rows = _parse_api_response(models)
+    assert [float(r[5]) for r in rows] == [100.0 + i for i in range(4)], "speed went blank"
+    assert all(float(r[6]) == 2.5 for r in rows), "TTFT went blank"
+
+
+def test_local_scraper_reads_the_2026_11_page_shape():
+    from data.local_scraper import _leaderboard
+    payload = '0:{"initialModels":' + json.dumps([_rec_1104(i) for i in range(4)]) + "}"
+    assert [m["slug"] for m in _leaderboard(payload)] == [f"m-{i}" for i in range(4)]
+
+
 # ── 2. A shrink that holds publishes itself ───────────────────────────────────
 
 T0 = datetime(2026, 10, 20, 12, tzinfo=timezone.utc)

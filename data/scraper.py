@@ -78,6 +78,23 @@ coverage.json's field_coverage. The record finder still requires only `slug`
 and `intelligenceIndex`: if AA drops one of these fields, the scrape publishes
 the rest with that column blank rather than going dark.
 
+THE RECORDS RESHAPED, ~2026-11-04.
+The hosted and open-weight catalogues published nothing for eleven days after
+three changes to the same records:
+
+  * the top-level `slug` went; the only one left is `release.slug`, the BASE
+    model's, shared by every effort variant. data/rsc.find_records lifts it, so
+    aa_slug is now the release slug and the release-date join hits on it
+    exactly. Names stay unique (290 of 290) and are still the join key.
+  * medianOutputTokensPerSecond / medianTimeToFirstTokenSeconds became
+    outputSpeed / timeToFirstToken. The new figures are not continuous with the
+    old ones: on 80 models present both days, TTFT was ~0.5-0.7x the
+    2026-11-04 value and speed moved both ways. That is AA's measurement, read
+    as published; the history snapshots carry the step.
+  * intelligenceIndexIsEstimated went. Under index v5 AA publishes no score
+    rather than an estimated one (113 of 290 records scored), so an absent flag
+    is written "0", as it always was.
+
 Falls back to the existing cache on any failure.
 
 Run standalone:  python -m data.scraper
@@ -156,6 +173,14 @@ def _num_str(v, positive_only: bool = False) -> str:
     if not math.isfinite(f) or f < 0 or (positive_only and f == 0):
         return ""
     return str(f)
+
+
+def _first_present(m: dict, *keys):
+    """The value of the first of ``keys`` the record carries at all."""
+    for k in keys:
+        if k in m:
+            return m[k]
+    return None
 
 
 def _bool_str(v) -> str:
@@ -433,8 +458,11 @@ def _parse_api_response(models: list[dict],
             _skip("no_price", model_name)
             continue
 
-        speed   = m.get("medianOutputTokensPerSecond")
-        latency = m.get("medianTimeToFirstTokenSeconds")
+        # Renamed ~2026-11-04 to outputSpeed / timeToFirstToken (module
+        # docstring, THE RECORDS RESHAPED); the old keys are read first so a
+        # record still carrying them is unaffected.
+        speed   = _first_present(m, "medianOutputTokensPerSecond", "outputSpeed")
+        latency = _first_present(m, "medianTimeToFirstTokenSeconds", "timeToFirstToken")
         speed   = float(speed) if _real(speed) else 0
         latency = float(latency) if _real(latency) else 0
 

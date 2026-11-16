@@ -927,7 +927,10 @@ def test_specs_are_harvested_from_records_scattered_through_a_model_page():
     payload = ('[{"page":{"model":' + json.dumps(own) + '},"related":[{"x":1},'
                + json.dumps(closed) + "," + json.dumps(other) + "]}]")
     got = _harvest_specs(payload)
-    assert set(got) == {"gpt-oss-120b", "kimi-k3"}
+    # Each spec is also filed under its release slug, the only slug the
+    # leaderboard carries since ~2026-11-04; the first variant read claims it.
+    assert set(got) == {"gpt-oss-120b", "kimi-k3", "gpt-oss"}
+    assert got["gpt-oss"] == got["gpt-oss-120b"]
     assert got["gpt-oss-120b"]["parameters"] == 117
     assert got["gpt-oss-120b"]["inferenceParametersActiveBillions"] == 5.1
     assert got["kimi-k3"]["licenseName"] is None, '"$undefined" is not a licence'

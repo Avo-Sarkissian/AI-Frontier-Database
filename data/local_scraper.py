@@ -159,6 +159,14 @@ def _harvest_specs(payload: str) -> dict[str, dict]:
         if isinstance(rec, dict) and rec.get("slug") and rec.get("isOpenWeights") is True \
                 and "parameters" in rec:
             out[rec["slug"]] = _spec_of(rec)
+            # Since ~2026-11-04 the leaderboard names a model only by its
+            # release slug (data.rsc._lift_release_slug), which a model page
+            # carries beside the variant's own — "step-5" in release
+            # "step-5-preview". Filed under both, so the board's key finds it.
+            release = rec.get("release")
+            rs = release.get("slug") if isinstance(release, dict) else None
+            if isinstance(rs, str) and rs:
+                out.setdefault(rs, out[rec["slug"]])
 
     catalogue = find_records(payload, ("slug", "parameters"))
     for rec in catalogue or []:
@@ -497,6 +505,12 @@ def _scrape_and_save() -> bool:
     carried.save_deprecation_state(dep_state, state_path)
     carried.record_index_version("local", index_version)
     save_specs(specs)
+    # Every row here is one AA flags isOpenWeights. The hosted scrape records
+    # the flag only for models AA prices, so an open model nobody sells
+    # (Nanbeige4.3-33B, 2026-11-02) never reached the registry the open-gap
+    # history classifies by.
+    carried.learn_open_weights(pd.DataFrame({"model": df["name"].astype(str),
+                                             "is_open_weights": True}))
     carried.learn_creator_colors({_creator_name(m): m.get("modelCreatorColor")
                                   for m in board}, "llm")
     # Fold this scrape's frozen coding/agentic scores into the sidecar that
