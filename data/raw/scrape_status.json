@@ -1,32 +1,42 @@
 {
   "hosted": {
-    "checked_at": "2026-11-16T00:01:58+00:00",
-    "fetched_at": "2026-11-16T00:01:58+00:00",
+    "checked_at": "2026-11-16T00:06:32+00:00",
+    "fetched_at": "2026-11-16T00:06:32+00:00",
     "ok": true,
     "rows": 103
   },
   "image": {
-    "checked_at": "2026-11-16T00:02:03+00:00",
-    "fetched_at": "2026-11-16T00:02:03+00:00",
+    "checked_at": "2026-11-16T00:06:35+00:00",
+    "fetched_at": "2026-11-16T00:06:35+00:00",
     "ok": true,
     "rows": 114
   },
   "local": {
-    "checked_at": "2026-11-16T00:02:01+00:00",
-    "fetched_at": "2026-11-16T00:02:01+00:00",
+    "checked_at": "2026-11-16T00:06:34+00:00",
+    "fetched_at": "2026-11-16T00:06:34+00:00",
     "ok": true,
     "rows": 44
   },
   "video": {
     "arenas": {
-      "i2v": 81,
-      "t2v": 32
+      "i2v": 40,
+      "t2v": 39
     },
-    "checked_at": "2026-11-16T00:02:04+00:00",
-    "error": "row count 94 -> 43, a 54% drop (limit 20%); only 77% of the surviving rows are already published (need 90%) \u2014 this looks like a different array, not a prune, and will not publish itself",
-    "fetched_at": "2026-10-28T14:06:10+00:00",
-    "ok": false,
+    "checked_at": "2026-11-16T00:06:36+00:00",
+    "fetched_at": "2026-11-16T00:06:36+00:00",
+    "notes": [
+      "i2v arena re-scaled upstream: 81 -> 40 models; 19 in both moved -308 Elo (median), rank correlation 0.87. Old-scale scores were discarded, not carried."
+    ],
+    "ok": true,
     "rebaselined": {
+      "i2v": {
+        "detected_at": "2026-11-16T00:06:36+00:00",
+        "median_shift": -308.0,
+        "overlap": 19,
+        "rows_after": 40,
+        "rows_before": 81,
+        "spearman": 0.87
+      },
       "t2v": {
         "detected_at": "2026-10-01T03:41:23+00:00",
         "median_shift": -239.3,
@@ -36,6 +46,6 @@
         "spearman": 0.82
       }
     },
-    "rows": 94
+    "rows": 43
   }
 }

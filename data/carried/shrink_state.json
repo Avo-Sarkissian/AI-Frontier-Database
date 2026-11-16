@@ -20,5 +20,12 @@
       "rows": 21
     }
   },
-  "video": {}
+  "video": {
+    "accepted": {
+      "at": "2026-11-16T00:06:36+00:00",
+      "from_rows": 94,
+      "manual": true,
+      "rows": 43
+    }
+  }
 }
