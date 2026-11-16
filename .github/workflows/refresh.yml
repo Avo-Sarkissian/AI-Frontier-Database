@@ -67,6 +67,10 @@ jobs:
       # end, after whatever did succeed has been published.
       - name: Scrape AA (cache kept on failure; failures re-raised at the end)
         id: scrape
+        # allow_shrink reaches each scraper's own row-loss check (data/carried.py,
+        # confirm_shrink) as well as data_guard.py below.
+        env:
+          AA_ALLOW_SHRINK: ${{ inputs.allow_shrink && '1' || '' }}
         run: |
           failed=""
           python -m data.scraper       || failed="$failed hosted"

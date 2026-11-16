@@ -153,6 +153,31 @@ def test_a_shrink_that_shares_few_rows_never_publishes_itself(tmp_path):
         assert _run(path, h, now_keys=strangers)
 
 
+def test_new_releases_during_a_long_shrink_do_not_deadlock_it(tmp_path):
+    """2026-10-29..11-15: the video prune never published because upstream kept
+    releasing models while the cache stayed frozen. A newcomer seen on one
+    streak scrape is known on the next."""
+    path = tmp_path / "shrink.json"
+    before = {f"m{i}" for i in range(94)}
+    survivors = {f"m{i}" for i in range(31)}
+    hour_keys = [survivors | {f"new{j}" for j in range(k)} for k in (3, 6, 9, 12)]
+    for h, keys in zip((0, 4, 8), hour_keys):
+        assert carried.confirm_shrink("video", list(REFUSED), before, keys,
+                                      now=T0 + timedelta(hours=h), path=path)
+    assert len(hour_keys[3] & before) / len(hour_keys[3]) < carried.SHRINK_MIN_OVERLAP
+    assert carried.confirm_shrink("video", list(REFUSED), before, hour_keys[3],
+                                  now=T0 + timedelta(hours=12), path=path) == []
+
+
+def test_the_allow_shrink_override_reaches_the_scrapers(tmp_path, monkeypatch):
+    path = tmp_path / "shrink.json"
+    strangers = {f"x{i}" for i in range(105)}
+    assert _run(path, 0, now_keys=strangers)
+    monkeypatch.setenv(carried.SHRINK_OVERRIDE_ENV, "1")
+    assert _run(path, 1, now_keys=strangers) == []
+    assert carried.load_shrink_state(path)["image"]["accepted"]["manual"] is True
+
+
 def test_data_guard_measures_against_an_accepted_shrink(tmp_path, monkeypatch):
     import data_guard
     monkeypatch.setattr(carried, "CARRIED_DIR", tmp_path)

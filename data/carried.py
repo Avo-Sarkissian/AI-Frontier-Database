@@ -332,10 +332,24 @@ def deprecation_hysteresis(state: dict, deprecated_now: set[str],
 # data_guard.py reads the "accepted" marker this leaves, so the workflow's own
 # row-loss checks measure against the accepted size instead of the pre-prune one.
 
+#
+# The overlap is measured against the published rows AND every row an earlier
+# scrape of the same streak carried. Measured against the published rows
+# alone, a long refusal deadlocks: the cache is frozen while upstream keeps
+# releasing, so the share of known survivors only falls. The video arena's
+# 94 -> 34 prune of 2026-10-29 was half an hour from publishing when it dipped
+# under 90%, and by 2026-11-15 it was 33 of 43 with nothing able to restart it.
+# A new model now joins the known set the hour it appears; an array swapped
+# wholesale still shares too few names to start a streak.
+#
+# The workflow's allow_shrink input sets AA_ALLOW_SHRINK=1 for the scrapers
+# too, so the manual override reaches this check and not only data_guard.py.
+
 SHRINK_STATE_FILE = "shrink_state.json"
 SHRINK_CONFIRM_SCRAPES = 4
 SHRINK_CONFIRM_HOURS = 12.0
 SHRINK_MIN_OVERLAP = 0.9
+SHRINK_OVERRIDE_ENV = "AA_ALLOW_SHRINK"
 
 
 def _shrink_path(path: Path | None) -> Path:
@@ -389,7 +403,17 @@ def confirm_shrink(dataset: str, violations: list[str], before: set[str],
             _save_shrink_state(state, path)
         return []
 
-    overlap = len(now_keys & before) / len(now_keys) if now_keys else 0.0
+    if os.environ.get(SHRINK_OVERRIDE_ENV) == "1":
+        entry["accepted"] = {"rows": len(now_keys), "from_rows": len(before),
+                             "at": now.isoformat(timespec="seconds"), "manual": True}
+        state[dataset] = entry
+        _save_shrink_state(state, path)
+        print(f"[{dataset}] shrink {len(before)} -> {len(now_keys)} accepted by "
+              f"{SHRINK_OVERRIDE_ENV}=1 (workflow allow_shrink)")
+        return []
+
+    known = before | set((streak or {}).get("seen") or [])
+    overlap = len(now_keys & known) / len(now_keys) if now_keys else 0.0
     if overlap < SHRINK_MIN_OVERLAP:
         if streak is not None:
             state[dataset] = entry
@@ -423,7 +447,8 @@ def confirm_shrink(dataset: str, violations: list[str], before: set[str],
         return []
 
     entry["streak"] = {"since": first.isoformat(timespec="seconds"), "scrapes": count,
-                       "rows": len(now_keys), "from_rows": len(before)}
+                       "rows": len(now_keys), "from_rows": len(before),
+                       "seen": sorted((known - before) | now_keys)}
     state[dataset] = entry
     _save_shrink_state(state, path)
     return violations + [
