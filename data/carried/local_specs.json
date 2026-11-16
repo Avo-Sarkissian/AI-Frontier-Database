@@ -2498,6 +2498,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 79.7
  },
+ "qwen3-next-80b-a3b": {
+  "inferenceParametersActiveBillions": 3.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 80.0
+ },
  "qwen3-next-80b-a3b-instruct": {
   "inferenceParametersActiveBillions": 3.0,
   "inputModalityImage": false,
@@ -2679,6 +2686,13 @@
   "inputModalitySpeech": false,
   "licenseName": "Apache 2.0",
   "parameters": 10.7
+ },
+ "solar-open-100b": {
+  "inferenceParametersActiveBillions": 12.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Upstage Solar License",
+  "parameters": 102.0
  },
  "solar-open-100b-reasoning": {
   "inferenceParametersActiveBillions": 12.0,
