@@ -26,7 +26,6 @@ Beam 1.0,Reflection,501.0,23.0,1049,17.73,Apache 2.0,reasoning,True,False,,,2.33
 Qwen3.8 27B (Medium),Alibaba,27.0,27.0,256,17.48,Apache 2.0,"vision,reasoning",False,False,,,-35.87
 Qwen3.8 27B (Low),Alibaba,27.0,27.0,256,15.69,Apache 2.0,"vision,reasoning",False,False,,,-21.47
 Nemotron 3.5 Super VL,NVIDIA,120.0,12.0,1000,13.62,OpenMDW-1.1,"vision,reasoning",True,False,,,-2.87
-Inkling Small,Thinking Machines,266.0,12.0,1000,12.91,Apache 2.0,"vision,audio,reasoning",True,False,52.95,24.95,-9.47
 DeepSeek V4 Pro 0813 (Non-reasoning),DeepSeek,1600.0,49.0,1000,12.57,MIT,,True,False,,,-19.07
 Inkling (Xhigh),Thinking Machines,975.0,41.0,1000,12.48,Apache 2.0,"vision,audio,reasoning",True,False,,,-1.5
 Nemotron 3 Ultra 550B A55B (Reasoning),NVIDIA,550.0,55.0,262,11.76,OpenMDW,reasoning,True,False,49.27,21.68,3.43
@@ -36,6 +35,7 @@ Muse Glimmer (High),Meta,30.0,30.0,131,6.34,Apache 2.0,"vision,reasoning",False,
 Command A+,Cohere,218.0,25.0,192,6.24,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-2.67
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,5.53,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-15.7
 Granite 4.2 8B,IBM,8.0,8.0,131,5.1,Apache 2.0,reasoning,False,False,22.38,3.71,-16.67
+Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,4.78,Apache 2.0,"vision,audio,reasoning",True,False,9.39,,-20.67
 Granite 4.2 3B,IBM,3.0,3.0,131,4.72,Apache 2.0,reasoning,False,False,17.53,0.93,-18.33
 Mistral Medium 3.5,Mistral,128.0,128.0,256,4.65,Modified MIT License,"vision,reasoning",False,False,46.9,9.35,-38.7
 Gemma 4 31B (Reasoning),Google,30.7,30.7,256,4.38,Apache 2.0,"vision,reasoning",False,False,43.43,6.73,-48.53
