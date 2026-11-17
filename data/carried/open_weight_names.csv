@@ -1,5 +1,5 @@
 name,open_weights,source,first_seen
-A.X-K2,1,aa_open_weights_catalogue,2026-08-17
+A.X-K2,1,aa_isOpenWeights,2026-08-17
 Agnes 2.5 Pro Alpha,1,aa_open_weights_catalogue,2026-08-27
 Agnes 2.5 Pro Alpha (based on Qwen3.5 397B A17B),1,aa_open_weights_catalogue,2026-09-23
 Agnes 2.5 Pro Beta,0,aa_isOpenWeights,2026-10-27
@@ -139,6 +139,16 @@ GPT-6.1 Terra (Max),0,aa_isOpenWeights,2026-10-27
 GPT-6.1 Terra (Medium),0,aa_isOpenWeights,2026-10-27
 GPT-6.1 Terra (Non-reasoning),0,aa_isOpenWeights,2026-10-27
 GPT-6.1 Terra (Xhigh),0,aa_isOpenWeights,2026-10-27
+GPT-6.2 Astra (High),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Astra (Low),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Astra (Max),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Astra (Medium),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Astra (Xhigh),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Sol (High),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Sol (Low),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Sol (Max),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Sol (Medium),0,aa_isOpenWeights,2026-11-17
+GPT-6.2 Sol (Xhigh),0,aa_isOpenWeights,2026-11-17
 Gemini 3.1 Pro Preview,0,aa_isOpenWeights,2026-10-27
 Gemini 3.5 Flash-Lite,0,aa_isOpenWeights,2026-10-27
 Gemini 3.8 Flash (High),0,aa_isOpenWeights,2026-10-27

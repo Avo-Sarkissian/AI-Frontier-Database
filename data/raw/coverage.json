@@ -1,13 +1,13 @@
 {
-  "upstream_host_model_rows": 277,
-  "distinct_upstream_models": 277,
+  "upstream_host_model_rows": 278,
+  "distinct_upstream_models": 278,
   "kept": 100,
   "skipped_no_score": [
-    "A.X-K2",
     "Agnes 2.5 Pro Beta",
     "Apertus 70B Instruct",
     "Apertus 8B Instruct",
     "Apriel-v1.6-15B-Thinker",
+    "Astra for Law 6.2 (Max)",
     "Celeris-1",
     "Cogito v2.1 (Reasoning)",
     "DeepHermes 3 - Llama-3.1 8B Preview (Non-reasoning)",
@@ -172,6 +172,7 @@
     "o3"
   ],
   "skipped_no_price": [
+    "A.X-K2",
     "Command A+",
     "Gemma 4 31B (Reasoning)",
     "Granite 4.2 3B",
