@@ -213,6 +213,7 @@ INTELLECT-3    (based on GLM-4.5-Air),1,aa_open_weights_catalogue,2026-09-23
 INTELLECT-3 (Based on GLM-4.5-Air),1,aa_open_weights_catalogue,2026-09-30
 INTELLECT-3 (based on GLM-4.5-Air),1,aa_open_weights_catalogue,2026-09-23
 Inkling,1,aa_open_weights_catalogue,2026-07-15
+Inkling (High),1,aa_isOpenWeights,2026-11-18
 Inkling (Xhigh),1,aa_isOpenWeights,2026-09-30
 Inkling (xhigh),1,aa_open_weights_catalogue,2026-07-16
 Inkling 2 Small,1,aa_isOpenWeights,2026-11-16
@@ -264,6 +265,8 @@ LFM2.5-1.2B-Thinking,1,aa_open_weights_catalogue,2026-08-17
 LFM2.5-2.6B,1,aa_open_weights_catalogue,2026-08-21
 LFM2.5-8B-A1B,1,aa_open_weights_catalogue,2026-07-02
 LFM2.5-VL-1.6B,1,aa_open_weights_catalogue,2026-06-16
+LFM3-1.7B,1,aa_isOpenWeights,2026-11-18
+LFM3-VL-2B,1,aa_isOpenWeights,2026-11-18
 Ling 2.6 Flash,1,aa_open_weights_catalogue,2026-05-06
 Ling 3.0 Flash,1,aa_open_weights_catalogue,2026-08-10
 Ling 3.0 Tiny,1,aa_open_weights_catalogue,2026-08-12

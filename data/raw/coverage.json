@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 278,
-  "distinct_upstream_models": 278,
-  "kept": 100,
+  "upstream_host_model_rows": 282,
+  "distinct_upstream_models": 282,
+  "kept": 103,
   "skipped_no_score": [
     "Agnes 2.5 Pro Beta",
     "Apertus 70B Instruct",
@@ -182,23 +182,24 @@
     "Muse Wonder Full (Max)",
     "NVIDIA Nemotron 3 Nano 4B",
     "Nanbeige4.3-33B",
-    "North Mini Code"
+    "North Mini Code",
+    "joyvl2_v27 (JoyAI-VL-Preview)"
   ],
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 100,
-    "cost_per_task": 100,
-    "cache_hit_price": 99,
+    "rows": 103,
+    "cost_per_task": 103,
+    "cache_hit_price": 102,
     "cache_write_price": 48,
-    "is_open_weights": 100,
-    "is_reasoning": 100,
-    "release_date": 100,
-    "aa_slug": 100
+    "is_open_weights": 103,
+    "is_reasoning": 103,
+    "release_date": 103,
+    "aa_slug": 103
   },
   "release_date_join": {
     "record": 0,
-    "slug": 100,
+    "slug": 103,
     "name": 0,
     "effort_slug": 0,
     "paren_name": 0,

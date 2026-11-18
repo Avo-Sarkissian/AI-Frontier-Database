@@ -979,6 +979,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 594.0
  },
+ "inkling-high": {
+  "inferenceParametersActiveBillions": 41.0,
+  "inputModalityImage": true,
+  "inputModalitySpeech": true,
+  "licenseName": "Apache 2.0",
+  "parameters": 975.0
+ },
  "inkling-small": {
   "inferenceParametersActiveBillions": 12.0,
   "inputModalityImage": true,
@@ -1279,6 +1286,20 @@
   "inputModalitySpeech": false,
   "licenseName": "lfm 1.0",
   "parameters": 8.34
+ },
+ "lfm3-1-7b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.73
+ },
+ "lfm3-vl-2b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "lfm 1.0",
+  "parameters": 1.92
  },
  "ling-1t": {
   "inferenceParametersActiveBillions": 50.0,
@@ -1608,6 +1629,13 @@
   "inputModalitySpeech": false,
   "licenseName": "MIT",
   "parameters": 309.0
+ },
+ "minicpm-v-4-6-1-3b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 1.3
  },
  "minicpm-v4-6-1-3b": {
   "inferenceParametersActiveBillions": null,
