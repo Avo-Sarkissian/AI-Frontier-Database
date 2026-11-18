@@ -163,6 +163,10 @@ Gemini 4 Hydrogen (High),0,aa_isOpenWeights,2026-11-16
 Gemini 4 Hydrogen (Low),0,aa_isOpenWeights,2026-11-16
 Gemini 4 Hydrogen (Medium),0,aa_isOpenWeights,2026-11-16
 Gemini 4 Hydrogen (Xhigh),0,aa_isOpenWeights,2026-11-16
+Gemini 4 Neon (High),0,aa_isOpenWeights,2026-11-18
+Gemini 4 Neon (Low),0,aa_isOpenWeights,2026-11-18
+Gemini 4 Neon (Medium),0,aa_isOpenWeights,2026-11-18
+Gemini 4 Neon (Xhigh),0,aa_isOpenWeights,2026-11-18
 Gemma 3 12B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 1B Instruct,1,aa_open_weights_catalogue,2026-05-06
 Gemma 3 270M,1,aa_open_weights_catalogue,2026-08-17

@@ -1,7 +1,7 @@
 {
-  "upstream_host_model_rows": 283,
-  "distinct_upstream_models": 283,
-  "kept": 103,
+  "upstream_host_model_rows": 287,
+  "distinct_upstream_models": 287,
+  "kept": 107,
   "skipped_no_score": [
     "Agnes 2.5 Pro Beta",
     "Apertus 70B Instruct",
@@ -189,18 +189,18 @@
   "skipped_deprecated": [],
   "held_deprecated": [],
   "field_coverage": {
-    "rows": 103,
-    "cost_per_task": 103,
-    "cache_hit_price": 102,
-    "cache_write_price": 48,
-    "is_open_weights": 103,
-    "is_reasoning": 103,
-    "release_date": 103,
-    "aa_slug": 103
+    "rows": 107,
+    "cost_per_task": 107,
+    "cache_hit_price": 106,
+    "cache_write_price": 52,
+    "is_open_weights": 107,
+    "is_reasoning": 107,
+    "release_date": 107,
+    "aa_slug": 107
   },
   "release_date_join": {
     "record": 0,
-    "slug": 103,
+    "slug": 107,
     "name": 0,
     "effort_slug": 0,
     "paren_name": 0,
