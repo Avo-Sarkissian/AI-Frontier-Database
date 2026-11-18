@@ -177,13 +177,13 @@
     "Gemma 4 31B (Reasoning)",
     "Granite 4.2 3B",
     "JT-4.1 Flash 236B A21B",
+    "JoyAI-VL-Preview",
     "K-EXAONE 2.0",
     "K2 Horizon 375B A23B",
     "Muse Wonder Full (Max)",
     "NVIDIA Nemotron 3 Nano 4B",
     "Nanbeige4.3-33B",
-    "North Mini Code",
-    "joyvl2_v27 (JoyAI-VL-Preview)"
+    "North Mini Code"
   ],
   "skipped_deprecated": [],
   "held_deprecated": [],
