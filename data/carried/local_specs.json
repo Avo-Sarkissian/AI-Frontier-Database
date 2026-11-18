@@ -1091,6 +1091,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 3.7
  },
+ "k2-horizon-32b": {
+  "inferenceParametersActiveBillions": null,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 32.0
+ },
  "k2-horizon-375b-a23b": {
   "inferenceParametersActiveBillions": 23.0,
   "inputModalityImage": false,

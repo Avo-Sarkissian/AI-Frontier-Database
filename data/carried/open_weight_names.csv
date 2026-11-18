@@ -229,11 +229,12 @@ K-EXAONE (Non-reasoning),1,aa_open_weights_catalogue,2026-08-17
 K-EXAONE (Reasoning),1,aa_open_weights_catalogue,2026-08-17
 K-EXAONE 2.0,1,aa_isOpenWeights,2026-08-29
 K-EXAONE 2.0 0803,1,aa_open_weights_catalogue,2026-08-17
-K2 Horizon 0.9B,1,aa_open_weights_catalogue,2026-09-13
-K2 Horizon 3.7B,1,aa_open_weights_catalogue,2026-09-13
+K2 Horizon 0.9B,1,aa_isOpenWeights,2026-09-13
+K2 Horizon 3.7B,1,aa_isOpenWeights,2026-09-13
+K2 Horizon 32B,1,aa_isOpenWeights,2026-11-18
 K2 Horizon 375B A23B,1,aa_isOpenWeights,2026-09-03
-K2 Horizon 7B,1,aa_open_weights_catalogue,2026-09-13
-K2 Horizon MoVA 36B A4B,1,aa_open_weights_catalogue,2026-09-13
+K2 Horizon 7B,1,aa_isOpenWeights,2026-09-13
+K2 Horizon MoVA 36B A4B,1,aa_isOpenWeights,2026-09-13
 K2 Think V2,1,aa_open_weights_catalogue,2026-08-17
 K2-V2 (High),1,aa_open_weights_catalogue,2026-09-30
 K2-V2 (Low),1,aa_open_weights_catalogue,2026-09-30
