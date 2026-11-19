@@ -40,6 +40,7 @@ K-EXAONE 2.0,LG AI Research,750.0,37.0,262,7.56,Apache 2.0,reasoning,True,False,
 Muse Glimmer (High),Meta,30.0,30.0,131,6.34,Apache 2.0,"vision,reasoning",False,False,,,-32.23
 Command A+,Cohere,218.0,25.0,192,6.24,Apache 2.0,"vision,reasoning",True,False,27.85,3.63,-2.67
 LFM3-1.7B,Liquid AI,1.73,1.73,262,5.99,lfm 1.0,reasoning,False,False,,,-1.23
+Granite 4.2 30B,IBM,30.0,30.0,131,5.54,Apache 2.0,reasoning,False,False,29.92,,-12.43
 Nemotron 3.5 Lightning,NVIDIA,31.6,3.6,1000,5.53,OpenMDW-1.1,reasoning,True,False,26.76,6.14,-15.7
 Granite 4.2 8B,IBM,8.0,8.0,131,5.1,Apache 2.0,reasoning,False,False,22.38,3.71,-16.67
 Gemma 4 E4B (Reasoning),Google,8.0,4.5,128,4.78,Apache 2.0,"vision,audio,reasoning",True,False,9.39,,-20.67
