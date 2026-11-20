@@ -220,6 +220,7 @@ Inkling,1,aa_open_weights_catalogue,2026-07-15
 Inkling (High),1,aa_isOpenWeights,2026-11-18
 Inkling (Xhigh),1,aa_isOpenWeights,2026-09-30
 Inkling (xhigh),1,aa_open_weights_catalogue,2026-07-16
+Inkling 2 Mini,1,aa_isOpenWeights,2026-11-20
 Inkling 2 Small,1,aa_isOpenWeights,2026-11-16
 Inkling Small,1,aa_isOpenWeights,2026-07-30
 Jamba 1.5 Large,1,aa_open_weights_catalogue,2026-06-16
@@ -475,7 +476,7 @@ Step 3.5 Flash,1,aa_open_weights_catalogue,2026-05-06
 Step 3.7 Flash,1,aa_open_weights_catalogue,2026-06-09
 Step 5 Preview,1,aa_isOpenWeights,2026-10-16
 Step3 VL 10B,1,aa_open_weights_catalogue,2026-08-17
-Tencent Hy4,0,aa_isOpenWeights,2026-11-16
+Tencent Hy4,1,aa_isOpenWeights,2026-11-16
 Tiny Aya Global,1,aa_open_weights_catalogue,2026-05-06
 Tri-21B-Think,1,aa_open_weights_catalogue,2026-08-17
 Trinity Large Thinking,1,aa_isOpenWeights,2026-05-06

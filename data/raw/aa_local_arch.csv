@@ -183,5 +183,7 @@ Kimi K3.1 Pro,moonshotai/Kimi-K3.1-Pro,mla,93,512.0,64.0,,,,,2780.11,2026-11-06,
 Inkling 2 Small,thinkingmachines/Inkling-2-Small-MXFP8,gqa,48,,,8.0,128.0,,,612.397,2026-11-12,
 DeepSeek V4 Pro 0813 (High),deepseek-ai/DeepSeek-V4-Pro-0813,mla,61,512.0,64.0,,,,,1650.498,2026-11-13,
 Inkling (High),thinkingmachines/Inkling,gqa,66,,,8.0,128.0,,,952.378,2026-11-18,
-LFM3-1.7B,LiquidAI/LFM3-1.7B,gqa,24,,,4.0,128.0,256,6,1.729,2026-11-18,sliding
-LFM3-VL-2B,LiquidAI/LFM3-VL-2B,gqa,24,,,4.0,128.0,256,6,1.918,2026-11-18,sliding
+LFM3-1.7B,LiquidAI/LFM3-1.7B,gqa,24,,,4.0,128.0,256.0,6.0,1.729,2026-11-18,sliding
+LFM3-VL-2B,LiquidAI/LFM3-VL-2B,gqa,24,,,4.0,128.0,256.0,6.0,1.918,2026-11-18,sliding
+Tencent Hy4,tencent/Hy4,mla,78,512,64,,,,,774.434,2026-11-20,
+Inkling 2 Mini,thinkingmachines/Inkling-2-Mini,gqa,24,,,8,128,,,26.389,2026-11-20,

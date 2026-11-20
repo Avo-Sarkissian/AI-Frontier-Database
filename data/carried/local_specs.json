@@ -972,6 +972,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 975.0
  },
+ "inkling-2-mini": {
+  "inferenceParametersActiveBillions": 5.4,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 26.0
+ },
  "inkling-2-small": {
   "inferenceParametersActiveBillions": 17.0,
   "inputModalityImage": true,
@@ -2777,6 +2784,13 @@
   "inputModalitySpeech": false,
   "licenseName": "StepFun Model License 1.0",
   "parameters": 600.0
+ },
+ "tencent-hy4": {
+  "inferenceParametersActiveBillions": 50.2,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "Tencent Hy License",
+  "parameters": 774.0
  },
  "tiny-aya-global": {
   "inferenceParametersActiveBillions": null,

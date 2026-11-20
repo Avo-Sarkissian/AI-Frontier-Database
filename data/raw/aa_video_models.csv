@@ -12,7 +12,7 @@ P-Video-2-Pro,p-video-2-pro,Pruna AI,,,True,False,1105.1,5.7,1108.97,5.7,True,5.
 SkyReels V4,skyreels-v4,Skywork AI,,,True,False,1103.81,21.0,1119.17,21.0,True,21.0,,
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1103.61,34.12,1128.14,34.12,True,34.12,,
 Pika H3 Flex,pika-h3-flex,Pika Art,,,True,False,1097.11,2.1,1099.02,2.1,True,2.1,,
-FLUX 3,flux-3,Black Forest Labs,,,True,False,1093.41,17.4,1042.86,17.4,True,17.4,,
+FLUX 3,flux-3,Black Forest Labs,,,True,False,1093.41,14.4,1042.86,14.4,True,14.4,,
 Dreamina Seedance 2.0,seedance-2-0-1080p,ByteDance Seed,,,True,False,1086.68,22.45,1091.25,22.45,True,22.45,,
 Gemini Omni Flash 1.1,gemini-omni-flash-1-1,Google,,,True,False,1069.68,9.12,1018.37,9.12,True,9.12,,
 Agnes-Video-2.5,agnes-video-2-5,Sapiens AI,,,True,False,1057.52,2.4,1117.74,2.4,True,2.4,,
@@ -34,8 +34,8 @@ Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,913.83,
 Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,903.62,7.2,905.74,7.2,True,7.2,95.156615088,Vidu
 Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,899.96,3.9,920.42,3.9,True,3.9,41.4925682429998,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,895.04,6.72,866.99,6.72,False,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,851.57,3.6,820.9,3.6,True,3.6,22.2592574839999,Lightricks
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.93,4.8,817.04,4.8,True,4.8,38.2786338875002,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,851.57,3.6,820.9,3.6,True,3.6,20.7838230815,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.93,4.8,817.04,4.8,True,4.8,37.5985021060001,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,832.65,5.4,840.95,3.6,False,,,
 Boreal,boreal,Creatify,,,True,False,828.3,2.69,,,True,2.69,,
 P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,800.69,2.4,,,False,,,
