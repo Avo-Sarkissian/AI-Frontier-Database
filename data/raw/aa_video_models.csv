@@ -5,7 +5,7 @@ MiniMax H3 Max,minimax-h3-max-oct,Fal,,,True,False,1141.33,9.6,1123.7,9.6,True,9
 Hyperflow H3,hyperflow-h3,Video Rebirth,,,True,False,1140.51,,1120.75,9.0,True,9.0,,
 Utopai X,utopai-x,Utopai Studios,,,True,False,1140.33,,1149.6,,True,,,
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1139.85,12.0,1086.48,12.0,True,12.0,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1126.96,4.8,1112.35,4.8,True,4.8,105.2586479585,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1126.96,4.8,1112.35,4.8,True,4.8,105.880713905,MiniMax
 Bach 1.0 Pro,bach-1-0-pro,Video Rebirth,,,True,False,1114.5,7.2,1120.92,7.2,False,,,
 Gemini Omni Flash 1.2,gemini-omni-flash-1-2,Google,,,True,False,1114.3,6.26,1050.84,6.26,True,6.26,,
 Dreamina Seedance 2.5,seedance-2-5-1080p,ByteDance Seed,,,True,False,1106.89,34.12,1125.95,34.12,True,34.12,,
@@ -31,10 +31,10 @@ Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,942.68,3.0,916
 LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,931.01,10.2,900.67,10.2,True,10.2,,
 LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,929.11,7.8,908.55,7.8,True,7.8,,
 Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,914.79,7.2,893.05,7.2,False,,,
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,905.41,7.2,904.83,7.2,True,7.2,94.9016524589999,Vidu
-Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,899.8,3.9,918.55,3.9,True,3.9,42.4137657059999,Vidu
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,905.41,7.2,904.83,7.2,True,7.2,95.0499941495,Vidu
+Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,899.8,3.9,918.55,3.9,True,3.9,42.86020296,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,894.35,6.72,867.65,6.72,False,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,853.19,3.6,818.46,3.6,True,3.6,18.097089877,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,853.19,3.6,818.46,3.6,True,3.6,18.7183520900001,Lightricks
 LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.56,4.8,812.45,4.8,True,4.8,34.5980450550001,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,833.2,5.4,838.89,3.6,False,,,
 Boreal,boreal,Creatify,,,True,False,829.42,2.69,,,True,2.69,,
