@@ -45,10 +45,10 @@
     "upstream_rows": 4817
   },
   "sofr": {
-    "checked_at": "2026-11-21T07:46:40Z",
+    "checked_at": "2026-11-22T07:04:40Z",
     "error": "",
     "failing_since": null,
-    "fetched_at": "2026-11-21T07:46:40Z",
+    "fetched_at": "2026-11-22T07:04:40Z",
     "ok": true,
     "rows": 2157,
     "upstream_rows": 10
