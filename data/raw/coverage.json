@@ -1,6 +1,6 @@
 {
-  "upstream_host_model_rows": 288,
-  "distinct_upstream_models": 288,
+  "upstream_host_model_rows": 289,
+  "distinct_upstream_models": 289,
   "kept": 107,
   "skipped_no_score": [
     "Agnes 2.5 Pro Beta",
@@ -68,6 +68,7 @@
     "Ling 3.0 Tiny",
     "Ling-3.0-flash-Fin",
     "Ling-3.0-flash-VL",
+    "LingSante-3.1-flash",
     "Llama 3.1 Instruct 405B",
     "Llama 3.1 Nemotron Ultra 253B v1 (Reasoning)",
     "Llama 3.2 Instruct 11B (Vision)",
