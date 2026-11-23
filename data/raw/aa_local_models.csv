@@ -14,6 +14,7 @@ GLM-5.3-Flash,Z AI,320.0,18.0,1000,27.8,MIT,"vision,reasoning",True,False,71.53,
 MiMo-V2.6-Flash,Xiaomi,309.0,15.0,1000,26.73,MIT,"vision,reasoning",True,False,,,-10.83
 Mistral Large 4 (High),Mistral,1050.0,52.0,1000,26.12,Mistral Ecosystem Open-Weight License,"vision,reasoning",True,False,,,5.13
 Muse Spark Open (Xhigh),Meta,816.0,42.0,1049,24.88,Muse Model License,"vision,audio,reasoning",True,False,,,25.8
+Ling-3.2-air,InclusionAI,124.0,5.5,1049,23.39,MIT,"vision,reasoning",True,False,,,-13.4
 Mistral Large 4 (Medium),Mistral,1050.0,52.0,1000,23.13,Mistral Ecosystem Open-Weight License,"vision,reasoning",True,False,,,3.27
 GLM-5.3 (Low),Z AI,753.0,40.0,1000,23.11,GLM-5.3 License,reasoning,True,False,,,-11.17
 DeepSeek V4 Pro 0813 (Max),DeepSeek,1600.0,49.0,1000,23.06,MIT,reasoning,True,False,,,-6.37

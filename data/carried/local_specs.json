@@ -1385,6 +1385,20 @@
   "licenseName": "MIT",
   "parameters": 560.0
  },
+ "ling-3-2-air": {
+  "inferenceParametersActiveBillions": 5.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 124.0
+ },
+ "ling-3-2-air-rc1": {
+  "inferenceParametersActiveBillions": 5.5,
+  "inputModalityImage": true,
+  "inputModalitySpeech": false,
+  "licenseName": "MIT",
+  "parameters": 124.0
+ },
  "ling-flash-2-0": {
   "inferenceParametersActiveBillions": 6.1,
   "inputModalityImage": false,
