@@ -5,7 +5,7 @@ Utopai X,utopai-x,Utopai Studios,,,True,False,1140.86,,1151.74,,True,,,
 Hyperflow H3,hyperflow-h3,Video Rebirth,,,True,False,1140.48,,1122.74,9.0,True,9.0,,
 MiniMax H3 Max,minimax-h3-max-oct,Fal,,,True,False,1139.21,9.6,1123.52,9.6,True,9.6,,
 Wan 3.0,wan-3-0,Alibaba,,,True,False,1138.79,12.0,1085.22,12.0,True,12.0,,
-MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1128.25,4.8,1113.02,4.8,True,4.8,104.494760122,MiniMax
+MiniMax H3 (768p),minimax-h3-768p,MiniMax,,,True,False,1128.25,4.8,1113.02,4.8,True,4.8,104.974482769,MiniMax
 Bach 1.0 Pro,bach-1-0-pro,Video Rebirth,,,True,False,1114.65,7.2,1122.72,7.2,False,,,
 Gemini Omni Flash 1.2,gemini-omni-flash-1-2,Google,,,True,False,1112.36,6.26,1051.26,6.26,True,6.26,,
 P-Video-2-Pro,p-video-2-pro,Pruna AI,,,True,False,1106.88,5.7,1107.61,5.7,True,5.7,,
@@ -16,13 +16,14 @@ FLUX 3,flux-3,Black Forest Labs,,,True,False,1096.05,14.4,1041.41,14.4,True,14.4
 Dreamina Seedance 2.0,seedance-2-0-1080p,ByteDance Seed,,,True,False,1086.84,22.45,1090.05,22.45,True,22.45,,
 Gemini Omni Flash 1.1,gemini-omni-flash-1-1,Google,,,True,False,1071.31,9.12,1018.01,9.12,True,9.12,,
 Agnes-Video-2.5,agnes-video-2-5,Sapiens AI,,,True,False,1059.63,2.4,1116.35,2.4,True,2.4,,
+PixVerse V6 Max,pixverse-v6-max,PixVerse,,,True,False,1046.93,5.87,1053.74,5.87,True,7.47,,
 Grok Imagine Video 1.5,grok-imagine-video-1.5,SpaceXAI,Grok Imagine,2026-05-30,True,False,1043.82,15.0,1047.57,15.0,True,15.0,,
 HappyHorse-1.1,happyhorse-1-1,Alibaba-ATH,HappyHorse,2026-06-22,True,False,1037.21,10.8,1021.54,10.8,True,10.8,,
 HappyHorse-1.0,happyhorse-1-0,Alibaba-ATH,HappyHorse,2026-04-07,True,False,1032.75,14.4,1014.79,14.4,True,14.4,,
 Wan2.7-260612,wan2-7-260612,Alibaba,Wan,2026-06-12,True,False,1027.92,9.0,,,True,9.0,,
 MAGI-2 Preview,magi-2-preview-latest,Sand.ai,,,True,False,1008.95,,980.26,,True,,,
 Kling 3.0 1080p (Pro),kling-3-0-pro,KlingAI,Kling,2026-02-04,True,False,1000.0,6.72,1000.0,6.72,True,10.08,,
-PixVerse V6 (Legacy),pixverse-v6-legacy,PixVerse,,,True,False,993.38,5.4,967.52,5.4,True,6.9,,
+PixVerse V6,pixverse-v6,PixVerse,,,True,False,990.16,4.8,940.13,4.8,True,6.13,,
 Kling 3.0 Omni 1080p (Pro),kling-o3-pro,KlingAI,Kling,2026-02-04,True,False,989.92,6.72,1011.73,6.72,True,8.4,,
 Grok Imagine Video 1.5 Lite,grok-imagine-video-1-5-lite,SpaceXAI,,,True,False,977.9,8.4,994.85,8.4,True,8.4,,
 Veo 3.1,veo-3-1,Google,Google Veo,2026-01-30,True,False,962.44,12.0,945.06,12.0,True,24.0,,
@@ -31,11 +32,11 @@ Veo 3.1 Lite,veo-3-1-lite,Google,Google Veo,2026-03-31,True,False,941.76,3.0,916
 LTX-2.5 Pro,ltx-2-5-pro,Lightricks,LTX,2026-08-11,True,True,930.35,10.2,901.23,10.2,True,10.2,,
 LTX-2.5 Fast,ltx-2-5-fast,Lightricks,LTX,2026-08-11,True,True,929.12,7.8,910.44,7.8,True,7.8,,
 Runway Gen-4.5 (720p),runway-gen-4-5,Runway,Runway,2025-12-01,True,False,914.34,7.2,895.68,7.2,False,,,
-Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,904.36,7.2,904.98,7.2,True,7.2,94.272296729,Vidu
-Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,899.52,3.9,920.83,3.9,True,3.9,46.219181278,Vidu
+Vidu Q3 Pro,vidu-q3-pro,Vidu,Vidu,2026-01-30,True,False,904.36,7.2,904.98,7.2,True,7.2,93.9304751335,Vidu
+Vidu Q3 Turbo,vidu-q3-turbo,Vidu,Vidu,2026-02-09,True,False,899.52,3.9,920.83,3.9,True,3.9,46.2420711274999,Vidu
 Kling O1 Pro (January),kling-o1-pro-january,KlingAI,Kling,2026-01-13,True,False,893.72,6.72,868.89,6.72,False,,,
-LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,852.31,3.6,819.35,3.6,True,3.6,18.9345617819999,Lightricks
-LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.11,4.8,813.7,4.8,True,4.8,35.563800673,Lightricks
+LTX-2.3 Fast,ltx-2-3-fast,Lightricks,LTX,2026-03-05,True,True,852.31,3.6,819.35,3.6,True,3.6,18.8528590855001,Lightricks
+LTX-2.3 Pro,ltx-2-3-pro,Lightricks,LTX,2026-03-05,True,True,839.11,4.8,813.7,4.8,True,4.8,35.3858551974999,Lightricks
 Pika 2.5,pika-2-5,Pika Art,Pika Art,2025-11-22,True,False,832.69,5.4,839.84,3.6,False,,,
 Boreal,boreal,Creatify,,,True,False,829.48,2.69,,,True,2.69,,
 P-Video,p-video,Pruna AI,P-Video,2026-02-26,True,False,801.32,2.4,,,False,,,
