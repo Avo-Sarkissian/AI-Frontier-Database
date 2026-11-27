@@ -389,6 +389,7 @@ Phi-4,1,aa_isOpenWeights,2026-05-06
 Phi-4 Mini Instruct,1,aa_isOpenWeights,2026-05-06
 Phi-4 Multimodal Instruct,1,aa_isOpenWeights,2026-06-16
 Pixtral Large,1,aa_open_weights_catalogue,2026-06-16
+"Quasar 1.2 358B (Max, Based on GLM-5.3)",0,aa_isOpenWeights,2026-11-27
 "Quasar 438B (Max, Based on GLM-5.2)",0,aa_isOpenWeights,2026-10-27
 QwQ 32B,1,aa_open_weights_catalogue,2026-06-16
 Qwen2.5 Instruct 72B,1,aa_open_weights_catalogue,2026-06-16
