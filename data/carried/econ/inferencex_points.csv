@@ -1196,13 +1196,13 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446923,DeepSeek-V4-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,draft_model,single-node,false,fp4,128,8,8,1,7.73934,23662.9,202.526,23460.3,2026-10-29,40260921924,2026-11-02,8,,
 443106,DeepSeek-V4-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,draft_model,single-node,false,fp4,192,8,8,1,5.31915,26109.9,196.479,25913.4,2026-09-24,35968440959,2026-10-27,8,,
 446926,DeepSeek-V4-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,draft_model,single-node,false,fp4,192,8,8,1,5.63222,27307.3,206.126,27101.2,2026-10-29,40260921924,2026-11-02,8,,
-444403,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,1882,26,8,8,80.1282,285380,2112.14,283268,2026-10-05,37369893852,2026-10-27,26,18,8
-444401,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,6,28,4,4,309.598,1385.41,10.562,1374.85,2026-10-05,37369893852,2026-10-27,28,4,24
-444398,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,48,28,4,4,229.885,12001.7,77.756,11923.9,2026-10-05,37369893852,2026-10-27,28,4,24
-444399,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,368,38,32,32,214.592,48385.2,360.635,48024.6,2026-10-05,37369893852,2026-10-27,38,6,32
-444397,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,2934,46,16,16,97.0874,280754,2063.31,278690,2026-10-05,37369893852,2026-10-27,46,30,16
-444400,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,1229,48,32,32,186.567,137542,997.607,136545,2026-10-05,37369893852,2026-10-27,48,16,32
-444402,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,2087,56,32,32,165.289,195208,1415.78,193792,2026-10-05,37369893852,2026-10-27,56,24,32
+444403,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,1882,26,8,8,80.1282,285380,2112.14,283268,2026-10-05,,2026-10-27,26,18,8
+444401,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,6,28,4,4,309.598,1385.41,10.562,1374.85,2026-10-05,,2026-10-27,28,4,24
+444398,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,48,28,4,4,229.885,12001.7,77.756,11923.9,2026-10-05,,2026-10-27,28,4,24
+444399,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,368,38,32,32,214.592,48385.2,360.635,48024.6,2026-10-05,,2026-10-27,38,6,32
+444397,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,2934,46,16,16,97.0874,280754,2063.31,278690,2026-10-05,,2026-10-27,46,30,16
+444400,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,1229,48,32,32,186.567,137542,997.607,136545,2026-10-05,,2026-10-27,48,16,32
+444402,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,false,fp4,2087,56,32,32,165.289,195208,1415.78,193792,2026-10-05,,2026-10-27,56,24,32
 442052,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,trt,mtp,disagg,false,fp4,6,28,4,4,271.739,1278.56,10.178,1268.38,2026-09-09,,2026-10-27,28,4,24
 442049,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,trt,mtp,disagg,false,fp4,24,28,4,4,238.663,5745.67,36.4976,5709.17,2026-09-09,,2026-10-27,28,4,24
 442053,DeepSeek-V4-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,trt,mtp,disagg,false,fp4,934,32,16,16,141.643,151721,1109.07,150612,2026-09-09,,2026-10-27,32,16,16
@@ -1450,7 +1450,12 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446407,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,sglang,mtp,single-node,false,fp4,16,4,4,1,401.606,29105.1,187.054,28918.1,2026-10-24,40059333495,2026-10-27,4,,
 447147,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,sglang,mtp,single-node,false,fp4,16,4,4,1,454.545,29241.9,188.14,29053.8,2026-11-03,41261902147,2026-11-08,4,,
 448024,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,false,fp4,1,12,8,1,1515.15,2839.83,18.3644,2821.47,2026-11-11,42938502733,2026-11-15,12,4,8
+448461,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,true,fp4,1,12,8,1,1515.15,2845.44,18.3928,2827.04,2026-11-24,44308941518,2026-11-27,12,4,8
 448023,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,false,fp4,1,28,24,1,1724.14,1236.94,7.97051,1228.97,2026-11-11,42938502733,2026-11-15,28,4,24
+448460,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,true,fp4,1,28,24,1,1724.14,1236.71,7.96903,1228.74,2026-11-24,44308941518,2026-11-27,28,4,24
+448462,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,true,fp4,1200,40,32,32,546.448,221635,1516.55,220118,2026-11-24,44308941518,2026-11-27,40,8,32
+448463,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,true,fp4,2000,44,32,32,465.116,332718,2274.82,330443,2026-11-24,44308941518,2026-11-27,44,12,32
+448464,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,tilert,mtp,disagg,true,fp4,3200,44,32,32,425.532,522354,3589.33,518765,2026-11-24,44308941518,2026-11-27,44,12,32
 444039,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,vllm,mtp,single-node,false,fp4,8,2,2,2,284.9,30707.8,221.925,30485.8,2026-10-02,36955641333,2026-10-27,2,,
 447603,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,vllm,mtp,single-node,false,fp4,8,2,2,2,309.598,30957.6,222.869,30734.7,2026-11-06,40451966589,2026-11-08,2,,
 444033,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,vllm,mtp,single-node,false,fp4,16,2,2,2,240.385,57472.6,364.341,57108.2,2026-10-02,36955641333,2026-10-27,2,,
@@ -1738,42 +1743,55 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446694,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,2,2,1,490.196,13464.6,85.6605,13378.9,2026-10-27,40161856449,2026-10-27,2,,
 447080,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,2,2,1,487.805,13561.1,85.8958,13475.3,2026-11-03,41394320841,2026-11-08,2,,
 447798,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,2,2,1,452.489,13135.7,84.9479,13050.8,2026-11-09,42335637576,2026-11-15,2,,
+448418,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,2,2,1,591.716,15285.7,91.3039,15194.4,2026-11-21,44689368479,2026-11-27,2,,
 446695,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,2,2,1,483.092,13194.4,100.805,13093.6,2026-10-27,40161856449,2026-10-27,2,,
 447081,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,2,2,1,485.437,13942.3,102.371,13840,2026-11-03,41394320841,2026-11-08,2,,
 447799,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,2,2,1,574.713,14768.2,104.894,14663.3,2026-11-09,42335637576,2026-11-15,2,,
+448420,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,2,2,2,1,588.235,15555.3,109.742,15445.6,2026-11-21,44689368479,2026-11-27,2,,
 446697,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,4,2,2,1,483.092,18315.8,125.121,18190.7,2026-10-27,40161856449,2026-10-27,2,,
 447083,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,4,2,2,1,483.092,17638.5,122.924,17515.6,2026-11-03,41394320841,2026-11-08,2,,
 447801,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,4,2,2,1,578.035,18619.1,130.209,18488.9,2026-11-09,42335637576,2026-11-15,2,,
+448423,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,2,2,1,584.795,19440.7,133.12,19307.6,2026-11-21,44689368479,2026-11-27,2,,
 446699,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,8,2,2,1,404.858,31601,225.077,31375.9,2026-10-27,40161856449,2026-10-27,2,,
 447085,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,8,2,2,1,400,31416.5,223.811,31192.7,2026-11-03,41394320841,2026-11-08,2,,
 447803,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,8,2,2,1,452.489,32274.2,227.961,32046.3,2026-11-09,42335637576,2026-11-15,2,,
+448425,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,8,2,2,1,456.621,32115.8,227.063,31888.8,2026-11-21,44689368479,2026-11-27,2,,
 446693,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,16,2,2,1,276.243,57244.4,364.201,56880.2,2026-10-27,40161856449,2026-10-27,2,,
 447079,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,16,2,2,1,268.817,56886.7,360.846,56525.9,2026-11-03,41394320841,2026-11-08,2,,
 447797,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,16,2,2,1,302.115,58279.4,370.949,57908.4,2026-11-09,42335637576,2026-11-15,2,,
+448417,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,2,2,1,308.642,58264.2,373.707,57890.5,2026-11-21,44689368479,2026-11-27,2,,
 446696,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,32,2,2,1,178.571,110462,635.848,109826,2026-10-27,40161856449,2026-10-27,2,,
 447082,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,32,2,2,1,168.919,109429,630.788,108798,2026-11-03,41394320841,2026-11-08,2,,
 447800,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,32,2,2,1,186.916,112238,645.735,111592,2026-11-09,42335637576,2026-11-15,2,,
+448421,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,2,2,1,193.798,113181,651.371,112530,2026-11-21,44689368479,2026-11-27,2,,
 446698,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,64,2,2,1,66.8449,186280,1350.73,184930,2026-10-27,40161856449,2026-10-27,2,,
 447084,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,64,2,2,1,56.5611,175605,1269.89,174335,2026-11-03,41394320841,2026-11-08,2,,
 447802,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,64,2,2,1,62.6959,186109,1349.5,184759,2026-11-09,42335637576,2026-11-15,2,,
+448424,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,64,2,2,1,70.8717,193085,1399.48,191685,2026-11-21,44689368479,2026-11-27,2,,
 448240,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,128,2,2,1,45.1467,271329,2233.36,269096,2026-11-18,43861172833,2026-11-21,2,,
+448416,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,128,2,2,1,45.0857,271579,2234.27,269345,2026-11-21,44689368479,2026-11-27,2,,
 448241,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,256,2,2,1,23.7473,401896,2956.16,398940,2026-11-18,43861172833,2026-11-21,2,,
+448419,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,256,2,2,1,24.5881,408873,2998.42,405875,2026-11-21,44689368479,2026-11-27,2,,
 448242,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,384,2,2,1,15.8028,427451,3377.87,424074,2026-11-18,43861172833,2026-11-21,2,,
+448422,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,384,2,2,1,15.7903,427794,3374.76,424419,2026-11-21,44689368479,2026-11-27,2,,
 446700,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,4,4,1,584.795,7398.85,45.1245,7353.72,2026-10-27,40161856449,2026-10-27,4,,
 447086,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,4,4,1,584.795,7493.61,45.4507,7448.16,2026-11-03,41394320841,2026-11-08,4,,
 447804,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,4,4,1,675.676,7917.05,47.4226,7869.63,2026-11-09,42335637576,2026-11-15,4,,
+448426,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,4,4,1,740.741,8085.9,49.1728,8036.72,2026-11-21,44689368479,2026-11-27,4,,
 446701,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,4,4,1,574.713,7216.13,51.4138,7164.72,2026-10-27,40161856449,2026-10-27,4,,
 447087,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,4,4,1,578.035,7518.28,53.7678,7464.51,2026-11-03,41394320841,2026-11-08,4,,
 447805,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,4,4,1,666.667,7966.51,53.3739,7913.13,2026-11-09,42335637576,2026-11-15,4,,
+448427,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,2,4,4,1,740.741,8409.5,57.6716,8351.83,2026-11-21,44689368479,2026-11-27,4,,
 447088,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,8,8,1,684.932,3941.7,23.6541,3918.05,2026-11-03,41394320841,2026-11-08,8,,
 447806,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,8,8,1,704.225,4016.12,24.0054,3992.12,2026-11-09,42335637576,2026-11-15,8,,
-448146,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,8,8,1,1724.14,4511.47,29.5583,4481.91,2026-11-13,43515830826,2026-11-21,8,,
-448144,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,310,14,4,1,840.336,167331,1140.62,166190,2026-11-13,43515830826,2026-11-21,14,2,12
-448145,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,260,18,4,1,1030.93,112598,749.552,111849,2026-11-13,43515830826,2026-11-21,18,2,16
-448148,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,11500,28,16,16,259.74,2.63299e+06,18484.9,2.61451e+06,2026-11-13,43515830826,2026-11-21,28,12,16
-448150,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,15800,32,16,16,180.832,2.99317e+06,21216.1,2.97195e+06,2026-11-13,43515830826,2026-11-21,32,16,16
-448147,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,6600,44,32,32,561.798,1.09795e+06,7502.18,1.09045e+06,2026-11-13,43515830826,2026-11-21,44,12,32
-448149,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,11000,44,32,32,411.523,1.69528e+06,11775.8,1.68351e+06,2026-11-13,43515830826,2026-11-21,44,12,32
+448428,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,8,8,1,781.25,4051.09,24.8558,4026.23,2026-11-21,44689368479,2026-11-27,8,,
+448146,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,8,8,1,1724.14,4511.47,29.5583,4481.91,2026-11-13,,2026-11-21,8,,
+448144,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,310,14,4,1,840.336,167331,1140.62,166190,2026-11-13,,2026-11-21,14,2,12
+448145,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,260,18,4,1,1030.93,112598,749.552,111849,2026-11-13,,2026-11-21,18,2,16
+448148,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,11500,28,16,16,259.74,2.63299e+06,18484.9,2.61451e+06,2026-11-13,,2026-11-21,28,12,16
+448150,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,15800,32,16,16,180.832,2.99317e+06,21216.1,2.97195e+06,2026-11-13,,2026-11-21,32,16,16
+448147,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,6600,44,32,32,561.798,1.09795e+06,7502.18,1.09045e+06,2026-11-13,,2026-11-21,44,12,32
+448149,DeepSeek-V4.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,11000,44,32,32,411.523,1.69528e+06,11775.8,1.68351e+06,2026-11-13,,2026-11-21,44,12,32
 413623,GLM-5,8k/1k,median_intvty,b200,B200,dynamo-sglang,none,disagg,false,fp8,240,16,8,1,25.389,2711.72,301.406,2410.31,2026-05-18,26067557908,2026-10-27,16,8,8
 413620,GLM-5,8k/1k,median_intvty,b200,B200,dynamo-sglang,none,disagg,false,fp8,224,24,8,1,29.0707,1858.32,206.527,1651.79,2026-05-18,26067557908,2026-10-27,24,8,16
 413629,GLM-5,8k/1k,median_intvty,b200,B200,dynamo-sglang,none,disagg,false,fp8,256,24,8,1,34.9262,1694.08,188.27,1505.81,2026-05-18,26067557908,2026-10-27,24,8,16
@@ -2180,10 +2198,18 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446721,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,48,4,4,1,26.455,41668.3,289.548,41378.8,2026-10-27,39540045682,2026-10-27,4,,
 442942,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,1,8,8,1,229.885,2142.82,15.959,2126.86,2026-09-22,35693365964,2026-10-27,8,,
 446724,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,1,8,8,1,243.309,2199.42,16.4019,2183.02,2026-10-27,39540045682,2026-10-27,8,,
+448500,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,1,8,8,1,284.091,2838.1,19.3565,2818.74,2026-11-24,45336404306,2026-11-27,8,,
 442948,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,2,8,8,1,220.264,2368.92,19.9311,2348.99,2026-09-22,35693365964,2026-10-27,8,,
 446725,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,2,8,8,1,222.717,2264.84,19.6482,2245.19,2026-10-27,39540045682,2026-10-27,8,,
+448501,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,2,8,8,1,273.973,2840.34,22.6243,2817.71,2026-11-24,45336404306,2026-11-27,8,,
 442951,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,4,8,8,1,199.601,3562.78,25.6309,3537.15,2026-09-22,35693365964,2026-10-27,8,,
 446726,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,4,8,8,1,203.252,3745.55,26.5391,3719.01,2026-10-27,39540045682,2026-10-27,8,,
+448495,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,56,8,4,1,56.6251,31084.7,231.747,30852.9,2026-11-24,45336404306,2026-11-27,8,4,4
+448496,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,72,8,4,1,44.8029,37935.1,300.87,37634.2,2026-11-24,45336404306,2026-11-27,8,4,4
+448497,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,96,8,4,1,39.3701,42145.1,355.327,41789.7,2026-11-24,45336404306,2026-11-27,8,4,4
+448494,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,112,8,4,1,38.9408,39116.1,339.928,38776.1,2026-11-24,45336404306,2026-11-27,8,4,4
+448498,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,56,12,4,1,79.9361,24519.1,178.131,24341,2026-11-24,45336404306,2026-11-27,12,4,8
+448499,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,mixed,true,fp4,24,16,4,1,150.15,10276.7,63.3657,10213.3,2026-11-24,45336404306,2026-11-27,16,4,12
 448027,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,mooncake-atom,mtp,disagg,true,fp4,56,8,4,1,56.4016,31232.2,231.946,31000.2,2026-11-11,42972857386,2026-11-15,8,4,4
 448028,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,mooncake-atom,mtp,disagg,true,fp4,72,8,4,1,44.2478,38023.2,302.261,37720.9,2026-11-11,42972857386,2026-11-15,8,4,4
 448029,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,mooncake-atom,mtp,disagg,true,fp4,96,8,4,1,38.506,42253.9,355.337,41898.6,2026-11-11,42972857386,2026-11-15,8,4,4
@@ -2249,25 +2275,33 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 442733,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp8,12,8,8,1,61.8429,7710.19,32.2472,7677.94,2026-09-19,35403089860,2026-10-27,8,,
 442730,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp8,16,8,8,1,26.5675,9244.63,36.4813,9208.15,2026-09-19,35403089860,2026-10-27,8,,
 444205,GLM-5.2,agentic-traces,p90_intvty,mi355x,MI355X,tilert,mtp,disagg,false,fp8,1,16,8,1,462.963,1533.93,10.0203,1523.91,2026-10-07,37176931565,2026-10-27,16,8,8
-447313,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,1,8,16,1,308.642,2665.24,18.8,2646.44,2026-11-02,41534734133,2026-11-08,8,,
-447316,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,4,8,16,1,213.675,4009.25,27.7561,3981.49,2026-11-02,41534734133,2026-11-08,8,,
-447317,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,8,8,16,1,125.945,6790.45,50.4214,6740.03,2026-11-02,41534734133,2026-11-08,8,,
-447311,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,12,8,16,1,94.697,7697.23,60.5016,7636.73,2026-11-02,41534734133,2026-11-08,8,,
-447312,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,16,8,16,1,60.3865,10582.3,74.3731,10508,2026-11-02,41534734133,2026-11-08,8,,
-447314,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,32,8,16,16,32.3625,16034.2,107.064,15927.1,2026-11-02,41534734133,2026-11-08,8,,
-447315,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,48,8,16,16,20.3128,17699.9,124.02,17575.9,2026-11-02,41534734133,2026-11-08,8,,
+447313,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,1,8,16,1,308.642,2665.24,18.8,2646.44,2026-11-02,,2026-11-08,8,,
+447316,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,4,8,16,1,213.675,4009.25,27.7561,3981.49,2026-11-02,,2026-11-08,8,,
+447317,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,8,8,16,1,125.945,6790.45,50.4214,6740.03,2026-11-02,,2026-11-08,8,,
+447311,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,12,8,16,1,94.697,7697.23,60.5016,7636.73,2026-11-02,,2026-11-08,8,,
+447312,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,16,8,16,1,60.3865,10582.3,74.3731,10508,2026-11-02,,2026-11-08,8,,
+447314,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,32,8,16,16,32.3625,16034.2,107.064,15927.1,2026-11-02,,2026-11-08,8,,
+447315,GLM-5.2,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,48,8,16,16,20.3128,17699.9,124.02,17575.9,2026-11-02,,2026-11-08,8,,
+448546,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,1,32,128,128,480.769,815.383,5.27099,810.112,2026-11-25,,2026-11-27,32,16,16
+448551,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,160,32,128,128,104.167,24525.8,183.798,24342,2026-11-25,,2026-11-27,32,16,16
+448553,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,224,32,128,128,89.3655,31045.3,223.462,30821.9,2026-11-25,,2026-11-27,32,16,16
+448550,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,256,32,128,128,102.669,28323.7,199.148,28124.6,2026-11-25,,2026-11-27,32,16,16
+448547,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,192,64,128,128,187.617,16337.3,117.3,16220,2026-11-25,,2026-11-27,64,16,48
+448548,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,46,96,128,128,317.46,3282.07,24.979,3257.09,2026-11-25,,2026-11-27,96,16,80
+448552,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,170,112,128,128,246.305,9265.9,65.8697,9200.03,2026-11-25,,2026-11-27,112,32,80
+448549,GLM-5.2,agentic-traces,p90_intvty,trn3,Trainium3 PDS,vllm,mtp,disagg,true,fp4,600,128,128,128,138.889,23006,168.608,22837.4,2026-11-25,,2026-11-27,128,48,80
 446079,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,56,16,4,1,416.667,27272.5,181.659,27090.8,2026-10-21,39522630875,2026-10-27,16,4,12
-446971,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,56,16,4,1,418.41,27287.3,182.205,27105.1,2026-10-30,41001175911,2026-11-02,16,4,12
+446971,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,56,16,4,1,418.41,27287.3,182.205,27105.1,2026-10-30,,2026-11-02,16,4,12
 446078,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,1,20,16,1,862.069,1368.6,8.6152,1359.99,2026-10-21,39522630875,2026-10-27,20,4,16
-446970,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,1,20,16,1,1052.63,1456.36,8.89686,1447.46,2026-10-30,41001175911,2026-11-02,20,4,16
+446970,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,1,20,16,1,1052.63,1456.36,8.89686,1447.46,2026-10-30,,2026-11-02,20,4,16
 446082,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,448,20,8,8,131.926,114820,857.62,113962,2026-10-21,39522630875,2026-10-27,20,12,8
 446080,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,28,28,8,1,781.25,7770.81,45.964,7724.85,2026-10-21,39522630875,2026-10-27,28,4,24
-446972,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,28,28,8,1,800,7774.6,45.7918,7728.81,2026-10-30,41001175911,2026-11-02,28,4,24
+446972,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,28,28,8,1,800,7774.6,45.7918,7728.81,2026-10-30,,2026-11-02,28,4,24
 446081,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,50,28,8,1,598.802,13801.5,92.05,13709.5,2026-10-21,39522630875,2026-10-27,28,4,24
-446973,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,50,28,8,1,609.756,13788.6,92.0546,13696.5,2026-10-30,41001175911,2026-11-02,28,4,24
-446974,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,504,28,16,16,252.525,113018,813.654,112204,2026-10-30,41001175911,2026-11-02,28,12,16
-446975,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,720,32,16,16,237.53,137409,976.257,136433,2026-10-30,41001175911,2026-11-02,32,16,16
-446976,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,920,36,16,16,203.252,149865,1078.42,148786,2026-10-30,41001175911,2026-11-02,36,20,16
+446973,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,50,28,8,1,609.756,13788.6,92.0546,13696.5,2026-10-30,,2026-11-02,28,4,24
+446974,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,504,28,16,16,252.525,113018,813.654,112204,2026-10-30,,2026-11-02,28,12,16
+446975,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,720,32,16,16,237.53,137409,976.257,136433,2026-10-30,,2026-11-02,32,16,16
+446976,GLM-5.2,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,920,36,16,16,203.252,149865,1078.42,148786,2026-10-30,,2026-11-02,36,20,16
 447470,GLM-5.3-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,1,8,8,1,467.29,3229.32,21.0893,3208.23,2026-11-06,42051031914,2026-11-08,8,,
 447480,GLM-5.3-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,4,8,8,1,414.938,4547.2,31.2765,4515.92,2026-11-06,42051031914,2026-11-08,8,,
 447482,GLM-5.3-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,8,8,8,1,346.021,7814.7,56.097,7758.61,2026-11-06,42051031914,2026-11-08,8,,
@@ -2715,21 +2749,21 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 444855,Kimi-K3,agentic-traces,p90_intvty,mi355x,MI355X,vllm-disagg,mtp,disagg,true,fp4,48,24,8,1,74.239,7963.88,54.362,7909.52,2026-10-14,38295633957,2026-10-27,24,8,16
 444857,Kimi-K3,agentic-traces,p90_intvty,mi355x,MI355X,vllm-disagg,mtp,disagg,true,fp4,12,32,8,1,131.406,1783.97,14.1141,1769.85,2026-10-14,38295633957,2026-10-27,32,8,24
 444854,Kimi-K3,agentic-traces,p90_intvty,mi355x,MI355X,vllm-disagg,mtp,disagg,true,fp4,24,32,8,1,110.132,4346.63,28.3325,4318.29,2026-10-14,38295633957,2026-10-27,32,8,24
-445234,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,1,32,32,32,390.625,718.751,4.8475,713.903,2026-10-17,38997727079,2026-10-27,32,16,16
-445237,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,4,32,32,32,268.817,1094.75,7.29327,1087.45,2026-10-17,38997727079,2026-10-27,32,16,16
-445238,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,8,32,32,32,180.18,1834.34,13.1466,1821.19,2026-10-17,38997727079,2026-10-27,32,16,16
-445233,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,16,32,32,32,137.174,3210.2,20.8012,3189.4,2026-10-17,38997727079,2026-10-27,32,16,16
-445235,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,32,32,32,32,83.0565,5327.96,33.4438,5294.52,2026-10-17,38997727079,2026-10-27,32,16,16
-445236,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,30.5437,5186.28,35.7247,5150.56,2026-10-17,38997727079,2026-10-27,32,16,16
-445239,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,54.5852,6384.2,44.3621,6339.83,2026-10-17,38997727079,2026-10-27,32,16,16
-445240,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,38.2848,5671.33,38.5821,5632.75,2026-10-17,38997727079,2026-10-27,32,16,16
-445241,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,72,32,32,32,25.1193,6567.47,53.1056,6514.36,2026-10-17,38997727079,2026-10-27,32,16,16
-446538,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,1,24,16,1,862.069,1359.3,8.32373,1350.97,2026-10-23,40034981619,2026-10-27,24,8,16
-446540,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,8,24,16,1,591.716,2998.06,20.2168,2977.84,2026-10-23,40034981619,2026-10-27,24,8,16
-446539,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,64,24,16,1,250,21174.1,145.5,21028.6,2026-10-23,40034981619,2026-10-27,24,8,16
-446544,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,48,32,16,1,342.466,11769.3,76.7005,11692.6,2026-10-23,40034981619,2026-10-27,32,16,16
-446541,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,160,32,16,1,171.233,31704.8,225.738,31479.1,2026-10-23,40034981619,2026-10-27,32,16,16
-446545,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,256,32,16,1,102.354,44755.1,312.724,44442.3,2026-10-23,40034981619,2026-10-27,32,16,16
+445234,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,1,32,32,32,390.625,718.751,4.8475,713.903,2026-10-17,,2026-10-27,32,16,16
+445237,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,4,32,32,32,268.817,1094.75,7.29327,1087.45,2026-10-17,,2026-10-27,32,16,16
+445238,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,8,32,32,32,180.18,1834.34,13.1466,1821.19,2026-10-17,,2026-10-27,32,16,16
+445233,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,16,32,32,32,137.174,3210.2,20.8012,3189.4,2026-10-17,,2026-10-27,32,16,16
+445235,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,32,32,32,32,83.0565,5327.96,33.4438,5294.52,2026-10-17,,2026-10-27,32,16,16
+445236,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,30.5437,5186.28,35.7247,5150.56,2026-10-17,,2026-10-27,32,16,16
+445239,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,54.5852,6384.2,44.3621,6339.83,2026-10-17,,2026-10-27,32,16,16
+445240,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,48,32,32,32,38.2848,5671.33,38.5821,5632.75,2026-10-17,,2026-10-27,32,16,16
+445241,Kimi-K3,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,disagg,true,fp4,72,32,32,32,25.1193,6567.47,53.1056,6514.36,2026-10-17,,2026-10-27,32,16,16
+446538,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,1,24,16,1,862.069,1359.3,8.32373,1350.97,2026-10-23,,2026-10-27,24,8,16
+446540,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,8,24,16,1,591.716,2998.06,20.2168,2977.84,2026-10-23,,2026-10-27,24,8,16
+446539,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,64,24,16,1,250,21174.1,145.5,21028.6,2026-10-23,,2026-10-27,24,8,16
+446544,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,48,32,16,1,342.466,11769.3,76.7005,11692.6,2026-10-23,,2026-10-27,32,16,16
+446541,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,160,32,16,1,171.233,31704.8,225.738,31479.1,2026-10-23,,2026-10-27,32,16,16
+446545,Kimi-K3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,256,32,16,1,102.354,44755.1,312.724,44442.3,2026-10-23,,2026-10-27,32,16,16
 447243,Kimi-K3.1-Pro,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,draft_model,multi-node,false,fp4,1,16,16,1,83.1947,676.709,5.50427,671.205,2026-11-05,41976897857,2026-11-08,16,,
 448007,Kimi-K3.1-Pro,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,draft_model,multi-node,false,fp4,1,16,16,4,155.28,889.143,7.10134,882.042,2026-11-11,42932130835,2026-11-15,16,,
 448011,Kimi-K3.1-Pro,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,draft_model,multi-node,false,fp4,2,16,16,4,138.504,962.8,8.38159,954.418,2026-11-11,42932130835,2026-11-15,16,,
@@ -2836,32 +2870,42 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 447297,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,2,16,16,1,305.81,1470.16,11.533,1458.63,2026-11-05,41990069069,2026-11-08,16,,
 447846,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,2,16,16,1,423.729,1450.23,11.1606,1439.07,2026-11-10,42376772667,2026-11-15,16,,
 448231,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,2,16,16,1,421.941,1478.12,11.5767,1466.54,2026-11-18,43587669179,2026-11-21,16,,
+448537,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,2,16,16,1,420.168,1431.62,11.4521,1420.16,2026-11-25,45102543383,2026-11-27,16,,
 447298,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,4,16,16,1,240.385,2166.84,14.6211,2152.22,2026-11-05,41990069069,2026-11-08,16,,
 447847,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,4,16,16,1,326.797,2176.84,14.6405,2162.2,2026-11-10,42376772667,2026-11-15,16,,
 448232,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,4,16,16,1,322.581,2123.53,14.437,2109.09,2026-11-18,43587669179,2026-11-21,16,,
+448538,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,4,16,16,1,320.513,2085.24,14.3348,2070.9,2026-11-25,45102543383,2026-11-27,16,,
 447848,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,60,24,16,16,106.496,14786.2,103.826,14682.4,2026-11-10,42376772667,2026-11-15,24,8,16
 447299,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,76,24,16,16,97.8474,17085.4,133.874,16951.6,2026-11-05,41990069069,2026-11-08,24,8,16
 447300,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,36,32,8,2,166.945,7588.3,46.4041,7541.89,2026-11-05,41990069069,2026-11-08,32,8,24
 447849,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,50,32,8,2,142.857,10014.3,67.0857,9947.26,2026-11-10,42376772667,2026-11-15,32,8,24
 448233,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,58,32,8,2,133.333,11515.6,79.6081,11436,2026-11-18,43587669179,2026-11-21,32,8,24
+448539,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,58,32,8,2,143.678,11756.3,80.3695,11676,2026-11-25,45102543383,2026-11-27,32,8,24
 447301,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,60,32,8,2,128.535,11985.8,82.3407,11903.5,2026-11-05,41990069069,2026-11-08,32,8,24
 447303,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,180,32,16,16,77.3994,25845.9,189.397,25656.5,2026-11-05,41990069069,2026-11-08,32,16,16
 447852,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,180,32,16,16,79.8722,26305.1,192.556,26112.5,2026-11-10,42376772667,2026-11-15,32,16,16
 448236,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,180,32,16,16,79.6813,26227.9,192.323,26035.6,2026-11-18,43587669179,2026-11-21,32,16,16
+448542,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,180,32,16,16,93.985,14889.1,129.625,14759.5,2026-11-25,45102543383,2026-11-27,32,16,16
 447850,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,16,40,8,2,220.264,2695.17,17.0267,2678.14,2026-11-10,42376772667,2026-11-15,40,8,32
 448234,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,16,40,8,2,220.751,2692.83,17.0156,2675.82,2026-11-18,43587669179,2026-11-21,40,8,32
+448540,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,16,40,8,2,222.222,2709.33,17.1347,2692.19,2026-11-25,45102543383,2026-11-27,40,8,32
 447302,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,32,40,8,2,191.205,5641.18,32.5991,5608.58,2026-11-05,41990069069,2026-11-08,40,8,32
 447851,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,36,40,8,2,185.185,6224.25,37.9533,6186.3,2026-11-10,42376772667,2026-11-15,40,8,32
 448235,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,36,40,8,2,184.843,6220.55,37.9743,6182.58,2026-11-18,43587669179,2026-11-21,40,8,32
+448541,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,36,40,8,2,182.149,6085.16,37.32,6047.84,2026-11-25,45102543383,2026-11-27,40,8,32
 447304,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,300,40,16,16,61.5385,31303.4,237.121,31066.2,2026-11-05,41990069069,2026-11-08,40,24,16
 447853,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,340,40,16,16,59.453,34065.7,259.363,33806.4,2026-11-10,42376772667,2026-11-15,40,24,16
 448237,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,340,40,16,16,59.3472,33367.7,256.371,33111.4,2026-11-18,43587669179,2026-11-21,40,24,16
+448543,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,340,40,16,16,61.1621,34579,264.351,34314.6,2026-11-25,45102543383,2026-11-27,40,24,16
 447854,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,520,48,16,16,46.4253,35363.8,281.308,35082.5,2026-11-10,42376772667,2026-11-15,48,32,16
 448239,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,520,48,16,16,46.0829,35157.1,279.934,34877.2,2026-11-18,43587669179,2026-11-21,48,32,16
+448545,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,520,48,16,16,48.6145,36598.2,288.418,36309.8,2026-11-25,45102543383,2026-11-27,48,32,16
 448238,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,224,56,32,32,105.152,21713.7,152.299,21561.4,2026-11-18,43587669179,2026-11-21,56,24,32
+448544,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,224,56,32,32,113.25,21685.8,151.1,21534.7,2026-11-25,45102543383,2026-11-27,56,24,32
 447610,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,1,16,8,1,334.448,1394.15,9.47914,1384.67,2026-11-06,42169407639,2026-11-08,16,8,8
 447875,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,16,16,1,450.45,1519.16,9.93951,1509.22,2026-11-10,42626921225,2026-11-15,16,,
 448196,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,16,16,1,462.963,1566.26,10.1398,1556.12,2026-11-17,43673516330,2026-11-21,16,,
+448502,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,16,16,1,595.238,1857.68,11.2665,1846.41,2026-11-24,44999602681,2026-11-27,16,,
 447611,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,48,24,8,1,140.845,13173.6,86.439,13087.1,2026-11-06,42169407639,2026-11-08,24,8,16
 447612,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,64,24,8,1,103.413,16881.2,121.63,16759.5,2026-11-06,42169407639,2026-11-08,24,8,16
 447613,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,80,24,8,1,89.2857,18336,145.499,18190.5,2026-11-06,42169407639,2026-11-08,24,8,16
@@ -2876,13 +2920,24 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 447609,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,352,32,16,16,48.5437,36190.9,283.618,35907.3,2026-11-06,42169407639,2026-11-08,32,16,16
 447876,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,352,32,16,16,51.7598,36346.7,281.476,36065.3,2026-11-10,42626921225,2026-11-15,32,16,16
 448198,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,44,48,8,1,277.008,6653.57,43.5828,6609.98,2026-11-17,43673516330,2026-11-21,48,8,40
+448505,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,44,48,8,1,370.37,6870.26,45.428,6824.83,2026-11-24,44999602681,2026-11-27,48,8,40
 448199,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,56,48,8,1,230.947,8872.76,58.8643,8813.89,2026-11-17,43673516330,2026-11-21,48,8,40
+448504,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,104,48,8,1,232.019,14598.7,106.284,14492.4,2026-11-24,44999602681,2026-11-27,48,8,40
 447880,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,192,48,32,32,94.0734,20543.7,148.261,20395.4,2026-11-10,42626921225,2026-11-15,48,16,32
 448201,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,48,32,32,96.9932,28377.3,199.804,28177.5,2026-11-17,43673516330,2026-11-21,48,16,32
+448506,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,48,32,32,122.699,30464.6,213.052,30251.6,2026-11-24,44999602681,2026-11-27,48,16,32
 447617,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,disagg,true,fp4,384,56,32,32,72.6744,30457.7,228.725,30229,2026-11-06,42169407639,2026-11-08,56,24,32
 447881,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,384,56,32,32,71.9424,30495,229.198,30265.8,2026-11-10,42626921225,2026-11-15,56,24,32
 448202,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,448,56,32,32,77.3994,36747.1,275.39,36471.7,2026-11-17,43673516330,2026-11-21,56,24,32
+448507,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,448,56,32,32,98.7167,39977.8,295.331,39682.5,2026-11-24,44999602681,2026-11-27,56,24,32
 448200,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,960,64,32,32,46.9043,51267.6,377.561,50890.1,2026-11-17,43673516330,2026-11-21,64,32,32
+448503,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,960,64,32,32,63.6132,57826.3,425.033,57401.3,2026-11-24,44999602681,2026-11-27,64,32,32
+448578,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,1,16,16,1,595.238,1846.33,11.2465,1835.08,2026-11-25,45332474419,2026-11-27,16,,
+448581,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,44,48,8,1,367.647,6909.6,45.6614,6863.94,2026-11-25,45332474419,2026-11-27,48,8,40
+448580,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,104,48,8,1,228.833,14582.4,106.21,14476.2,2026-11-25,45332474419,2026-11-27,48,8,40
+448582,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,256,48,32,32,123.001,30441.3,213.894,30227.4,2026-11-25,45332474419,2026-11-27,48,16,32
+448583,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,448,56,32,32,99.5025,40181.8,296.893,39884.9,2026-11-25,45332474419,2026-11-27,56,24,32
+448579,Kimi-K3.1-Pro,agentic-traces,p90_intvty,gb300,GB300 NVL72,llmd-vllm,mtp,mixed,true,fp4,960,64,32,32,62.6959,57982.2,425.392,57556.8,2026-11-25,45332474419,2026-11-27,64,32,32
 447678,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,1,8,8,1,184.502,2206.95,16.3743,2190.58,2026-11-07,42324316724,2026-11-08,8,,
 448016,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,mixed,true,fp4,1,8,8,1,250.627,2187.82,16.3556,2171.47,2026-11-11,42910486568,2026-11-15,8,,
 447681,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,4,8,8,1,146.843,3237.92,24.0892,3213.83,2026-11-07,42324316724,2026-11-08,8,,
@@ -2901,31 +2956,61 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 448013,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,mixed,true,fp4,128,16,8,1,33.4336,21206.9,183.841,21023,2026-11-11,42910486568,2026-11-15,16,8,8
 448014,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,mixed,true,fp4,144,16,8,1,32.2373,21566.5,187.763,21378.8,2026-11-11,42910486568,2026-11-15,16,8,8
 448341,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,1,8,8,1,302.115,2440.72,17.945,2422.77,2026-11-20,44563025886,2026-11-21,8,,
+448509,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,1,8,8,1,337.838,2665.75,18.7965,2646.96,2026-11-25,45314602375,2026-11-27,8,,
 448345,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,4,8,8,1,224.719,3751.36,26.66,3724.7,2026-11-20,44563025886,2026-11-21,8,,
+448513,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,4,8,8,1,236.407,3868.86,27.3778,3841.48,2026-11-25,45314602375,2026-11-27,8,,
 448346,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,8,8,8,1,148.368,6221.53,46.6437,6174.89,2026-11-20,44563025886,2026-11-21,8,,
+448514,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,8,8,8,1,150.602,6305.16,46.9709,6258.19,2026-11-25,45314602375,2026-11-27,8,,
 448340,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,16,8,8,1,111.483,10757.1,74.9556,10682.1,2026-11-20,44563025886,2026-11-21,8,,
+448508,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,16,8,8,1,107.527,10667.7,74.3481,10593.3,2026-11-25,45314602375,2026-11-27,8,,
 448342,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,24,8,8,1,85.8369,14437,100.129,14336.9,2026-11-20,44563025886,2026-11-21,8,,
+448510,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,24,8,8,1,87.0322,14633,100.967,14532,2026-11-25,45314602375,2026-11-27,8,,
 448343,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,32,8,8,1,76.5697,17322.4,112.794,17209.7,2026-11-20,44563025886,2026-11-21,8,,
+448511,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,32,8,8,1,76.1615,17777.2,113.498,17663.7,2026-11-25,45314602375,2026-11-27,8,,
 448344,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,48,8,8,1,43.0108,22010.6,149.778,21860.8,2026-11-20,44563025886,2026-11-21,8,,
+448512,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,mtp,single-node,true,fp4,48,8,8,1,43.9174,22006.4,150.982,21855.4,2026-11-25,45314602375,2026-11-27,8,,
 447703,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,8,8,1,201.613,1839.06,14.2678,1824.79,2026-11-08,42371416815,2026-11-08,8,,
 448130,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,8,8,1,231.481,2033.39,15.351,2018.03,2026-11-14,43399050596,2026-11-15,8,,
 448152,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,8,8,1,255.102,2164.05,16.1442,2147.9,2026-11-16,43717568009,2026-11-21,8,,
+448455,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,8,8,1,328.947,2538.9,18.3485,2520.56,2026-11-23,44640765021,2026-11-27,8,,
 447707,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,8,8,1,140.056,2839.06,20.9693,2818.09,2026-11-08,42371416815,2026-11-08,8,,
 448134,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,8,8,1,163.934,3076.33,22.9859,3053.34,2026-11-14,43399050596,2026-11-15,8,,
 448156,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,8,8,1,169.779,3136.98,23.4714,3113.51,2026-11-16,43717568009,2026-11-21,8,,
+448459,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,8,8,1,211.416,3493.01,25.4616,3467.55,2026-11-23,44640765021,2026-11-27,8,,
 447701,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,10,8,8,1,70.7714,6048.39,45.4643,6002.93,2026-11-08,42371416815,2026-11-08,8,,
 447702,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,8,8,1,73.2601,9367.92,67.7172,9300.2,2026-11-08,42371416815,2026-11-08,8,,
 448129,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,8,8,1,81.6327,8901.1,65.0419,8836.06,2026-11-14,43399050596,2026-11-15,8,,
 448151,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,8,8,1,85.3242,9088.77,65.8892,9022.88,2026-11-16,43717568009,2026-11-21,8,,
+448454,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,8,8,1,91.4913,9811.26,70.151,9741.11,2026-11-23,44640765021,2026-11-27,8,,
 447704,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,24,8,8,1,57.2082,13724,96.1084,13627.9,2026-11-08,42371416815,2026-11-08,8,,
 448131,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,24,8,8,1,66.0502,13197.9,91.6749,13106.3,2026-11-14,43399050596,2026-11-15,8,,
 448153,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,24,8,8,1,69.6379,13387.4,93.4238,13293.9,2026-11-16,43717568009,2026-11-21,8,,
+448456,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,24,8,8,1,77.8816,14657.7,101.467,14556.2,2026-11-23,44640765021,2026-11-27,8,,
 447705,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,8,8,1,42.4268,17168.4,112.562,17055.8,2026-11-08,42371416815,2026-11-08,8,,
 448132,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,8,8,1,56.5931,15331,101.743,15229.2,2026-11-14,43399050596,2026-11-15,8,,
 448154,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,8,8,1,59.4884,15850,104.939,15745,2026-11-16,43717568009,2026-11-21,8,,
+448457,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,8,8,1,69.979,17348.1,113.856,17234.2,2026-11-23,44640765021,2026-11-27,8,,
 447706,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,48,8,8,1,22.6296,18638.4,130.151,18508.2,2026-11-08,42371416815,2026-11-08,8,,
 448133,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,48,8,8,1,23.4357,19200.8,134.723,19066,2026-11-14,43399050596,2026-11-15,8,,
 448155,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,48,8,8,1,26.9469,20318.6,141.541,20177.1,2026-11-16,43717568009,2026-11-21,8,,
+448458,Kimi-K3.1-Pro,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,48,8,8,1,30.3398,22240.4,152.254,22088.2,2026-11-23,44640765021,2026-11-27,8,,
+448429,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,1,16,16,1,757.576,1961.04,11.8102,1949.23,2026-11-20,,2026-11-27,16,,
+448433,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,8,24,16,1,578.035,2863.2,19.639,2843.56,2026-11-20,,2026-11-27,24,8,16
+448431,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,14,24,16,1,502.513,3897.2,29.3419,3867.85,2026-11-20,,2026-11-27,24,8,16
+448432,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,24,24,16,1,409.836,8031.04,47.0564,7983.99,2026-11-20,,2026-11-27,24,8,16
+448430,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,50,24,16,1,340.136,15834.8,105.818,15729,2026-11-20,,2026-11-27,24,8,16
+448434,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,175,24,8,2,156.25,44053.9,307.084,43746.8,2026-11-20,,2026-11-27,24,8,16
+448435,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,180,32,8,2,183.824,35104.6,243.654,34860.9,2026-11-20,,2026-11-27,32,8,24
+448437,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,460,32,16,16,98.2318,71804.8,541.134,71263.7,2026-11-20,,2026-11-27,32,16,16
+448438,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,720,40,16,16,69.3481,85364.2,625.198,84739,2026-11-20,,2026-11-27,40,24,16
+448436,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,156,48,16,1,283.286,21800,154.67,21645.4,2026-11-20,,2026-11-27,48,16,32
+448439,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,draft_model,mixed,true,fp4,650,56,16,16,114.548,62453.4,451.702,62001.7,2026-11-20,,2026-11-27,56,24,32
+448647,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,1,24,16,1,833.333,1367.33,8.31023,1359.02,2026-11-25,45708014930,2026-11-27,24,8,16
+448648,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,24,24,16,1,438.596,8229.11,47.7233,8181.39,2026-11-25,45708014930,2026-11-27,24,8,16
+448649,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,64,24,16,1,291.545,21472.4,146.952,21325.4,2026-11-25,45708014930,2026-11-27,24,8,16
+448650,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,16,40,16,1,657.895,3139.01,20.0467,3118.97,2026-11-25,45708014930,2026-11-27,40,8,32
+448646,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,576,48,32,32,200.401,74721.6,521.876,74199.7,2026-11-25,45708014930,2026-11-27,48,16,32
+448651,Kimi-K3.1-Pro,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,disagg,true,fp4,1152,64,32,32,143.885,103775,740.54,103034,2026-11-25,45708014930,2026-11-27,64,32,32
 40344,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,false,fp4,4,1,1,1,72.9608,2493.26,277.355,2215.9,2025-10-29,18924487526,2026-10-27,1,,
 40693,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,false,fp4,8,1,1,1,62.5459,4263.26,479.263,3784,2025-10-29,18924487526,2026-10-27,1,,
 40433,Llama-3.3-70B-Instruct-FP8,8k/1k,median_intvty,b200,B200,trt,none,single-node,false,fp4,16,1,1,1,48.8763,6692.56,741.578,5950.98,2025-10-29,18924487526,2026-10-27,1,,
@@ -4133,17 +4218,17 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446708,MiniMax-M3,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,20,4,4,1,134.953,34235.2,221.858,34013.3,2026-10-27,39890471932,2026-10-27,4,,
 446709,MiniMax-M3,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,24,4,4,1,101.937,40823.9,252.15,40571.7,2026-10-27,39890471932,2026-10-27,4,,
 446710,MiniMax-M3,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,32,4,4,1,71.6332,45404.7,287.133,45117.6,2026-10-27,39890471932,2026-10-27,4,,
-446340,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,20,2,2,1,389.105,74555.7,465.704,74090,2026-10-23,40017728738,2026-10-27,2,,
-446341,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,46,2,2,1,172.414,152845,976.512,151869,2026-10-23,40017728738,2026-10-27,2,,
-446342,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,56,2,2,1,114.416,175269,1242.64,174027,2026-10-23,40017728738,2026-10-27,2,,
-446343,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,16,10,8,1,952.381,11179.3,69.8714,11109.4,2026-10-23,40017728738,2026-10-27,10,2,8
-446344,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,24,10,4,1,869.565,18654.7,110.554,18544.1,2026-10-23,40017728738,2026-10-27,10,2,8
-446345,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,52,10,2,1,487.805,39726.4,268.174,39458.2,2026-10-23,40017728738,2026-10-27,10,2,8
-445658,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,14,2,2,1,398.406,43175.4,329.454,42846,2026-10-19,39318191607,2026-10-27,2,,
-445659,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,20,2,2,1,328.947,69827.2,445.851,69381.4,2026-10-19,39318191607,2026-10-27,2,,
-445660,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,46,2,2,1,167.504,152305,979.514,151325,2026-10-19,39318191607,2026-10-27,2,,
-445661,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,56,2,2,1,101.523,175563,1244.14,174319,2026-10-19,39318191607,2026-10-27,2,,
-445662,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,1,4,4,1,552.486,7467.52,45.4204,7422.1,2026-10-19,39318191607,2026-10-27,4,,
+446340,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,20,2,2,1,389.105,74555.7,465.704,74090,2026-10-23,,2026-10-27,2,,
+446341,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,46,2,2,1,172.414,152845,976.512,151869,2026-10-23,,2026-10-27,2,,
+446342,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,56,2,2,1,114.416,175269,1242.64,174027,2026-10-23,,2026-10-27,2,,
+446343,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,16,10,8,1,952.381,11179.3,69.8714,11109.4,2026-10-23,,2026-10-27,10,2,8
+446344,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,24,10,4,1,869.565,18654.7,110.554,18544.1,2026-10-23,,2026-10-27,10,2,8
+446345,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,mixed,true,fp4,52,10,2,1,487.805,39726.4,268.174,39458.2,2026-10-23,,2026-10-27,10,2,8
+445658,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,14,2,2,1,398.406,43175.4,329.454,42846,2026-10-19,,2026-10-27,2,,
+445659,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,20,2,2,1,328.947,69827.2,445.851,69381.4,2026-10-19,,2026-10-27,2,,
+445660,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,46,2,2,1,167.504,152305,979.514,151325,2026-10-19,,2026-10-27,2,,
+445661,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,56,2,2,1,101.523,175563,1244.14,174319,2026-10-19,,2026-10-27,2,,
+445662,MiniMax-M3,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,multi-node,true,fp4,1,4,4,1,552.486,7467.52,45.4204,7422.1,2026-10-19,,2026-10-27,4,,
 446516,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,1,4,4,1,568.182,7088.49,44.0547,7044.43,2026-10-26,40252316011,2026-10-27,4,,
 446813,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,1,4,4,1,561.798,7078.42,43.9948,7034.42,2026-10-28,40739120064,2026-11-02,4,,
 446814,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,true,fp4,1,4,4,1,632.911,7479.38,45.4707,7433.91,2026-10-28,40739120064,2026-11-02,4,,
@@ -4178,6 +4263,15 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446456,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,vllm,mtp,single-node,true,fp4,40,4,4,1,184.162,69105.3,443.438,68661.9,2026-10-25,40164184148,2026-10-27,4,,
 446457,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,vllm,mtp,single-node,true,fp4,48,4,4,1,148.368,80891.2,532.797,80358.4,2026-10-25,40164184148,2026-10-27,4,,
 446459,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b200,B200,vllm,mtp,single-node,true,fp4,56,4,4,1,99.8004,86950.2,624.318,86325.9,2026-10-25,40164184148,2026-10-27,4,,
+448467,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,1,4,4,1,490.196,6531.18,42.3416,6488.84,2026-11-24,45108856346,2026-11-27,4,,
+448468,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,4,4,4,1,465.116,9788.24,67.8247,9720.42,2026-11-24,45108856346,2026-11-27,4,,
+448469,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,8,4,4,1,403.226,16190,114.168,16075.8,2026-11-24,45108856346,2026-11-27,4,,
+448465,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,40,6,4,1,362.319,34926.1,239.229,34686.9,2026-11-24,45108856346,2026-11-27,6,2,4
+448466,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,144,6,4,4,154.799,58831.1,553.234,58277.9,2026-11-24,45108856346,2026-11-27,6,2,4
+448470,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,1,8,8,1,819.672,4054.97,24.9365,4030.04,2026-11-24,45108856346,2026-11-27,8,,
+448471,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,4,8,8,1,775.194,5427.65,36.8415,5390.8,2026-11-24,45108856346,2026-11-27,8,,
+448472,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,200,12,8,8,303.03,28028.8,259.009,27769.8,2026-11-24,45108856346,2026-11-27,12,4,8
+448473,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,dynamo-vllm,mtp,mixed,true,fp4,480,24,8,8,246.305,80859,638.847,80220.2,2026-11-24,45108856346,2026-11-27,24,16,8
 446985,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,sglang,mtp,single-node,true,fp4,20,2,2,1,208.333,71029.9,453.414,70576.5,2026-10-31,41085412898,2026-11-02,2,,
 446986,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,sglang,mtp,single-node,true,fp4,24,2,2,1,181.818,86223.8,520.345,85703.4,2026-10-31,41085412898,2026-11-02,2,,
 446987,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,sglang,mtp,single-node,true,fp4,28,2,2,1,162.075,96011,593.525,95417.4,2026-10-31,41085412898,2026-11-02,2,,
@@ -4251,20 +4345,48 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446432,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,vllm,mtp,single-node,false,fp4,64,4,4,4,26.5604,63671.8,498.013,63173.7,2026-10-25,39904040374,2026-10-27,4,,
 446426,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,vllm,mtp,single-node,false,fp4,128,4,4,4,8.10964,23667.1,219.836,23447.3,2026-10-25,39904040374,2026-10-27,4,,
 446429,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,b300,B300,vllm,mtp,single-node,false,fp4,256,4,4,4,5.93437,13409.6,99.3119,13310.3,2026-10-25,39904040374,2026-10-27,4,,
+448441,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,549.451,7710.4,46.0242,7664.38,2026-11-22,44263569706,2026-11-27,4,,
+448442,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,606.061,8042.97,47.9269,7995.05,2026-11-22,44263569706,2026-11-27,4,,
+448446,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,4,4,4,1,471.698,9891.38,68.292,9823.09,2026-11-22,44263569706,2026-11-27,4,,
+448448,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,8,4,4,1,395.257,16865.7,116.337,16749.4,2026-11-22,44263569706,2026-11-27,4,,
+448440,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,16,4,4,1,290.698,29439.8,189.602,29250.2,2026-11-22,44263569706,2026-11-27,4,,
+448443,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,32,4,4,1,193.798,62228.7,365.634,61863.1,2026-11-22,44263569706,2026-11-27,4,,
+448444,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,40,4,4,1,178.253,72225.8,459.614,71766.2,2026-11-22,44263569706,2026-11-27,4,,
+448445,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,48,4,4,1,144.718,85484.7,557.847,84926.9,2026-11-22,44263569706,2026-11-27,4,,
+448447,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,56,4,4,1,101.523,95792.7,653.145,95139.6,2026-11-22,44263569706,2026-11-27,4,,
+448521,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,288,24,16,16,268.817,81351.6,558.488,80793.1,2026-11-25,45490780339,2026-11-27,24,8,16
+448522,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,320,24,16,16,271.739,87912.5,623.547,87289,2026-11-25,45490780339,2026-11-27,24,8,16
+448523,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,352,24,16,16,259.74,92557.3,658.793,91898.5,2026-11-25,45490780339,2026-11-27,24,8,16
+448524,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,448,32,16,16,253.165,92849.8,659.369,92190.4,2026-11-25,45490780339,2026-11-27,32,16,16
+448525,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-sglang,mtp,mixed,true,fp4,480,32,16,16,247.525,97697,698.127,96998.9,2026-11-25,45490780339,2026-11-27,32,16,16
 447013,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,4,4,1,510.204,7127.48,44.1381,7083.34,2026-11-01,41084082993,2026-11-02,4,,
+448598,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,1,4,4,1,505.051,7121.75,44.1025,7077.65,2026-11-26,45486967864,2026-11-27,4,,
 447016,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,4,4,4,1,436.681,9202.78,64.3791,9138.4,2026-11-01,41084082993,2026-11-02,4,,
+448601,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,4,4,4,1,432.9,9531.33,66.0765,9465.25,2026-11-26,45486967864,2026-11-27,4,,
 447017,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,8,4,4,1,374.532,16251.2,114.19,16137,2026-11-01,41084082993,2026-11-02,4,,
+448602,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,8,4,4,1,375.94,16293.8,114.261,16179.6,2026-11-26,45486967864,2026-11-27,4,,
 447012,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,16,4,4,1,285.714,29268.3,188.748,29079.6,2026-11-01,41084082993,2026-11-02,4,,
+448597,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,16,4,4,1,286.533,29287.1,188.879,29098.3,2026-11-26,45486967864,2026-11-27,4,,
 447014,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,32,4,4,1,122.399,56174.2,326.833,55847.4,2026-11-01,41084082993,2026-11-02,4,,
+448599,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,32,4,4,1,124.844,56670.9,329.66,56341.2,2026-11-26,45486967864,2026-11-27,4,,
 447015,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,40,4,4,1,90.9918,60554.8,399.948,60154.9,2026-11-01,41084082993,2026-11-02,4,,
+448600,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,40,4,4,1,89.7666,60221.9,399.167,59822.7,2026-11-26,45486967864,2026-11-27,4,,
 447018,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,224,16,8,8,229.358,94222,638.795,93583.2,2026-11-01,41084082993,2026-11-02,16,8,8
+448603,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,224,16,8,8,230.947,94247.2,639.429,93607.8,2026-11-26,45486967864,2026-11-27,16,8,8
 447019,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,16,8,8,226.244,98847.9,695.61,98152.3,2026-11-01,41084082993,2026-11-02,16,8,8
+448604,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,16,8,8,224.719,99331.6,692.015,98639.6,2026-11-26,45486967864,2026-11-27,16,8,8
 447023,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,20,8,8,217.865,86447.6,588.169,85859.4,2026-11-01,41084082993,2026-11-02,20,12,8
+448608,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,256,20,8,8,217.865,86368,587.897,85780.1,2026-11-26,45486967864,2026-11-27,20,12,8
 447024,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,288,20,8,8,212.314,93178.9,648.175,92530.8,2026-11-01,41084082993,2026-11-02,20,12,8
+448609,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,288,20,8,8,211.416,92813.8,648.108,92165.7,2026-11-26,45486967864,2026-11-27,20,12,8
 447020,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,280,28,16,16,274.725,70439.5,476.935,69962.6,2026-11-01,41084082993,2026-11-02,28,12,16
+448605,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,280,28,16,16,276.243,70520.5,476.954,70043.5,2026-11-26,45486967864,2026-11-27,28,12,16
 447021,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,320,28,16,16,264.55,77307,544.723,76762.3,2026-11-01,41084082993,2026-11-02,28,12,16
+448606,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,320,28,16,16,266.667,77152.4,544.399,76608,2026-11-26,45486967864,2026-11-27,28,12,16
 447022,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,360,28,16,16,257.069,85422.3,597.73,84824.6,2026-11-01,41084082993,2026-11-02,28,12,16
+448607,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,360,28,16,16,256.41,85449.7,598.147,84851.5,2026-11-26,45486967864,2026-11-27,28,12,16
 447025,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,352,32,16,16,257.069,74483.5,519.518,73964,2026-11-01,41084082993,2026-11-02,32,16,16
+448610,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,dynamo-vllm,mtp,mixed,true,fp4,352,32,16,16,257.069,74304.7,518.571,73786.1,2026-11-26,45486967864,2026-11-27,32,16,16
 446504,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,sglang,mtp,single-node,true,fp4,1,4,4,1,578.035,7025.79,43.7323,6982.06,2026-10-26,40252912814,2026-10-27,4,,
 446888,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,sglang,mtp,single-node,true,fp4,1,4,4,1,649.351,7525.91,45.4821,7480.42,2026-10-29,40739138596,2026-11-02,4,,
 446889,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb200,GB200 NVL72,sglang,mtp,single-node,true,fp4,1,4,4,1,578.035,7125.07,44.1229,7080.95,2026-10-29,40739138596,2026-11-02,4,,
@@ -4329,21 +4451,27 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 448050,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,8,4,4,1,408.163,16391.1,114.369,16276.7,2026-11-12,42955087162,2026-11-15,4,,
 446998,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,16,4,4,1,300.3,29353.6,189.164,29164.5,2026-11-01,41103476412,2026-11-02,4,,
 448046,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,16,4,4,1,321.543,29249.2,188.4,29060.8,2026-11-12,42955087162,2026-11-15,4,,
+448515,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,18,4,4,1,581.395,34692,220.395,34471.6,2026-11-25,44688950638,2026-11-27,4,,
 447000,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,32,4,4,1,195.695,61690.3,361.765,61328.6,2026-11-01,41103476412,2026-11-02,4,,
 448048,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,32,4,4,1,224.719,61801.7,362.335,61439.4,2026-11-12,42955087162,2026-11-15,4,,
 447001,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,40,4,4,1,176.678,71245,454.962,70790,2026-11-01,41103476412,2026-11-02,4,,
 447002,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,48,4,4,1,129.032,82896.9,540.179,82356.8,2026-11-01,41103476412,2026-11-02,4,,
 447004,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,56,4,4,1,118.343,96597.2,656.458,95940.8,2026-11-01,41103476412,2026-11-02,4,,
+448518,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,4,8,8,1,813.008,5512.67,37.5427,5475.13,2026-11-25,44688950638,2026-11-27,8,,
 448051,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,200,20,16,16,318.471,66728.2,461.943,66266.3,2026-11-12,42955087162,2026-11-15,20,4,16
+448516,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,260,20,16,16,398.406,94530.1,633.144,93896.9,2026-11-25,44688950638,2026-11-27,20,4,16
 447008,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,280,20,8,8,217.391,93074.1,638.403,92435.7,2026-11-01,41103476412,2026-11-02,20,12,8
 447009,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,320,20,8,8,208.333,100505,720.883,99784.2,2026-11-01,41103476412,2026-11-02,20,12,8
+448517,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,340,20,16,16,383.142,117041,818.334,116222,2026-11-25,44688950638,2026-11-27,20,4,16
 447010,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,360,20,8,8,204.499,107948,778.55,107169,2026-11-01,41103476412,2026-11-02,20,12,8
 447011,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,400,20,8,8,199.601,114532,828.471,113703,2026-11-01,41103476412,2026-11-02,20,12,8
+448519,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,590,24,16,16,322.581,164037,1146.72,162891,2026-11-25,44688950638,2026-11-27,24,8,16
 447006,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,300,28,16,16,269.542,75021.6,515.314,74506.3,2026-11-01,41103476412,2026-11-02,28,12,16
 447007,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,360,28,16,16,259.067,85810.4,599.816,85210.6,2026-11-01,41103476412,2026-11-02,28,12,16
 448052,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,500,28,16,16,254.453,111826,807.183,111019,2026-11-12,42955087162,2026-11-15,28,12,16
 448053,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,640,32,16,16,227.273,118524,856.987,117667,2026-11-12,42955087162,2026-11-15,32,16,16
 448054,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,680,32,16,16,225.734,116131,857.112,115274,2026-11-12,42955087162,2026-11-15,32,16,16
+448520,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,950,32,16,16,261.78,179857,1287.74,178569,2026-11-25,44688950638,2026-11-27,32,16,16
 448055,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,850,36,16,16,202.84,118297,897.732,117399,2026-11-12,42955087162,2026-11-15,36,20,16
 448057,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,900,40,16,16,187.617,126804,926.577,125878,2026-11-12,42955087162,2026-11-15,40,24,16
 448058,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-vllm,mtp,mixed,true,fp4,950,40,16,16,185.185,125238,931.742,124306,2026-11-12,42955087162,2026-11-15,40,24,16
@@ -4439,6 +4567,13 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 448246,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,h200,H200,vllm,mtp,single-node,false,fp4,20,8,8,1,61.4628,12740.2,90.0367,12650.2,2026-11-18,44199027587,2026-11-21,8,,
 446209,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,h200,H200,vllm,mtp,single-node,false,fp4,24,8,8,1,8.47099,7177.04,57.1,7119.94,2026-10-23,39903574233,2026-10-27,8,,
 448247,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,h200,H200,vllm,mtp,single-node,false,fp4,24,8,8,1,19.3349,10111.2,74.7421,10036.5,2026-11-18,44199027587,2026-11-21,8,,
+448488,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,1,4,4,1,540.541,7691.56,45.9115,7645.64,2026-11-24,44987957118,2026-11-27,4,,
+448489,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,2,4,4,1,469.484,7646.35,53.9181,7592.43,2026-11-24,44987957118,2026-11-27,4,,
+448492,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,4,4,4,1,404.858,9794.05,67.8243,9726.22,2026-11-24,44987957118,2026-11-27,4,,
+448493,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,8,4,4,1,305.81,16440.2,114.359,16325.8,2026-11-24,44987957118,2026-11-27,4,,
+448487,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,16,4,4,1,202.02,28305.3,179.012,28126.3,2026-11-24,44987957118,2026-11-27,4,,
+448490,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,32,4,4,1,123.153,57183.3,331.269,56852,2026-11-24,44987957118,2026-11-27,4,,
+448491,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,atom,mtp,single-node,true,fp4,48,4,4,1,70.1754,70051.6,468.978,69582.6,2026-11-24,44987957118,2026-11-27,4,,
 446419,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,false,fp4,1,4,4,1,420.168,6310.98,41.4196,6269.56,2026-10-25,40110172586,2026-10-27,4,,
 447039,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp4,1,4,4,1,420.168,6314.3,41.4415,6272.85,2026-11-02,41277894342,2026-11-02,4,,
 446420,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,false,fp4,2,4,4,1,364.964,6766.29,50.114,6716.18,2026-10-25,40110172586,2026-10-27,4,,
@@ -4458,39 +4593,52 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446226,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,1,4,4,1,531.915,6625.06,42.6527,6582.41,2026-10-23,39929767608,2026-10-27,4,,
 447032,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,4,4,1,515.464,6766.16,42.9779,6723.18,2026-11-02,41003224750,2026-11-02,4,,
 448060,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,1,4,4,1,621.118,7744.06,46.8234,7697.23,2026-11-12,43171131215,2026-11-15,4,,
+448481,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,1,4,4,1,617.284,7741.73,46.8094,7694.92,2026-11-24,45233004275,2026-11-27,4,,
 446227,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,2,4,4,1,425.532,6925.46,50.4578,6875,2026-10-23,39929767608,2026-10-27,4,,
 447033,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,2,4,4,1,409.836,6917.61,50.3976,6867.21,2026-11-02,41003224750,2026-11-02,4,,
 448061,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,2,4,4,1,621.118,7954.5,54.5047,7900,2026-11-12,43171131215,2026-11-15,4,,
+448482,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,2,4,4,1,625,7777.09,52.9068,7724.18,2026-11-24,45233004275,2026-11-27,4,,
 446229,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,4,4,4,1,374.532,9183.45,63.5023,9119.95,2026-10-23,39929767608,2026-10-27,4,,
 447035,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,4,4,1,395.257,9493.49,62.9451,9430.54,2026-11-02,41003224750,2026-11-02,4,,
 448063,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,4,4,4,1,581.395,10321.7,69.6077,10252,2026-11-12,43171131215,2026-11-15,4,,
+448484,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,4,4,4,1,561.798,10197.2,68.9259,10128.3,2026-11-24,45233004275,2026-11-27,4,,
 446231,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,8,4,4,1,253.165,15333.2,109.901,15223.3,2026-10-23,39929767608,2026-10-27,4,,
 447037,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,8,4,4,1,239.808,15410.9,110.807,15300.1,2026-11-02,41003224750,2026-11-02,4,,
 448065,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,8,4,4,1,485.437,17105.1,117.78,16987.3,2026-11-12,43171131215,2026-11-15,4,,
+448486,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,8,4,4,1,480.769,17010.3,117.488,16892.8,2026-11-24,45233004275,2026-11-27,4,,
 446225,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,16,4,4,1,139.082,25978,168.232,25809.8,2026-10-23,39929767608,2026-10-27,4,,
 447031,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,4,4,1,168.067,27275.3,171.676,27103.7,2026-11-02,41003224750,2026-11-02,4,,
 448059,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,16,4,4,1,371.747,29691.5,192.266,29499.2,2026-11-12,43171131215,2026-11-15,4,,
+448480,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,16,4,4,1,386.1,29634.1,192.137,29442,2026-11-24,45233004275,2026-11-27,4,,
 446228,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,32,4,4,1,97.1817,49697.2,302.38,49394.8,2026-10-23,39929767608,2026-10-27,4,,
 447034,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,4,4,1,115.075,54158,319.128,53838.9,2026-11-02,41003224750,2026-11-02,4,,
 448062,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,32,4,4,1,248.756,63397.7,372.26,63025.4,2026-11-12,43171131215,2026-11-15,4,,
+448483,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,32,4,4,1,244.499,63523.6,372.553,63151,2026-11-24,45233004275,2026-11-27,4,,
 446230,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,false,fp4,64,4,4,1,33.1016,63260.6,493.431,62767.2,2026-10-23,39929767608,2026-10-27,4,,
 447036,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,64,4,4,1,47.259,75434.3,567.343,74867,2026-11-02,41003224750,2026-11-02,4,,
 448064,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,single-node,true,fp4,64,4,4,1,114.679,112879,787.004,112092,2026-11-12,43171131215,2026-11-15,4,,
-448135,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,26,10,4,1,1149.43,22148.3,130.084,22018.2,2026-11-14,43623411217,2026-11-21,10,2,8
-448139,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,200,10,8,8,467.29,147430,987.234,146443,2026-11-14,43623411217,2026-11-21,10,2,8
-448140,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,280,10,8,8,452.489,206692,1389.29,205303,2026-11-14,43623411217,2026-11-21,10,2,8
-448142,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,480,12,8,8,429.185,267823,1919.71,265903,2026-11-14,43623411217,2026-11-21,12,4,8
-448143,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,520,12,8,8,425.532,275190,1986.65,273203,2026-11-14,43623411217,2026-11-21,12,4,8
-448137,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,48,14,4,1,1149.43,27933.6,181.786,27751.8,2026-11-14,43623411217,2026-11-21,14,2,12
-448136,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,28,18,8,1,1333.33,12867.4,75.4382,12792,2026-11-14,43623411217,2026-11-21,18,2,16
-448138,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,60,18,4,1,1136.36,28923.8,192.386,28731.4,2026-11-14,43623411217,2026-11-21,18,2,16
-448141,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,250,24,2,1,641.026,75384.3,507.908,74876.4,2026-11-14,43623411217,2026-11-21,24,4,20
-447999,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,10,2,2,1,806.452,38498.3,275.532,38222.8,2026-11-11,42939172889,2026-11-15,2,,
-448002,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,14,4,4,1,1098.9,22911.1,173.099,22738,2026-11-11,42939172889,2026-11-15,4,,
-448003,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,8,8,8,1,1204.82,8964.94,60.165,8904.78,2026-11-11,42939172889,2026-11-15,8,,
-448000,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,126,10,8,8,510.204,85253,642.071,84610.9,2026-11-11,42939172889,2026-11-15,10,2,8
-448001,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,240,10,8,8,429.185,174998,1169.3,173828,2026-11-11,42939172889,2026-11-15,10,2,8
-448004,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,640,16,8,8,375.94,254869,1766.65,253102,2026-11-11,42939172889,2026-11-15,16,8,8
+448485,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,64,4,4,1,116.009,112932,787.53,112144,2026-11-24,45233004275,2026-11-27,4,,
+448474,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,40,12,4,1,414.938,25721.3,165.053,25556.2,2026-11-24,45233004275,2026-11-27,12,4,8
+448475,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,48,12,4,1,398.406,31503.8,205.802,31298,2026-11-24,45233004275,2026-11-27,12,4,8
+448476,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,56,12,4,1,378.788,37476.6,248.701,37227.9,2026-11-24,45233004275,2026-11-27,12,4,8
+448477,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,64,12,4,1,355.872,42410.4,292.689,42117.7,2026-11-24,45233004275,2026-11-27,12,4,8
+448478,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,72,12,4,1,322.581,45097.4,329.778,44767.6,2026-11-24,45233004275,2026-11-27,12,4,8
+448479,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,mi355x,MI355X,vllm,mtp,mixed,true,fp4,80,12,4,1,323.625,49984.4,372.551,49611.8,2026-11-24,45233004275,2026-11-27,12,4,8
+448135,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,26,10,4,1,1149.43,22148.3,130.084,22018.2,2026-11-14,,2026-11-21,10,2,8
+448139,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,200,10,8,8,467.29,147430,987.234,146443,2026-11-14,,2026-11-21,10,2,8
+448140,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,280,10,8,8,452.489,206692,1389.29,205303,2026-11-14,,2026-11-21,10,2,8
+448142,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,480,12,8,8,429.185,267823,1919.71,265903,2026-11-14,,2026-11-21,12,4,8
+448143,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,520,12,8,8,425.532,275190,1986.65,273203,2026-11-14,,2026-11-21,12,4,8
+448137,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,48,14,4,1,1149.43,27933.6,181.786,27751.8,2026-11-14,,2026-11-21,14,2,12
+448136,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,28,18,8,1,1333.33,12867.4,75.4382,12792,2026-11-14,,2026-11-21,18,2,16
+448138,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,60,18,4,1,1136.36,28923.8,192.386,28731.4,2026-11-14,,2026-11-21,18,2,16
+448141,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,mtp,disagg,true,fp4,250,24,2,1,641.026,75384.3,507.908,74876.4,2026-11-14,,2026-11-21,24,4,20
+447999,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,10,2,2,1,806.452,38498.3,275.532,38222.8,2026-11-11,,2026-11-15,2,,
+448002,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,14,4,4,1,1098.9,22911.1,173.099,22738,2026-11-11,,2026-11-15,4,,
+448003,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,8,8,8,1,1204.82,8964.94,60.165,8904.78,2026-11-11,,2026-11-15,8,,
+448000,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,126,10,8,8,510.204,85253,642.071,84610.9,2026-11-11,,2026-11-15,10,2,8
+448001,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,240,10,8,8,429.185,174998,1169.3,173828,2026-11-11,,2026-11-15,10,2,8
+448004,MiniMax-M3.1-Flash,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-vllm,mtp,mixed,true,fp4,640,16,8,8,375.94,254869,1766.65,253102,2026-11-11,,2026-11-15,16,8,8
 447447,Muse-Spark-Open,agentic-traces,p90_intvty,b200,B200,sglang,draft_model,single-node,true,fp4,7,4,4,4,301.205,11305.5,84.7666,11220.7,2026-11-06,41297696082,2026-11-08,4,,
 446216,Muse-Spark-Open,agentic-traces,p90_intvty,b200,B200,sglang,draft_model,single-node,true,fp4,8,4,4,4,230.947,14428.4,104.527,14323.8,2026-10-23,39756010759,2026-10-27,4,,
 446213,Muse-Spark-Open,agentic-traces,p90_intvty,b200,B200,sglang,draft_model,single-node,true,fp4,10,4,4,4,202.02,16778.1,124.195,16653.9,2026-10-23,39756010759,2026-10-27,4,,
@@ -4586,14 +4734,24 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 447855,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,46,4,4,4,100.908,62573.4,417.149,62156.2,2026-11-10,42374203350,2026-11-15,4,,
 447856,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,50,4,4,4,92.081,65755.2,460.856,65294.3,2026-11-10,42374203350,2026-11-15,4,,
 447857,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,56,4,4,4,74.2942,70777.2,515.481,70261.7,2026-11-10,42374203350,2026-11-15,4,,
+448612,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,56,4,4,4,89.6861,74258.6,538.659,73720,2026-11-26,44577658849,2026-11-27,4,,
+448613,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,76,4,4,4,49.3827,79898.4,648.049,79250.3,2026-11-26,44577658849,2026-11-27,4,,
 447858,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,1,8,8,8,507.614,3493.57,21.6819,3471.88,2026-11-10,42374203350,2026-11-15,8,,
 445913,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,multi-node,true,fp4,3,8,8,8,487.805,3638.57,30.2467,3608.33,2026-10-22,39427144732,2026-10-27,8,,
 445914,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,multi-node,true,fp4,4,8,8,8,425.532,4661.62,31.8419,4629.77,2026-10-22,39427144732,2026-10-27,8,,
+448619,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,8,8,8,8,543.478,7012.88,50.4232,6962.46,2026-11-26,44577658849,2026-11-27,8,,
 445911,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,multi-node,true,fp4,10,8,8,8,406.504,9024.42,66.4998,8957.92,2026-10-22,39427144732,2026-10-27,8,,
 445912,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,multi-node,true,fp4,14,8,8,8,303.951,11135.5,83.6696,11051.9,2026-10-22,39427144732,2026-10-27,8,,
+448614,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,15,8,8,8,416.667,11912.9,88.8578,11824.1,2026-11-26,44577658849,2026-11-27,8,,
+448615,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,16,8,8,8,374.532,14304.1,90.1587,14214,2026-11-26,44577658849,2026-11-27,8,,
+448616,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,21,8,8,8,340.136,19345.3,121.184,19224.1,2026-11-26,44577658849,2026-11-27,8,,
+448617,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,26,8,8,8,298.507,23715.9,144.259,23571.6,2026-11-26,44577658849,2026-11-27,8,,
+448618,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,32,8,8,8,269.542,28392.3,163.735,28228.5,2026-11-26,44577658849,2026-11-27,8,,
 447859,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,36,8,8,8,232.558,31023.7,189.91,30833.8,2026-11-10,42374203350,2026-11-15,8,,
 447860,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,160,24,8,8,200,41057.1,296.072,40761,2026-11-10,42374203350,2026-11-15,24,8,16
+448620,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,176,24,8,8,196.464,46434.3,320.769,46113.5,2026-11-26,44577658849,2026-11-27,24,8,16
 447861,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,224,24,8,8,176.991,45416.5,345.54,45071,2026-11-10,42374203350,2026-11-15,24,8,16
+448621,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,192,32,8,8,221.729,38540.3,265.169,38275.1,2026-11-26,44577658849,2026-11-27,32,8,24
 447862,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,224,32,8,8,224.215,34617.1,262.82,34354.3,2026-11-10,42374203350,2026-11-15,32,8,24
 447864,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,32,40,8,8,442.478,6488.15,38.1325,6450.02,2026-11-10,42374203350,2026-11-15,40,8,32
 447865,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,56,40,8,8,404.858,11334,74.8706,11259.2,2026-11-10,42374203350,2026-11-15,40,8,32
@@ -4601,6 +4759,7 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 447867,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,352,40,8,8,155.28,49554.4,364.954,49189.4,2026-11-10,42374203350,2026-11-15,40,16,24
 447866,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,120,48,8,8,334.448,16382.5,123.394,16259.1,2026-11-10,42374203350,2026-11-15,48,8,40
 447868,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,672,56,8,8,136.426,53929.8,422.932,53506.9,2026-11-10,42374203350,2026-11-15,56,24,32
+448622,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,draft_model,mixed,true,fp4,672,56,8,8,131.926,63430.7,469.085,62961.6,2026-11-26,44577658849,2026-11-27,56,24,32
 446234,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,sglang,draft_model,single-node,true,fp4,1,4,4,4,386.1,5689.21,38.7461,5650.46,2026-10-23,39794121900,2026-10-27,4,,
 447183,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,sglang,draft_model,single-node,true,fp4,1,4,4,4,398.406,5809.42,38.9971,5770.42,2026-11-04,41327192200,2026-11-08,4,,
 447189,Muse-Spark-Open,agentic-traces,p90_intvty,gb300,GB300 NVL72,sglang,draft_model,single-node,true,fp4,4,4,4,4,404.858,8218.18,56.4105,8161.77,2026-11-04,41327192200,2026-11-08,4,,
@@ -4648,6 +4807,7 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446942,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,40,4,4,4,95.6023,32588.5,258.197,32330.3,2026-10-30,40714803265,2026-11-02,4,,
 447697,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,40,4,4,4,72.2543,47866.1,333.119,47533,2026-11-08,42394597374,2026-11-08,4,,
 448036,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,40,4,4,4,72.5163,48417.8,335.986,48081.9,2026-11-11,42879019953,2026-11-15,4,,
+448611,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,58,4,4,4,55.4324,57951.1,427.14,57524,2026-11-26,45752853760,2026-11-27,4,,
 446033,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,1,8,8,8,316.456,2664.74,18.7696,2645.97,2026-10-22,39659301076,2026-10-27,8,,
 446944,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,1,8,8,8,469.484,3195.2,20.8882,3174.31,2026-10-30,40714803265,2026-11-02,8,,
 446034,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,2,8,8,8,295.858,2765.98,22.0758,2743.91,2026-10-22,39659301076,2026-10-27,8,,
@@ -4666,26 +4826,37 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 446035,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,32,8,8,8,96.6184,24929.7,151.01,24778.7,2026-10-22,39659301076,2026-10-27,8,,
 446036,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,48,8,8,8,77.6398,30650.1,206.105,30444,2026-10-22,39659301076,2026-10-27,8,,
 446038,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,sglang,draft_model,single-node,true,fp4,64,8,8,8,64.7668,32849.8,252.913,32596.9,2026-10-22,39659301076,2026-10-27,8,,
-447307,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,1,4,8,1,432.9,6100.96,39.9802,6060.98,2026-11-02,41384211546,2026-11-08,4,,
-447309,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,7,4,8,1,302.115,11462.1,82.9657,11379.1,2026-11-02,41384211546,2026-11-08,4,,
-447310,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,9,4,8,1,248.756,15052.1,106.17,14946,2026-11-02,41384211546,2026-11-08,4,,
-447305,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,10,4,8,1,199.203,16555.2,123.205,16432,2026-11-02,41384211546,2026-11-08,4,,
-447306,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,16,4,8,1,139.082,20949.1,147.028,20802.1,2026-11-02,41384211546,2026-11-08,4,,
-447308,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,22,4,8,1,94.697,25905.6,179.13,25726.5,2026-11-02,41384211546,2026-11-08,4,,
+448526,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,28,4,4,4,125.786,41140,264.561,40875.5,2026-11-25,45482286727,2026-11-27,4,,
+448527,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,36,4,4,4,101.42,45880.2,311.925,45568.2,2026-11-25,45482286727,2026-11-27,4,,
+448528,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,40,4,4,4,78.4929,48867.9,341.069,48526.8,2026-11-25,45482286727,2026-11-27,4,,
+448531,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,1,8,8,1,598.802,3809.63,22.9603,3786.67,2026-11-25,45482286727,2026-11-27,8,,
+448533,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,2,8,8,1,531.915,3988.77,27.9386,3960.83,2026-11-25,45482286727,2026-11-27,8,,
+448534,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,4,8,8,1,495.05,4990.59,33.7732,4956.82,2026-11-25,45482286727,2026-11-27,8,,
+448535,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,6,8,8,1,645.161,5975.52,43.3171,5932.2,2026-11-25,45482286727,2026-11-27,8,,
+448536,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,8,8,8,1,469.484,7818.07,55.7322,7762.34,2026-11-25,45482286727,2026-11-27,8,,
+448529,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,10,8,8,1,485.437,9033.98,66.67,8967.31,2026-11-25,45482286727,2026-11-27,8,,
+448530,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,16,8,8,1,440.529,12475.1,81.8645,12393.2,2026-11-25,45482286727,2026-11-27,8,,
+448532,Muse-Spark-Open,agentic-traces,p90_intvty,mi355x,MI355X,tokenspeed,draft_model,single-node,true,fp4,28,8,8,1,225.225,22372.7,139.536,22233.2,2026-11-25,45482286727,2026-11-27,8,,
+447307,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,1,4,8,1,432.9,6100.96,39.9802,6060.98,2026-11-02,,2026-11-08,4,,
+447309,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,7,4,8,1,302.115,11462.1,82.9657,11379.1,2026-11-02,,2026-11-08,4,,
+447310,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,9,4,8,1,248.756,15052.1,106.17,14946,2026-11-02,,2026-11-08,4,,
+447305,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,10,4,8,1,199.203,16555.2,123.205,16432,2026-11-02,,2026-11-08,4,,
+447306,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,16,4,8,1,139.082,20949.1,147.028,20802.1,2026-11-02,,2026-11-08,4,,
+447308,Muse-Spark-Open,agentic-traces,p90_intvty,tpuv7,TPU7x,sglang,draft_model,single-node,true,fp4,22,4,8,1,94.697,25905.6,179.13,25726.5,2026-11-02,,2026-11-08,4,,
 447191,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,24,4,4,4,390.625,44363.6,267.147,44096.5,2026-11-03,41736850512,2026-11-08,4,,
 447192,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,48,4,4,4,193.05,85016.9,554.849,84462,2026-11-03,41736850512,2026-11-08,4,,
 447193,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,96,4,4,4,106.838,137647,1057.61,136590,2026-11-03,41736850512,2026-11-08,4,,
 447198,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,1,8,8,8,990.099,4177.5,26.0805,4151.42,2026-11-03,41736850512,2026-11-08,8,,
-448348,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,1,8,8,8,1123.6,4226.92,27.2697,4199.65,2026-11-19,44598612534,2026-11-21,8,,
-448349,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,8,8,8,8,1136.36,9108.4,60.081,9048.32,2026-11-19,44598612534,2026-11-21,8,,
-448347,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,264,8,4,4,120.337,165142,1174.28,163968,2026-11-19,44598612534,2026-11-21,8,4,4
+448348,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,1,8,8,8,1123.6,4226.92,27.2697,4199.65,2026-11-19,,2026-11-21,8,,
+448349,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,8,8,8,8,1136.36,9108.4,60.081,9048.32,2026-11-19,,2026-11-21,8,,
+448347,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,264,8,4,4,120.337,165142,1174.28,163968,2026-11-19,,2026-11-21,8,4,4
 447194,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,100,20,4,4,462.963,34645.5,252.551,34392.9,2026-11-03,41736850512,2026-11-08,20,4,16
 447196,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,100,24,4,4,540.541,28561.3,208.844,28352.5,2026-11-03,41736850512,2026-11-08,24,4,20
 447197,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,84,32,4,4,751.88,19684,144.25,19539.8,2026-11-03,41736850512,2026-11-08,32,4,28
 447195,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,56,36,8,8,970.874,12967.4,85.2989,12882.1,2026-11-03,41736850512,2026-11-08,36,4,32
-448352,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,576,40,8,8,277.778,92457.2,650.897,91806.3,2026-11-19,44598612534,2026-11-21,40,16,24
-448351,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,474,44,8,8,400,73532.2,521.7,73010.5,2026-11-19,44598612534,2026-11-21,44,12,32
-448350,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,334,48,8,8,568.182,46984.8,330.88,46654,2026-11-19,44598612534,2026-11-21,48,8,40
+448352,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,576,40,8,8,277.778,92457.2,650.897,91806.3,2026-11-19,,2026-11-21,40,16,24
+448351,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,474,44,8,8,400,73532.2,521.7,73010.5,2026-11-19,,2026-11-21,44,12,32
+448350,Muse-Spark-Open,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-trt,draft_model,mixed,true,fp4,334,48,8,8,568.182,46984.8,330.88,46654,2026-11-19,,2026-11-21,48,8,40
 432502,Qwen-3.5-397B-A17B,8k/1k,median_intvty,b200,B200,sglang,mtp,single-node,false,bf16,4,8,8,1,267.946,1042.27,115.913,926.362,2026-07-04,28719974515,2026-10-27,8,,
 432484,Qwen-3.5-397B-A17B,8k/1k,median_intvty,b200,B200,sglang,mtp,single-node,false,bf16,8,8,8,1,189.528,1513.11,170.053,1343.06,2026-07-04,28719974515,2026-10-27,8,,
 432497,Qwen-3.5-397B-A17B,8k/1k,median_intvty,b200,B200,sglang,mtp,single-node,false,bf16,16,8,8,1,143.726,2250.56,249.306,2001.25,2026-07-04,28719974515,2026-10-27,8,,
@@ -5071,15 +5242,15 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 438093,Qwen-3.5-397B-A17B,8k/1k,median_intvty,rtx6000pro,RTX PRO 6000,sglang,none,single-node,false,fp4,16,4,4,4,28.8961,976.786,108.234,868.552,2026-07-30,30252251058,2026-10-27,16,,
 438081,Qwen-3.5-397B-A17B,8k/1k,median_intvty,rtx6000pro,RTX PRO 6000,sglang,none,single-node,false,fp4,64,4,4,1,10.8167,1483.89,164.625,1319.27,2026-07-30,30252251058,2026-10-27,4,,
 438086,Qwen-3.5-397B-A17B,8k/1k,median_intvty,rtx6000pro,RTX PRO 6000,sglang,none,single-node,false,fp4,64,4,4,4,11.1052,1524.87,169.17,1355.69,2026-07-30,30252251058,2026-10-27,16,,
-444963,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,4,4,8,1,214.586,1773.05,197.183,1575.87,2026-10-12,38293412347,2026-10-27,4,,
-444964,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,8,4,8,1,155.633,2597.2,291.89,2305.31,2026-10-12,38293412347,2026-10-27,4,,
-444961,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,16,4,8,1,107.754,3645.56,403.837,3241.72,2026-10-12,38293412347,2026-10-27,4,,
-444962,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,32,4,8,1,70.1303,4817.25,538.543,4278.7,2026-10-12,38293412347,2026-10-27,4,,
-444960,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,64,4,1,1,50.6499,6600.91,732.102,5868.8,2026-10-12,38293412347,2026-10-27,4,,
-444957,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,128,4,1,1,35.2376,9155.28,1013.73,8141.54,2026-10-12,38293412347,2026-10-27,4,,
-444958,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,256,4,1,1,21.5674,11461.8,1273.73,10188,2026-10-12,38293412347,2026-10-27,4,,
-444959,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,512,4,1,1,14.1704,15213.2,1690.06,13523.1,2026-10-12,38293412347,2026-10-27,4,,
-444956,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,1024,4,1,1,7.56503,16710.3,1856.71,14853.5,2026-10-12,38293412347,2026-10-27,4,,
+444963,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,4,4,8,1,214.586,1773.05,197.183,1575.87,2026-10-12,,2026-10-27,4,,
+444964,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,8,4,8,1,155.633,2597.2,291.89,2305.31,2026-10-12,,2026-10-27,4,,
+444961,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,16,4,8,1,107.754,3645.56,403.837,3241.72,2026-10-12,,2026-10-27,4,,
+444962,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,32,4,8,1,70.1303,4817.25,538.543,4278.7,2026-10-12,,2026-10-27,4,,
+444960,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,64,4,1,1,50.6499,6600.91,732.102,5868.8,2026-10-12,,2026-10-27,4,,
+444957,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,128,4,1,1,35.2376,9155.28,1013.73,8141.54,2026-10-12,,2026-10-27,4,,
+444958,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,256,4,1,1,21.5674,11461.8,1273.73,10188,2026-10-12,,2026-10-27,4,,
+444959,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,512,4,1,1,14.1704,15213.2,1690.06,13523.1,2026-10-12,,2026-10-27,4,,
+444956,Qwen-3.5-397B-A17B,8k/1k,median_intvty,tpuv7,TPU7x,vllm,none,single-node,false,fp8,1024,4,1,1,7.56503,16710.3,1856.71,14853.5,2026-10-12,,2026-10-27,4,,
 445841,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,mtp,disagg,true,fp8,8,8,4,1,350.877,5653.52,56.1064,5597.41,2026-10-21,39009568068,2026-10-27,8,4,4
 445836,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,mtp,disagg,true,fp8,16,8,4,1,271.739,12443.5,106.201,12337.3,2026-10-21,39009568068,2026-10-27,8,4,4
 445837,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,b200,B200,dynamo-sglang,mtp,disagg,true,fp8,24,8,4,1,230.947,17501.8,145.557,17356.2,2026-10-21,39009568068,2026-10-27,8,4,4
@@ -5296,7 +5467,15 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 441351,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,44,2,2,1,442.478,25227.5,225.113,25002.3,2026-09-09,34345050756,2026-10-27,2,,
 441353,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,44,2,2,1,270.27,37527.7,361.413,37166.3,2026-09-09,34345050756,2026-10-27,2,,
 441360,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,7,8,8,1,518.135,4459.86,43.3917,4416.46,2026-09-09,34345050756,2026-10-27,8,,
+448638,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,12,8,1,1351.35,2309.11,20.4827,2288.63,2026-11-26,45762756396,2026-11-27,12,4,8
+448644,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,70,12,8,4,704.225,32167.6,346.139,31821.4,2026-11-26,45762756396,2026-11-27,12,4,8
+448639,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,100,12,8,4,621.118,45817.6,461.828,45355.8,2026-11-26,45762756396,2026-11-27,12,4,8
+448640,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,140,12,8,4,478.469,65517.8,625.158,64892.7,2026-11-26,45762756396,2026-11-27,12,4,8
+448641,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,190,12,8,4,401.606,88567.4,794.954,87772.5,2026-11-26,45762756396,2026-11-27,12,4,8
+448642,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,280,12,8,4,326.797,124139,1151.84,122987,2026-11-26,45762756396,2026-11-27,12,4,8
+448643,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,360,12,8,4,320.513,137864,1330.34,136534,2026-11-26,45762756396,2026-11-27,12,4,8
 441354,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,704,20,4,4,80.1925,131368,1266.3,130101,2026-09-09,34345050756,2026-10-27,20,12,8
+448645,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,890,20,4,4,111.359,180929,1714.46,179215,2026-11-26,45762756396,2026-11-27,20,12,8
 441361,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp4,565,28,4,4,149.925,87274.5,836.149,86438.4,2026-09-09,34345050756,2026-10-27,28,12,16
 444419,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp8,1,4,4,1,510.204,4617.65,49.8238,4567.83,2026-10-09,37833971361,2026-10-27,4,,
 444414,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-sglang,mtp,mixed,true,fp8,44,4,4,1,450.45,12265.2,109.584,12155.6,2026-10-09,37833971361,2026-10-27,4,,
@@ -5309,10 +5488,19 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 445209,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,38,3,2,2,333.333,63881.9,616.829,63265,2026-10-17,39016296529,2026-10-27,3,1,2
 445210,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,45,3,2,2,401.606,53827.6,526.513,53301.1,2026-10-17,39016296529,2026-10-27,3,1,2
 445211,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,48,3,2,2,330.033,72716.1,747.598,71968.5,2026-10-17,39016296529,2026-10-27,3,1,2
+448585,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,240,10,8,4,632.911,107803,982.783,106821,2026-11-26,44820012358,2026-11-27,10,2,8
 448068,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,28,12,8,4,775.194,14198.1,126.076,14072.1,2026-11-12,42930392197,2026-11-15,12,4,8
+448590,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,192,12,8,4,480.769,92821,835.844,91985.2,2026-11-26,44820012358,2026-11-27,12,4,8
 448070,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,224,12,8,4,375.94,104139,963.597,103176,2026-11-12,42930392197,2026-11-15,12,4,8
+448591,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,352,12,8,4,349.65,158939,1498.55,157441,2026-11-26,44820012358,2026-11-27,12,4,8
+448592,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,416,12,8,4,336.7,178002,1671.17,176331,2026-11-26,44820012358,2026-11-27,12,4,8
 448073,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,352,14,8,4,268.097,134128,1265.72,132863,2026-11-12,42930392197,2026-11-15,14,6,8
 448074,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,392,14,8,4,243.902,144993,1376.03,143617,2026-11-12,42930392197,2026-11-15,14,6,8
+448596,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,840,16,8,8,140.647,249158,2333.65,246825,2026-11-26,44820012358,2026-11-27,16,8,8
+448584,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,32,18,16,8,1612.9,8612.58,76.2275,8536.35,2026-11-26,44820012358,2026-11-27,18,2,16
+448587,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,48,18,8,4,1111.11,15282.9,154.084,15128.8,2026-11-26,44820012358,2026-11-27,18,2,16
+448588,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,96,18,8,4,1250,25212.1,260.34,24951.8,2026-11-26,44820012358,2026-11-27,18,2,16
+448586,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,200,18,8,4,990.099,57995.1,521.971,57473.1,2026-11-26,44820012358,2026-11-27,18,2,16
 448067,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,8,20,16,8,1562.5,2832.64,27.1663,2805.47,2026-11-12,42930392197,2026-11-15,20,4,16
 448066,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,16,20,16,8,1052.63,5405.45,45.6824,5359.77,2026-11-12,42930392197,2026-11-15,20,4,16
 445212,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,48,20,8,8,581.395,13009,131.465,12877.5,2026-10-17,39016296529,2026-10-27,20,4,16
@@ -5320,9 +5508,13 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 448071,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,176,20,8,4,606.061,50910.3,452.042,50458.3,2026-11-12,42930392197,2026-11-15,20,4,16
 445217,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,704,20,4,4,119.332,150859,1430.04,149428,2026-10-17,39016296529,2026-10-27,20,12,8
 448075,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,720,20,4,4,127.551,166436,1575.6,164860,2026-11-12,42930392197,2026-11-15,20,12,8
+448594,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,456,22,8,4,444.444,115815,1087.14,114728,2026-11-26,44820012358,2026-11-27,22,6,16
+448595,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,512,22,8,4,460.829,126322,1182.08,125140,2026-11-26,44820012358,2026-11-27,22,6,16
 448072,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,264,24,8,4,467.29,61969.1,569.792,61399.3,2026-11-12,42930392197,2026-11-15,24,8,16
+448593,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,384,28,8,4,869.565,72728.4,685.921,72042.4,2026-11-26,44820012358,2026-11-27,28,4,24
 445216,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,565,28,16,16,252.525,101206,949.828,100256,2026-10-17,39016296529,2026-10-27,28,12,16
 445215,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,136,32,8,8,571.429,20387.1,202.983,20184.1,2026-10-17,39016296529,2026-10-27,32,8,24
+448589,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,96,34,8,4,1449.28,14678.4,150.402,14528,2026-11-26,44820012358,2026-11-27,34,2,32
 445213,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,38,36,8,8,689.655,5290.77,50.9278,5239.84,2026-10-17,39016296529,2026-10-27,36,4,32
 445214,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,gb300,GB300 NVL72,dynamo-trt,mtp,disagg,true,fp4,38,36,8,8,591.716,5828.9,58.5218,5770.38,2026-10-17,39016296529,2026-10-27,36,4,32
 442311,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h100,H100,sglang,mtp,single-node,true,fp8,1,8,8,8,228.833,1805.68,19.2274,1786.45,2026-09-16,35032265950,2026-10-27,8,,
@@ -5336,24 +5528,39 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 442315,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h100,H100,sglang,mtp,single-node,true,fp8,16,8,8,8,53.5332,5208.34,47.229,5161.11,2026-09-16,35032265950,2026-10-27,8,,
 446826,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,8,4,4,4,109.769,9313.88,85.8935,9227.98,2026-10-28,40040595183,2026-11-02,4,,
 446825,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,12,4,4,4,68.3995,12805.1,120.881,12684.3,2026-10-28,40040595183,2026-11-02,4,,
+448623,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,12,4,4,4,74.4602,13131,122.579,13008.5,2026-11-26,45715126870,2026-11-27,4,,
+448627,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,1,8,8,1,456.621,2532.49,26.0927,2506.39,2026-11-26,45715126870,2026-11-27,8,,
 445681,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,2,8,8,1,251.889,2135.67,23.9307,2111.74,2026-10-21,37942837688,2026-10-27,8,,
 446832,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,2,8,8,1,250,2274.84,24.4174,2250.42,2026-10-28,40040595183,2026-11-02,8,,
+448630,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,2,8,8,1,264.55,2215.1,24.2243,2190.88,2026-11-26,45715126870,2026-11-27,8,,
 445682,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,4,8,8,1,188.679,2930.21,31.376,2898.83,2026-10-21,37942837688,2026-10-27,8,,
 446835,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,4,8,8,1,359.712,3594.58,37.6925,3556.89,2026-10-28,40040595183,2026-11-02,8,,
+448634,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,4,8,8,1,344.828,3619.58,38.2129,3581.36,2026-11-26,45715126870,2026-11-27,8,,
 445683,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,8,8,8,1,162.602,4836.39,45.99,4790.4,2026-10-21,37942837688,2026-10-27,8,,
 446836,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,8,8,8,1,287.356,5540.95,54.9837,5485.96,2026-10-28,40040595183,2026-11-02,8,,
+448637,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,8,8,8,1,361.011,5565.58,55.7331,5509.85,2026-11-26,45715126870,2026-11-27,8,,
 445676,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,10,8,8,1,129.366,5936.93,58.8328,5878.1,2026-10-21,37942837688,2026-10-27,8,,
 446827,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,10,8,8,1,128.866,6063.4,59.5806,6003.82,2026-10-28,40040595183,2026-11-02,8,,
+448624,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,10,8,8,1,132.45,6149.22,60.8489,6088.37,2026-11-26,45715126870,2026-11-27,8,,
 445677,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,12,8,8,1,112.108,7781.45,71.4219,7710.03,2026-10-21,37942837688,2026-10-27,8,,
 446828,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,12,8,8,1,217.865,9329.86,82.7601,9247.1,2026-10-28,40040595183,2026-11-02,8,,
+448625,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,12,8,8,1,322.581,9229.4,81.183,9148.22,2026-11-26,45715126870,2026-11-27,8,,
 445678,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,16,8,8,1,78.2473,9835.99,86.6367,9749.35,2026-10-21,37942837688,2026-10-27,8,,
 446829,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,16,8,8,1,79.3651,9910.11,87.2109,9822.9,2026-10-28,40040595183,2026-11-02,8,,
+448626,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,16,8,8,1,298.507,11681.5,100.843,11580.6,2026-11-26,45715126870,2026-11-27,8,,
 445679,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,20,8,8,1,69.735,11689,99.781,11589.3,2026-10-21,37942837688,2026-10-27,8,,
 446830,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,20,8,8,1,71.4796,11803.7,100.642,11703.1,2026-10-28,40040595183,2026-11-02,8,,
+448628,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,20,8,8,1,210.97,14533.5,122.577,14411,2026-11-26,45715126870,2026-11-27,8,,
 445680,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,24,8,8,1,51.7598,13477.5,109.838,13367.6,2026-10-21,37942837688,2026-10-27,8,,
 446831,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,24,8,8,1,127.226,17038.7,140.94,16897.8,2026-10-28,40040595183,2026-11-02,8,,
+448629,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,24,8,8,1,140.449,17132.1,141.577,16990.5,2026-11-26,45715126870,2026-11-27,8,,
 446833,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,32,8,8,1,85.4701,19284.4,170.809,19113.5,2026-10-28,40040595183,2026-11-02,8,,
+448631,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,32,8,8,1,86.4304,19369.8,171.706,19198.1,2026-11-26,45715126870,2026-11-27,8,,
+448632,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,40,8,8,1,85.9845,22420,213.125,22206.9,2026-11-26,45715126870,2026-11-27,8,,
 446834,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,48,8,8,1,38.2409,21046.8,208.446,20838.4,2026-10-28,40040595183,2026-11-02,8,,
+448633,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,48,8,8,1,40.4694,21101.2,209.3,20891.9,2026-11-26,45715126870,2026-11-27,8,,
+448635,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,56,8,8,1,49.456,25867.7,272.326,25595.4,2026-11-26,45715126870,2026-11-27,8,,
+448636,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,h200,H200,sglang,mtp,single-node,true,fp8,64,8,8,1,34.5066,26319.2,281.325,26037.8,2026-11-26,45715126870,2026-11-27,8,,
 439570,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi300x,MI300X,sglang,mtp,single-node,false,fp8,4,8,8,1,10.923,710.955,7.69606,703.259,2026-08-12,31565633094,2026-10-27,8,,
 439572,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi300x,MI300X,sglang,mtp,single-node,false,fp8,4,8,8,8,10.9469,712.629,7.71085,704.919,2026-08-12,31565633094,2026-10-27,64,,
 448165,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi300x,MI300X,sglang,mtp,single-node,false,fp8,4,8,8,1,198.02,2574.8,26.5179,2548.28,2026-11-17,43443278259,2026-11-21,8,,
@@ -5523,22 +5730,22 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 443807,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp8,80,4,4,1,29.2997,59233.1,654.01,58579.1,2026-10-01,36743632401,2026-10-27,4,,
 447835,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp8,80,4,4,1,32.144,60838.9,671.418,60167.5,2026-11-09,39763900198,2026-11-15,4,,
 448304,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp8,80,4,4,1,32.2581,60656.3,668.831,59987.4,2026-11-20,43037834183,2026-11-21,4,,
-447345,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,88,24,8,8,1063.83,18267.1,190.9,18076.2,2026-10-28,40744397059,2026-11-08,24,4,20
-447346,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,224,24,8,8,328.947,45408.5,428.265,44980.3,2026-10-28,40744397059,2026-11-08,24,8,16
-447347,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,208,28,8,8,625,35702.5,335.948,35366.5,2026-10-28,40744397059,2026-11-08,28,8,20
-447349,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,600,28,8,8,101.937,87177.8,827.85,86349.9,2026-10-28,40744397059,2026-11-08,28,16,12
-447348,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,368,32,8,8,219.298,53836.6,517.001,53319.6,2026-10-28,40744397059,2026-11-08,32,12,20
-444950,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,4,4,8,1,558.659,8450.22,88.6838,8361.53,2026-10-13,38439767277,2026-10-27,4,,
-444953,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,8,4,8,1,462.963,13175.6,129.899,13045.7,2026-10-13,38439767277,2026-10-27,4,,
-444945,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,12,4,8,1,400,20193.2,170.967,20022.3,2026-10-13,38439767277,2026-10-27,4,,
-444955,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,14,4,8,1,269.542,25188.6,217.012,24971.6,2026-10-13,38439767277,2026-10-27,4,,
-444949,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,16,4,8,1,286.533,25799.3,218.488,25580.9,2026-10-13,38439767277,2026-10-27,4,,
-444954,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,18,4,8,1,207.469,28769,239.795,28529.2,2026-10-13,38439767277,2026-10-27,4,,
-444951,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,20,4,8,1,188.324,31219.3,264.163,30955.1,2026-10-13,38439767277,2026-10-27,4,,
-444947,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,22,4,8,1,205.339,33907.4,277.241,33630.2,2026-10-13,38439767277,2026-10-27,4,,
-444946,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,24,4,8,1,170.068,35890.6,302.381,35588.2,2026-10-13,38439767277,2026-10-27,4,,
-444952,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,28,4,8,1,113.507,39565.6,344.882,39220.7,2026-10-13,38439767277,2026-10-27,4,,
-444948,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,32,4,8,1,81.2348,40362.5,361.173,40001.4,2026-10-13,38439767277,2026-10-27,4,,
+447345,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,88,24,8,8,1063.83,18267.1,190.9,18076.2,2026-10-28,,2026-11-08,24,4,20
+447346,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,224,24,8,8,328.947,45408.5,428.265,44980.3,2026-10-28,,2026-11-08,24,8,16
+447347,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,208,28,8,8,625,35702.5,335.948,35366.5,2026-10-28,,2026-11-08,28,8,20
+447349,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,600,28,8,8,101.937,87177.8,827.85,86349.9,2026-10-28,,2026-11-08,28,16,12
+447348,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,llmd-vllm,mtp,disagg,true,fp8,368,32,8,8,219.298,53836.6,517.001,53319.6,2026-10-28,,2026-11-08,32,12,20
+444950,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,4,4,8,1,558.659,8450.22,88.6838,8361.53,2026-10-13,,2026-10-27,4,,
+444953,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,8,4,8,1,462.963,13175.6,129.899,13045.7,2026-10-13,,2026-10-27,4,,
+444945,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,12,4,8,1,400,20193.2,170.967,20022.3,2026-10-13,,2026-10-27,4,,
+444955,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,14,4,8,1,269.542,25188.6,217.012,24971.6,2026-10-13,,2026-10-27,4,,
+444949,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,16,4,8,1,286.533,25799.3,218.488,25580.9,2026-10-13,,2026-10-27,4,,
+444954,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,18,4,8,1,207.469,28769,239.795,28529.2,2026-10-13,,2026-10-27,4,,
+444951,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,20,4,8,1,188.324,31219.3,264.163,30955.1,2026-10-13,,2026-10-27,4,,
+444947,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,22,4,8,1,205.339,33907.4,277.241,33630.2,2026-10-13,,2026-10-27,4,,
+444946,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,24,4,8,1,170.068,35890.6,302.381,35588.2,2026-10-13,,2026-10-27,4,,
+444952,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,28,4,8,1,113.507,39565.6,344.882,39220.7,2026-10-13,,2026-10-27,4,,
+444948,Qwen-3.5-397B-A17B,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,true,fp8,32,4,8,1,81.2348,40362.5,361.173,40001.4,2026-10-13,,2026-10-27,4,,
 442065,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,false,fp4,1,1,1,1,259.067,14445.1,159.676,14285.4,2026-09-15,34879996995,2026-10-27,1,,
 442063,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,false,fp4,4,1,1,1,180.505,23191.3,246.969,22944.3,2026-09-15,34879996995,2026-10-27,1,,
 442064,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,b200,B200,sglang,mtp,single-node,false,fp4,8,1,1,1,148.81,39051.6,370.675,38680.9,2026-09-15,34879996995,2026-10-27,1,,
@@ -5644,54 +5851,78 @@ point_id,model,sequence,x_field,hw_key,gpu,framework,spec_method,deployment,kv_o
 448358,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp4,48,1,1,1,31.4268,141932,1336.46,140596,2026-11-20,42979093771,2026-11-21,1,,
 447423,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp4,80,1,1,1,17.8508,165836,1852.82,163983,2026-11-06,41882345112,2026-11-08,1,,
 448360,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,mi355x,MI355X,sglang,mtp,single-node,true,fp4,80,1,1,1,17.9986,167751,1869.49,165882,2026-11-20,42979093771,2026-11-21,1,,
-448118,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,1,4,8,8,381.679,4699.29,50.1778,4649.11,2026-11-13,43381147452,2026-11-15,4,,
-448120,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,4,4,8,8,335.57,7051.09,73.8501,6977.24,2026-11-13,43381147452,2026-11-15,4,,
-448121,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,8,4,8,8,265.957,11035,109.96,10925,2026-11-13,43381147452,2026-11-15,4,,
-448117,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,16,4,8,8,143.885,24242.2,207.795,24034.5,2026-11-13,43381147452,2026-11-15,4,,
-448119,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,32,4,8,8,69.7837,38464.9,339.773,38125.1,2026-11-13,43381147452,2026-11-15,4,,
+448118,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,1,4,8,8,381.679,4699.29,50.1778,4649.11,2026-11-13,,2026-11-15,4,,
+448120,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,4,4,8,8,335.57,7051.09,73.8501,6977.24,2026-11-13,,2026-11-15,4,,
+448121,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,8,4,8,8,265.957,11035,109.96,10925,2026-11-13,,2026-11-15,4,,
+448117,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,16,4,8,8,143.885,24242.2,207.795,24034.5,2026-11-13,,2026-11-15,4,,
+448119,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,tpuv7,TPU7x,vllm,mtp,single-node,false,fp8,32,4,8,8,69.7837,38464.9,339.773,38125.1,2026-11-13,,2026-11-15,4,,
 446959,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,8,1,1,1,404.858,46783.2,471.313,46311.9,2026-10-30,40986632483,2026-11-02,1,,
 447441,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,10,1,1,1,408.163,66817.4,622.986,66194.4,2026-11-05,42112283389,2026-11-08,1,,
 447920,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,10,1,1,1,483.092,68477,635.813,67841.2,2026-11-10,42887996024,2026-11-15,1,,
+448554,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,10,1,1,1,473.934,68659,636.893,68022.1,2026-11-23,45253890766,2026-11-27,1,,
 447448,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,13,1,1,1,442.478,84864.1,723.445,84140.6,2026-11-05,42112283389,2026-11-08,1,,
 447923,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,13,1,1,1,432.9,93273.4,793.512,92479.9,2026-11-10,42887996024,2026-11-15,1,,
+448557,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,13,1,1,1,442.478,89191.2,754.286,88436.9,2026-11-23,45253890766,2026-11-27,1,,
 446955,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,16,1,1,1,344.828,101033,854.886,100178,2026-10-30,40986632483,2026-11-02,1,,
 446956,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,20,1,1,1,303.951,117782,983.378,116798,2026-10-30,40986632483,2026-11-02,1,,
 447451,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,22,1,1,1,354.61,134774,1099.03,133675,2026-11-05,42112283389,2026-11-08,1,,
 447928,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,22,1,1,1,476.19,134996,1103.94,133892,2026-11-10,42887996024,2026-11-15,1,,
 447929,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,22,1,1,1,355.872,136743,1113.14,135630,2026-11-10,42887996024,2026-11-15,1,,
+448562,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,22,1,1,1,471.698,133863,1093.69,132769,2026-11-23,45253890766,2026-11-27,1,,
+448563,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,22,1,1,1,353.357,136653,1114.98,135538,2026-11-23,45253890766,2026-11-27,1,,
 446957,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,24,1,1,1,265.252,135922,1122.06,134800,2026-10-30,40986632483,2026-11-02,1,,
 447930,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,28,1,1,1,303.951,160009,1403,158606,2026-11-10,42887996024,2026-11-15,1,,
 447931,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,28,1,1,1,404.858,157444,1383.96,156060,2026-11-10,42887996024,2026-11-15,1,,
+448564,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,28,1,1,1,305.81,160355,1403.75,158951,2026-11-23,45253890766,2026-11-27,1,,
+448565,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,28,1,1,1,406.504,157817,1390.05,156426,2026-11-23,45253890766,2026-11-27,1,,
 447932,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,404.858,161792,1434.81,160357,2026-11-10,42887996024,2026-11-15,1,,
 447933,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,364.964,163918,1454.49,162464,2026-11-10,42887996024,2026-11-15,1,,
 447934,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,390.625,163525,1453.21,162072,2026-11-10,42887996024,2026-11-15,1,,
+448566,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,406.504,162810,1439.65,161370,2026-11-23,45253890766,2026-11-27,1,,
+448567,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,387.597,163519,1447.77,162071,2026-11-23,45253890766,2026-11-27,1,,
+448568,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,30,1,1,1,361.011,164216,1456.03,162760,2026-11-23,45253890766,2026-11-27,1,,
 447935,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,32,1,1,1,389.105,165493,1489.22,164004,2026-11-10,42887996024,2026-11-15,1,,
+448569,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,32,1,1,1,390.625,165884,1490.7,164393,2026-11-23,45253890766,2026-11-27,1,,
 446958,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,86,1,1,1,36.8596,298881,3238.57,295642,2026-10-30,40986632483,2026-11-02,1,,
 444701,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,100,1,1,1,24.426,232230,2542.48,229688,2026-10-09,37999199026,2026-10-27,1,,
 447446,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,120,1,1,1,70.0771,471050,4783.99,466266,2026-11-05,42112283389,2026-11-08,1,,
 447921,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,128,1,1,1,101.42,542725,5486.28,537239,2026-11-10,42887996024,2026-11-15,1,,
 447922,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,128,1,1,1,133.511,532981,5359.61,527621,2026-11-10,42887996024,2026-11-15,1,,
+448555,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,128,1,1,1,100.402,541091,5467.11,535624,2026-11-23,45253890766,2026-11-27,1,,
+448556,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,128,1,1,1,135.135,537340,5385,531955,2026-11-23,45253890766,2026-11-27,1,,
 447924,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,144,1,1,1,115.473,597075,5967.57,591107,2026-11-10,42887996024,2026-11-15,1,,
+448558,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,144,1,1,1,115.741,602602,6069.96,596532,2026-11-23,45253890766,2026-11-27,1,,
 447925,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,160,1,1,1,93.2836,626114,6097.26,620017,2026-11-10,42887996024,2026-11-15,1,,
 447926,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,160,1,1,1,106.838,625101,6076.16,619025,2026-11-10,42887996024,2026-11-15,1,,
+448559,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,160,1,1,1,93.0233,629269,6132.85,623136,2026-11-23,45253890766,2026-11-27,1,,
+448560,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,160,1,1,1,107.875,628423,6095.26,622328,2026-11-23,45253890766,2026-11-27,1,,
 447927,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,176,1,1,1,91.9963,629084,5979.52,623105,2026-11-10,42887996024,2026-11-15,1,,
+448561,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,176,1,1,1,93.0233,632892,5988.75,626904,2026-11-23,45253890766,2026-11-27,1,,
 444702,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,2,1,1,392.157,9407.47,100.49,9306.98,2026-10-09,37999199026,2026-10-27,2,1,1
+448570,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,160,3,1,1,255.754,272297,2521.46,269775,2026-11-23,45253890766,2026-11-27,3,1,2
 447454,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,176,3,1,1,207.469,227681,2099.37,225581,2026-11-05,42112283389,2026-11-08,3,1,2
 447936,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,176,3,1,1,205.339,231300,2131.8,229168,2026-11-10,42887996024,2026-11-15,3,1,2
 446961,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,694.444,5994.05,57.3665,5936.68,2026-10-30,40986632483,2026-11-02,4,,
 447456,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,704.225,6119.86,57.714,6062.15,2026-11-05,42112283389,2026-11-08,4,,
 447937,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,709.22,6280.89,57.8835,6223,2026-11-10,42887996024,2026-11-15,4,,
+448571,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,4,4,1,714.286,5943.25,57.2608,5885.99,2026-11-23,45253890766,2026-11-27,4,,
 444703,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,48,4,1,1,271.003,62104.3,624.415,61479.9,2026-10-09,37999199026,2026-10-27,4,1,3
 446960,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,48,4,1,1,320.513,63601.5,637.255,62964.3,2026-10-30,40986632483,2026-11-02,4,1,3
 447457,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,336,4,1,1,135.87,317890,3051.96,314838,2026-11-05,42112283389,2026-11-08,4,2,2
 447938,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,336,4,1,1,136.426,323684,3099.55,320585,2026-11-10,42887996024,2026-11-15,4,2,2
 447939,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,352,4,1,1,178.891,423488,4007.48,419481,2026-11-10,42887996024,2026-11-15,4,2,2
 447940,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,352,4,1,1,177.936,421036,3988.67,417047,2026-11-10,42887996024,2026-11-15,4,2,2
+448572,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,352,4,1,1,178.571,421600,3988.81,417611,2026-11-23,45253890766,2026-11-27,4,2,2
+448573,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,352,4,1,1,179.211,422552,3997.73,418555,2026-11-23,45253890766,2026-11-27,4,2,2
 447941,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,416,4,1,1,166.667,488762,4652.55,484109,2026-11-10,42887996024,2026-11-15,4,2,2
+448574,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,416,4,1,1,168.35,494382,4684.36,489697,2026-11-23,45253890766,2026-11-27,4,2,2
 447942,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,432,4,1,1,164.745,494879,4689.98,490189,2026-11-10,42887996024,2026-11-15,4,2,2
+448575,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,432,4,1,1,168.067,495087,4679.68,490407,2026-11-23,45253890766,2026-11-27,4,2,2
 444698,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,1,5,4,1,429.185,3953.14,40.8281,3912.31,2026-10-09,37999199026,2026-10-27,5,1,4
 444699,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,240,5,1,1,173.01,136300,1349.12,134951,2026-10-09,37999199026,2026-10-27,5,2,3
 446962,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,240,5,1,1,119.332,223887,2092.61,221794,2026-10-30,40986632483,2026-11-02,5,2,3
+448576,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,320,5,1,1,238.095,328857,3088.54,325768,2026-11-23,45253890766,2026-11-27,5,2,3
+448577,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,416,5,1,1,216.92,409126,3855.36,405271,2026-11-23,45253890766,2026-11-27,5,2,3
 444700,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,288,6,1,1,130.039,191399,1850.71,189548,2026-10-09,37999199026,2026-10-27,6,3,3
 446963,Qwen3.8-Flash-Next,agentic-traces,p90_intvty,vr200,Vera Rubin NVL72,dynamo-sglang,mtp,mixed,true,fp4,288,6,1,1,110.619,223707,2086.69,221620,2026-10-30,40986632483,2026-11-02,6,3,3
 412099,gpt-oss-120b,8k/1k,median_intvty,b200,B200,trt,none,single-node,false,fp4,4,1,1,1,291.788,9888.9,1100.06,8788.84,2026-05-18,26016885799,2026-10-27,1,,

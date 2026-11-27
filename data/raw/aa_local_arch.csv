@@ -188,3 +188,4 @@ LFM3-VL-2B,LiquidAI/LFM3-VL-2B,gqa,24,,,4.0,128.0,256.0,6.0,1.918,2026-11-18,sli
 Tencent Hy4,tencent/Hy4,mla,78,512.0,64.0,,,,,774.434,2026-11-20,
 Inkling 2 Mini,thinkingmachines/Inkling-2-Mini,gqa,24,,,8.0,128.0,,,26.389,2026-11-20,
 GLM-5.3-Flash (Max),zai-org/GLM-5.3-Flash,mla,45,512.0,0.0,,,,,321.323,2026-11-24,
+ERNIE 5.5 Flash Preview,baidu/ERNIE-5.5-Flash-Preview,mla,43,512.0,64.0,,,,,299.559,2026-11-27,

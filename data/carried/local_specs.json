@@ -426,6 +426,13 @@
   "licenseName": "Apache 2.0",
   "parameters": 300.0
  },
+ "ernie-5-5-flash": {
+  "inferenceParametersActiveBillions": 14.0,
+  "inputModalityImage": false,
+  "inputModalitySpeech": false,
+  "licenseName": "Apache 2.0",
+  "parameters": 280.0
+ },
  "exaone-4-0-1-2b": {
   "inferenceParametersActiveBillions": null,
   "inputModalityImage": false,

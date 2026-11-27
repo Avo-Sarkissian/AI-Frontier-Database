@@ -13,4 +13,5 @@ observed_on,hw_key,label,vendor,arch,tdp_w,cost_own_usd_per_chip_hr,cost_rent_us
 2026-10-27,mi355x,MI355X,AMD,CDNA 4,1400,1.5,2.9
 2026-10-27,rtx6000pro,RTX PRO 6000,NVIDIA,Blackwell,600,0.68,0.52
 2026-10-27,tpuv7,TPU7x,Google,Ironwood,980,1.21,2
+2026-11-27,trn3,Trainium3 PDS,AWS,Trainium3,9.99,1.05,1.05
 2026-10-27,vr200,Vera Rubin NVL72,NVIDIA,Vera Rubin,1800,3.61,8.5
